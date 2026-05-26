@@ -25,7 +25,7 @@ flowchart LR
 
     subgraph external [External APIs]
         Places[Google Places]
-        Claude[Anthropic]
+        Claude[OpenRouter / Anthropic]
         CF[Cloudflare Browser Rendering]
     end
 
@@ -58,7 +58,7 @@ Before connecting the repo to Laravel Cloud:
 - [ ] `composer.json` / `composer.lock` committed
 - [ ] `package-lock.json` committed (root + `scripts/`)
 - [ ] Google Places API key with Places API (New) enabled
-- [ ] Anthropic API key
+- [ ] OpenRouter API key (Anthropic models)
 - [ ] Cloudflare account (optional now, needed for Browser Rendering fallback)
 - [ ] First admin user seeder or registration flow ready
 - [ ] Horizon gate: add your email in `app/Providers/HorizonServiceProvider.php` before production deploy
@@ -232,8 +232,8 @@ Cloud sets `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_BUCKET`, `AWS_ENDP
 
 ```env
 GOOGLE_PLACES_API_KEY=
-ANTHROPIC_API_KEY=
-ANTHROPIC_MODEL=claude-sonnet-4-20250514
+OPENROUTER_API_KEY=
+OPENROUTER_MODEL=anthropic/claude-sonnet-4
 ```
 
 ### Scanner behaviour
@@ -314,7 +314,7 @@ ls -la /tmp/ss-test
 
 ### End-to-end in the app
 
-1. Log in, open **Settings** — all three health checks green (Places, Anthropic, storage).
+1. Log in, open **Settings** — all three health checks green (Places, OpenRouter/Anthropic, storage).
 2. Run a small search (1–2 results).
 3. Wait for pipeline: scoring → audit → combine → report → screenshot.
 4. Open prospect detail and public report link — verify grade, violations, desktop screenshot.
@@ -567,8 +567,8 @@ SESSION_DRIVER=redis
 REPORTS_DISK=s3
 
 GOOGLE_PLACES_API_KEY=
-ANTHROPIC_API_KEY=
-ANTHROPIC_MODEL=claude-sonnet-4-20250514
+OPENROUTER_API_KEY=
+OPENROUTER_MODEL=anthropic/claude-sonnet-4
 
 HORIZON_PREFIX=nth-scanner
 REPORT_BOOKING_URL=

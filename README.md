@@ -5,7 +5,7 @@ Internal tool to discover local businesses via Google Places, score GBP and webs
 ## Stack
 
 - Laravel 13, Breeze (Inertia + React), Horizon, Redis, PostgreSQL
-- Google Places API (New), Playwright + axe-core, Lighthouse (optional), Anthropic API
+- Google Places API (New), Playwright + axe-core, Lighthouse (optional), OpenRouter (Anthropic models)
 
 ## Setup
 
@@ -34,7 +34,8 @@ Configure `.env`:
 | Variable | Purpose |
 |----------|---------|
 | `GOOGLE_PLACES_API_KEY` | Business discovery + benchmarks |
-| `ANTHROPIC_API_KEY` | Outreach email generation |
+| `OPENROUTER_API_KEY` | Outreach email generation (Anthropic models via OpenRouter) |
+| `OPENROUTER_MODEL` | Model slug, e.g. `anthropic/claude-sonnet-4` |
 | `QUEUE_CONNECTION=redis` | Job queues |
 | `AUDIT_SCRIPT_PATH` | Path to `scripts/audit.js` |
 | `REPORT_BOOKING_URL` | CTA on public reports |

@@ -47,13 +47,15 @@ class ApiHealthService
      */
     public function checkAnthropic(): array
     {
-        $key = config('services.anthropic.key', '');
+        $key = config('services.openrouter.key', '');
 
         if ($key === '') {
-            return ['ok' => false, 'message' => 'ANTHROPIC_API_KEY is not set'];
+            return ['ok' => false, 'message' => 'OPENROUTER_API_KEY is not set'];
         }
 
-        return ['ok' => true, 'message' => 'API key configured'];
+        $model = config('services.openrouter.model', 'anthropic/claude-sonnet-4');
+
+        return ['ok' => true, 'message' => "OpenRouter configured ({$model})"];
     }
 
     /**

@@ -39,9 +39,10 @@ return [
         'key' => env('GOOGLE_PLACES_API_KEY'),
     ],
 
-    'anthropic' => [
-        'key'   => env('ANTHROPIC_API_KEY'),
-        'model' => env('ANTHROPIC_MODEL', 'claude-sonnet-4-20250514'),
+    'openrouter' => [
+        'key'      => env('OPENROUTER_API_KEY'),
+        'model'    => env('OPENROUTER_MODEL', 'anthropic/claude-sonnet-4'),
+        'base_url' => rtrim(env('OPENROUTER_BASE_URL', 'https://openrouter.ai/api/v1'), '/'),
     ],
 
     'cloudflare' => [
