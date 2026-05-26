@@ -10,8 +10,11 @@ export default function PublicReport({ report }) {
     const combined = report.combined_score ?? 0;
     const grade = report.grade ?? 'C';
     const color = gradeColor(combined);
-    const perf = report.performance_score ?? lighthouse.performance;
     const hasA11y = (summary.total ?? 0) > 0 || (report.top_violations?.length ?? 0) > 0;
+    const hasLighthouse = lighthouse.performance != null
+        || lighthouse.accessibility != null
+        || lighthouse.seo != null
+        || lighthouse.best_practices != null;
     const hasGbp = benchmark != null;
 
     return (
@@ -142,7 +145,7 @@ export default function PublicReport({ report }) {
                         </section>
                     )}
 
-                    {(lighthouse.performance != null || lighthouse.seo != null) && (
+                    {hasLighthouse && (
                         <section style={{ padding: '72px 80px', borderBottom: '1px solid var(--color-line)' }}>
                             <div className="eyebrow" style={{ marginBottom: 10 }}>Section 3 · Site performance</div>
                             <h2 style={{
@@ -158,23 +161,15 @@ export default function PublicReport({ report }) {
                             <p style={{ color: 'var(--color-stone-600)', fontSize: 15, lineHeight: 1.6, maxWidth: 620, margin: '0 0 36px' }}>
                                 Measured via Google Lighthouse on a mid-range mobile connection. Below 50 in any dial is where Google starts penalising the site in mobile search.
                             </p>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 32 }}>
-                                {lighthouse.performance != null && <PerfDial label="Performance" value={lighthouse.performance} />}
-                                {lighthouse.seo != null && <PerfDial label="SEO" value={lighthouse.seo} />}
-                                {lighthouse.best_practices != null && <PerfDial label="Best practices" value={lighthouse.best_practices} />}
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-8">
+                                {lighthouse.performance != null && <LighthouseDial label="Performance" score={lighthouse.performance} />}
+                                {lighthouse.accessibility != null && <LighthouseDial label="Accessibility" score={lighthouse.accessibility} />}
+                                {lighthouse.seo != null && <LighthouseDial label="SEO" score={lighthouse.seo} />}
+                                {lighthouse.best_practices != null && <LighthouseDial label="Best practices" score={lighthouse.best_practices} />}
                             </div>
-                            {perf != null && perf < 30 && (
-                                <p style={{
-                                    marginTop: 36,
-                                    paddingTop: 28,
-                                    borderTop: '1px solid var(--color-line)',
-                                    fontFamily: 'var(--font-serif)',
-                                    fontSize: 19,
-                                    lineHeight: 1.55,
-                                    color: 'var(--color-stone-700)',
-                                    maxWidth: 640,
-                                }}>
-                                    This site loads slowly on mobile. Google's research shows that pages taking over 3 seconds to load lose approximately half their visitors before the first interaction.
+                            {lighthouse.performance != null && lighthouse.performance < 30 && (
+                                <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mt-4">
+                                    Slow load times affect search rankings and increase bounce rate — visitors often leave before the page finishes loading.
                                 </p>
                             )}
                         </section>
@@ -270,6 +265,14 @@ function ViolationCard({ violation: v, index, screenshotUrl }) {
                 {v.help && v.help !== v.description && (
                     <p style={{ fontSize: 14, color: 'var(--color-stone-600)', lineHeight: 1.6, margin: '0 0 14px' }}>{v.help}</p>
                 )}
+                {v.user_impact && (
+                    <p style={{ fontSize: 14, color: 'var(--color-stone-600)', lineHeight: 1.6, margin: '8px 0 0' }}>{v.user_impact}</p>
+                )}
+                {v.fix_hint && (
+                    <p style={{ fontSize: 14, color: 'var(--color-accent-deep)', lineHeight: 1.6, margin: '4px 0 0' }}>
+                        <strong style={{ fontWeight: 500 }}>Fix:</strong> {v.fix_hint}
+                    </p>
+                )}
                 {v.fix && (
                     <div style={{
                         borderLeft: '3px solid var(--color-accent)',
@@ -292,6 +295,8 @@ function ComparisonTable({ businessName, you, benchmark }) {
         { label: 'Reviews', you: you.review_count ?? 0, them: benchmark.review_count },
         { label: 'Photos', you: you.photo_count ?? 0, them: benchmark.photo_count },
         { label: 'Rating', you: you.rating ?? '—', them: benchmark.rating ?? '—' },
+        { label: 'Description', you: you.has_description ? 'Yes' : 'No', them: (benchmark.has_description ?? false) ? 'Yes' : 'No' },
+        { label: 'Hours', you: you.hours_complete ? 'Complete' : 'Incomplete', them: (benchmark.hours_complete ?? false) ? 'Complete' : 'Incomplete' },
     ];
 
     return (
@@ -318,10 +323,10 @@ function ComparisonTable({ businessName, you, benchmark }) {
     );
 }
 
-function PerfDial({ label, value }) {
-    const color = value < 50 ? 'var(--color-sev-critical)' : value < 70 ? 'var(--color-sev-serious)' : 'var(--color-positive)';
+function LighthouseDial({ label, score }) {
+    const color = score < 50 ? 'var(--color-sev-critical)' : score < 70 ? 'var(--color-sev-serious)' : 'var(--color-positive)';
     const circumference = 2 * Math.PI * 45;
-    const offset = circumference - (value / 100) * circumference;
+    const offset = circumference - (score / 100) * circumference;
 
     return (
         <div style={{ textAlign: 'center' }}>
@@ -339,7 +344,7 @@ function PerfDial({ label, value }) {
                     strokeLinecap="round"
                     transform="rotate(-90 60 60)"
                 />
-                <text x="60" y="58" textAnchor="middle" fontFamily="var(--font-serif)" fontSize="28" fill={color}>{value}</text>
+                <text x="60" y="58" textAnchor="middle" fontFamily="var(--font-serif)" fontSize="28" fill={color}>{score}</text>
                 <text x="60" y="78" textAnchor="middle" fontFamily="var(--font-mono)" fontSize="9" fill="var(--color-stone-500)">{label}</text>
             </svg>
         </div>
