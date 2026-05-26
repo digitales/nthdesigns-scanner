@@ -25,7 +25,7 @@ class CombineScoresService
                 'combined_score' => $a11y,
                 'dominant_angle' => 'accessibility',
             ],
-            'combined' => $this->combineBoth($gbp, $a11y),
+            'combined' => $this->combineBoth($gbp, $a11y, (int) $prospect->performance_score),
             default => [
                 'combined_score' => $gbp,
                 'dominant_angle' => 'gbp',
@@ -33,19 +33,27 @@ class CombineScoresService
         };
     }
 
+    public function performanceWeakness(int $performanceScore): int
+    {
+        return $performanceScore > 0 ? 100 - $performanceScore : 0;
+    }
+
     /**
      * @return array{combined_score: int, dominant_angle: string}
      */
-    private function combineBoth(int $gbp, int $a11y): array
+    private function combineBoth(int $gbp, int $a11y, int $performanceScore): array
     {
-        $combined = (int) round(($gbp + $a11y) / 2);
+        $perfWeakness = $this->performanceWeakness($performanceScore);
+
+        $combined = (int) round(
+            ($gbp * 0.35) + ($a11y * 0.50) + ($perfWeakness * 0.15)
+        );
 
         $dominant = 'both';
-
-        if ($gbp >= $a11y + 15) {
-            $dominant = 'gbp';
-        } elseif ($a11y >= $gbp + 15) {
+        if ($a11y > 70) {
             $dominant = 'accessibility';
+        } elseif ($gbp > 70) {
+            $dominant = 'gbp';
         }
 
         return [

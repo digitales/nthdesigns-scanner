@@ -159,9 +159,9 @@ export default function SearchShow({ search, prospects, outreachProspectIds = []
                                         <>
                                             <th style={{ width: '6%' }}>GBP</th>
                                             <th style={{ width: '6%' }}>A11y</th>
+                                            <th style={{ width: '6%' }}>Perf</th>
                                         </>
                                     )}
-                                    <th style={{ width: '8%' }}>Perf</th>
                                     <th style={{ width: '11%' }}>Angle</th>
                                     <th style={{ width: '14%' }}>Report status</th>
                                     <th style={{ width: '14%', textAlign: 'right' }}>Actions</th>
@@ -183,7 +183,7 @@ export default function SearchShow({ search, prospects, outreachProspectIds = []
                                 {isRunning &&
                                     Array.from({ length: Math.max(0, 3) }).map((_, i) => (
                                         <tr key={`skel-${i}`}>
-                                            <td colSpan={showA11y ? 9 : 7} style={{ padding: '14px 20px' }}>
+                                            <td colSpan={showA11y ? 9 : 6} style={{ padding: '14px 20px' }}>
                                                 <span className="skel" style={{ width: '60%', display: 'block' }} />
                                             </td>
                                         </tr>
@@ -249,19 +249,11 @@ function ProspectRow({
                     <>
                         <td className="num">{p.gbp_score ?? '—'}</td>
                         <td className="num">{p.a11y_score ?? '—'}</td>
+                        <td className="num">
+                            <PerfScore value={p.performance_score} auditStatus={p.audit_status} />
+                        </td>
                     </>
                 )}
-                <td>
-                    {isPending || isFailed ? (
-                        <span className="num">—</span>
-                    ) : (
-                        <ScoreBadge
-                            value={p.performance_score}
-                            withBar={false}
-                            weakPip={p.performance_score != null && p.performance_score < 30}
-                        />
-                    )}
-                </td>
                 <td>
                     <AnglePill angle={p.dominant_angle} />
                 </td>
@@ -322,7 +314,7 @@ function ProspectRow({
             </tr>
             {isExpanded && (
                 <tr className="expanded-row">
-                    <td colSpan={showA11y ? 9 : 7}>
+                    <td colSpan={showA11y ? 9 : 6}>
                         <div className="ex-inner">
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
                                 <div>
@@ -366,5 +358,22 @@ function ProspectRow({
                 </tr>
             )}
         </Fragment>
+    );
+}
+
+function PerfScore({ value, auditStatus: _auditStatus }) {
+    if (!value || value === 0) {
+        return '—';
+    }
+
+    const color =
+        value < 50 ? 'var(--color-sev-critical)' :
+        value < 70 ? 'var(--color-sev-serious)' :
+                     'var(--color-positive)';
+
+    return (
+        <span className="tabular" style={{ color, fontWeight: 500 }}>
+            {value}
+        </span>
     );
 }

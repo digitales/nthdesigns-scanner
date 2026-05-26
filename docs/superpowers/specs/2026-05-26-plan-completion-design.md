@@ -1,7 +1,7 @@
 # Plan completion — Design Spec
 
 **Date:** 2026-05-26  
-**Status:** Approved — pending spec file review  
+**Status:** Implemented  
 **Scope:** Close remaining gaps from `docs/concept/nthdesigns-prospect-scanner-plan.md`: Phase 6 hardening, Phase 7 performance signal, plan-faithful scoring, public report polish.
 
 **Approach:** Plan-faithful scoring (single coherent slice). Skip the plan’s “4 weeks internal use” gate for Phase 7.

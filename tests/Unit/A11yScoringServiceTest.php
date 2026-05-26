@@ -50,7 +50,7 @@ class A11yScoringServiceTest extends TestCase
         $this->assertContains('Site audit failed to load', $result['flags']);
     }
 
-    public function test_low_performance_adds_points(): void
+    public function test_low_lighthouse_performance_alone_does_not_add_score(): void
     {
         $payload = [
             'violations' => [],
@@ -59,6 +59,7 @@ class A11yScoringServiceTest extends TestCase
 
         $result = $this->service->score($payload);
 
-        $this->assertContains('Performance score below 50', $result['flags']);
+        $this->assertSame(0, $result['score']);
+        $this->assertNotContains('Performance score below 50', $result['flags']);
     }
 }

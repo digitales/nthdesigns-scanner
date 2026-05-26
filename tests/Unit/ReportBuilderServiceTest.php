@@ -137,4 +137,79 @@ class ReportBuilderServiceTest extends TestCase
         $this->assertNull($report['benchmark']);
         $this->assertEmpty($report['comparison']);
     }
+
+    public function test_top_violations_include_user_impact_and_fix_hint(): void
+    {
+        $search = new Search(['niche' => 'test', 'city' => 'Leeds', 'country' => 'GB', 'scan_type' => 'combined']);
+        $prospect = new Prospect([
+            'business_name' => 'Acme',
+            'combined_score' => 80,
+            'raw_a11y_payload' => [
+                'violations' => [
+                    [
+                        'id' => 'color-contrast',
+                        'impact' => 'critical',
+                        'description' => 'Contrast fail',
+                        'nodes' => [1],
+                    ],
+                ],
+            ],
+        ]);
+        $prospect->setRelation('search', $search);
+
+        $report = $this->service->build($prospect, null);
+
+        $this->assertArrayHasKey('user_impact', $report['top_violations'][0]);
+        $this->assertArrayHasKey('fix_hint', $report['top_violations'][0]);
+        $this->assertStringContainsString('contrast', strtolower($report['top_violations'][0]['fix_hint']));
+    }
+
+    public function test_lighthouse_includes_best_practices(): void
+    {
+        $search = new Search(['niche' => 'test', 'city' => 'Leeds', 'country' => 'GB', 'scan_type' => 'combined']);
+        $prospect = new Prospect([
+            'business_name' => 'Acme',
+            'combined_score' => 50,
+            'raw_lighthouse_payload' => [
+                'performance' => 50,
+                'best_practices' => 88,
+            ],
+        ]);
+        $prospect->setRelation('search', $search);
+
+        $report = $this->service->build($prospect, null);
+
+        $this->assertSame(88, $report['lighthouse']['best_practices']);
+    }
+
+    public function test_benchmark_includes_description_and_hours(): void
+    {
+        $search = new Search(['niche' => 'dental', 'city' => 'Birmingham', 'country' => 'GB', 'scan_type' => 'combined']);
+        $prospect = new Prospect([
+            'business_name' => 'Test Dental',
+            'has_description' => false,
+            'hours_complete' => true,
+            'review_count' => 5,
+            'photo_count' => 1,
+            'combined_score' => 70,
+        ]);
+        $prospect->setRelation('search', $search);
+
+        $benchmark = [
+            'id' => 'places/1',
+            'displayName' => ['text' => 'Top Dental'],
+            'rating' => 4.9,
+            'userRatingCount' => 100,
+            'photos' => array_fill(0, 10, []),
+            'editorialSummary' => ['text' => 'A great practice'],
+            'regularOpeningHours' => ['periods' => [['open' => '0900']]],
+        ];
+
+        $report = $this->service->build($prospect, $benchmark);
+
+        $this->assertFalse($report['prospect']['has_description']);
+        $this->assertTrue($report['prospect']['hours_complete']);
+        $this->assertTrue($report['benchmark']['has_description']);
+        $this->assertTrue($report['benchmark']['hours_complete']);
+    }
 }

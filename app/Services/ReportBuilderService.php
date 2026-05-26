@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Prospect;
+use App\Support\AxeViolationCopy;
 
 class ReportBuilderService
 {
@@ -22,11 +23,13 @@ class ReportBuilderService
 
         if ($benchmarkPlace) {
             $benchmark = [
-                'place_id'     => $benchmarkPlace['id'] ?? null,
-                'name'         => $benchmarkPlace['displayName']['text'] ?? 'Top local competitor',
-                'rating'       => $benchmarkPlace['rating'] ?? null,
-                'review_count' => $benchmarkPlace['userRatingCount'] ?? 0,
-                'photo_count'  => count($benchmarkPlace['photos'] ?? []),
+                'place_id'        => $benchmarkPlace['id'] ?? null,
+                'name'            => $benchmarkPlace['displayName']['text'] ?? 'Top local competitor',
+                'rating'          => $benchmarkPlace['rating'] ?? null,
+                'review_count'    => $benchmarkPlace['userRatingCount'] ?? 0,
+                'photo_count'     => count($benchmarkPlace['photos'] ?? []),
+                'has_description' => ! empty($benchmarkPlace['editorialSummary']['text'] ?? null),
+                'hours_complete'  => ! empty($benchmarkPlace['regularOpeningHours']['periods'] ?? null),
             ];
         }
 
@@ -156,6 +159,7 @@ class ReportBuilderService
             $tags = $violation['tags'] ?? [];
             $wcag = collect($tags)->first(fn ($tag) => preg_match('/^wcag\d+/', (string) $tag));
             $id = $violation['id'] ?? 'issue';
+            $copy = AxeViolationCopy::forRule($id);
 
             return [
                 'id'             => $id,
@@ -165,6 +169,8 @@ class ReportBuilderService
                 'wcag'           => $wcag ? strtoupper($wcag) : null,
                 'nodes'          => count($violation['nodes'] ?? []),
                 'screenshot_url' => $screenshotMap->get($id)['url'] ?? null,
+                'user_impact'    => $copy['user_impact'],
+                'fix_hint'       => $copy['fix_hint'],
             ];
         }, $top);
     }
@@ -172,16 +178,17 @@ class ReportBuilderService
     /**
      * @param  array<string, mixed>  $lighthousePayload
      * @param  array<string, mixed>  $a11yPayload
-     * @return array{performance: int|null, accessibility: int|null, seo: int|null}
+     * @return array{performance: int|null, accessibility: int|null, seo: int|null, best_practices: int|null}
      */
     public function extractLighthouse(array $lighthousePayload, array $a11yPayload): array
     {
         $lh = $lighthousePayload['lighthouse'] ?? $lighthousePayload ?? $a11yPayload['lighthouse'] ?? [];
 
         return [
-            'performance'    => isset($lh['performance']) ? (int) $lh['performance'] : null,
-            'accessibility'  => isset($lh['accessibility']) ? (int) $lh['accessibility'] : null,
-            'seo'            => isset($lh['seo']) ? (int) $lh['seo'] : null,
+            'performance'     => isset($lh['performance']) ? (int) $lh['performance'] : null,
+            'accessibility'   => isset($lh['accessibility']) ? (int) $lh['accessibility'] : null,
+            'seo'             => isset($lh['seo']) ? (int) $lh['seo'] : null,
+            'best_practices'  => isset($lh['best_practices']) ? (int) $lh['best_practices'] : null,
         ];
     }
 }
