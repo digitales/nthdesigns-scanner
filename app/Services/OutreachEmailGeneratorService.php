@@ -1,0 +1,115 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\Prospect;
+use App\Models\ProspectReport;
+
+class OutreachEmailGeneratorService
+{
+    public function __construct(
+        private AnthropicService $anthropic,
+    ) {}
+
+    /**
+     * @return array{subject_line: string, email_body: string, model_used: string, prompt_tokens: int, completion_tokens: int, pitch_angle: string}
+     */
+    public function generate(Prospect $prospect, ?ProspectReport $report = null): array
+    {
+        $pitchAngle = $this->resolvePitchAngle($prospect);
+        $reportUrl = $report
+            ? url('/r/'.$report->token)
+            : null;
+
+        $system = <<<'PROMPT'
+You write concise, professional cold outreach emails for nthdesigns, a UK agency helping local businesses improve their Google Business Profile and website accessibility.
+
+Rules:
+- British English spelling
+- No hype or spam phrases
+- Under 180 words for the body
+- One clear call-to-action
+- Return ONLY valid JSON with keys: subject_line, email_body
+PROMPT;
+
+        $user = $this->buildUserPrompt($prospect, $pitchAngle, $reportUrl);
+
+        $result = $this->anthropic->complete($system, $user);
+        $parsed = $this->parseResponse($result['content']);
+
+        return [
+            'subject_line'       => $parsed['subject_line'],
+            'email_body'         => $parsed['email_body'],
+            'model_used'         => $result['model'],
+            'prompt_tokens'      => $result['prompt_tokens'],
+            'completion_tokens'  => $result['completion_tokens'],
+            'pitch_angle'        => $pitchAngle,
+        ];
+    }
+
+    private function resolvePitchAngle(Prospect $prospect): string
+    {
+        return match ($prospect->dominant_angle) {
+            'accessibility' => 'accessibility',
+            'both'          => 'combined',
+            default         => 'gbp',
+        };
+    }
+
+    private function buildUserPrompt(Prospect $prospect, string $pitchAngle, ?string $reportUrl): string
+    {
+        $search = $prospect->search;
+        $flags = array_merge($prospect->gbp_flags ?? [], $prospect->a11y_flags ?? []);
+
+        $lines = [
+            "Write an outreach email for this prospect.",
+            "Business: {$prospect->business_name}",
+            "Location: {$search->city}, {$search->country}",
+            "Niche: {$search->niche}",
+            "Pitch angle: {$pitchAngle}",
+            "Combined weakness score (higher = more opportunity): {$prospect->combined_score}",
+            'Key issues: '.(count($flags) ? implode('; ', $flags) : 'General improvement opportunity'),
+        ];
+
+        if ($reportUrl) {
+            $lines[] = "Include this audit report link naturally: {$reportUrl}";
+        }
+
+        if (config('scanner.report_booking_url')) {
+            $lines[] = 'Booking link for a call: '.config('scanner.report_booking_url');
+        }
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * @return array{subject_line: string, email_body: string}
+     */
+    private function parseResponse(string $content): array
+    {
+        $json = json_decode($content, true);
+
+        if (is_array($json) && isset($json['subject_line'], $json['email_body'])) {
+            return [
+                'subject_line' => $json['subject_line'],
+                'email_body'   => $json['email_body'],
+            ];
+        }
+
+        if (preg_match('/\{[\s\S]*\}/', $content, $matches)) {
+            $json = json_decode($matches[0], true);
+
+            if (is_array($json) && isset($json['subject_line'], $json['email_body'])) {
+                return [
+                    'subject_line' => $json['subject_line'],
+                    'email_body'   => $json['email_body'],
+                ];
+            }
+        }
+
+        return [
+            'subject_line' => 'Quick question about your online presence',
+            'email_body'   => trim($content),
+        ];
+    }
+}

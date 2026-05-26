@@ -6,6 +6,7 @@ use App\Models\Prospect;
 use App\Models\Search;
 use App\Services\GooglePlacesService;
 use App\Services\GbpScoringService;
+use App\Services\SearchStatusService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -25,13 +26,16 @@ class ScorePlaceJob implements ShouldQueue
         public string $placeId,
     ) {}
 
-    public function handle(GooglePlacesService $places, GbpScoringService $scorer): void
-    {
+    public function handle(
+        GooglePlacesService $places,
+        GbpScoringService $scorer,
+        SearchStatusService $searchStatus,
+    ): void {
         $existing = Prospect::where('search_id', $this->search->id)
             ->where('place_id', $this->placeId)
             ->first();
 
-        if ($existing && $existing->audit_status !== 'pending') {
+        if ($existing && !in_array($existing->audit_status, ['pending'], true)) {
             return;
         }
 
@@ -42,49 +46,49 @@ class ScorePlaceJob implements ShouldQueue
                 'place_id'  => $this->placeId,
                 'search_id' => $this->search->id,
             ]);
-            $this->markSearchCompleteIfDone();
+            $searchStatus->refresh($this->search);
             return;
         }
 
-        $fields    = $scorer->extractFields($payload);
-        $scored    = $scorer->score($payload);
-        $combined  = $scored['score'];
+        $fields = $scorer->extractFields($payload);
+        $scored = $scorer->score($payload);
+        $search = $this->search->fresh();
 
-        Prospect::updateOrCreate(
+        $prospect = Prospect::updateOrCreate(
             [
                 'search_id' => $this->search->id,
                 'place_id'  => $this->placeId,
             ],
-            array_merge($fields, [
-                'gbp_score'      => $scored['score'],
-                'gbp_flags'      => $scored['flags'],
-                'combined_score' => $combined,
-                'dominant_angle' => 'gbp',
-                'audit_status'   => empty($fields['website_url']) ? 'skipped' : 'pending',
-                'raw_gbp_payload'=> $payload,
-                'expires_at'     => now()->addDays(30),
-            ])
+            [
+                ...$fields,
+                'gbp_score'       => $scored['score'],
+                'gbp_flags'       => $scored['flags'],
+                'raw_gbp_payload' => $payload,
+                'expires_at'      => now()->addDays(config('scanner.report_expiry_days', 30)),
+                'audit_status'    => 'pending',
+            ]
         );
 
-        $this->markSearchCompleteIfDone();
+        $this->dispatchNextStep($prospect, $search);
+        $searchStatus->refresh($search);
     }
 
-    private function markSearchCompleteIfDone(): void
+    private function dispatchNextStep(Prospect $prospect, Search $search): void
     {
-        $search = $this->search->fresh();
+        $needsA11yAudit = in_array($search->scan_type, ['accessibility_only', 'combined'], true)
+            && !empty($prospect->website_url);
 
-        if (!$search || $search->status === 'complete') {
+        if ($needsA11yAudit) {
+            AuditSiteJob::dispatch($prospect)->onQueue('auditing');
+
             return;
         }
 
-        $totalFound   = $search->total_found ?? 0;
-        $scoredCount  = Prospect::where('search_id', $search->id)
-            ->whereIn('audit_status', ['pending', 'skipped', 'complete'])
-            ->count();
-
-        if ($totalFound > 0 && $scoredCount >= $totalFound) {
-            $search->update(['status' => 'complete']);
+        if (empty($prospect->website_url)) {
+            $prospect->update(['audit_status' => 'skipped']);
         }
+
+        CombineScoresJob::dispatch($prospect)->onQueue('auditing');
     }
 
     public function queue(): string

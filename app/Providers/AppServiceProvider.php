@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Models\Prospect;
 use App\Models\Search;
+use App\Policies\ProspectPolicy;
 use App\Policies\SearchPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Vite;
@@ -24,6 +26,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::policy(Search::class, SearchPolicy::class);
+        Gate::policy(Prospect::class, ProspectPolicy::class);
 
         Vite::prefetch(concurrency: 3);
     }

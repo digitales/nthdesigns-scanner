@@ -52,6 +52,7 @@ class SearchController extends Controller
         $this->authorize('view', $search);
 
         $prospects = $search->prospects()
+            ->with('report')
             ->orderByDesc('combined_score')
             ->get()
             ->map(fn ($p) => [
@@ -68,6 +69,8 @@ class SearchController extends Controller
                 'gbp_score'      => $p->gbp_score,
                 'gbp_flags'      => $p->gbp_flags ?? [],
                 'a11y_score'     => $p->a11y_score,
+                'a11y_flags'     => $p->a11y_flags ?? [],
+                'performance_score' => $p->performance_score,
                 'combined_score' => $p->combined_score,
                 'dominant_angle' => $p->dominant_angle,
                 'audit_status'   => $p->audit_status,

@@ -1,0 +1,12 @@
+{
+    "name": "nth-scanner-audit",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "audit": "node audit.js"
+    },
+    "dependencies": {
+        "@axe-core/playwright": "^4.10.1",
+        "playwright": "^1.52.0"
+    }
+}

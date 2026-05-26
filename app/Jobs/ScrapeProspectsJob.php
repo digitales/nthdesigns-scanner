@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Search;
 use App\Services\GooglePlacesService;
+use App\Services\SearchStatusService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -20,7 +21,7 @@ class ScrapeProspectsJob implements ShouldQueue
 
     public function __construct(public Search $search) {}
 
-    public function handle(GooglePlacesService $places): void
+    public function handle(GooglePlacesService $places, SearchStatusService $searchStatus): void
     {
         $this->search->update(['status' => 'discovering']);
 

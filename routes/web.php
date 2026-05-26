@@ -1,6 +1,9 @@
 <?php
 
+use App\Http\Controllers\OutreachEmailController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ProspectController;
+use App\Http\Controllers\PublicReportController;
 use App\Http\Controllers\SearchController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -16,8 +19,10 @@ Route::get('/', function () {
 });
 
 Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
+    return redirect()->route('search.index');
 })->middleware(['auth', 'verified'])->name('dashboard');
+
+Route::get('/r/{token}', [PublicReportController::class, 'show'])->name('reports.public');
 
 Route::get('/admin/horizon', function () {
     return redirect('/horizon');
@@ -31,6 +36,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/search', [SearchController::class, 'index'])->name('search.index');
     Route::post('/searches', [SearchController::class, 'store'])->name('searches.store');
     Route::get('/searches/{search}', [SearchController::class, 'show'])->name('searches.show');
+
+    Route::get('/prospects/{prospect}', [ProspectController::class, 'show'])->name('prospects.show');
+    Route::post('/prospects/{prospect}/report', [ProspectController::class, 'generateReport'])->name('prospects.report');
+    Route::post('/prospects/{prospect}/outreach', [ProspectController::class, 'generateOutreach'])->name('prospects.outreach');
+
+    Route::patch('/outreach-emails/{outreachEmail}/sent', [OutreachEmailController::class, 'markSent'])->name('outreach.sent');
+    Route::patch('/outreach-emails/{outreachEmail}/response', [OutreachEmailController::class, 'markResponse'])->name('outreach.response');
 });
 
 require __DIR__.'/auth.php';

@@ -43,4 +43,9 @@ class Prospect extends Model
     {
         return $this->hasOne(ProspectReport::class);
     }
+
+    public function auditJobs(): HasMany
+    {
+        return $this->hasMany(AuditJob::class);
+    }
 }
