@@ -1,249 +1,347 @@
 import { Head } from '@inertiajs/react';
+import { SevChip } from '@/Components/ui';
+import { gradeColor } from '@/Components/ui/scoreBand';
 
 export default function PublicReport({ report }) {
     const p = report.prospect ?? {};
     const benchmark = report.benchmark;
-    const comparison = report.comparison ?? {};
     const summary = report.violation_summary ?? {};
     const lighthouse = report.lighthouse ?? {};
+    const combined = report.combined_score ?? 0;
+    const grade = report.grade ?? 'C';
+    const color = gradeColor(combined);
+    const perf = report.performance_score ?? lighthouse.performance;
     const hasA11y = (summary.total ?? 0) > 0 || (report.top_violations?.length ?? 0) > 0;
-    const hasGbp = (p.gbp_flags?.length ?? 0) > 0 || benchmark;
+    const hasGbp = benchmark != null;
 
     return (
         <>
-            <Head title={`${report.business_name} — Online presence report`} />
+            <Head title={`${report.business_name} — Independent audit`} />
 
-            <div className="min-h-screen bg-gray-50">
-                <header className="bg-white border-b border-gray-200">
-                    <div className="max-w-3xl mx-auto px-4 py-8 flex items-start justify-between gap-6">
-                        <div>
-                            <p className="text-sm text-indigo-600 font-medium">nthdesigns</p>
-                            <h1 className="text-2xl font-semibold text-gray-900 mt-1">
-                                {report.business_name}
-                            </h1>
-                            <p className="text-gray-500 text-sm mt-1">
-                                {report.niche} in {report.city}
-                                {report.website_url && (
-                                    <> · <a href={report.website_url} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">{stripProtocol(report.website_url)}</a></>
-                                )}
-                            </p>
+            <div className="public-report-wrap">
+                <article className="public-report">
+                    <header style={{ padding: '56px 80px 40px', borderBottom: '1px solid var(--color-line)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 48 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                <span className="brand-mark" style={{ width: 22, height: 22 }} />
+                                <span style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 17 }}>nthdesigns</span>
+                            </div>
+                            <div className="micro" style={{ textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                                Audit · {new Date(report.generated_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                            </div>
                         </div>
-                        <GradeBadge grade={report.grade} label={report.grade_label} />
-                    </div>
-                </header>
 
-                <main className="max-w-3xl mx-auto px-4 py-8 space-y-6">
-                    {report.screenshot_paths?.desktop && (
-                        <section className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                            <img
-                                src={report.screenshot_paths.desktop}
-                                alt="Website preview"
-                                className="w-full"
+                        <div className="eyebrow" style={{ marginBottom: 14 }}>Independent audit · WCAG 2.2 + Google Business Profile</div>
+                        <h1 style={{
+                            fontFamily: 'var(--font-serif)',
+                            fontWeight: 400,
+                            fontSize: 56,
+                            lineHeight: 1.05,
+                            letterSpacing: '-0.022em',
+                            margin: '0 0 18px',
+                        }}>
+                            {report.business_name}
+                        </h1>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap', color: 'var(--color-stone-600)', fontSize: 14 }}>
+                            {report.website_url && (
+                                <span className="micro" style={{ fontSize: 13, color: 'var(--color-stone-700)' }}>
+                                    {report.website_url.replace(/^https?:\/\//, '')}
+                                </span>
+                            )}
+                            {report.address && (
+                                <>
+                                    <span style={{ color: 'var(--color-stone-400)' }}>·</span>
+                                    <span>{report.address}</span>
+                                </>
+                            )}
+                        </div>
+                    </header>
+
+                    <section style={{ padding: '64px 80px', borderBottom: '1px solid var(--color-line)' }}>
+                        <div className="eyebrow" style={{ marginBottom: 14 }}>Overall grade</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 48, alignItems: 'center' }}>
+                            <div>
+                                <div style={{
+                                    fontFamily: 'var(--font-serif)',
+                                    fontSize: 160,
+                                    lineHeight: 0.85,
+                                    fontWeight: 400,
+                                    color,
+                                    letterSpacing: '-0.04em',
+                                }}>
+                                    {grade}
+                                </div>
+                                <div className="micro" style={{ textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: 8 }}>
+                                    {report.grade_label}
+                                </div>
+                            </div>
+                            <div>
+                                <p style={{
+                                    fontFamily: 'var(--font-serif)',
+                                    fontSize: 22,
+                                    lineHeight: 1.5,
+                                    color: 'var(--color-stone-700)',
+                                    margin: 0,
+                                }}>
+                                    We audited your website and Google Business Profile against WCAG 2.2 and local competitors in {report.city}.
+                                    {summary.total > 0 && (
+                                        <> The audit found <strong style={{ fontWeight: 400, color: 'var(--color-ink)' }}>{summary.total} issues</strong> worth addressing.</>
+                                    )}
+                                </p>
+                                <div style={{ marginTop: 24, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                                    {summary.critical > 0 && <SevChip level="critical" count={summary.critical} />}
+                                    {summary.serious > 0 && <SevChip level="serious" count={summary.serious} />}
+                                    {summary.moderate > 0 && <SevChip level="moderate" count={summary.moderate} />}
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    {hasA11y && (
+                        <section style={{ padding: '72px 80px', borderBottom: '1px solid var(--color-line)' }}>
+                            <div className="eyebrow" style={{ marginBottom: 10 }}>Section 1 · Accessibility</div>
+                            <h2 style={{
+                                fontFamily: 'var(--font-serif)',
+                                fontWeight: 500,
+                                fontSize: 38,
+                                letterSpacing: '-0.018em',
+                                margin: '0 0 16px',
+                                lineHeight: 1.15,
+                            }}>
+                                The issues to fix first.
+                            </h2>
+                            <p style={{ color: 'var(--color-stone-600)', fontSize: 15, lineHeight: 1.6, maxWidth: 620, margin: '0 0 36px' }}>
+                                Every issue is mapped to a WCAG 2.2 success criterion. The fixes are usually a few lines of HTML or CSS — but the consequence of leaving them is a visitor who cannot complete a booking or enquiry.
+                            </p>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 36 }}>
+                                {(report.top_violations ?? []).map((v, i) => (
+                                    <ViolationCard key={i} violation={v} index={i + 1} screenshotUrl={v.screenshot_url} />
+                                ))}
+                            </div>
+                        </section>
+                    )}
+
+                    {hasGbp && (
+                        <section style={{ padding: '72px 80px', borderBottom: '1px solid var(--color-line)', background: 'var(--color-paper-2)' }}>
+                            <div className="eyebrow" style={{ marginBottom: 10 }}>Section 2 · Google Business Profile</div>
+                            <h2 style={{
+                                fontFamily: 'var(--font-serif)',
+                                fontWeight: 500,
+                                fontSize: 38,
+                                letterSpacing: '-0.018em',
+                                margin: '0 0 16px',
+                                lineHeight: 1.15,
+                            }}>
+                                You, next to the top-ranking practice in {report.city}.
+                            </h2>
+                            <ComparisonTable
+                                businessName={report.business_name}
+                                you={p}
+                                benchmark={benchmark}
                             />
                         </section>
                     )}
 
-                    {hasA11y && (
-                        <section className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-                            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">
-                                Accessibility findings
+                    {(lighthouse.performance != null || lighthouse.seo != null) && (
+                        <section style={{ padding: '72px 80px', borderBottom: '1px solid var(--color-line)' }}>
+                            <div className="eyebrow" style={{ marginBottom: 10 }}>Section 3 · Site performance</div>
+                            <h2 style={{
+                                fontFamily: 'var(--font-serif)',
+                                fontWeight: 500,
+                                fontSize: 38,
+                                letterSpacing: '-0.018em',
+                                margin: '0 0 28px',
+                                lineHeight: 1.15,
+                            }}>
+                                How the site loads, for real users.
                             </h2>
-                            <div className="flex flex-wrap gap-2">
-                                {summary.critical > 0 && <SeverityPill level="critical" count={summary.critical} />}
-                                {summary.serious > 0 && <SeverityPill level="serious" count={summary.serious} />}
-                                {summary.moderate > 0 && <SeverityPill level="moderate" count={summary.moderate} />}
-                                {summary.minor > 0 && <SeverityPill level="minor" count={summary.minor} />}
+                            <p style={{ color: 'var(--color-stone-600)', fontSize: 15, lineHeight: 1.6, maxWidth: 620, margin: '0 0 36px' }}>
+                                Measured via Google Lighthouse on a mid-range mobile connection. Below 50 in any dial is where Google starts penalising the site in mobile search.
+                            </p>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 32 }}>
+                                {lighthouse.performance != null && <PerfDial label="Performance" value={lighthouse.performance} />}
+                                {lighthouse.seo != null && <PerfDial label="SEO" value={lighthouse.seo} />}
+                                {lighthouse.best_practices != null && <PerfDial label="Best practices" value={lighthouse.best_practices} />}
                             </div>
-                            <ul className="space-y-4">
-                                {(report.top_violations ?? []).map((v, i) => (
-                                    <li key={i} className="border border-gray-100 rounded-lg p-4">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <ImpactBadge impact={v.impact} />
-                                            {v.wcag && (
-                                                <span className="text-xs text-gray-500 font-mono">{v.wcag}</span>
-                                            )}
-                                        </div>
-                                        <p className="text-sm font-medium text-gray-900">{v.description}</p>
-                                        {v.help && v.help !== v.description && (
-                                            <p className="text-sm text-gray-600 mt-1">{v.help}</p>
-                                        )}
-                                        {v.nodes > 0 && (
-                                            <p className="text-xs text-gray-400 mt-2">
-                                                Affects {v.nodes} element{v.nodes !== 1 ? 's' : ''} on the page
-                                            </p>
-                                        )}
-                                    </li>
-                                ))}
-                            </ul>
-                        </section>
-                    )}
-
-                    {(lighthouse.performance != null || lighthouse.accessibility != null) && (
-                        <section className="bg-white rounded-xl border border-gray-200 p-6">
-                            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">
-                                Site performance
-                            </h2>
-                            <div className="grid grid-cols-3 gap-4">
-                                {lighthouse.performance != null && (
-                                    <LighthouseDial label="Performance" score={lighthouse.performance} />
-                                )}
-                                {lighthouse.accessibility != null && (
-                                    <LighthouseDial label="Accessibility" score={lighthouse.accessibility} />
-                                )}
-                                {lighthouse.seo != null && (
-                                    <LighthouseDial label="SEO" score={lighthouse.seo} />
-                                )}
-                            </div>
-                        </section>
-                    )}
-
-                    {hasGbp && benchmark && (
-                        <section className="bg-white rounded-xl border border-gray-200 p-6">
-                            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">
-                                Google Business Profile vs top competitor
-                            </h2>
-                            <div className="grid grid-cols-2 gap-6 text-sm">
-                                <div>
-                                    <div className="font-medium text-gray-900">{report.business_name}</div>
-                                    <dl className="mt-2 space-y-1 text-gray-600">
-                                        <MetricRow label="Reviews" value={p.review_count ?? 0} />
-                                        <MetricRow label="Photos" value={p.photo_count ?? 0} />
-                                        <MetricRow label="Rating" value={p.rating ?? '—'} />
-                                    </dl>
-                                </div>
-                                <div>
-                                    <div className="font-medium text-gray-900">{benchmark.name}</div>
-                                    <dl className="mt-2 space-y-1 text-gray-600">
-                                        <MetricRow label="Reviews" value={benchmark.review_count} />
-                                        <MetricRow label="Photos" value={benchmark.photo_count} />
-                                        <MetricRow label="Rating" value={benchmark.rating ?? '—'} />
-                                    </dl>
-                                </div>
-                            </div>
-                            {(comparison.review_gap > 0 || comparison.photo_gap > 0) && (
-                                <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mt-4">
-                                    Your top competitor has{' '}
-                                    {comparison.review_gap > 0 && `${comparison.review_gap} more reviews`}
-                                    {comparison.review_gap > 0 && comparison.photo_gap > 0 && ' and '}
-                                    {comparison.photo_gap > 0 && `${comparison.photo_gap} more photos`}
-                                    .
+                            {perf != null && perf < 30 && (
+                                <p style={{
+                                    marginTop: 36,
+                                    paddingTop: 28,
+                                    borderTop: '1px solid var(--color-line)',
+                                    fontFamily: 'var(--font-serif)',
+                                    fontSize: 19,
+                                    lineHeight: 1.55,
+                                    color: 'var(--color-stone-700)',
+                                    maxWidth: 640,
+                                }}>
+                                    This site loads slowly on mobile. Google's research shows that pages taking over 3 seconds to load lose approximately half their visitors before the first interaction.
                                 </p>
                             )}
                         </section>
                     )}
 
-                    {(p.gbp_flags?.length > 0 || p.a11y_flags?.length > 0) && (
-                        <section className="bg-white rounded-xl border border-gray-200 p-6">
-                            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">
-                                Priority improvements
-                            </h2>
-                            <ul className="space-y-2">
-                                {[...(p.gbp_flags ?? []), ...(p.a11y_flags ?? [])].map((flag, i) => (
-                                    <li key={i} className="text-sm text-gray-700 flex items-start gap-2">
-                                        <span className="text-amber-500 mt-0.5">•</span>
-                                        {flag}
-                                    </li>
-                                ))}
-                            </ul>
-                        </section>
-                    )}
-
                     {report.booking_url && (
-                        <section className="bg-indigo-600 rounded-xl p-6 text-center text-white">
-                            <h2 className="text-lg font-semibold">Want help fixing this?</h2>
-                            <p className="text-indigo-100 text-sm mt-1 mb-4">
-                                Book a free 30-minute review with nthdesigns.
+                        <section style={{ padding: '96px 80px', textAlign: 'center', borderBottom: '1px solid var(--color-line)' }}>
+                            <div className="eyebrow" style={{ marginBottom: 18, color: 'var(--color-accent-deep)' }}>Next step</div>
+                            <h2 style={{
+                                fontFamily: 'var(--font-serif)',
+                                fontWeight: 400,
+                                fontSize: 48,
+                                letterSpacing: '-0.02em',
+                                margin: '0 0 18px',
+                                lineHeight: 1.1,
+                            }}>
+                                A free 30-minute call to walk you through every fix.
+                            </h2>
+                            <p style={{
+                                fontFamily: 'var(--font-serif)',
+                                fontSize: 18,
+                                color: 'var(--color-stone-600)',
+                                maxWidth: 480,
+                                margin: '0 auto 32px',
+                                lineHeight: 1.55,
+                            }}>
+                                No obligation. We'll go through the audit findings and outline what fixing them would involve.
                             </p>
-                            <a
-                                href={report.booking_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-block bg-white text-indigo-700 font-medium text-sm px-6 py-2.5 rounded-lg hover:bg-indigo-50"
-                            >
-                                Book a call
+                            <a href={report.booking_url} target="_blank" rel="noopener noreferrer" className="btn btn-accent btn-lg">
+                                Book a free 30-minute review
                             </a>
+                            <div className="micro" style={{ marginTop: 20 }}>
+                                {report.booking_url.replace(/^https?:\/\//, '')} · Typical reply within one working day
+                            </div>
                         </section>
                     )}
 
-                    <footer className="text-xs text-gray-400 text-center space-y-1">
-                        <p>Report prepared by nthdesigns</p>
-                        <p>
-                            Generated {new Date(report.generated_at).toLocaleDateString()}
-                            {report.expires_at && (
-                                <> · Expires {new Date(report.expires_at).toLocaleDateString()}</>
-                            )}
-                        </p>
+                    <footer style={{ padding: '32px 80px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span className="brand-mark" style={{ width: 14, height: 14 }} />
+                            <span className="micro">nthdesigns · Digital consultancy</span>
+                        </div>
+                        <div className="micro">
+                            {report.token && <>Token {report.token} · </>}
+                            {report.expires_at && <>Expires {new Date(report.expires_at).toLocaleDateString('en-GB')}</>}
+                        </div>
                     </footer>
-                </main>
+                </article>
             </div>
         </>
     );
 }
 
-function stripProtocol(url) {
-    return url.replace(/^https?:\/\//, '');
+function ViolationCard({ violation: v, index, screenshotUrl }) {
+    const sevColor = {
+        critical: 'var(--color-sev-critical)',
+        serious: 'var(--color-sev-serious)',
+        moderate: 'var(--color-sev-moderate)',
+    }[v.impact] ?? 'var(--color-sev-moderate)';
+
+    return (
+        <article style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: 28 }}>
+            <div style={{
+                background: 'var(--color-stone-100)',
+                borderRadius: 4,
+                border: '1px solid var(--color-line)',
+                height: 160,
+                position: 'relative',
+                overflow: 'hidden',
+            }}>
+                {screenshotUrl ? (
+                    <img src={screenshotUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                    <div style={{
+                        position: 'absolute',
+                        top: '30%',
+                        left: '20%',
+                        width: '60%',
+                        height: '40%',
+                        border: `2px solid ${sevColor}`,
+                        borderRadius: 2,
+                    }} />
+                )}
+            </div>
+            <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <SevChip level={v.impact === 'minor' ? 'moderate' : v.impact} />
+                    {v.wcag && <span className="micro">{v.wcag}</span>}
+                </div>
+                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 500, margin: '0 0 10px' }}>
+                    {v.description}
+                </h3>
+                {v.help && v.help !== v.description && (
+                    <p style={{ fontSize: 14, color: 'var(--color-stone-600)', lineHeight: 1.6, margin: '0 0 14px' }}>{v.help}</p>
+                )}
+                {v.fix && (
+                    <div style={{
+                        borderLeft: '3px solid var(--color-accent)',
+                        paddingLeft: 14,
+                        fontSize: 14,
+                        color: 'var(--color-stone-700)',
+                        lineHeight: 1.55,
+                    }}>
+                        <strong style={{ fontWeight: 500, color: 'var(--color-ink)' }}>Fix · </strong>
+                        {v.fix}
+                    </div>
+                )}
+            </div>
+        </article>
+    );
 }
 
-function GradeBadge({ grade, label }) {
-    const colors = {
-        A: 'bg-green-100 text-green-800 border-green-200',
-        B: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-        C: 'bg-amber-100 text-amber-800 border-amber-200',
-        D: 'bg-orange-100 text-orange-800 border-orange-200',
-        F: 'bg-red-100 text-red-800 border-red-200',
-    };
+function ComparisonTable({ businessName, you, benchmark }) {
+    const rows = [
+        { label: 'Reviews', you: you.review_count ?? 0, them: benchmark.review_count },
+        { label: 'Photos', you: you.photo_count ?? 0, them: benchmark.photo_count },
+        { label: 'Rating', you: you.rating ?? '—', them: benchmark.rating ?? '—' },
+    ];
+
     return (
-        <div className={`shrink-0 text-center rounded-xl border px-5 py-3 ${colors[grade] ?? colors.C}`}>
-            <div className="text-3xl font-bold">{grade}</div>
-            <div className="text-xs mt-1 max-w-[120px]">{label}</div>
+        <div style={{ border: '1px solid var(--color-line)', borderRadius: 6, overflow: 'hidden', background: 'var(--color-paper)' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+                <thead>
+                    <tr style={{ background: 'var(--color-paper-2)' }}>
+                        <th className="micro" style={{ textAlign: 'left', padding: '12px 20px' }}>Signal</th>
+                        <th className="micro" style={{ textAlign: 'left', padding: '12px 20px' }}>You</th>
+                        <th className="micro" style={{ textAlign: 'left', padding: '12px 20px', background: 'var(--color-accent-soft)' }}>{benchmark.name}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {rows.map((row) => (
+                        <tr key={row.label} style={{ borderTop: '1px solid var(--color-line)' }}>
+                            <td style={{ padding: '16px 20px', color: 'var(--color-stone-600)' }}>{row.label}</td>
+                            <td style={{ padding: '16px 20px', fontFamily: 'var(--font-serif)', fontSize: 28 }}>{row.you}</td>
+                            <td style={{ padding: '16px 20px', fontFamily: 'var(--font-serif)', fontSize: 28, background: 'var(--color-accent-soft)' }}>{row.them}</td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
         </div>
     );
 }
 
-function SeverityPill({ level, count }) {
-    const styles = {
-        critical: 'bg-red-100 text-red-800',
-        serious: 'bg-orange-100 text-orange-800',
-        moderate: 'bg-amber-100 text-amber-800',
-        minor: 'bg-gray-100 text-gray-700',
-    };
-    return (
-        <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${styles[level]}`}>
-            {count} {level}
-        </span>
-    );
-}
+function PerfDial({ label, value }) {
+    const color = value < 50 ? 'var(--color-sev-critical)' : value < 70 ? 'var(--color-sev-serious)' : 'var(--color-positive)';
+    const circumference = 2 * Math.PI * 45;
+    const offset = circumference - (value / 100) * circumference;
 
-function ImpactBadge({ impact }) {
-    const styles = {
-        critical: 'bg-red-600 text-white',
-        serious: 'bg-orange-500 text-white',
-        moderate: 'bg-amber-500 text-white',
-        minor: 'bg-gray-400 text-white',
-    };
     return (
-        <span className={`text-xs font-medium px-2 py-0.5 rounded capitalize ${styles[impact] ?? styles.moderate}`}>
-            {impact}
-        </span>
-    );
-}
-
-function LighthouseDial({ label, score }) {
-    const color = score >= 90 ? 'text-green-600' : score >= 50 ? 'text-amber-600' : 'text-red-600';
-    const ring = score >= 90 ? 'border-green-200' : score >= 50 ? 'border-amber-200' : 'border-red-200';
-    return (
-        <div className={`text-center rounded-xl border p-4 ${ring}`}>
-            <div className={`text-2xl font-semibold ${color}`}>{score}</div>
-            <div className="text-xs text-gray-500 mt-1">{label}</div>
-        </div>
-    );
-}
-
-function MetricRow({ label, value }) {
-    return (
-        <div className="flex justify-between">
-            <dt>{label}</dt>
-            <dd>{value}</dd>
+        <div style={{ textAlign: 'center' }}>
+            <svg width="120" height="120" viewBox="0 0 120 120" style={{ display: 'block', margin: '0 auto' }}>
+                <circle cx="60" cy="60" r="45" fill="none" stroke="var(--color-stone-200)" strokeWidth="8" />
+                <circle
+                    cx="60"
+                    cy="60"
+                    r="45"
+                    fill="none"
+                    stroke={color}
+                    strokeWidth="8"
+                    strokeDasharray={circumference}
+                    strokeDashoffset={offset}
+                    strokeLinecap="round"
+                    transform="rotate(-90 60 60)"
+                />
+                <text x="60" y="58" textAnchor="middle" fontFamily="var(--font-serif)" fontSize="28" fill={color}>{value}</text>
+                <text x="60" y="78" textAnchor="middle" fontFamily="var(--font-mono)" fontSize="9" fill="var(--color-stone-500)">{label}</text>
+            </svg>
         </div>
     );
 }

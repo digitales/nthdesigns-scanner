@@ -25,6 +25,7 @@ Start with layer one. It requires no sales infrastructure and turns build time i
 **Primary: UK SMEs with outdated or non-compliant web presence**
 
 The core prospect is a UK business in a service niche (trades, professional services, health and wellness, hospitality) that has either:
+
 - A neglected Google Business Profile (low reviews, no photos, incomplete information), or
 - A website with material WCAG accessibility failures, or both.
 
@@ -80,12 +81,12 @@ The report page shows their specific violations with screenshots of failing elem
 
 One-off project work sourced via the tool. The tool is marketing infrastructure; the revenue is standard client work.
 
-| Service | Price range | Notes |
-|---|---|---|
-| WCAG accessibility audit (report only) | £400–800 | Delivered as PDF; foot in the door |
-| Accessibility remediation (implement fixes) | £800–3,000 | Depends on site complexity |
-| Full design refresh with accessibility compliance | £2,500–8,000 | Larger engagement |
-| Ongoing accessibility monitoring retainer | £100–250/month | Monthly scan + report |
+| Service                                           | Price range    | Notes                              |
+| ------------------------------------------------- | -------------- | ---------------------------------- |
+| WCAG accessibility audit (report only)            | £400–800       | Delivered as PDF; foot in the door |
+| Accessibility remediation (implement fixes)       | £800–3,000     | Depends on site complexity         |
+| Full design refresh with accessibility compliance | £2,500–8,000   | Larger engagement                  |
+| Ongoing accessibility monitoring retainer         | £100–250/month | Monthly scan + report              |
 
 Conversion assumption: if the tool surfaces 40 qualified prospects per week and 3% convert to a paid engagement over 12 months, that is roughly 60 new clients per year. At an average project value of £1,200, that is £72,000 in additional revenue attributable to the tool. Conservative estimate.
 
@@ -93,11 +94,11 @@ Conversion assumption: if the tool surfaces 40 qualified prospects per week and 
 
 Running the GBP audit and optimisation as a managed service, delivered by a VA once the workflow is documented.
 
-| Tier | Price | Deliverable |
-|---|---|---|
-| One-off GBP audit + recommendations | £150–200 | Written report, no implementation |
-| GBP optimisation (one-time) | £250–400 | Implement fixes, photo strategy, description |
-| Monthly GBP management | £200–350/month | Ongoing posts, review responses, updates |
+| Tier                                | Price          | Deliverable                                  |
+| ----------------------------------- | -------------- | -------------------------------------------- |
+| One-off GBP audit + recommendations | £150–200       | Written report, no implementation            |
+| GBP optimisation (one-time)         | £250–400       | Implement fixes, photo strategy, description |
+| Monthly GBP management              | £200–350/month | Ongoing posts, review responses, updates     |
 
 This stream requires operational overhead (VA, quality control) and is optional. Only worth pursuing if the tool is generating more GBP leads than nthdesigns can absorb as design clients.
 
@@ -105,19 +106,19 @@ This stream requires operational overhead (VA, quality control) and is optional.
 
 Open the tool to other agencies and freelancers once it is stable and has been validated internally.
 
-| Plan | Price | Limits |
-|---|---|---|
-| Solo | £39/month | 5 searches/day, 1 user |
-| Agency | £89/month | 20 searches/day, 3 users |
+| Plan        | Price      | Limits                           |
+| ----------- | ---------- | -------------------------------- |
+| Solo        | £39/month  | 5 searches/day, 1 user           |
+| Agency      | £89/month  | 20 searches/day, 3 users         |
 | White label | £149/month | 20 searches/day, custom branding |
 
 Revenue projections at scale:
 
-| Scenario | Accounts | MRR | Annual net (after API costs) |
-|---|---|---|---|
-| Conservative (12 months) | 15 solo, 4 agency | £941 | ~£10,000 |
-| Moderate (18 months) | 35 solo, 12 agency | £2,433 | ~£27,000 |
-| Active sales (24 months) | 60 solo, 25 agency, 5 white label | £5,530 | ~£60,000 |
+| Scenario                 | Accounts                          | MRR    | Annual net (after API costs) |
+| ------------------------ | --------------------------------- | ------ | ---------------------------- |
+| Conservative (12 months) | 15 solo, 4 agency                 | £941   | ~£10,000                     |
+| Moderate (18 months)     | 35 solo, 12 agency                | £2,433 | ~£27,000                     |
+| Active sales (24 months) | 60 solo, 25 agency, 5 white label | £5,530 | ~£60,000                     |
 
 SaaS is not the priority in year one. Build it for yourself first.
 
@@ -125,14 +126,14 @@ SaaS is not the priority in year one. Build it for yourself first.
 
 ### 1.5 Competitive Landscape
 
-| Tool | What it does | Gap |
-|---|---|---|
-| BrightLocal | GBP tracking, local SEO reporting | No accessibility scanning; subscription-heavy; not a prospecting tool |
-| Whitespark | Local citation and GBP tools | US-focused; no outreach generation |
-| Semrush / Ahrefs | Site audits including some accessibility | Not local prospect-focused; expensive; no GBP signal |
-| Siteimprove / Deque | Enterprise accessibility platforms | Enterprise pricing; no prospecting layer |
-| Outscraper | Raw data scraping | No scoring, no outreach, no accessibility |
-| Wave / axe DevTools | Manual accessibility testing | No automation, no prospecting, no outreach |
+| Tool                | What it does                             | Gap                                                                   |
+| ------------------- | ---------------------------------------- | --------------------------------------------------------------------- |
+| BrightLocal         | GBP tracking, local SEO reporting        | No accessibility scanning; subscription-heavy; not a prospecting tool |
+| Whitespark          | Local citation and GBP tools             | US-focused; no outreach generation                                    |
+| Semrush / Ahrefs    | Site audits including some accessibility | Not local prospect-focused; expensive; no GBP signal                  |
+| Siteimprove / Deque | Enterprise accessibility platforms       | Enterprise pricing; no prospecting layer                              |
+| Outscraper          | Raw data scraping                        | No scoring, no outreach, no accessibility                             |
+| Wave / axe DevTools | Manual accessibility testing             | No automation, no prospecting, no outreach                            |
 
 No direct competitor combines GBP weakness scoring, accessibility audit, and AI-generated outreach in a single prospecting workflow. That is the gap.
 
@@ -170,20 +171,20 @@ Once the product is validated:
 
 Assumptions: nthdesigns is the primary client-facing entity; tool is built in spare time over 8 weeks; no staff until month 10+.
 
-| Month | Stream 1 (design work) | Stream 2 (GBP) | Stream 3 (SaaS) | API costs | Net |
-|---|---|---|---|---|---|
-| 1–2 | £0 (building) | £0 | £0 | £20 | -£20 |
-| 3 | £1,200 | £0 | £0 | £30 | £1,170 |
-| 4 | £2,400 | £0 | £0 | £40 | £2,360 |
-| 5 | £2,400 | £400 | £0 | £50 | £2,750 |
-| 6 | £3,600 | £800 | £200 | £60 | £4,540 |
-| 7 | £3,600 | £800 | £400 | £80 | £4,720 |
-| 8 | £4,800 | £1,200 | £600 | £90 | £6,510 |
-| 9 | £4,800 | £1,200 | £800 | £100 | £6,700 |
-| 10 | £6,000 | £1,600 | £1,000 | £120 | £8,480 |
-| 11 | £6,000 | £1,600 | £1,200 | £140 | £8,660 |
-| 12 | £7,200 | £2,000 | £1,600 | £160 | £10,640 |
-| **Total** | **£42,000** | **£9,600** | **£5,800** | **£890** | **£56,510** |
+| Month     | Stream 1 (design work) | Stream 2 (GBP) | Stream 3 (SaaS) | API costs | Net         |
+| --------- | ---------------------- | -------------- | --------------- | --------- | ----------- |
+| 1–2       | £0 (building)          | £0             | £0              | £20       | -£20        |
+| 3         | £1,200                 | £0             | £0              | £30       | £1,170      |
+| 4         | £2,400                 | £0             | £0              | £40       | £2,360      |
+| 5         | £2,400                 | £400           | £0              | £50       | £2,750      |
+| 6         | £3,600                 | £800           | £200            | £60       | £4,540      |
+| 7         | £3,600                 | £800           | £400            | £80       | £4,720      |
+| 8         | £4,800                 | £1,200         | £600            | £90       | £6,510      |
+| 9         | £4,800                 | £1,200         | £800            | £100      | £6,700      |
+| 10        | £6,000                 | £1,600         | £1,000          | £120      | £8,480      |
+| 11        | £6,000                 | £1,600         | £1,200          | £140      | £8,660      |
+| 12        | £7,200                 | £2,000         | £1,600          | £160      | £10,640     |
+| **Total** | **£42,000**            | **£9,600**     | **£5,800**      | **£890**  | **£56,510** |
 
 Stream 1 projections assume 2–4 new design/accessibility clients per month sourced via the tool at an average project value of £1,200–1,800. These are conservative. Stream 2 requires VA support from month 5 onwards (cost not included above — budget £500–800/month for a part-time VA if you pursue this).
 
@@ -191,14 +192,14 @@ Stream 1 projections assume 2–4 new design/accessibility clients per month sou
 
 ### 1.8 Risk Register
 
-| Risk | Likelihood | Impact | Mitigation |
-|---|---|---|---|
-| Google Places ToS restriction on caching | Medium | Medium | Expire raw_payload after 30 days; re-fetch on demand |
-| PECR cold email compliance | Medium | Medium | B2B-only outreach; ToS places responsibility on user; avoid sole trader targets |
-| EAA enforcement weaker than expected | Low | Medium | Pitch is still valid on UX and SEO grounds if legal urgency is overstated |
-| Competitors copy the dual-signal approach | Medium | Low | Speed advantage; nthdesigns brand as trust signal |
-| API costs outpace SaaS revenue | Low | Low | Cost per search is ~£1.10; priced into tiers |
-| Headless Chrome resource spikes | Medium | Low | Queue sizing; rate-limit concurrent audit jobs |
+| Risk                                      | Likelihood | Impact | Mitigation                                                                      |
+| ----------------------------------------- | ---------- | ------ | ------------------------------------------------------------------------------- |
+| Google Places ToS restriction on caching  | Medium     | Medium | Expire raw_payload after 30 days; re-fetch on demand                            |
+| PECR cold email compliance                | Medium     | Medium | B2B-only outreach; ToS places responsibility on user; avoid sole trader targets |
+| EAA enforcement weaker than expected      | Low        | Medium | Pitch is still valid on UX and SEO grounds if legal urgency is overstated       |
+| Competitors copy the dual-signal approach | Medium     | Low    | Speed advantage; nthdesigns brand as trust signal                               |
+| API costs outpace SaaS revenue            | Low        | Low    | Cost per search is ~£1.10; priced into tiers                                    |
+| Headless Chrome resource spikes           | Medium     | Low    | Queue sizing; rate-limit concurrent audit jobs                                  |
 
 ---
 
@@ -243,18 +244,18 @@ A single Laravel 13 application with two scanning pipelines sharing a common job
 
 ### 2.2 Tech Stack
 
-| Layer | Choice | Version |
-|---|---|---|
-| Framework | Laravel | 13 (PHP 8.3+) |
-| Frontend | Inertia.js + React | v3 + React 19.2.x |
-| Styling | Tailwind CSS | v4 |
-| AI | Laravel AI SDK | stable (ships with Laravel 13) |
-| Queue | Laravel Horizon + Redis | latest |
-| Accessibility audit | axe-core via Node subprocess | latest |
-| Performance audit | Google Lighthouse CLI | latest |
-| Database | PostgreSQL | 16+ |
-| Auth | Laravel Breeze | latest |
-| Deployment | Laravel Forge + Hetzner CX31 | 2 vCPU, 8GB RAM |
+| Layer               | Choice                       | Version                        |
+| ------------------- | ---------------------------- | ------------------------------ |
+| Framework           | Laravel                      | 13 (PHP 8.3+)                  |
+| Frontend            | Inertia.js + React           | v3 + React 19.2.x              |
+| Styling             | Tailwind CSS                 | v4                             |
+| AI                  | Laravel AI SDK               | stable (ships with Laravel 13) |
+| Queue               | Laravel Horizon + Redis      | latest                         |
+| Accessibility audit | axe-core via Node subprocess | latest                         |
+| Performance audit   | Google Lighthouse CLI        | latest                         |
+| Database            | PostgreSQL                   | 16+                            |
+| Auth                | Laravel Breeze               | latest                         |
+| Deployment          | Laravel Forge + Hetzner CX31 | 2 vCPU, 8GB RAM                |
 
 **Server sizing note**: the CX31 (£8.50/month) handles headless Chrome audit jobs. Do not use a 1GB VPS. If concurrent audits cause memory pressure, add a dedicated queue worker server via Forge.
 
@@ -263,6 +264,7 @@ A single Laravel 13 application with two scanning pipelines sharing a common job
 ### 2.3 Data Models
 
 #### `searches`
+
 ```
 id
 user_id
@@ -277,6 +279,7 @@ updated_at
 ```
 
 #### `prospects`
+
 ```
 id
 search_id
@@ -314,6 +317,7 @@ updated_at
 ```
 
 #### `outreach_emails`
+
 ```
 id
 prospect_id
@@ -331,6 +335,7 @@ created_at
 ```
 
 #### `audit_jobs`
+
 ```
 id
 prospect_id
@@ -344,6 +349,7 @@ created_at
 ```
 
 #### `prospect_reports`
+
 ```
 id
 prospect_id
@@ -366,12 +372,15 @@ updated_at
 ### 2.4 Core Services
 
 #### `GooglePlacesService`
+
 Discovers businesses and fetches GBP detail. Unchanged from the GBP-only plan. Returns place details including `websiteUri` which feeds the accessibility pipeline.
 
 #### `GbpScoringService`
+
 Applies the GBP weakness rubric (review count, photo count, description, hours, rating). Returns `gbp_score` and `gbp_flags`.
 
 #### `AccessibilityAuditService`
+
 Runs axe-core against a URL via a Node.js subprocess. Laravel dispatches a shell command to a small Node script that uses Puppeteer + axe-core, captures the violations JSON, and returns it to PHP.
 
 ```php
@@ -384,9 +393,10 @@ class AccessibilityAuditService
 ```
 
 Node script (`scripts/audit.js`) structure:
+
 ```javascript
-const { chromium } = require('playwright');
-const { checkA11y, injectAxe } = require('axe-playwright');
+const { chromium } = require("playwright");
+const { checkA11y, injectAxe } = require("axe-playwright");
 
 // 1. Launch headless Chromium, navigate to URL
 // 2. Run axe analysis, capture violations JSON
@@ -401,6 +411,7 @@ const { checkA11y, injectAxe } = require('axe-playwright');
 **Playwright over Puppeteer**: Playwright is better maintained in 2026 and handles flaky page loads more gracefully. Use `axe-playwright`.
 
 #### `LighthouseService`
+
 Runs Lighthouse CLI for performance, SEO, and best practices scores. The accessibility score from Lighthouse partially overlaps with axe-core but use axe-core as the authoritative source for WCAG violation counts — Lighthouse's accessibility audit is less thorough.
 
 ```php
@@ -413,6 +424,7 @@ class LighthouseService
 ```
 
 #### `ProspectScoringService`
+
 Combines GBP and accessibility scores into a `combined_score` and determines `dominant_angle`.
 
 ```php
@@ -426,6 +438,14 @@ class ProspectScoringService
     // Weighting favours accessibility because it is the stronger sales hook
 }
 ```
+
+**Phase 7 extension (post-launch):** once Lighthouse data is validated in production, extend `combine()` to a three-signal model:
+
+```php
+// combined_score = (gbp_score * 0.35) + (a11y_score * 0.50) + (performance_score * 0.15)
+```
+
+`dominant_angle` logic is unchanged — performance does not drive pitch angle selection. It acts as a quiet score booster for slow sites and surfaces as a secondary line in outreach emails when `performance_score < 30`. No new infrastructure is required; Lighthouse already runs as part of Phase 2.
 
 #### `ReportGeneratorService`
 
@@ -450,9 +470,11 @@ class ReportGeneratorService
 **Report data snapshot rationale**: denormalising into `report_data` means the public report always shows what was true when the email was sent, not live-changing data. If a prospect improves their site before clicking the link, the report still reflects the original findings. Avoids an embarrassing situation where the report contradicts the email.
 
 #### `OutreachGeneratorService`
+
 Uses Laravel AI SDK. System prompt and user message adapt based on `dominant_angle`. When a `ProspectReport` exists for the prospect, the prompt includes the report URL so Claude can reference it naturally in the email body.
 
 Three prompt variants:
+
 - `accessibility` — leads with violation count and EAA compliance risk, includes report link
 - `gbp` — leads with CPC benchmark and profile weaknesses, includes report link
 - `combined` — leads with accessibility, references GBP as additional context, includes report link
@@ -509,6 +531,7 @@ Two queues: `scraping` (fast, Places API calls) and `auditing` (slow, headless C
 ### 2.6 Frontend Pages
 
 #### `/search` — ProspectSearch
+
 - Form: niche, city, country, scan type (GBP only / Accessibility only / Combined)
 - Submit creates a `Search` record and dispatches `ScrapeProspectsJob`
 - Results table polls while `search.status !== 'complete'` using Inertia's `router.reload()` with a 5-second interval
@@ -516,6 +539,7 @@ Two queues: `scraping` (fast, Places API calls) and `auditing` (slow, headless C
 - Row-level actions: Add to Outreach, Preview Weaknesses (expandable flags), View on Maps, Preview Report
 
 #### `/outreach` — OutreachGenerator
+
 - Left: selected prospects with dominant angle and report status shown per row
 - Right: generation controls
   - Pitch angle override (auto / force GBP / force accessibility)
@@ -525,6 +549,7 @@ Two queues: `scraping` (fast, Places API calls) and `auditing` (slow, headless C
 - Output: card per prospect — subject line, email body (with report URL already embedded), copy button, edit-in-place textarea, "Mark as Sent" toggle, "Preview Report" link
 
 #### `/saved` — SavedProspects
+
 - Full history of all prospects across searches
 - Filters: date range, niche, city, scan type, min combined score, dominant angle, report viewed (warm leads filter)
 - CSV export (all columns or outreach-ready subset)
@@ -532,6 +557,7 @@ Two queues: `scraping` (fast, Places API calls) and `auditing` (slow, headless C
 - **Warm leads panel**: prospects whose report has been viewed but not yet responded — sorted by most recent view
 
 #### `/reports` — ReportsDashboard (internal)
+
 - Table of all generated reports
 - Columns: Business Name, Token URL (copy), Created, Views, Last Viewed, Viewer IP
 - "Warm" badge on reports viewed in last 7 days
@@ -539,6 +565,7 @@ Two queues: `scraping` (fast, Places API calls) and `auditing` (slow, headless C
 - Quick link to the associated outreach email and prospect record
 
 #### `/r/{token}` — PublicProspectReport (no auth)
+
 - No navigation, no login prompt — clean branded page only
 - Header: business name, URL, overall grade (A–F), nthdesigns branding
 - **Accessibility panel**: violation count by severity (critical / serious / moderate), top 5 violations each with:
@@ -555,6 +582,7 @@ Two queues: `scraping` (fast, Places API calls) and `auditing` (slow, headless C
 - Does not show the combined_score or internal scoring logic — that is internal only
 
 #### `/settings` — UserSettings
+
 - API key health check (Google Places, Anthropic)
 - Default country (pre-fill on search form)
 - Default pitch agency name and Calendly/booking URL (used in report CTA)
@@ -634,6 +662,20 @@ Two queues: `scraping` (fast, Places API calls) and `auditing` (slow, headless C
 
 **Exit criterion**: deploy to Hetzner via Forge, run a full search end-to-end including report generation in production.
 
+#### Phase 7 — Performance signal (post-launch)
+
+Prerequisites: Phase 6 complete and stable in production; at least 4 weeks of internal use data.
+
+- Extend `ProspectScoringService::combine()` to include `performance_score` as a third weighted input:
+  `combined_score = (gbp_score * 0.35) + (a11y_score * 0.50) + (performance_score * 0.15)`
+- Update `/search` results table to show Lighthouse performance score as a visible column (it is already stored in `performance_score` from Phase 2)
+- Update outreach prompt variants: add a conditional secondary line — "Your site also scored [X]/100 on Google's performance benchmark, which affects both rankings and bounce rate" — triggered only when `performance_score < 30`; never used as the opening line
+- `dominant_angle` logic is unchanged — performance does not resolve as a pitch angle and does not affect email template selection
+- No new infrastructure, no new API costs, no new queue jobs — Lighthouse already runs in the Phase 2 `AuditSiteJob` pipeline
+- Update `/r/{token}` report page performance panel copy if needed to reflect the scoring weight
+
+**Exit criterion**: a prospect with `performance_score < 30` receives a secondary performance line in the generated outreach email; `dominant_angle` remains `gbp`, `accessibility`, or `both` as before; existing unit tests for `ProspectScoringService` still pass after updating the weights.
+
 ---
 
 ### 2.8 Infrastructure Setup
@@ -643,6 +685,7 @@ Two queues: `scraping` (fast, Places API calls) and `auditing` (slow, headless C
 **Hetzner Object Storage** (£4.26/month for 1TB): S3-compatible. Store violation screenshots here. Laravel's Filesystem abstraction supports S3-compatible storage via the `s3` driver pointed at Hetzner's endpoint. Screenshots are small (typically 20–80KB each); 1TB is overkill but the pricing is fixed regardless.
 
 **Forge provisioning checklist:**
+
 - PHP 8.3
 - PostgreSQL 16
 - Redis
@@ -699,19 +742,19 @@ HORIZON_PREFIX=nth-scanner
 
 ### 2.10 Launch Sequence
 
-| Week | Action |
-|---|---|
-| 1–2 | Build Phase 1 — GBP pipeline working locally |
-| 3 | Build Phase 2 — Accessibility pipeline, combined scoring |
-| 4 | Build Phase 3 — Outreach generation, report generator, report page |
-| 5 | Build Phase 4–5 — Saved prospects, export, warm leads panel |
-| 6 | Phase 6 — Harden, deploy to Forge/Hetzner including object storage |
-| 7 | Internal use begins — run 5 searches/week, send outreach with report links |
-| 9 | Review response rates, view tracking data; refine report page copy and CTA |
-| 11 | Soft launch post in communities — demo with real anonymised report example |
-| 13 | First external SaaS users onboarded (free trial → paid) |
-| 17 | Evaluate Stream 2 (GBP done-for-you) based on lead volume |
-| 21 | SaaS paid tier live; agency plan and white label available |
+| Week | Action                                                                     |
+| ---- | -------------------------------------------------------------------------- |
+| 1–2  | Build Phase 1 — GBP pipeline working locally                               |
+| 3    | Build Phase 2 — Accessibility pipeline, combined scoring                   |
+| 4    | Build Phase 3 — Outreach generation, report generator, report page         |
+| 5    | Build Phase 4–5 — Saved prospects, export, warm leads panel                |
+| 6    | Phase 6 — Harden, deploy to Forge/Hetzner including object storage         |
+| 7    | Internal use begins — run 5 searches/week, send outreach with report links |
+| 9    | Review response rates, view tracking data; refine report page copy and CTA |
+| 11   | Soft launch post in communities — demo with real anonymised report example |
+| 13   | First external SaaS users onboarded (free trial → paid)                    |
+| 17   | Evaluate Stream 2 (GBP done-for-you) based on lead volume                  |
+| 21   | SaaS paid tier live; agency plan and white label available                 |
 
 ---
 

@@ -89,16 +89,41 @@ class ReportBuilderServiceTest extends TestCase
 
         $report = $this->service->build($prospect, null);
 
-        $this->assertSame('F', $report['grade']);
+        $this->assertSame('C', $report['grade']);
         $this->assertSame(1, $report['violation_summary']['critical']);
         $this->assertCount(1, $report['top_violations']);
         $this->assertSame(42, $report['lighthouse']['performance']);
     }
 
+    public function test_extract_top_violations_includes_screenshot_url(): void
+    {
+        $payload = [
+            'violations' => [
+                ['id' => 'color-contrast', 'impact' => 'critical', 'description' => 'Contrast fail', 'nodes' => [1]],
+            ],
+            'violation_screenshots' => [
+                ['violation_id' => 'color-contrast', 'url' => 'https://example.com/violation-0.png'],
+            ],
+        ];
+
+        $top = $this->service->extractTopViolations($payload, 5);
+
+        $this->assertSame('https://example.com/violation-0.png', $top[0]['screenshot_url']);
+    }
+
     public function test_health_to_grade_mapping(): void
     {
-        $this->assertSame('A', $this->service->healthToGrade(90));
-        $this->assertSame('F', $this->service->healthToGrade(10));
+        $this->assertSame('B+', $this->service->healthToGrade(90));
+        $this->assertSame('D', $this->service->healthToGrade(10));
+    }
+
+    public function test_combined_to_grade_mapping(): void
+    {
+        $this->assertSame('D', $this->service->combinedToGrade(87));
+        $this->assertSame('C', $this->service->combinedToGrade(75));
+        $this->assertSame('C+', $this->service->combinedToGrade(55));
+        $this->assertSame('B', $this->service->combinedToGrade(35));
+        $this->assertSame('B+', $this->service->combinedToGrade(15));
     }
 
     public function test_builds_without_benchmark(): void

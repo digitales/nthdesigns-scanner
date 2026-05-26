@@ -4,14 +4,15 @@ namespace App\Jobs;
 
 use App\Models\AuditJob;
 use App\Models\ProspectReport;
+use App\Services\ScreenshotCaptureService;
+use App\Services\ScreenshotStorageService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Process;
-use Illuminate\Support\Facades\Storage;
 
 class CaptureScreenshotJob implements ShouldQueue
 {
@@ -22,8 +23,10 @@ class CaptureScreenshotJob implements ShouldQueue
 
     public function __construct(public ProspectReport $report) {}
 
-    public function handle(): void
-    {
+    public function handle(
+        ScreenshotCaptureService $capture,
+        ScreenshotStorageService $storage,
+    ): void {
         $report = $this->report->fresh(['prospect']);
 
         if (!$report?->prospect?->website_url) {
@@ -37,34 +40,15 @@ class CaptureScreenshotJob implements ShouldQueue
             'started_at'  => now(),
         ]);
 
+        $localDir = storage_path('app/temp/screenshots/'.$report->token);
+
         try {
-            $relativeDir = 'reports/'.$report->token;
-            $absoluteDir = Storage::disk('public')->path($relativeDir);
-            $scriptPath = base_path('scripts/screenshot.js');
-            $nodeBinary = config('scanner.node_binary');
+            File::ensureDirectoryExists($localDir);
 
-            $result = Process::timeout(90)->run([
-                $nodeBinary,
-                $scriptPath,
-                $report->prospect->website_url,
-                $absoluteDir,
-            ]);
-
-            if (!$result->successful()) {
-                throw new \RuntimeException(trim($result->errorOutput() ?: $result->output()));
-            }
-
-            $output = json_decode($result->output(), true);
-
-            if (!empty($output['error'])) {
-                throw new \RuntimeException($output['error']);
-            }
-
-            $paths = [];
-
-            if (!empty($output['desktop'])) {
-                $paths['desktop'] = Storage::disk('public')->url($relativeDir.'/desktop.png');
-            }
+            $desktopPath = $capture->captureDesktop($report->prospect->website_url, $localDir);
+            $relative = 'reports/'.$report->token.'/desktop.png';
+            $paths = $report->screenshot_paths ?? [];
+            $paths['desktop'] = $storage->storeLocalFile($relative, $desktopPath);
 
             $report->update(['screenshot_paths' => $paths]);
 
@@ -83,6 +67,8 @@ class CaptureScreenshotJob implements ShouldQueue
                 'error_message' => $e->getMessage(),
                 'completed_at'  => now(),
             ]);
+        } finally {
+            File::deleteDirectory($localDir);
         }
     }
 

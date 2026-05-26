@@ -1,1 +1,64 @@
 @import "tailwindcss";
+@import "./tokens.css";
+
+@theme {
+  --color-paper: oklch(0.985 0.006 80);
+  --color-paper-2: oklch(0.965 0.009 80);
+  --color-stone-100: oklch(0.945 0.010 75);
+  --color-stone-200: oklch(0.905 0.012 72);
+  --color-stone-300: oklch(0.835 0.014 68);
+  --color-stone-400: oklch(0.715 0.016 64);
+  --color-stone-500: oklch(0.560 0.016 60);
+  --color-stone-600: oklch(0.430 0.013 56);
+  --color-stone-700: oklch(0.305 0.011 54);
+  --color-stone-800: oklch(0.225 0.009 54);
+  --color-ink: oklch(0.155 0.008 52);
+  --color-accent: oklch(0.705 0.140 65);
+  --color-accent-soft: oklch(0.945 0.045 75);
+  --color-accent-deep: oklch(0.500 0.130 55);
+  --color-accent-ink: oklch(0.290 0.080 50);
+  --color-sev-critical: oklch(0.515 0.180 28);
+  --color-sev-critical-soft: oklch(0.945 0.045 30);
+  --color-sev-serious: oklch(0.660 0.155 52);
+  --color-sev-serious-soft: oklch(0.955 0.050 70);
+  --color-sev-moderate: oklch(0.610 0.085 85);
+  --color-sev-moderate-soft: oklch(0.960 0.035 90);
+  --color-positive: oklch(0.580 0.110 145);
+  --color-positive-soft: oklch(0.945 0.045 145);
+  --color-score-low-bg: var(--color-stone-100);
+  --color-score-mid-bg: oklch(0.93 0.020 75);
+  --color-score-high-bg: var(--color-accent-soft);
+  --color-line: oklch(0.895 0.012 70);
+  --color-line-strong: oklch(0.825 0.014 68);
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Newsreader", Georgia, serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --radius-tight: 2px;
+  --radius-default: 4px;
+  --radius-card: 6px;
+  --radius-pill: 999px;
+  --animate-pulse-led: pulse-led 1.6s ease-in-out infinite;
+  --animate-shimmer: shimmer 1.6s linear infinite;
+  --animate-toast-in: toast-in 0.25s ease;
+}
+
+@keyframes pulse-led {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+@keyframes shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@import "./components.css";

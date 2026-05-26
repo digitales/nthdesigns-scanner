@@ -5,14 +5,16 @@ namespace App\Jobs;
 use App\Models\AuditJob;
 use App\Models\Prospect;
 use App\Services\A11yScoringService;
+use App\Services\AuditRunnerService;
+use App\Services\ScreenshotStorageService;
 use App\Services\SearchStatusService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Process;
 
 class AuditSiteJob implements ShouldQueue
 {
@@ -25,8 +27,10 @@ class AuditSiteJob implements ShouldQueue
     public function __construct(public Prospect $prospect) {}
 
     public function handle(
+        AuditRunnerService $auditRunner,
         A11yScoringService $scorer,
         SearchStatusService $searchStatus,
+        ScreenshotStorageService $storage,
     ): void {
         $prospect = $this->prospect->fresh();
 
@@ -38,6 +42,13 @@ class AuditSiteJob implements ShouldQueue
             return;
         }
 
+        if ($auditRunner->shouldSkip()) {
+            CombineScoresJob::dispatch($prospect)->onQueue('auditing');
+            $searchStatus->refresh($prospect->search);
+
+            return;
+        }
+
         $auditJob = AuditJob::create([
             'prospect_id' => $prospect->id,
             'job_type'    => 'accessibility',
@@ -46,9 +57,19 @@ class AuditSiteJob implements ShouldQueue
             'started_at'  => now(),
         ]);
 
+        $screenshotDir = storage_path('app/temp/audit/'.$prospect->id);
+
         try {
-            $payload = $this->runAuditScript($prospect->website_url);
-            $scored  = $scorer->score($payload);
+            File::ensureDirectoryExists($screenshotDir);
+
+            $payload = $auditRunner->run($prospect->website_url, $screenshotDir);
+            $payload['violation_screenshots'] = $storage->storeViolationScreenshots(
+                $prospect->id,
+                $payload['violation_screenshots'] ?? [],
+                $screenshotDir,
+            );
+
+            $scored = $scorer->score($payload);
 
             $prospect->update([
                 'a11y_score'              => $scored['score'],
@@ -82,38 +103,9 @@ class AuditSiteJob implements ShouldQueue
             $searchStatus->refresh($prospect->search);
 
             throw $e;
+        } finally {
+            File::deleteDirectory($screenshotDir);
         }
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function runAuditScript(string $url): array
-    {
-        $nodeBinary = config('scanner.node_binary');
-        $scriptPath = config('scanner.audit_script_path');
-        $timeout = config('scanner.audit_timeout');
-        $lighthouseBinary = config('scanner.lighthouse_binary');
-
-        $result = Process::timeout($timeout)
-            ->env([
-                'LIGHTHOUSE_BINARY' => $lighthouseBinary,
-            ])
-            ->run([$nodeBinary, $scriptPath, $url]);
-
-        if (!$result->successful()) {
-            throw new \RuntimeException(
-                'Audit script failed: '.trim($result->errorOutput() ?: $result->output())
-            );
-        }
-
-        $payload = json_decode($result->output(), true);
-
-        if (!is_array($payload)) {
-            throw new \RuntimeException('Audit script returned invalid JSON');
-        }
-
-        return $payload;
     }
 
     public function queue(): string

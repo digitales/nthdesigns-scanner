@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { chromium } from 'playwright';
+import { chromiumLaunchOptions } from './browser.js';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
@@ -17,7 +18,7 @@ mkdirSync(outputDir, { recursive: true });
 const desktopPath = join(outputDir, 'desktop.png');
 
 async function main() {
-    const browser = await chromium.launch({ headless: true });
+    const browser = await chromium.launch(chromiumLaunchOptions);
     const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
 
     try {

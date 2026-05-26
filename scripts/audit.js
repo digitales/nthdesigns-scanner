@@ -1,16 +1,23 @@
 #!/usr/bin/env node
 
 import { chromium } from 'playwright';
+import { chromiumLaunchOptions } from './browser.js';
 import AxeBuilder from '@axe-core/playwright';
 import { execFileSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, mkdirSync } from 'node:fs';
+import { join } from 'node:path';
 
 const url = process.argv[2];
+const outputDir = process.argv[3] || null;
 const lighthouseBinary = process.env.LIGHTHOUSE_BINARY || 'lighthouse';
 
 if (!url) {
     console.error(JSON.stringify({ error: 'URL argument required' }));
     process.exit(1);
+}
+
+if (outputDir) {
+    mkdirSync(outputDir, { recursive: true });
 }
 
 async function runAxe(page) {
@@ -41,7 +48,7 @@ function runLighthouse(targetUrl) {
                 targetUrl,
                 '--quiet',
                 '--chrome-flags=--headless',
-                '--only-categories=performance,accessibility',
+                '--only-categories=performance,accessibility,seo',
                 '--output=json',
             ],
             { encoding: 'utf8', timeout: 90000, maxBuffer: 10 * 1024 * 1024 },
@@ -53,19 +60,66 @@ function runLighthouse(targetUrl) {
         return {
             performance: Math.round((categories.performance?.score ?? 0) * 100),
             accessibility: Math.round((categories.accessibility?.score ?? 0) * 100),
+            seo: Math.round((categories.seo?.score ?? 0) * 100),
         };
     } catch {
         return null;
     }
 }
 
+async function captureViolationScreenshots(page, violations) {
+    if (!outputDir) {
+        return [];
+    }
+
+    const impactOrder = { critical: 0, serious: 1, moderate: 2, minor: 3 };
+    const sorted = [...violations].sort(
+        (a, b) => (impactOrder[a.impact] ?? 4) - (impactOrder[b.impact] ?? 4),
+    );
+
+    const top = sorted
+        .filter(v => ['critical', 'serious', 'moderate'].includes(v.impact))
+        .slice(0, 5);
+
+    const screenshots = [];
+
+    for (let i = 0; i < top.length; i++) {
+        const violation = top[i];
+        const selector = violation.nodes?.[0]?.target?.[0];
+
+        if (!selector) {
+            continue;
+        }
+
+        const filename = `violation-${i}.png`;
+        const filepath = join(outputDir, filename);
+
+        try {
+            const locator = page.locator(selector).first();
+            await locator.scrollIntoViewIfNeeded({ timeout: 5000 });
+            await locator.screenshot({ path: filepath, timeout: 8000, animations: 'disabled' });
+
+            screenshots.push({
+                violation_id: violation.id,
+                index: i,
+                file: filename,
+            });
+        } catch {
+            // Element may not be visible or selector invalid — skip this violation.
+        }
+    }
+
+    return screenshots;
+}
+
 async function main() {
-    const browser = await chromium.launch({ headless: true });
-    const page = await browser.newPage();
+    const browser = await chromium.launch(chromiumLaunchOptions);
+    const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
 
     try {
         await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
         const axe = await runAxe(page);
+        const violationScreenshots = await captureViolationScreenshots(page, axe.violations);
         const lighthouse = runLighthouse(url);
 
         const payload = {
@@ -73,6 +127,7 @@ async function main() {
             violations: axe.violations,
             pass_count: axe.passes,
             incomplete_count: axe.incomplete,
+            violation_screenshots: violationScreenshots,
             lighthouse,
         };
 
@@ -84,6 +139,7 @@ async function main() {
             violations: [],
             pass_count: 0,
             incomplete_count: 0,
+            violation_screenshots: [],
             lighthouse: null,
         }));
         process.exit(1);

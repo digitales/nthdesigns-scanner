@@ -1,6 +1,29 @@
 <?php
 
+$auditDriver = env('AUDIT_DRIVER', 'playwright');
+$auditServiceUrl = env('AUDIT_SERVICE_URL');
+
+if ($auditServiceUrl) {
+    $auditDriver = 'http';
+} elseif ($auditDriver === 'cloudflare') {
+    $auditDriver = 'skip';
+}
+
+$screenshotDriver = env('SCREENSHOT_DRIVER');
+
+if (!$screenshotDriver) {
+    $screenshotDriver = env('AUDIT_DRIVER') === 'cloudflare' ? 'cloudflare' : 'playwright';
+}
+
 return [
+
+    'audit_driver' => $auditDriver,
+
+    'screenshot_driver' => $screenshotDriver,
+
+    'audit_service_url' => $auditServiceUrl,
+
+    'audit_service_token' => env('AUDIT_SERVICE_TOKEN'),
 
     'node_binary' => env('NODE_BINARY', 'node'),
 
@@ -13,5 +36,9 @@ return [
     'report_booking_url' => env('REPORT_BOOKING_URL'),
 
     'report_expiry_days' => (int) env('REPORT_EXPIRY_DAYS', 30),
+
+    'reports_disk' => env('REPORTS_DISK', 'public'),
+
+    'search_rate_limit_seconds' => (int) env('SEARCH_RATE_LIMIT_SECONDS', 30),
 
 ];

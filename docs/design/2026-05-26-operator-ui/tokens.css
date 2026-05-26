@@ -1,0 +1,94 @@
+/* ──────────────────────────────────────────────────────────────
+   Prospect Scanner — design tokens
+   ──────────────────────────────────────────────────────────────
+   Direct lift into Tailwind v4's @theme block, or load as a CSS
+   custom-property root for Inertia/React.
+   All colours are oklch() — Tailwind v4 supports it natively.
+   ────────────────────────────────────────────────────────────── */
+
+:root {
+  /* ── warm-tinted neutrals (h ≈ 52–80) ── */
+  --color-paper:        oklch(0.985 0.006 80);  /* page background */
+  --color-paper-2:      oklch(0.965 0.009 80);  /* subtle elevation, table headers */
+  --color-stone-100:    oklch(0.945 0.010 75);
+  --color-stone-200:    oklch(0.905 0.012 72);
+  --color-stone-300:    oklch(0.835 0.014 68);
+  --color-stone-400:    oklch(0.715 0.016 64);
+  --color-stone-500:    oklch(0.560 0.016 60);
+  --color-stone-600:    oklch(0.430 0.013 56);
+  --color-stone-700:    oklch(0.305 0.011 54);
+  --color-stone-800:    oklch(0.225 0.009 54);
+  --color-ink:          oklch(0.155 0.008 52);  /* primary text, primary button bg */
+
+  /* ── accent (ochre) — warm-lead signal ── */
+  --color-accent:       oklch(0.705 0.140 65);  /* annotation pins, brand diamond, status LED */
+  --color-accent-soft:  oklch(0.945 0.045 75);  /* warm-row wash, high-band score badge bg */
+  --color-accent-deep:  oklch(0.500 0.130 55);  /* CTA on public report, focus rings, italic emphasis */
+  --color-accent-ink:   oklch(0.290 0.080 50);  /* text on accent-soft surfaces */
+
+  /* ── severity — accessibility violations ── */
+  --color-sev-critical:      oklch(0.515 0.180 28);
+  --color-sev-critical-soft: oklch(0.945 0.045 30);
+  --color-sev-serious:       oklch(0.660 0.155 52);
+  --color-sev-serious-soft:  oklch(0.955 0.050 70);
+  --color-sev-moderate:      oklch(0.610 0.085 85);
+  --color-sev-moderate-soft: oklch(0.960 0.035 90);
+  --color-positive:          oklch(0.580 0.110 145);  /* status-ready LED only */
+  --color-positive-soft:     oklch(0.945 0.045 145);
+
+  /* ── score-band surfaces ── */
+  /* HIGHER score = WEAKER business = WARMER lead. Never inverted. */
+  --color-score-low-bg:  var(--color-stone-100);          /* 0–40 */
+  --color-score-mid-bg:  oklch(0.93 0.020 75);            /* 41–70 */
+  --color-score-high-bg: var(--color-accent-soft);        /* 71–100 */
+
+  /* ── lines, elevation ── */
+  --color-line:         oklch(0.895 0.012 70);
+  --color-line-strong:  oklch(0.825 0.014 68);
+  --shadow-1: 0 1px 0 oklch(1 0 0 / .8) inset, 0 1px 2px oklch(0 0 0 / .04);
+  --shadow-2: 0 1px 0 oklch(1 0 0 / .9) inset, 0 8px 24px -8px oklch(0 0 0 / .12);
+  --shadow-3: 0 1px 0 oklch(1 0 0 / .9) inset, 0 18px 48px -16px oklch(0 0 0 / .22);
+
+  /* ── type ── */
+  --font-serif: "Newsreader", "Source Serif Pro", Georgia, serif;
+  --font-sans:  "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono:  "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* ── radius ── */
+  --radius-sharp:   0;
+  --radius-tight:   2px;   /* chips, badges */
+  --radius-default: 4px;   /* inputs, buttons */
+  --radius-card:    6px;   /* cards, panels */
+  --radius-pill:    999px; /* status, angle pills */
+
+  /* ── spacing scale (Tailwind-compatible) ── */
+  /* Use Tailwind's defaults — no custom scale needed. */
+}
+
+/* ── grade thresholds (for the public-report A–F grade derivation) ── */
+/* combined_score >= 85 → "D" or worse  (terracotta) */
+/* combined_score >= 70 → "C"           (amber) */
+/* combined_score >= 50 → "C+"          (amber) */
+/* combined_score >= 30 → "B"           (positive) */
+/* combined_score <  30 → "B+"          (positive) */
+/* Note: A and A+ are intentionally unused — even a "good" prospect won't get */
+/* an A because we're auditing problems, not certifying excellence. */
+
+/* ── Performance column (Search Results table — Phase 7 page-speed signal) ── */
+/* The Perf column is Lighthouse-native: 0–100 where HIGHER = faster site.    */
+/* This is the ONE column where the score badge bands read against the rest   */
+/* of the table — an 87 here is a fast site (good), not a warm lead.          */
+/*                                                                            */
+/* To disambiguate, values below 30 (notably slow site) carry an adjacent     */
+/* terracotta square pip (`.weak-pip` in shared CSS) that signals "this is    */
+/* the weak end of THIS column". The pip matches the Critical-severity        */
+/* shape so the visual language stays internally consistent.                  */
+/*                                                                            */
+/* The public report's Performance dial uses a different threshold — < 50 is  */
+/* the editorial "below penalty line" (which Google starts ranking against).  */
+/* The < 30 editorial sentence ("This site loads slowly on mobile...") is     */
+/* triggered only when the perf score crosses the more serious threshold.     */
+/*                                                                            */
+/* Outreach email card shows the "+ slow site" footnote tag below the pitch   */
+/* angle pill when perf < 30, signalling that Claude has woven a performance  */
+/* line into the generated email body.                                        */

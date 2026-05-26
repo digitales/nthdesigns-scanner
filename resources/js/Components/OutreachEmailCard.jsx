@@ -1,46 +1,80 @@
 import { router } from '@inertiajs/react';
+import { useState } from 'react';
+import {
+    AnglePill,
+    Button,
+    Field,
+    Icon,
+    Icons,
+    ScoreBadge,
+    Segmented,
+} from '@/Components/ui';
 
-export default function OutreachEmailCard({ email }) {
+export default function OutreachEmailCard({ email, reportUrl, performanceScore }) {
+    const [copied, setCopied] = useState(false);
+    const isSent = !!email.sent_at;
+
     const markSent = () => router.patch(`/outreach-emails/${email.id}/sent`);
     const markResponse = () => router.patch(`/outreach-emails/${email.id}/response`);
 
+    const copyBody = () => {
+        navigator.clipboard.writeText(email.email_body);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    const showSlowSite = performanceScore != null && performanceScore < 30;
+
     return (
-        <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
-            <div className="flex items-start justify-between gap-4">
+        <div className={`email-card${isSent ? ' sent' : ''}`}>
+            <div className="email-card-header">
                 <div>
-                    <div className="font-medium text-gray-900">{email.subject_line}</div>
-                    <div className="text-xs text-gray-400 mt-0.5">
-                        {email.pitch_angle} · {email.created_at}
-                        {email.model_used && ` · ${email.model_used}`}
+                    <div className="micro" style={{ marginBottom: 4 }}>To: {email.to_email ?? '—'}</div>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+                        <ScoreBadge value={email.combined_score} withBar={false} />
+                        <div>
+                            <AnglePill angle={email.pitch_angle} />
+                            {showSlowSite && <div style={{ marginTop: 6 }}><span className="slow-site-tag">+ slow site</span></div>}
+                        </div>
                     </div>
                 </div>
-                <div className="flex gap-2 shrink-0">
-                    {!email.sent_at && (
-                        <button
-                            type="button"
-                            onClick={markSent}
-                            className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded"
-                        >
-                            Mark sent
-                        </button>
+                <div className="row-actions">
+                    {reportUrl && (
+                        <a href={reportUrl} target="_blank" rel="noopener noreferrer" className="btn-ghost btn-xs">
+                            Preview report
+                        </a>
                     )}
-                    {email.sent_at && !email.response_received && (
-                        <button
-                            type="button"
-                            onClick={markResponse}
-                            className="text-xs bg-green-50 hover:bg-green-100 text-green-700 px-2 py-1 rounded"
-                        >
-                            Got response
-                        </button>
+                    <button type="button" className="btn-ghost btn-xs" onClick={copyBody}>
+                        {copied ? 'Copied' : 'Copy'}
+                    </button>
+                    {!isSent && (
+                        <Button kind="primary" size="xs" onClick={markSent}>Mark sent</Button>
                     )}
-                    {email.response_received && (
-                        <span className="text-xs text-green-600 font-medium">Responded</span>
+                    {isSent && !email.response_received && (
+                        <button type="button" className="btn-ghost btn-xs" onClick={markResponse}>Got response</button>
                     )}
                 </div>
             </div>
-            <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans bg-gray-50 rounded-lg p-4 border border-gray-100">
-                {email.email_body}
-            </pre>
+            <div className="email-card-body">
+                <input
+                    className="email-subject"
+                    value={email.subject_line}
+                    readOnly={isSent}
+                    onChange={() => {}}
+                />
+                <textarea
+                    className="email-body"
+                    value={email.email_body}
+                    readOnly={isSent}
+                    onChange={() => {}}
+                />
+            </div>
+            <div className="email-card-footer">
+                {reportUrl && <span>{reportUrl.replace(/^https?:\/\/[^/]+/, '')}</span>}
+                {email.sent_at && (
+                    <span style={{ marginLeft: 12 }}>Sent {new Date(email.sent_at).toLocaleDateString()}</span>
+                )}
+            </div>
         </div>
     );
 }

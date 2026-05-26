@@ -4,17 +4,27 @@ namespace App\Http\Controllers;
 
 use App\Jobs\ScrapeProspectsJob;
 use App\Models\Search;
+use App\Services\UserSettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class SearchController extends Controller
 {
+    public function __construct(private UserSettingsService $settings) {}
+
     public function index(): Response
     {
+        $user = auth()->user();
+
         return Inertia::render('Search/Index', [
-            'recentSearches' => auth()->user()
+            'defaults' => [
+                'country' => $this->settings->defaultCountry($user),
+            ],
+            'recentSearches' => $user
                 ->searches()
                 ->with('prospects')
                 ->latest()
@@ -33,6 +43,18 @@ class SearchController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        $user = $request->user();
+        $rateKey = 'search-submit:'.$user->id;
+        $decay = config('scanner.search_rate_limit_seconds', 30);
+
+        if (RateLimiter::tooManyAttempts($rateKey, 1)) {
+            $seconds = RateLimiter::availableIn($rateKey);
+
+            throw ValidationException::withMessages([
+                'niche' => "Please wait {$seconds} seconds before starting another search.",
+            ]);
+        }
+
         $validated = $request->validate([
             'niche'     => 'required|string|max:100',
             'city'      => 'required|string|max:100',
@@ -40,7 +62,9 @@ class SearchController extends Controller
             'scan_type' => 'required|in:gbp_only,accessibility_only,combined',
         ]);
 
-        $search = auth()->user()->searches()->create($validated);
+        RateLimiter::hit($rateKey, $decay);
+
+        $search = $user->searches()->create($validated);
 
         ScrapeProspectsJob::dispatch($search)->onQueue('scraping');
 
@@ -52,31 +76,46 @@ class SearchController extends Controller
         $this->authorize('view', $search);
 
         $prospects = $search->prospects()
-            ->with('report')
+            ->with([
+                'report',
+                'outreachEmails' => fn ($q) => $q->latest()->limit(1),
+                'auditJobs' => fn ($q) => $q->where('status', 'failed')->latest()->limit(1),
+            ])
             ->orderByDesc('combined_score')
             ->get()
-            ->map(fn ($p) => [
-                'id'             => $p->id,
-                'business_name'  => $p->business_name,
-                'address'        => $p->address,
-                'phone'          => $p->phone,
-                'website_url'    => $p->website_url,
-                'rating'         => $p->rating,
-                'review_count'   => $p->review_count,
-                'photo_count'    => $p->photo_count,
-                'has_description'=> $p->has_description,
-                'hours_complete' => $p->hours_complete,
-                'gbp_score'      => $p->gbp_score,
-                'gbp_flags'      => $p->gbp_flags ?? [],
-                'a11y_score'     => $p->a11y_score,
-                'a11y_flags'     => $p->a11y_flags ?? [],
-                'performance_score' => $p->performance_score,
-                'combined_score' => $p->combined_score,
-                'dominant_angle' => $p->dominant_angle,
-                'audit_status'   => $p->audit_status,
-                'report_ready'   => $p->report !== null,
-                'report_url'     => $p->report ? url('/r/'.$p->report->token) : null,
-            ]);
+            ->map(function ($p) {
+                $latestOutreach = $p->outreachEmails->first();
+                $isWarm = $p->report?->viewed_at !== null
+                    && $latestOutreach?->sent_at !== null
+                    && !($latestOutreach?->response_received ?? false);
+
+                return [
+                    'id'                => $p->id,
+                    'business_name'     => $p->business_name,
+                    'address'           => $p->address,
+                    'phone'             => $p->phone,
+                    'website_url'       => $p->website_url,
+                    'place_id'          => $p->place_id,
+                    'rating'            => $p->rating,
+                    'review_count'      => $p->review_count,
+                    'photo_count'       => $p->photo_count,
+                    'has_description'   => $p->has_description,
+                    'hours_complete'    => $p->hours_complete,
+                    'gbp_score'         => $p->gbp_score,
+                    'gbp_flags'         => $p->gbp_flags ?? [],
+                    'a11y_score'        => $p->a11y_score,
+                    'a11y_flags'        => $p->a11y_flags ?? [],
+                    'performance_score' => $p->performance_score,
+                    'combined_score'    => $p->combined_score,
+                    'dominant_angle'    => $p->dominant_angle,
+                    'audit_status'      => $p->audit_status,
+                    'audit_error'       => $p->auditJobs->first()?->error_message,
+                    'report_ready'      => $p->report !== null,
+                    'report_url'        => $p->report ? url('/r/'.$p->report->token) : null,
+                    'is_warm'           => $isWarm,
+                    'last_viewed'       => $p->report?->viewed_at?->diffForHumans(),
+                ];
+            });
 
         return Inertia::render('Search/Show', [
             'outreachProspectIds' => auth()->user()

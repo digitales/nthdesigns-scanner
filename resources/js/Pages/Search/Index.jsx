@@ -1,11 +1,29 @@
-import { Head, useForm, Link } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import {
+    Button,
+    Field,
+    PageHeader,
+    Status,
+} from '@/Components/ui';
 
-export default function SearchIndex({ auth, recentSearches }) {
+const SCAN_TYPES = [
+    { value: 'gbp_only', title: 'GBP only', sub: 'Visibility audit · ~30s/biz' },
+    { value: 'accessibility_only', title: 'Accessibility only', sub: 'WCAG 2.2 audit · ~90s/biz' },
+    { value: 'combined', title: 'Combined', sub: 'Both signals · ~2m/biz' },
+];
+
+const SCAN_INFO = {
+    gbp_only: 'Discovers businesses on Google, then scores each Google Business Profile. Typically completes in under a minute per business.',
+    accessibility_only: 'Runs a full WCAG 2.2 audit on each website. Allow around 90 seconds per business.',
+    combined: 'GBP scoring plus accessibility audit in sequence. Plan for roughly two minutes per business.',
+};
+
+export default function SearchIndex({ recentSearches, defaults = { country: 'GB' } }) {
     const { data, setData, post, processing, errors } = useForm({
         niche: '',
         city: '',
-        country: 'GB',
+        country: defaults.country,
         scan_type: 'combined',
     });
 
@@ -15,128 +33,142 @@ export default function SearchIndex({ auth, recentSearches }) {
     };
 
     return (
-        <AuthenticatedLayout user={auth.user}>
-            <Head title="New Search" />
+        <AuthenticatedLayout>
+            <Head title="New search" />
 
-            <div className="max-w-3xl mx-auto py-10 px-4">
-                <h1 className="text-2xl font-semibold text-gray-900 mb-6">
-                    Prospect Scanner
-                </h1>
+            <main className="page" style={{ maxWidth: 1160 }}>
+                <PageHeader
+                    eyebrow="A · New search"
+                    title="Run a prospect scan."
+                    sub="We'll discover up to 25 businesses on Google, score their Google Business Profile, then audit their websites for WCAG 2.2 accessibility violations."
+                />
 
-                <form onSubmit={submit} className="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Niche
-                            </label>
-                            <input
-                                type="text"
-                                placeholder="e.g. dental practice"
-                                value={data.niche}
-                                onChange={e => setData('niche', e.target.value)}
-                                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                required
-                            />
-                            {errors.niche && <p className="text-red-500 text-xs mt-1">{errors.niche}</p>}
-                        </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 40 }}>
+                    <div className="card card-pad">
+                        <div className="card-title" style={{ marginBottom: 18 }}>Parameters</div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                City
-                            </label>
-                            <input
-                                type="text"
-                                placeholder="e.g. Birmingham"
-                                value={data.city}
-                                onChange={e => setData('city', e.target.value)}
-                                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                required
-                            />
-                            {errors.city && <p className="text-red-500 text-xs mt-1">{errors.city}</p>}
-                        </div>
-                    </div>
+                        <form onSubmit={submit}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 18 }}>
+                                <Field label="Niche" hint="local trade or profession">
+                                    <input
+                                        className="input"
+                                        value={data.niche}
+                                        onChange={(e) => setData('niche', e.target.value)}
+                                        placeholder="e.g. Dental practice"
+                                        required
+                                    />
+                                    {errors.niche && <p className="text-xs text-sev-critical mt-1">{errors.niche}</p>}
+                                </Field>
+                                <Field label="City" hint="UK city or town">
+                                    <input
+                                        className="input"
+                                        value={data.city}
+                                        onChange={(e) => setData('city', e.target.value)}
+                                        placeholder="e.g. Birmingham"
+                                        required
+                                    />
+                                    {errors.city && <p className="text-xs text-sev-critical mt-1">{errors.city}</p>}
+                                </Field>
+                            </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Country
-                            </label>
-                            <select
-                                value={data.country}
-                                onChange={e => setData('country', e.target.value)}
-                                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            <div style={{ marginBottom: 24 }}>
+                                <Field label="Country">
+                                    <select
+                                        className="select"
+                                        value={data.country}
+                                        onChange={(e) => setData('country', e.target.value)}
+                                    >
+                                        <option value="GB">United Kingdom</option>
+                                        <option value="IE">Ireland</option>
+                                        <option value="US">United States</option>
+                                    </select>
+                                </Field>
+                            </div>
+
+                            <Field label="Scan type">
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginTop: 4 }}>
+                                    {SCAN_TYPES.map((o) => (
+                                        <button
+                                            key={o.value}
+                                            type="button"
+                                            className={`scan-type-btn${data.scan_type === o.value ? ' active' : ''}`}
+                                            onClick={() => setData('scan_type', o.value)}
+                                        >
+                                            <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 4 }}>{o.title}</div>
+                                            <div className="sub">{o.sub}</div>
+                                        </button>
+                                    ))}
+                                </div>
+                            </Field>
+
+                            <div
+                                style={{
+                                    marginTop: 24,
+                                    padding: '14px 16px',
+                                    background: 'var(--color-paper-2)',
+                                    borderRadius: 4,
+                                    border: '1px solid var(--color-line)',
+                                    fontSize: 13,
+                                    color: 'var(--color-stone-600)',
+                                    lineHeight: 1.55,
+                                }}
                             >
-                                <option value="GB">United Kingdom</option>
-                                <option value="IE">Ireland</option>
-                                <option value="US">United States</option>
-                            </select>
-                        </div>
+                                {SCAN_INFO[data.scan_type]}
+                            </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Scan type
-                            </label>
-                            <select
-                                value={data.scan_type}
-                                onChange={e => setData('scan_type', e.target.value)}
-                                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            >
-                                <option value="combined">Combined (GBP + Accessibility)</option>
-                                <option value="gbp_only">GBP only</option>
-                                <option value="accessibility_only">Accessibility only</option>
-                            </select>
-                        </div>
+                            <div style={{ marginTop: 24 }}>
+                                <Button kind="primary" size="lg" type="submit" disabled={processing} className="w-full justify-center">
+                                    {processing ? 'Starting scan…' : 'Run scan'}
+                                </Button>
+                            </div>
+                        </form>
                     </div>
 
-                    <button
-                        type="submit"
-                        disabled={processing}
-                        className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg text-sm transition-colors"
-                    >
-                        {processing ? 'Starting scan...' : 'Run scan'}
-                    </button>
-                </form>
-
-                {recentSearches.length > 0 && (
-                    <div className="mt-8">
-                        <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">
-                            Recent searches
-                        </h2>
-                        <div className="space-y-2">
-                            {recentSearches.map(s => (
-                                <Link
-                                    key={s.id}
-                                    href={`/searches/${s.id}`}
-                                    className="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-4 py-3 hover:border-indigo-300 transition-colors"
-                                >
-                                    <span className="text-sm font-medium text-gray-900">
-                                        {s.niche} in {s.city}
-                                    </span>
-                                    <div className="flex items-center gap-3">
-                                        <StatusBadge status={s.status} />
-                                        <span className="text-xs text-gray-400">{s.created_at}</span>
-                                    </div>
-                                </Link>
-                            ))}
-                        </div>
-                    </div>
-                )}
-            </div>
+                    <aside>
+                        <div className="card-title" style={{ marginBottom: 12 }}>Recent searches</div>
+                        {recentSearches.length === 0 ? (
+                            <p className="micro">No searches yet.</p>
+                        ) : (
+                            <ul style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                {recentSearches.slice(0, 4).map((s) => (
+                                    <li key={s.id}>
+                                        <Link
+                                            href={`/searches/${s.id}`}
+                                            className="card card-pad"
+                                            style={{
+                                                display: 'block',
+                                                textDecoration: 'none',
+                                                color: 'inherit',
+                                                padding: '12px 14px',
+                                            }}
+                                        >
+                                            <div style={{ fontWeight: 500, fontSize: 13 }}>{s.niche}</div>
+                                            <div className="micro" style={{ marginTop: 4 }}>
+                                                {s.city} · {s.created_at}
+                                            </div>
+                                            <div style={{ marginTop: 8 }}>
+                                                <SearchStatus status={s.status} />
+                                            </div>
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </aside>
+                </div>
+            </main>
         </AuthenticatedLayout>
     );
 }
 
-function StatusBadge({ status }) {
+function SearchStatus({ status }) {
     const map = {
-        pending:     'bg-gray-100 text-gray-600',
-        discovering: 'bg-blue-100 text-blue-700',
-        auditing:    'bg-yellow-100 text-yellow-700',
-        complete:    'bg-green-100 text-green-700',
-        failed:      'bg-red-100 text-red-700',
+        pending: ['pending', 'Queued'],
+        discovering: ['pending', 'Discovering'],
+        auditing: ['pending', 'Auditing'],
+        complete: ['ready', 'Complete'],
+        failed: ['failed', 'Failed'],
     };
-    return (
-        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${map[status] ?? map.pending}`}>
-            {status}
-        </span>
-    );
+    const [kind, label] = map[status] ?? map.pending;
+    return <Status kind={kind}>{label}</Status>;
 }

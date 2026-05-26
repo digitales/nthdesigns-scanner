@@ -44,4 +44,9 @@ return [
         'model' => env('ANTHROPIC_MODEL', 'claude-sonnet-4-20250514'),
     ],
 
+    'cloudflare' => [
+        'api_token'  => env('CLOUDFLARE_API_TOKEN'),
+        'account_id' => env('CLOUDFLARE_ACCOUNT_ID'),
+    ],
+
 ];

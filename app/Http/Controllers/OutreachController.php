@@ -6,6 +6,7 @@ use App\Jobs\GenerateOutreachEmailJob;
 use App\Models\OutreachEmail;
 use App\Models\OutreachSelection;
 use App\Models\Prospect;
+use App\Services\UserSettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -13,6 +14,8 @@ use Inertia\Response;
 
 class OutreachController extends Controller
 {
+    public function __construct(private UserSettingsService $settings) {}
+
     public function index(Request $request): Response
     {
         $user = $request->user();
@@ -42,16 +45,18 @@ class OutreachController extends Controller
 
         return Inertia::render('Outreach/Index', [
             'selection' => $selections->map(fn (OutreachSelection $s) => [
-                'id'            => $s->id,
-                'prospect_id'   => $s->prospect_id,
-                'business_name' => $s->prospect->business_name,
-                'dominant_angle'=> $s->prospect->dominant_angle,
-                'report_ready'  => $s->prospect->report !== null,
-                'report_url'    => $s->prospect->report ? url('/r/'.$s->prospect->report->token) : null,
+                'id'                => $s->id,
+                'prospect_id'       => $s->prospect_id,
+                'business_name'     => $s->prospect->business_name,
+                'dominant_angle'    => $s->prospect->dominant_angle,
+                'combined_score'    => $s->prospect->combined_score,
+                'performance_score' => $s->prospect->performance_score,
+                'report_ready'      => $s->prospect->report !== null,
+                'report_url'        => $s->prospect->report ? url('/r/'.$s->prospect->report->token) : null,
             ]),
             'emailsByProspect' => $emailsByProspect,
             'defaults' => [
-                'agency_name'   => '',
+                'agency_name'   => $this->settings->agencyName($user) ?? '',
                 'pitch_angle'   => 'auto',
                 'cpc_benchmark' => '',
             ],

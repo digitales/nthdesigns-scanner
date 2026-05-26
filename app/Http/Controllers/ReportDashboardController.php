@@ -35,6 +35,16 @@ class ReportDashboardController extends Controller
             $query->where('viewed_at', '>=', now()->subDays(7));
         }
 
+        $allReports = ProspectReport::query()
+            ->whereHas('prospect.search', fn (Builder $q) => $q->where('user_id', $request->user()->id));
+
+        $stats = [
+            'total_reports' => (clone $allReports)->count(),
+            'total_views'   => (clone $allReports)->sum('view_count'),
+            'warm_7d'       => (clone $allReports)->where('viewed_at', '>=', now()->subDays(7))->count(),
+            'avg_views'     => round((clone $allReports)->avg('view_count') ?? 0, 1),
+        ];
+
         $reports = $query
             ->orderByDesc('viewed_at')
             ->orderByDesc('created_at')
@@ -64,6 +74,7 @@ class ReportDashboardController extends Controller
         return Inertia::render('Reports/Index', [
             'reports' => $reports,
             'filters' => $filters,
+            'stats'   => $stats,
         ]);
     }
 }

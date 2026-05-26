@@ -38,6 +38,7 @@ class CombineScoresJob implements ShouldQueue
 
         $auditStatus = match (true) {
             $prospect->audit_status === 'failed' => 'failed',
+            config('scanner.audit_driver') === 'skip' && !empty($prospect->website_url) => 'skipped',
             empty($prospect->website_url) && in_array($search->scan_type, ['accessibility_only', 'combined'], true) => 'skipped',
             default => 'complete',
         };

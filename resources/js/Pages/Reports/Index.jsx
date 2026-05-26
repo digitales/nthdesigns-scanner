@@ -1,85 +1,161 @@
-import { Head, Link } from '@inertiajs/react';
-import { router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
+import { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import {
+    Button,
+    EmptyState,
+    Field,
+    Icons,
+    PageHeader,
+    Segmented,
+    Status,
+    Toast,
+} from '@/Components/ui';
 
-export default function ReportsIndex({ auth, reports, filters }) {
-    const submitFilters = (e) => {
-        e.preventDefault();
-        const form = new FormData(e.target);
-        router.get('/reports', Object.fromEntries(form.entries()), { preserveState: true });
+export default function ReportsIndex({ reports, filters, stats }) {
+    const [toast, setToast] = useState(null);
+    const [viewFilter, setViewFilter] = useState(() => {
+        if (filters.warm) return 'warm';
+        if (filters.viewed === '1') return 'viewed';
+        if (filters.viewed === '0') return 'unviewed';
+        return 'all';
+    });
+
+    const applyFilters = (overrides = {}) => {
+        const params = { niche: filters.niche ?? '', ...overrides };
+        if (params.viewFilter) {
+            const vf = params.viewFilter;
+            delete params.viewFilter;
+            if (vf === 'viewed') params.viewed = '1';
+            else if (vf === 'unviewed') params.viewed = '0';
+            else if (vf === 'warm') params.warm = '1';
+        }
+        Object.keys(params).forEach((k) => {
+            if (params[k] === '' || params[k] == null) delete params[k];
+        });
+        router.get('/reports', params, { preserveState: true });
+    };
+
+    const copyUrl = (report) => {
+        navigator.clipboard.writeText(report.public_url);
+        setToast(`/r/${report.token} copied`);
     };
 
     return (
-        <AuthenticatedLayout user={auth.user}>
+        <AuthenticatedLayout>
             <Head title="Reports" />
 
-            <div className="max-w-7xl mx-auto py-10 px-4 space-y-6">
-                <h1 className="text-2xl font-semibold text-gray-900">Reports</h1>
+            <main className="page page-wide">
+                <PageHeader
+                    eyebrow="F · Reports dashboard"
+                    title="Public report engagement."
+                    sub="Track views, warm signals, and copy shareable URLs for outreach."
+                />
 
-                <form onSubmit={submitFilters} className="bg-white rounded-xl border border-gray-200 p-4 flex flex-wrap gap-3 items-end">
-                    <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">Niche</label>
-                        <input type="text" name="niche" defaultValue={filters.niche ?? ''} className="rounded-lg border border-gray-300 px-3 py-2 text-sm" />
+                <div className="stats-strip">
+                    <div className="stat-tile">
+                        <div className="stat-label">Reports generated</div>
+                        <div className="stat-value tabular">{stats.total_reports}</div>
                     </div>
-                    <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">Viewed</label>
-                        <select name="viewed" defaultValue={filters.viewed ?? ''} className="rounded-lg border border-gray-300 px-3 py-2 text-sm">
-                            <option value="">Any</option>
-                            <option value="1">Viewed</option>
-                            <option value="0">Not viewed</option>
-                        </select>
+                    <div className="stat-tile">
+                        <div className="stat-label">Total views</div>
+                        <div className="stat-value tabular">{stats.total_views}</div>
                     </div>
-                    <label className="flex items-center gap-2 text-sm text-gray-700 pb-2">
-                        <input type="checkbox" name="warm" value="1" defaultChecked={!!filters.warm} />
-                        Viewed in last 7 days
-                    </label>
-                    <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-lg">Filter</button>
-                    <Link href="/reports" className="text-sm text-gray-500 pb-2">Clear</Link>
-                </form>
-
-                <div className="overflow-x-auto rounded-xl border border-gray-200">
-                    <table className="w-full text-sm">
-                        <thead className="bg-gray-50 border-b border-gray-200">
-                            <tr>
-                                <th className="text-left px-4 py-3 font-medium text-gray-600">Business</th>
-                                <th className="text-left px-4 py-3 font-medium text-gray-600">Location</th>
-                                <th className="text-center px-4 py-3 font-medium text-gray-600">Views</th>
-                                <th className="text-left px-4 py-3 font-medium text-gray-600">First viewed</th>
-                                <th className="text-left px-4 py-3 font-medium text-gray-600">Report</th>
-                                <th className="text-left px-4 py-3 font-medium text-gray-600">Prospect</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                            {reports.length === 0 ? (
-                                <tr>
-                                    <td colSpan={6} className="px-4 py-12 text-center text-gray-400">No reports yet.</td>
-                                </tr>
-                            ) : reports.map(r => (
-                                <tr key={r.id} className="hover:bg-gray-50">
-                                    <td className="px-4 py-3">
-                                        <div className="font-medium text-gray-900">{r.business_name}</div>
-                                        {r.is_engaged_badge && (
-                                            <span className="text-xs bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded mt-1 inline-block">Engaged</span>
-                                        )}
-                                    </td>
-                                    <td className="px-4 py-3 text-gray-600">{r.niche} · {r.city}</td>
-                                    <td className="px-4 py-3 text-center">{r.view_count}</td>
-                                    <td className="px-4 py-3 text-gray-600 text-xs">
-                                        {r.viewed_at ? new Date(r.viewed_at).toLocaleString() : '—'}
-                                    </td>
-                                    <td className="px-4 py-3 space-x-2">
-                                        <button type="button" onClick={() => navigator.clipboard.writeText(r.public_url)} className="text-indigo-600 hover:underline text-xs">Copy</button>
-                                        <a href={r.public_url} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline text-xs">Open</a>
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <Link href={`/prospects/${r.prospect_id}`} className="text-indigo-600 hover:underline text-xs">View</Link>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                    <div className="stat-tile warm">
+                        <div className="stat-label">Warm (7d)</div>
+                        <div className="stat-value tabular">{stats.warm_7d}</div>
+                    </div>
+                    <div className="stat-tile">
+                        <div className="stat-label">Avg views per report</div>
+                        <div className="stat-value tabular">{stats.avg_views}</div>
+                    </div>
                 </div>
-            </div>
+
+                <div className="filter-bar">
+                    <Field label="Filter">
+                        <Segmented
+                            value={viewFilter}
+                            onChange={(v) => {
+                                setViewFilter(v);
+                                applyFilters({ viewFilter: v, niche: filters.niche ?? '' });
+                            }}
+                            options={[
+                                { value: 'all', label: 'All' },
+                                { value: 'viewed', label: 'Viewed' },
+                                { value: 'unviewed', label: 'Unviewed' },
+                                { value: 'warm', label: 'Warm · 7d' },
+                            ]}
+                        />
+                    </Field>
+                    <Field label="Niche">
+                        <input
+                            type="text"
+                            className="input"
+                            defaultValue={filters.niche ?? ''}
+                            onBlur={(e) => applyFilters({ niche: e.target.value, viewFilter })}
+                        />
+                    </Field>
+                    <div className="filter-action">
+                        <Link href="/reports" className="micro">Reset</Link>
+                    </div>
+                </div>
+
+                {reports.length === 0 ? (
+                    <EmptyState icon={Icons.Eye} title="No reports yet." sub="Generate reports from prospect detail pages." />
+                ) : (
+                    <div style={{ border: '1px solid var(--color-line)', borderRadius: 6, overflow: 'hidden' }}>
+                        <table className="ptable">
+                            <thead>
+                                <tr>
+                                    <th>Business</th>
+                                    <th>Public URL</th>
+                                    <th>Created</th>
+                                    <th>Views</th>
+                                    <th>Last viewed</th>
+                                    <th>Viewer</th>
+                                    <th style={{ textAlign: 'right' }}>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {reports.map((r) => (
+                                    <tr key={r.id} onClick={() => router.visit(`/prospects/${r.prospect_id}`)}>
+                                        <td className="biz">
+                                            {r.business_name}
+                                            {r.is_engaged_badge && (
+                                                <div style={{ marginTop: 4 }}>
+                                                    <Status kind="warm">Warm</Status>
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td onClick={(e) => e.stopPropagation()}>
+                                            <code className="micro">/r/{r.token}</code>
+                                        </td>
+                                        <td className="micro">{r.created_at}</td>
+                                        <td className="tabular" style={{ color: r.view_count === 0 ? 'var(--color-stone-400)' : undefined }}>
+                                            {r.view_count}
+                                            {r.is_engaged_badge && r.view_count > 0 && (
+                                                <span style={{ color: 'var(--color-accent-deep)', fontSize: 10, marginLeft: 6 }}>● new</span>
+                                            )}
+                                        </td>
+                                        <td className="micro">
+                                            {r.viewed_at ? new Date(r.viewed_at).toLocaleDateString() : '—'}
+                                        </td>
+                                        <td className="micro">{r.viewer_ip ?? '—'}</td>
+                                        <td onClick={(e) => e.stopPropagation()} style={{ textAlign: 'right' }}>
+                                            <div className="row-actions">
+                                                <button type="button" className="btn-ghost btn-xs" onClick={() => copyUrl(r)}>Copy URL</button>
+                                                <a href={r.public_url} target="_blank" rel="noopener noreferrer" className="btn-ghost btn-xs">Open</a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+
+                {toast && <Toast duration={1800} onClose={() => setToast(null)}>{toast}</Toast>}
+            </main>
         </AuthenticatedLayout>
     );
 }

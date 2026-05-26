@@ -21,13 +21,20 @@ class ProspectListResource
             'combined_score'      => $prospect->combined_score,
             'gbp_score'           => $prospect->gbp_score,
             'a11y_score'          => $prospect->a11y_score,
+            'performance_score'   => $prospect->performance_score,
             'dominant_angle'      => $prospect->dominant_angle,
             'gbp_flags'           => $prospect->gbp_flags ?? [],
             'a11y_flags'          => $prospect->a11y_flags ?? [],
             'report_url'          => $prospect->report ? url('/r/'.$prospect->report->token) : null,
             'report_ready'        => $prospect->report !== null,
+            'report_viewed_at'    => $prospect->report?->viewed_at?->toISOString(),
             'outreach_sent'       => $latest?->sent_at?->toISOString(),
+            'outreach_sent_label' => $latest?->sent_at?->format('j M'),
+            'report_viewed_label' => $prospect->report?->viewed_at?->diffForHumans(),
             'response_received'   => (bool) ($latest?->response_received ?? false),
+            'is_warm'             => $prospect->report?->viewed_at !== null
+                && $latest?->sent_at !== null
+                && !($latest?->response_received ?? false),
         ];
     }
 }

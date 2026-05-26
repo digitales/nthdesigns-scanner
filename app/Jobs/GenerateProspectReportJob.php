@@ -26,7 +26,7 @@ class GenerateProspectReportJob implements ShouldQueue
         GooglePlacesService $places,
         ReportBuilderService $builder,
     ): void {
-        $prospect = $this->prospect->fresh(['search']);
+        $prospect = $this->prospect->fresh(['search.user.setting']);
 
         if (!$prospect) {
             return;

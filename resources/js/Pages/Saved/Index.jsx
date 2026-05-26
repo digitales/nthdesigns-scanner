@@ -1,16 +1,38 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import {
+    AnglePill,
+    Button,
+    EmptyState,
+    Field,
+    Icons,
+    PageHeader,
+    ScoreBadge,
+    Segmented,
+    Status,
+    Toast,
+} from '@/Components/ui';
+import { normalizeAngle } from '@/Components/ui/scoreBand';
 
-export default function SavedIndex({ auth, prospects, warmLeads, filters, meta }) {
+export default function SavedIndex({ prospects, warmLeads, filters, meta }) {
+    const [toast, setToast] = useState(null);
+
     const submitFilters = (e) => {
         e.preventDefault();
         const form = new FormData(e.target);
         const params = Object.fromEntries(form.entries());
+        if (!params.warm) delete params.warm;
         router.get('/saved', params, { preserveState: true });
     };
 
     const addToOutreach = (prospectId) => {
         router.post('/outreach/selections', { prospect_ids: [prospectId] });
+    };
+
+    const copyUrl = (url) => {
+        navigator.clipboard.writeText(url);
+        setToast(`${url.replace(/^https?:\/\/[^/]+/, '')} copied`);
     };
 
     const exportCsv = () => {
@@ -40,133 +62,157 @@ export default function SavedIndex({ auth, prospects, warmLeads, filters, meta }
     };
 
     return (
-        <AuthenticatedLayout user={auth.user}>
+        <AuthenticatedLayout>
             <Head title="Saved prospects" />
 
-            <div className="max-w-7xl mx-auto py-10 px-4 space-y-6">
-                <div className="flex items-center justify-between">
-                    <h1 className="text-2xl font-semibold text-gray-900">Saved prospects</h1>
-                    <button
-                        type="button"
-                        onClick={exportCsv}
-                        className="text-sm bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium px-4 py-2 rounded-lg"
-                    >
-                        Export CSV
-                    </button>
-                </div>
+            <main className="page page-wide">
+                <PageHeader
+                    eyebrow="E · Saved prospects"
+                    title={`${meta.total} prospect${meta.total !== 1 ? 's' : ''} across searches.`}
+                    sub="Filter by niche, score, or warm-lead status. Export matches your current filters as CSV."
+                    actions={
+                        <Button kind="secondary" size="sm" icon={Icons.Download} onClick={exportCsv}>
+                            Export CSV
+                        </Button>
+                    }
+                />
 
-                <form onSubmit={submitFilters} className="bg-white rounded-xl border border-gray-200 p-4 grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <FilterInput label="Niche" name="niche" defaultValue={filters.niche ?? ''} />
-                    <FilterInput label="City" name="city" defaultValue={filters.city ?? ''} />
-                    <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">Min score</label>
-                        <input type="number" name="min_score" min="0" max="100" defaultValue={filters.min_score ?? ''} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
-                    </div>
-                    <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">Angle</label>
-                        <select name="dominant_angle" defaultValue={filters.dominant_angle ?? ''} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
-                            <option value="">Any</option>
-                            <option value="gbp">GBP</option>
-                            <option value="accessibility">Accessibility</option>
-                            <option value="both">Both</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">Scan type</label>
-                        <select name="scan_type" defaultValue={filters.scan_type ?? ''} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                {warmLeads.length > 0 && !filters.warm && (
+                    <section className="warm-panel">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                            <div className="card-title" style={{ margin: 0 }}>Warm leads</div>
+                            <Link href="/saved?warm=1" className="micro" style={{ color: 'var(--color-accent-deep)' }}>
+                                Filter to warm →
+                            </Link>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                            {warmLeads.slice(0, 3).map((p) => (
+                                <Link
+                                    key={p.id}
+                                    href={`/prospects/${p.id}`}
+                                    className="card card-pad"
+                                    style={{ textDecoration: 'none', color: 'inherit', padding: '14px 16px' }}
+                                >
+                                    <div style={{ fontWeight: 500, fontSize: 13 }}>{p.business_name}</div>
+                                    <div className="micro" style={{ marginTop: 4 }}>{p.niche} · {p.city}</div>
+                                    <div style={{ marginTop: 10 }}>
+                                        <ScoreBadge value={p.combined_score} withBar={false} />
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    </section>
+                )}
+
+                <form onSubmit={submitFilters} className="filter-bar">
+                    <Field label="From">
+                        <input type="date" name="from" className="input" defaultValue={filters.from ?? ''} />
+                    </Field>
+                    <Field label="To">
+                        <input type="date" name="to" className="input" defaultValue={filters.to ?? ''} />
+                    </Field>
+                    <Field label="Niche">
+                        <input type="text" name="niche" className="input" defaultValue={filters.niche ?? ''} />
+                    </Field>
+                    <Field label="City">
+                        <input type="text" name="city" className="input" defaultValue={filters.city ?? ''} />
+                    </Field>
+                    <Field label="Scan type">
+                        <select name="scan_type" className="select" defaultValue={filters.scan_type ?? ''}>
                             <option value="">Any</option>
                             <option value="combined">Combined</option>
                             <option value="gbp_only">GBP only</option>
                             <option value="accessibility_only">Accessibility only</option>
                         </select>
-                    </div>
-                    <label className="flex items-center gap-2 text-sm text-gray-700 self-end pb-2">
-                        <input type="checkbox" name="warm" value="1" defaultChecked={!!filters.warm} />
-                        Warm leads only
-                    </label>
-                    <div className="col-span-2 md:col-span-4 flex gap-2">
-                        <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-lg">Apply filters</button>
-                        <Link href="/saved" className="text-sm text-gray-500 hover:text-gray-700 px-4 py-2">Clear</Link>
+                    </Field>
+                    <Field label="Angle">
+                        <select name="dominant_angle" className="select" defaultValue={filters.dominant_angle ?? ''}>
+                            <option value="">Any</option>
+                            <option value="gbp">GBP</option>
+                            <option value="accessibility">Accessibility</option>
+                            <option value="both">Both</option>
+                        </select>
+                    </Field>
+                    <Field label="Min score">
+                        <input type="number" name="min_score" min="0" max="100" className="input" defaultValue={filters.min_score ?? ''} />
+                    </Field>
+                    <Field label="Warm">
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, paddingTop: 8 }}>
+                            <input type="checkbox" name="warm" value="1" defaultChecked={!!filters.warm} />
+                            Warm only
+                        </label>
+                    </Field>
+                    <div className="filter-action">
+                        <Button kind="primary" size="sm" type="submit">Apply</Button>
+                        <Link href="/saved" className="micro">Reset</Link>
                     </div>
                 </form>
 
-                {warmLeads.length > 0 && !filters.warm && (
-                    <section className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-                        <h2 className="text-sm font-medium text-amber-900 mb-3">Warm leads</h2>
-                        <ul className="space-y-2">
-                            {warmLeads.map(p => (
-                                <li key={p.id} className="flex items-center justify-between text-sm">
-                                    <Link href={`/prospects/${p.id}`} className="font-medium text-gray-900 hover:text-indigo-600">{p.business_name}</Link>
-                                    <span className="text-gray-500">{p.city}</span>
-                                </li>
-                            ))}
-                        </ul>
-                    </section>
+                {prospects.length === 0 ? (
+                    <EmptyState
+                        icon={Icons.Search}
+                        title="No prospects match these filters."
+                        sub="Try widening your date range or lowering the minimum score."
+                    />
+                ) : (
+                    <div style={{ border: '1px solid var(--color-line)', borderRadius: 6, overflow: 'hidden' }}>
+                        <table className="ptable">
+                            <thead>
+                                <tr>
+                                    <th>Business</th>
+                                    <th>Niche / City</th>
+                                    <th>Combined</th>
+                                    <th>GBP</th>
+                                    <th>A11y</th>
+                                    <th>Angle</th>
+                                    <th>Outreach history</th>
+                                    <th style={{ textAlign: 'right' }}>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {prospects.map((p) => (
+                                    <tr key={p.id} className={p.is_warm ? 'warm' : ''} onClick={() => router.visit(`/prospects/${p.id}`)}>
+                                        <td className="biz">{p.business_name}</td>
+                                        <td className="micro">{p.niche} · {p.city}</td>
+                                        <td><ScoreBadge value={p.combined_score} withBar={false} /></td>
+                                        <td className="num">{p.gbp_score ?? '—'}</td>
+                                        <td className="num">{p.a11y_score ?? '—'}</td>
+                                        <td><AnglePill angle={p.dominant_angle} /></td>
+                                        <td onClick={(e) => e.stopPropagation()}>
+                                            {p.outreach_sent_label ? (
+                                                <div className="micro">
+                                                    Sent {p.outreach_sent_label}
+                                                    {p.report_viewed_label && (
+                                                        <div style={{ color: 'var(--color-accent-ink)', marginTop: 2 }}>
+                                                            Viewed {p.report_viewed_label}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <span className="micro">—</span>
+                                            )}
+                                        </td>
+                                        <td onClick={(e) => e.stopPropagation()} style={{ textAlign: 'right' }}>
+                                            <div className="row-actions">
+                                                {p.report_url && (
+                                                    <button type="button" className="btn-icon" title="Copy report URL" onClick={() => copyUrl(p.report_url)}>
+                                                        <span className="micro">Copy</span>
+                                                    </button>
+                                                )}
+                                                <button type="button" className="btn-ghost btn-xs" onClick={() => addToOutreach(p.id)}>
+                                                    + Queue
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 )}
 
-                <p className="text-sm text-gray-500">{meta.total} prospect{meta.total !== 1 ? 's' : ''}</p>
-
-                <ProspectTable prospects={prospects} onAddToOutreach={addToOutreach} />
-            </div>
+                {toast && <Toast onClose={() => setToast(null)}>{toast}</Toast>}
+            </main>
         </AuthenticatedLayout>
     );
-}
-
-function FilterInput({ label, name, defaultValue }) {
-    return (
-        <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
-            <input type="text" name={name} defaultValue={defaultValue} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
-        </div>
-    );
-}
-
-function ProspectTable({ prospects, onAddToOutreach }) {
-    if (prospects.length === 0) {
-        return <p className="text-center py-12 text-gray-400 text-sm">No prospects match your filters.</p>;
-    }
-
-    return (
-        <div className="overflow-x-auto rounded-xl border border-gray-200">
-            <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                        <th className="text-left px-4 py-3 font-medium text-gray-600">Business</th>
-                        <th className="text-center px-4 py-3 font-medium text-gray-600">Score</th>
-                        <th className="text-left px-4 py-3 font-medium text-gray-600">Location</th>
-                        <th className="text-left px-4 py-3 font-medium text-gray-600">Report</th>
-                        <th className="text-right px-4 py-3 font-medium text-gray-600">Actions</th>
-                    </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                    {prospects.map(p => (
-                        <tr key={p.id} className="hover:bg-gray-50">
-                            <td className="px-4 py-3">
-                                <Link href={`/prospects/${p.id}`} className="font-medium text-gray-900 hover:text-indigo-600">{p.business_name}</Link>
-                            </td>
-                            <td className="px-4 py-3 text-center">
-                                <ScoreBadge score={p.combined_score} />
-                            </td>
-                            <td className="px-4 py-3 text-gray-600">{p.niche} · {p.city}</td>
-                            <td className="px-4 py-3">
-                                {p.report_url ? (
-                                    <button type="button" onClick={() => navigator.clipboard.writeText(p.report_url)} className="text-indigo-600 hover:underline text-xs">Copy link</button>
-                                ) : (
-                                    <span className="text-gray-400 text-xs">—</span>
-                                )}
-                            </td>
-                            <td className="px-4 py-3 text-right">
-                                <button type="button" onClick={() => onAddToOutreach(p.id)} className="text-xs text-indigo-600 hover:underline">Add to outreach</button>
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
-    );
-}
-
-function ScoreBadge({ score }) {
-    const color = score >= 70 ? 'bg-red-100 text-red-700' : score >= 40 ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700';
-    return <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${color}`}>{score}</span>;
 }

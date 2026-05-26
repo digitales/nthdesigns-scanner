@@ -1,262 +1,370 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import {
+    AnglePill,
+    Badge,
+    Button,
+    Checkbox,
+    EmptyState,
+    Field,
+    Icon,
+    Icons,
+    PageHeader,
+    ScoreBadge,
+    Segmented,
+    Status,
+} from '@/Components/ui';
+import { normalizeAngle } from '@/Components/ui/scoreBand';
 
-export default function SearchShow({ auth, search, prospects, outreachProspectIds = [] }) {
-    const [selected, setSelected] = useState([]);
+export default function SearchShow({ search, prospects, outreachProspectIds = [] }) {
     const inQueue = new Set(outreachProspectIds);
     const isRunning = ['pending', 'discovering', 'auditing'].includes(search.status);
     const showA11y = search.scan_type !== 'gbp_only';
+
+    const [selected, setSelected] = useState({});
+    const [expanded, setExpanded] = useState(null);
+    const [angleFilter, setAngleFilter] = useState('all');
+    const [minScore, setMinScore] = useState(0);
 
     useEffect(() => {
         if (!isRunning) return;
         const timer = setInterval(() => {
             router.reload({ only: ['search', 'prospects'] });
-        }, 5000);
+        }, 4000);
         return () => clearInterval(timer);
     }, [isRunning]);
 
-    const statusLabel = {
-        pending: 'Queued',
-        discovering: 'Discovering businesses',
-        auditing: 'Auditing websites',
-        complete: 'Complete',
-        failed: 'Failed',
+    const visible = useMemo(() => {
+        return prospects.filter((p) => {
+            if (minScore > 0 && (p.combined_score ?? 0) < minScore) return false;
+            if (angleFilter === 'all') return true;
+            return normalizeAngle(p.dominant_angle) === angleFilter;
+        });
+    }, [prospects, minScore, angleFilter]);
+
+    const selectedIds = Object.keys(selected).filter((id) => selected[id]);
+    const total = search.total_found ?? prospects.length;
+    const scanned = prospects.length;
+    const pct = total > 0 ? Math.round((scanned / total) * 100) : 0;
+    const remainingMin = Math.max(1, Math.round((total - scanned) * 0.7));
+
+    const toggleRow = (id) => setSelected((prev) => ({ ...prev, [id]: !prev[id] }));
+    const toggleAll = (checked) => {
+        if (checked) {
+            setSelected(Object.fromEntries(visible.map((p) => [p.id, true])));
+        } else {
+            setSelected({});
+        }
+    };
+
+    const addSelected = () => {
+        router.post('/outreach/selections', { prospect_ids: selectedIds.map(Number) });
+        setSelected({});
     };
 
     return (
-        <AuthenticatedLayout user={auth.user}>
+        <AuthenticatedLayout>
             <Head title={`${search.niche} in ${search.city}`} />
 
-            <div className="max-w-7xl mx-auto py-10 px-4">
-                <div className="flex items-center justify-between mb-6">
-                    <div>
-                        <h1 className="text-2xl font-semibold text-gray-900">
-                            {search.niche} — {search.city}
-                        </h1>
-                        <p className="text-sm text-gray-500 mt-0.5">
-                            {search.total_found
-                                ? `${prospects.length} of ${search.total_found} prospects · ${scanTypeLabel(search.scan_type)}`
-                                : statusLabel[search.status] ?? 'Scanning...'}
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <StatusBadge status={search.status} />
-                        {isRunning && (
-                            <span className="text-xs text-gray-400 animate-pulse">
-                                refreshing...
+            <main className="page page-wide" style={{ maxWidth: 1440 }}>
+                <PageHeader
+                    eyebrow={`B · ${search.niche} · ${search.city}`}
+                    title={isRunning ? 'Auditing…' : `${scanned} prospects scanned.`}
+                    sub={
+                        isRunning
+                            ? 'Discovering businesses on Google, then running audits in parallel. Rows appear as their audits complete.'
+                            : 'Sort by combined score for the warmest leads — top decile is auto-tinted ochre. Expand any row to see weakness flags.'
+                    }
+                    back="Back to search"
+                    onBack={() => router.visit('/search')}
+                    actions={
+                        selectedIds.length > 0 ? (
+                            <Button kind="primary" size="sm" icon={Icons.Plus} onClick={addSelected}>
+                                Add {selectedIds.length} to outreach
+                            </Button>
+                        ) : null
+                    }
+                />
+
+                {isRunning && (
+                    <div className="progress-bar">
+                        <div className="progress-text">
+                            <span className="spinner" />
+                            <strong>Auditing websites</strong>
+                            <span className="progress-meta">
+                                scanned {scanned} of {total} · ~{remainingMin} min remaining
                             </span>
-                        )}
+                        </div>
+                        <div className="progress-track">
+                            <div className="progress-fill" style={{ width: `${pct}%` }} />
+                        </div>
+                        <div className="progress-pct tabular">{pct}%</div>
+                    </div>
+                )}
+
+                <div className="filter-bar">
+                    <Field label="Angle">
+                        <Segmented
+                            value={angleFilter}
+                            onChange={setAngleFilter}
+                            options={[
+                                { value: 'all', label: 'All' },
+                                { value: 'both', label: 'Both' },
+                                { value: 'gbp', label: 'GBP' },
+                                { value: 'a11y', label: 'A11y' },
+                            ]}
+                        />
+                    </Field>
+                    <Field label="Min combined score">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 6 }}>
+                            <input
+                                type="range"
+                                min="0"
+                                max="100"
+                                step="5"
+                                value={minScore}
+                                onChange={(e) => setMinScore(+e.target.value)}
+                                style={{ width: 140, accentColor: 'var(--color-ink)' }}
+                            />
+                            <span className="micro tabular" style={{ minWidth: 36 }}>{minScore}+</span>
+                        </div>
+                    </Field>
+                    <div className="filter-action">
+                        <span className="micro">Showing {visible.length} of {prospects.length}</span>
                     </div>
                 </div>
 
-                {prospects.length > 0 ? (
-                    <>
-                        {selected.length > 0 && (
-                            <div className="mb-4 flex items-center gap-3">
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        router.post('/outreach/selections', { prospect_ids: selected });
-                                        setSelected([]);
-                                    }}
-                                    className="text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-lg"
-                                >
-                                    Add {selected.length} to outreach
-                                </button>
-                                <button type="button" onClick={() => setSelected([])} className="text-sm text-gray-500 hover:text-gray-700">
-                                    Clear selection
-                                </button>
-                            </div>
-                        )}
-                        <ProspectTable
-                            prospects={prospects}
-                            showA11y={showA11y}
-                            selected={selected}
-                            setSelected={setSelected}
-                            inQueue={inQueue}
-                        />
-                    </>
+                {visible.length === 0 && !isRunning ? (
+                    <EmptyState
+                        icon={Icons.Search}
+                        title="No prospects match these filters."
+                        sub="Try lowering the minimum score or clearing the angle filter."
+                    />
                 ) : (
-                    <div className="text-center py-20 text-gray-400 text-sm">
-                        {isRunning ? statusLabel[search.status] + '...' : 'No prospects found.'}
+                    <div style={{ border: '1px solid var(--color-line)', borderRadius: 6, overflow: 'hidden', background: 'var(--color-paper)' }}>
+                        <table className="ptable">
+                            <thead>
+                                <tr>
+                                    <th style={{ width: 36 }}>
+                                        <Checkbox
+                                            checked={selectedIds.length > 0 && selectedIds.length === visible.length}
+                                            indeterminate={selectedIds.length > 0 && selectedIds.length < visible.length}
+                                            onChange={toggleAll}
+                                        />
+                                    </th>
+                                    <th style={{ width: '28%' }}>Business</th>
+                                    <th style={{ width: '9%' }}>Combined</th>
+                                    {showA11y && (
+                                        <>
+                                            <th style={{ width: '6%' }}>GBP</th>
+                                            <th style={{ width: '6%' }}>A11y</th>
+                                        </>
+                                    )}
+                                    <th style={{ width: '8%' }}>Perf</th>
+                                    <th style={{ width: '11%' }}>Angle</th>
+                                    <th style={{ width: '14%' }}>Report status</th>
+                                    <th style={{ width: '14%', textAlign: 'right' }}>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {visible.map((p) => (
+                                    <ProspectRow
+                                        key={p.id}
+                                        prospect={p}
+                                        showA11y={showA11y}
+                                        inQueue={inQueue.has(p.id)}
+                                        isExpanded={expanded === p.id}
+                                        isSelected={!!selected[p.id]}
+                                        onToggleSelect={() => toggleRow(p.id)}
+                                        onToggleExpand={() => setExpanded(expanded === p.id ? null : p.id)}
+                                    />
+                                ))}
+                                {isRunning &&
+                                    Array.from({ length: Math.max(0, 3) }).map((_, i) => (
+                                        <tr key={`skel-${i}`}>
+                                            <td colSpan={showA11y ? 9 : 7} style={{ padding: '14px 20px' }}>
+                                                <span className="skel" style={{ width: '60%', display: 'block' }} />
+                                            </td>
+                                        </tr>
+                                    ))}
+                            </tbody>
+                        </table>
                     </div>
                 )}
-            </div>
+            </main>
         </AuthenticatedLayout>
     );
 }
 
-function scanTypeLabel(scanType) {
-    const map = {
-        gbp_only: 'GBP only',
-        accessibility_only: 'Accessibility only',
-        combined: 'GBP + Accessibility',
-    };
-    return map[scanType] ?? scanType;
-}
+function ProspectRow({
+    prospect: p,
+    showA11y,
+    inQueue,
+    isExpanded,
+    isSelected,
+    onToggleSelect,
+    onToggleExpand,
+}) {
+    const isFailed = p.audit_status === 'failed';
+    const isPending = p.audit_status === 'pending';
+    const isWarm = p.is_warm;
+    const urlDisplay = p.website_url?.replace(/^https?:\/\//, '') ?? 'No website';
 
-function ProspectTable({ prospects, showA11y, selected, setSelected, inQueue }) {
-    const toggle = (id) => {
-        setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
-    };
-
-    const addOne = (id) => {
-        router.post('/outreach/selections', { prospect_ids: [id] });
-    };
+    const rowClass = [
+        isWarm ? 'warm' : '',
+        isFailed ? 'failed' : '',
+        isSelected ? 'selected' : '',
+        isExpanded ? 'expanded' : '',
+    ]
+        .filter(Boolean)
+        .join(' ');
 
     return (
-        <div className="overflow-x-auto rounded-xl border border-gray-200">
-            <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                        <th className="w-10 px-4 py-3" />
-                        <th className="text-left px-4 py-3 font-medium text-gray-600">Business</th>
-                        <th className="text-center px-4 py-3 font-medium text-gray-600">Score</th>
-                        {showA11y && (
-                            <>
-                                <th className="text-center px-4 py-3 font-medium text-gray-600">GBP</th>
-                                <th className="text-center px-4 py-3 font-medium text-gray-600">A11y</th>
-                            </>
+        <Fragment>
+            <tr
+                className={rowClass}
+                onClick={() => router.visit(`/prospects/${p.id}`)}
+            >
+                <td onClick={(e) => e.stopPropagation()}>
+                    <Checkbox checked={isSelected} onChange={onToggleSelect} />
+                </td>
+                <td className="biz">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {p.business_name}
+                                        {inQueue && (
+                                            <span className="badge" style={{ fontSize: 10, background: 'var(--color-stone-200)' }}>
+                                                In outreach
+                                            </span>
+                                        )}
+                    </div>
+                    <span className="url" style={isFailed ? { color: 'var(--color-sev-critical)' } : {}}>
+                        {isFailed ? (p.audit_error ?? 'Audit failed') : urlDisplay}
+                    </span>
+                </td>
+                <td>
+                    <ScoreBadge value={p.combined_score} />
+                </td>
+                {showA11y && (
+                    <>
+                        <td className="num">{p.gbp_score ?? '—'}</td>
+                        <td className="num">{p.a11y_score ?? '—'}</td>
+                    </>
+                )}
+                <td>
+                    {isPending || isFailed ? (
+                        <span className="num">—</span>
+                    ) : (
+                        <ScoreBadge
+                            value={p.performance_score}
+                            withBar={false}
+                            weakPip={p.performance_score != null && p.performance_score < 30}
+                        />
+                    )}
+                </td>
+                <td>
+                    <AnglePill angle={p.dominant_angle} />
+                </td>
+                <td>
+                    {isFailed ? (
+                        <Status kind="failed">Audit failed</Status>
+                    ) : isPending ? (
+                        <Status kind="pending">Auditing site</Status>
+                    ) : isWarm ? (
+                        <Status kind="warm">Viewed {p.last_viewed}</Status>
+                    ) : (
+                        <Status kind="ready">Report ready</Status>
+                    )}
+                </td>
+                <td onClick={(e) => e.stopPropagation()} style={{ textAlign: 'right' }}>
+                    <div className="row-actions">
+                        <button type="button" className="btn-icon" title="Expand weaknesses" onClick={onToggleExpand}>
+                            <Icon d={isExpanded ? Icons.ChevronU : Icons.ChevronD} />
+                        </button>
+                        {p.place_id && (
+                            <a
+                                className="btn-icon"
+                                title="View on Maps"
+                                href={`https://www.google.com/maps/place/?q=place_id:${p.place_id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <Icon d={Icons.Map} />
+                            </a>
                         )}
-                        <th className="text-center px-4 py-3 font-medium text-gray-600">Reviews</th>
-                        <th className="text-center px-4 py-3 font-medium text-gray-600">Photos</th>
-                        <th className="text-center px-4 py-3 font-medium text-gray-600">Rating</th>
-                        <th className="text-center px-4 py-3 font-medium text-gray-600">Report</th>
-                        <th className="text-left px-4 py-3 font-medium text-gray-600">Weaknesses</th>
-                        <th className="text-left px-4 py-3 font-medium text-gray-600">Website</th>
-                    </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                    {prospects.map(p => (
-                        <tr key={p.id} className="hover:bg-gray-50 transition-colors">
-                            <td className="px-4 py-3">
-                                <input
-                                    type="checkbox"
-                                    checked={selected.includes(p.id)}
-                                    onChange={() => toggle(p.id)}
-                                    className="rounded border-gray-300"
-                                />
-                            </td>
-                            <td className="px-4 py-3">
-                                <Link
-                                    href={`/prospects/${p.id}`}
-                                    className="font-medium text-gray-900 hover:text-indigo-600"
-                                >
-                                    {p.business_name}
-                                </Link>
-                                {inQueue.has(p.id) && (
-                                    <span className="ml-2 text-xs bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded">In outreach</span>
-                                )}
-                                {p.address && (
-                                    <div className="text-xs text-gray-400 mt-0.5">{p.address}</div>
-                                )}
-                                {p.audit_status === 'pending' && (
-                                    <div className="text-xs text-blue-500 mt-0.5">Auditing...</div>
-                                )}
-                            </td>
-                            <td className="px-4 py-3 text-center">
-                                <ScoreBadge score={p.combined_score} />
-                            </td>
-                            {showA11y && (
-                                <>
-                                    <td className="px-4 py-3 text-center text-gray-600">{p.gbp_score}</td>
-                                    <td className="px-4 py-3 text-center text-gray-600">{p.a11y_score}</td>
-                                </>
-                            )}
-                            <td className="px-4 py-3 text-center text-gray-700">{p.review_count}</td>
-                            <td className="px-4 py-3 text-center text-gray-700">{p.photo_count}</td>
-                            <td className="px-4 py-3 text-center text-gray-700">
-                                {p.rating ?? <span className="text-gray-300">-</span>}
-                            </td>
-                            <td className="px-4 py-3 text-center">
-                                {p.report_ready ? (
-                                    <a
-                                        href={p.report_url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-xs text-indigo-600 hover:underline"
-                                    >
-                                        View
-                                    </a>
-                                ) : p.audit_status === 'pending' ? (
-                                    <span className="text-xs text-gray-400">Pending</span>
-                                ) : (
-                                    <span className="text-xs text-gray-400">—</span>
-                                )}
-                            </td>
-                            <td className="px-4 py-3">
-                                <div className="flex flex-wrap gap-1">
-                                    {(p.gbp_flags ?? []).map((flag, i) => (
-                                        <FlagTag key={`gbp-${i}`} flag={flag} variant="gbp" />
-                                    ))}
-                                    {(p.a11y_flags ?? []).map((flag, i) => (
-                                        <FlagTag key={`a11y-${i}`} flag={flag} variant="a11y" />
-                                    ))}
+                        {p.report_url && !isFailed && !isPending ? (
+                            <a
+                                className="btn-icon"
+                                title="Preview report"
+                                href={p.report_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <Icon d={Icons.Eye} />
+                            </a>
+                        ) : (
+                            <button type="button" className="btn-icon" title="Preview report" disabled>
+                                <Icon d={Icons.Eye} />
+                            </button>
+                        )}
+                        <Link
+                            href={`/prospects/${p.id}`}
+                            className="btn-icon"
+                            title="Open prospect"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <Icon d={Icons.ChevronR} />
+                        </Link>
+                    </div>
+                </td>
+            </tr>
+            {isExpanded && (
+                <tr className="expanded-row">
+                    <td colSpan={showA11y ? 9 : 7}>
+                        <div className="ex-inner">
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
+                                <div>
+                                    <div className="eyebrow" style={{ marginBottom: 10 }}>GBP weaknesses</div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                        {(p.gbp_flags ?? []).length === 0 ? (
+                                            <span className="micro">None flagged</span>
+                                        ) : (
+                                            (p.gbp_flags ?? []).map((flag, i) => (
+                                                <Badge key={i}>{flag}</Badge>
+                                            ))
+                                        )}
+                                    </div>
                                 </div>
-                            </td>
-                            <td className="px-4 py-3">
-                                {p.website_url ? (
-                                    <a
-                                        href={p.website_url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-indigo-600 hover:underline text-xs truncate max-w-[140px] block"
+                                <div>
+                                    <div className="eyebrow" style={{ marginBottom: 10 }}>Accessibility weaknesses</div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                        {(p.a11y_flags ?? []).length === 0 ? (
+                                            <span className="micro">None flagged</span>
+                                        ) : (
+                                            (p.a11y_flags ?? []).map((flag, i) => (
+                                                <Badge key={i}>{flag}</Badge>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                            {!inQueue && (
+                                <div style={{ marginTop: 16 }}>
+                                    <Button
+                                        kind="secondary"
+                                        size="sm"
+                                        onClick={() => router.post('/outreach/selections', { prospect_ids: [p.id] })}
                                     >
-                                        {p.website_url.replace(/^https?:\/\//, '')}
-                                    </a>
-                                ) : (
-                                    <span className="text-xs text-red-400">No website</span>
-                                )}
-                                {!inQueue.has(p.id) && (
-                                    <button type="button" onClick={() => addOne(p.id)} className="block mt-1 text-xs text-indigo-600 hover:underline">
                                         Add to outreach
-                                    </button>
-                                )}
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
-    );
-}
-
-function FlagTag({ flag, variant }) {
-    const styles =
-        variant === 'a11y'
-            ? 'bg-violet-50 text-violet-700 border-violet-200'
-            : 'bg-amber-50 text-amber-700 border-amber-200';
-    return (
-        <span className={`text-xs border rounded px-1.5 py-0.5 ${styles}`}>
-            {flag}
-        </span>
-    );
-}
-
-function ScoreBadge({ score }) {
-    const colour =
-        score >= 70 ? 'bg-red-100 text-red-700 ring-1 ring-red-200' :
-        score >= 40 ? 'bg-amber-100 text-amber-700 ring-1 ring-amber-200' :
-                     'bg-green-100 text-green-700 ring-1 ring-green-200';
-    return (
-        <span className={`inline-flex items-center justify-center w-10 h-7 rounded-md font-semibold text-xs ${colour}`}>
-            {score}
-        </span>
-    );
-}
-
-function StatusBadge({ status }) {
-    const map = {
-        pending:     'bg-gray-100 text-gray-600',
-        discovering: 'bg-blue-100 text-blue-700',
-        auditing:    'bg-yellow-100 text-yellow-700',
-        complete:    'bg-green-100 text-green-700',
-        failed:      'bg-red-100 text-red-700',
-    };
-    return (
-        <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${map[status] ?? map.pending}`}>
-            {status}
-        </span>
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+                    </td>
+                </tr>
+            )}
+        </Fragment>
     );
 }

@@ -45,20 +45,23 @@ class ReportBuilderService
         $violationSummary = $this->summarizeViolations($a11yPayload);
         $topViolations = $this->extractTopViolations($a11yPayload, 5);
         $lighthouse = $this->extractLighthouse($lighthousePayload, $a11yPayload);
-        $healthScore = max(0, min(100, 100 - (int) $prospect->combined_score));
-        $grade = $this->healthToGrade($healthScore);
+        $combined = (int) $prospect->combined_score;
+        $grade = $this->combinedToGrade($combined);
+
+        $search->loadMissing('user.setting');
+        $bookingUrl = $search->user?->setting?->booking_url ?: config('scanner.report_booking_url');
 
         return [
             'niche'              => $search->niche,
             'city'               => $search->city,
             'country'            => $search->country,
             'scan_type'          => $search->scan_type,
-            'booking_url'        => config('scanner.report_booking_url'),
+            'booking_url'        => $bookingUrl,
             'generated_at'       => now()->toIso8601String(),
             'website_url'        => $prospect->website_url,
             'grade'              => $grade,
             'grade_label'        => $this->gradeLabel($grade),
-            'health_score'       => $healthScore,
+            'performance_score'  => $prospect->performance_score,
             'violation_summary'  => $violationSummary,
             'top_violations'     => $topViolations,
             'lighthouse'         => $lighthouse,
@@ -80,15 +83,21 @@ class ReportBuilderService
         ];
     }
 
-    public function healthToGrade(int $healthScore): string
+    /** @see resources/css/tokens.css — grade thresholds from combined score */
+    public function combinedToGrade(int $combinedScore): string
     {
         return match (true) {
-            $healthScore >= 85 => 'A',
-            $healthScore >= 70 => 'B',
-            $healthScore >= 55 => 'C',
-            $healthScore >= 40 => 'D',
-            default           => 'F',
+            $combinedScore >= 85 => 'D',
+            $combinedScore >= 70 => 'C',
+            $combinedScore >= 50 => 'C+',
+            $combinedScore >= 30 => 'B',
+            default            => 'B+',
         };
+    }
+
+    public function healthToGrade(int $healthScore): string
+    {
+        return $this->combinedToGrade(max(0, min(100, 100 - $healthScore)));
     }
 
     public function gradeLabel(string $grade): string
@@ -140,17 +149,22 @@ class ReportBuilderService
 
         $top = array_slice($violations, 0, $limit);
 
-        return array_map(function (array $violation) {
+        $screenshotMap = collect($payload['violation_screenshots'] ?? [])
+            ->keyBy('violation_id');
+
+        return array_map(function (array $violation) use ($screenshotMap) {
             $tags = $violation['tags'] ?? [];
             $wcag = collect($tags)->first(fn ($tag) => preg_match('/^wcag\d+/', (string) $tag));
+            $id = $violation['id'] ?? 'issue';
 
             return [
-                'id'          => $violation['id'] ?? 'issue',
-                'impact'      => $violation['impact'] ?? 'moderate',
-                'description' => $violation['description'] ?? $violation['help'] ?? 'Accessibility issue detected',
-                'help'        => $violation['help'] ?? null,
-                'wcag'        => $wcag ? strtoupper($wcag) : null,
-                'nodes'       => count($violation['nodes'] ?? []),
+                'id'             => $id,
+                'impact'         => $violation['impact'] ?? 'moderate',
+                'description'    => $violation['description'] ?? $violation['help'] ?? 'Accessibility issue detected',
+                'help'           => $violation['help'] ?? null,
+                'wcag'           => $wcag ? strtoupper($wcag) : null,
+                'nodes'          => count($violation['nodes'] ?? []),
+                'screenshot_url' => $screenshotMap->get($id)['url'] ?? null,
             ];
         }, $top);
     }
