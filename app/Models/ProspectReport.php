@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ProspectReport extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'prospect_id', 'token', 'benchmark_place_id', 'screenshot_paths',
         'report_data', 'viewed_at', 'view_count', 'viewer_ip', 'expires_at',

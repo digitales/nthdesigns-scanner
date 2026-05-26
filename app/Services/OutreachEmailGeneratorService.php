@@ -14,9 +14,12 @@ class OutreachEmailGeneratorService
     /**
      * @return array{subject_line: string, email_body: string, model_used: string, prompt_tokens: int, completion_tokens: int, pitch_angle: string}
      */
-    public function generate(Prospect $prospect, ?ProspectReport $report = null): array
+    public function generate(Prospect $prospect, ?ProspectReport $report = null, array $options = []): array
     {
-        $pitchAngle = $this->resolvePitchAngle($prospect);
+        $pitchAngle = $options['pitch_angle'] ?? 'auto';
+        if ($pitchAngle === 'auto') {
+            $pitchAngle = $this->resolvePitchAngle($prospect);
+        }
         $reportUrl = $report
             ? url('/r/'.$report->token)
             : null;
@@ -32,7 +35,7 @@ Rules:
 - Return ONLY valid JSON with keys: subject_line, email_body
 PROMPT;
 
-        $user = $this->buildUserPrompt($prospect, $pitchAngle, $reportUrl);
+        $user = $this->buildUserPrompt($prospect, $pitchAngle, $reportUrl, $options);
 
         $result = $this->anthropic->complete($system, $user);
         $parsed = $this->parseResponse($result['content']);
@@ -56,7 +59,7 @@ PROMPT;
         };
     }
 
-    private function buildUserPrompt(Prospect $prospect, string $pitchAngle, ?string $reportUrl): string
+    private function buildUserPrompt(Prospect $prospect, string $pitchAngle, ?string $reportUrl, array $options = []): string
     {
         $search = $prospect->search;
         $flags = array_merge($prospect->gbp_flags ?? [], $prospect->a11y_flags ?? []);
@@ -70,6 +73,14 @@ PROMPT;
             "Combined weakness score (higher = more opportunity): {$prospect->combined_score}",
             'Key issues: '.(count($flags) ? implode('; ', $flags) : 'General improvement opportunity'),
         ];
+
+        if (!empty($options['agency_name'])) {
+            $lines[] = "Sign the email from: {$options['agency_name']}";
+        }
+
+        if (isset($options['cpc_benchmark'])) {
+            $lines[] = 'GBP CPC benchmark for this niche: £'.$options['cpc_benchmark'].' per click';
+        }
 
         if ($reportUrl) {
             $lines[] = "Include this audit report link naturally: {$reportUrl}";

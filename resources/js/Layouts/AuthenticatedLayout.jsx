@@ -6,7 +6,8 @@ import { Link, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
 export default function AuthenticatedLayout({ header, children }) {
-    const user = usePage().props.auth.user;
+    const { auth, outreachSelectionCount = 0 } = usePage().props;
+    const user = auth.user;
 
     const [showingNavigationDropdown, setShowingNavigationDropdown] =
         useState(false);
@@ -25,16 +26,28 @@ export default function AuthenticatedLayout({ header, children }) {
 
                             <div className="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                                 <NavLink
-                                    href={route('dashboard')}
-                                    active={route().current('dashboard')}
-                                >
-                                    Dashboard
-                                </NavLink>
-                                <NavLink
                                     href="/search"
-                                    active={route().current('search.index')}
+                                    active={route().current('search.index') || route().current('searches.show')}
                                 >
                                     Search
+                                </NavLink>
+                                <NavLink
+                                    href="/outreach"
+                                    active={route().current('outreach.*')}
+                                >
+                                    Outreach{outreachSelectionCount > 0 ? ` (${outreachSelectionCount})` : ''}
+                                </NavLink>
+                                <NavLink
+                                    href="/saved"
+                                    active={route().current('saved.index')}
+                                >
+                                    Saved
+                                </NavLink>
+                                <NavLink
+                                    href="/reports"
+                                    active={route().current('reports.index')}
+                                >
+                                    Reports
                                 </NavLink>
                             </div>
                         </div>
@@ -135,16 +148,19 @@ export default function AuthenticatedLayout({ header, children }) {
                 >
                     <div className="space-y-1 pb-3 pt-2">
                         <ResponsiveNavLink
-                            href={route('dashboard')}
-                            active={route().current('dashboard')}
-                        >
-                            Dashboard
-                        </ResponsiveNavLink>
-                        <ResponsiveNavLink
                             href="/search"
-                            active={route().current('search.index')}
+                            active={route().current('search.index') || route().current('searches.show')}
                         >
                             Search
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink href="/outreach" active={route().current('outreach.*')}>
+                            Outreach{outreachSelectionCount > 0 ? ` (${outreachSelectionCount})` : ''}
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink href="/saved" active={route().current('saved.index')}>
+                            Saved
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink href="/reports" active={route().current('reports.index')}>
+                            Reports
                         </ResponsiveNavLink>
                     </div>
 

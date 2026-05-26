@@ -35,4 +35,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(Search::class);
     }
+
+    public function outreachSelections(): HasMany
+    {
+        return $this->hasMany(OutreachSelection::class);
+    }
+
+    public function exports(): HasMany
+    {
+        return $this->hasMany(Export::class);
+    }
 }

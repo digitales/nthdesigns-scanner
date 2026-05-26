@@ -23,6 +23,7 @@ class GenerateOutreachEmailJob implements ShouldQueue
     public function __construct(
         public Prospect $prospect,
         public User $user,
+        public array $options = [],
     ) {}
 
     public function handle(OutreachEmailGeneratorService $generator): void
@@ -34,7 +35,7 @@ class GenerateOutreachEmailJob implements ShouldQueue
         }
 
         try {
-            $generated = $generator->generate($prospect, $prospect->report);
+            $generated = $generator->generate($prospect, $prospect->report, $this->options);
 
             OutreachEmail::create([
                 'prospect_id'         => $prospect->id,

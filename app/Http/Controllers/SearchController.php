@@ -77,6 +77,10 @@ class SearchController extends Controller
             ]);
 
         return Inertia::render('Search/Show', [
+            'outreachProspectIds' => auth()->user()
+                ->outreachSelections()
+                ->pluck('prospect_id')
+                ->values(),
             'search' => [
                 'id'          => $search->id,
                 'niche'       => $search->niche,

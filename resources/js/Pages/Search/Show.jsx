@@ -1,8 +1,10 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 
-export default function SearchShow({ auth, search, prospects }) {
+export default function SearchShow({ auth, search, prospects, outreachProspectIds = [] }) {
+    const [selected, setSelected] = useState([]);
+    const inQueue = new Set(outreachProspectIds);
     const isRunning = ['pending', 'discovering', 'auditing'].includes(search.status);
     const showA11y = search.scan_type !== 'gbp_only';
 
@@ -49,7 +51,32 @@ export default function SearchShow({ auth, search, prospects }) {
                 </div>
 
                 {prospects.length > 0 ? (
-                    <ProspectTable prospects={prospects} showA11y={showA11y} />
+                    <>
+                        {selected.length > 0 && (
+                            <div className="mb-4 flex items-center gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        router.post('/outreach/selections', { prospect_ids: selected });
+                                        setSelected([]);
+                                    }}
+                                    className="text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-lg"
+                                >
+                                    Add {selected.length} to outreach
+                                </button>
+                                <button type="button" onClick={() => setSelected([])} className="text-sm text-gray-500 hover:text-gray-700">
+                                    Clear selection
+                                </button>
+                            </div>
+                        )}
+                        <ProspectTable
+                            prospects={prospects}
+                            showA11y={showA11y}
+                            selected={selected}
+                            setSelected={setSelected}
+                            inQueue={inQueue}
+                        />
+                    </>
                 ) : (
                     <div className="text-center py-20 text-gray-400 text-sm">
                         {isRunning ? statusLabel[search.status] + '...' : 'No prospects found.'}
@@ -69,12 +96,21 @@ function scanTypeLabel(scanType) {
     return map[scanType] ?? scanType;
 }
 
-function ProspectTable({ prospects, showA11y }) {
+function ProspectTable({ prospects, showA11y, selected, setSelected, inQueue }) {
+    const toggle = (id) => {
+        setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    };
+
+    const addOne = (id) => {
+        router.post('/outreach/selections', { prospect_ids: [id] });
+    };
+
     return (
         <div className="overflow-x-auto rounded-xl border border-gray-200">
             <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
+                        <th className="w-10 px-4 py-3" />
                         <th className="text-left px-4 py-3 font-medium text-gray-600">Business</th>
                         <th className="text-center px-4 py-3 font-medium text-gray-600">Score</th>
                         {showA11y && (
@@ -94,12 +130,23 @@ function ProspectTable({ prospects, showA11y }) {
                     {prospects.map(p => (
                         <tr key={p.id} className="hover:bg-gray-50 transition-colors">
                             <td className="px-4 py-3">
+                                <input
+                                    type="checkbox"
+                                    checked={selected.includes(p.id)}
+                                    onChange={() => toggle(p.id)}
+                                    className="rounded border-gray-300"
+                                />
+                            </td>
+                            <td className="px-4 py-3">
                                 <Link
                                     href={`/prospects/${p.id}`}
                                     className="font-medium text-gray-900 hover:text-indigo-600"
                                 >
                                     {p.business_name}
                                 </Link>
+                                {inQueue.has(p.id) && (
+                                    <span className="ml-2 text-xs bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded">In outreach</span>
+                                )}
                                 {p.address && (
                                     <div className="text-xs text-gray-400 mt-0.5">{p.address}</div>
                                 )}
@@ -143,6 +190,11 @@ function ProspectTable({ prospects, showA11y }) {
                                     </a>
                                 ) : (
                                     <span className="text-xs text-red-400">No website</span>
+                                )}
+                                {!inQueue.has(p.id) && (
+                                    <button type="button" onClick={() => addOne(p.id)} className="block mt-1 text-xs text-indigo-600 hover:underline">
+                                        Add to outreach
+                                    </button>
                                 )}
                             </td>
                         </tr>

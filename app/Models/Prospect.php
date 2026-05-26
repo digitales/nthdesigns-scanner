@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -9,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Prospect extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'search_id', 'place_id', 'business_name', 'phone', 'website_url', 'address',
         'rating', 'review_count', 'photo_count', 'has_description', 'hours_complete',
@@ -47,5 +50,10 @@ class Prospect extends Model
     public function auditJobs(): HasMany
     {
         return $this->hasMany(AuditJob::class);
+    }
+
+    public function outreachSelections(): HasMany
+    {
+        return $this->hasMany(OutreachSelection::class);
     }
 }

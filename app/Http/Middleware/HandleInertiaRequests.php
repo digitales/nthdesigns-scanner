@@ -37,7 +37,11 @@ class HandleInertiaRequests extends Middleware
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error'   => fn () => $request->session()->get('error'),
+                'skipped' => fn () => $request->session()->get('skipped', []),
             ],
+            'outreachSelectionCount' => fn () => $request->user()
+                ? $request->user()->outreachSelections()->count()
+                : 0,
         ];
     }
 }
