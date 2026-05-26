@@ -74,6 +74,8 @@ class SearchController extends Controller
                 'combined_score' => $p->combined_score,
                 'dominant_angle' => $p->dominant_angle,
                 'audit_status'   => $p->audit_status,
+                'report_ready'   => $p->report !== null,
+                'report_url'     => $p->report ? url('/r/'.$p->report->token) : null,
             ]);
 
         return Inertia::render('Search/Show', [

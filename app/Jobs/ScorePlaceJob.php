@@ -84,11 +84,7 @@ class ScorePlaceJob implements ShouldQueue
             return;
         }
 
-        if (empty($prospect->website_url)) {
-            $prospect->update(['audit_status' => 'skipped']);
-        }
-
-        CombineScoresJob::dispatch($prospect)->onQueue('auditing');
+        CombineScoresJob::dispatch($prospect->fresh())->onQueue('auditing');
     }
 
     public function queue(): string

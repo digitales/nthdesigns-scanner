@@ -122,6 +122,7 @@ function ProspectTable({ prospects, showA11y, selected, setSelected, inQueue }) 
                         <th className="text-center px-4 py-3 font-medium text-gray-600">Reviews</th>
                         <th className="text-center px-4 py-3 font-medium text-gray-600">Photos</th>
                         <th className="text-center px-4 py-3 font-medium text-gray-600">Rating</th>
+                        <th className="text-center px-4 py-3 font-medium text-gray-600">Report</th>
                         <th className="text-left px-4 py-3 font-medium text-gray-600">Weaknesses</th>
                         <th className="text-left px-4 py-3 font-medium text-gray-600">Website</th>
                     </tr>
@@ -167,6 +168,22 @@ function ProspectTable({ prospects, showA11y, selected, setSelected, inQueue }) 
                             <td className="px-4 py-3 text-center text-gray-700">{p.photo_count}</td>
                             <td className="px-4 py-3 text-center text-gray-700">
                                 {p.rating ?? <span className="text-gray-300">-</span>}
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                                {p.report_ready ? (
+                                    <a
+                                        href={p.report_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-xs text-indigo-600 hover:underline"
+                                    >
+                                        View
+                                    </a>
+                                ) : p.audit_status === 'pending' ? (
+                                    <span className="text-xs text-gray-400">Pending</span>
+                                ) : (
+                                    <span className="text-xs text-gray-400">—</span>
+                                )}
                             </td>
                             <td className="px-4 py-3">
                                 <div className="flex flex-wrap gap-1">

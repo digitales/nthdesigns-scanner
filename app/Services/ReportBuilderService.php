@@ -15,6 +15,8 @@ class ReportBuilderService
     public function build(Prospect $prospect, ?array $benchmarkPlace = null): array
     {
         $search = $prospect->search;
+        $a11yPayload = $prospect->raw_a11y_payload ?? [];
+        $lighthousePayload = $prospect->raw_lighthouse_payload ?? [];
 
         $benchmark = null;
 
@@ -40,33 +42,132 @@ class ReportBuilderService
             ];
         }
 
+        $violationSummary = $this->summarizeViolations($a11yPayload);
+        $topViolations = $this->extractTopViolations($a11yPayload, 5);
+        $lighthouse = $this->extractLighthouse($lighthousePayload, $a11yPayload);
+        $healthScore = max(0, min(100, 100 - (int) $prospect->combined_score));
+        $grade = $this->healthToGrade($healthScore);
+
         return [
-            'niche'        => $search->niche,
-            'city'         => $search->city,
-            'country'      => $search->country,
-            'scan_type'    => $search->scan_type,
-            'booking_url'  => config('scanner.report_booking_url'),
-            'generated_at' => now()->toIso8601String(),
-            'prospect'     => [
-                'business_name'     => $prospect->business_name,
-                'address'           => $prospect->address,
-                'phone'             => $prospect->phone,
-                'website_url'       => $prospect->website_url,
-                'rating'            => $prospect->rating,
-                'review_count'      => $prospect->review_count,
-                'photo_count'       => $prospect->photo_count,
-                'has_description'   => $prospect->has_description,
-                'hours_complete'    => $prospect->hours_complete,
-                'gbp_score'         => $prospect->gbp_score,
-                'gbp_flags'         => $prospect->gbp_flags ?? [],
-                'a11y_score'        => $prospect->a11y_score,
-                'a11y_flags'        => $prospect->a11y_flags ?? [],
-                'performance_score' => $prospect->performance_score,
-                'combined_score'    => $prospect->combined_score,
-                'dominant_angle'    => $prospect->dominant_angle,
+            'niche'              => $search->niche,
+            'city'               => $search->city,
+            'country'            => $search->country,
+            'scan_type'          => $search->scan_type,
+            'booking_url'        => config('scanner.report_booking_url'),
+            'generated_at'       => now()->toIso8601String(),
+            'website_url'        => $prospect->website_url,
+            'grade'              => $grade,
+            'grade_label'        => $this->gradeLabel($grade),
+            'health_score'       => $healthScore,
+            'violation_summary'  => $violationSummary,
+            'top_violations'     => $topViolations,
+            'lighthouse'         => $lighthouse,
+            'prospect'           => [
+                'business_name'   => $prospect->business_name,
+                'address'         => $prospect->address,
+                'phone'           => $prospect->phone,
+                'website_url'     => $prospect->website_url,
+                'rating'          => $prospect->rating,
+                'review_count'    => $prospect->review_count,
+                'photo_count'     => $prospect->photo_count,
+                'has_description' => $prospect->has_description,
+                'hours_complete'  => $prospect->hours_complete,
+                'gbp_flags'       => $prospect->gbp_flags ?? [],
+                'a11y_flags'      => $prospect->a11y_flags ?? [],
             ],
             'benchmark'  => $benchmark,
             'comparison' => $comparison,
+        ];
+    }
+
+    public function healthToGrade(int $healthScore): string
+    {
+        return match (true) {
+            $healthScore >= 85 => 'A',
+            $healthScore >= 70 => 'B',
+            $healthScore >= 55 => 'C',
+            $healthScore >= 40 => 'D',
+            default           => 'F',
+        };
+    }
+
+    public function gradeLabel(string $grade): string
+    {
+        return match ($grade) {
+            'A'     => 'Strong online presence',
+            'B'     => 'Good with room to improve',
+            'C'     => 'Several gaps to address',
+            'D'     => 'Needs attention',
+            default => 'Significant issues found',
+        };
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array{critical: int, serious: int, moderate: int, minor: int, total: int}
+     */
+    public function summarizeViolations(array $payload): array
+    {
+        $counts = ['critical' => 0, 'serious' => 0, 'moderate' => 0, 'minor' => 0];
+
+        foreach ($payload['violations'] ?? [] as $violation) {
+            $impact = $violation['impact'] ?? 'minor';
+            if (isset($counts[$impact])) {
+                $counts[$impact]++;
+            }
+        }
+
+        $counts['total'] = array_sum($counts);
+
+        return $counts;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return list<array<string, mixed>>
+     */
+    public function extractTopViolations(array $payload, int $limit = 5): array
+    {
+        $violations = $payload['violations'] ?? [];
+        $impactOrder = ['critical' => 0, 'serious' => 1, 'moderate' => 2, 'minor' => 3];
+
+        usort($violations, function (array $a, array $b) use ($impactOrder) {
+            $ia = $impactOrder[$a['impact'] ?? 'minor'] ?? 4;
+            $ib = $impactOrder[$b['impact'] ?? 'minor'] ?? 4;
+
+            return $ia <=> $ib;
+        });
+
+        $top = array_slice($violations, 0, $limit);
+
+        return array_map(function (array $violation) {
+            $tags = $violation['tags'] ?? [];
+            $wcag = collect($tags)->first(fn ($tag) => preg_match('/^wcag\d+/', (string) $tag));
+
+            return [
+                'id'          => $violation['id'] ?? 'issue',
+                'impact'      => $violation['impact'] ?? 'moderate',
+                'description' => $violation['description'] ?? $violation['help'] ?? 'Accessibility issue detected',
+                'help'        => $violation['help'] ?? null,
+                'wcag'        => $wcag ? strtoupper($wcag) : null,
+                'nodes'       => count($violation['nodes'] ?? []),
+            ];
+        }, $top);
+    }
+
+    /**
+     * @param  array<string, mixed>  $lighthousePayload
+     * @param  array<string, mixed>  $a11yPayload
+     * @return array{performance: int|null, accessibility: int|null, seo: int|null}
+     */
+    public function extractLighthouse(array $lighthousePayload, array $a11yPayload): array
+    {
+        $lh = $lighthousePayload['lighthouse'] ?? $lighthousePayload ?? $a11yPayload['lighthouse'] ?? [];
+
+        return [
+            'performance'    => isset($lh['performance']) ? (int) $lh['performance'] : null,
+            'accessibility'  => isset($lh['accessibility']) ? (int) $lh['accessibility'] : null,
+            'seo'            => isset($lh['seo']) ? (int) $lh['seo'] : null,
         ];
     }
 }

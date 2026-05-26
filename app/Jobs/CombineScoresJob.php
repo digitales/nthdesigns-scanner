@@ -29,16 +29,28 @@ class CombineScoresJob implements ShouldQueue
             return;
         }
 
-        if (in_array($prospect->audit_status, ['complete', 'skipped'], true)) {
+        if ($prospect->audit_status === 'complete') {
             return;
         }
 
         $search = $prospect->search;
         $result = $combiner->combine($prospect, $search->scan_type);
 
+        $auditStatus = match (true) {
+            $prospect->audit_status === 'failed' => 'failed',
+            empty($prospect->website_url) && in_array($search->scan_type, ['accessibility_only', 'combined'], true) => 'skipped',
+            default => 'complete',
+        };
+
         $prospect->update(array_merge($result, [
-            'audit_status' => $prospect->audit_status === 'failed' ? 'failed' : 'complete',
+            'audit_status' => $auditStatus,
         ]));
+
+        $prospect = $prospect->fresh();
+
+        if ($prospect && in_array($prospect->audit_status, ['complete', 'skipped'], true)) {
+            GenerateProspectReportJob::dispatch($prospect)->onQueue('auditing');
+        }
 
         $searchStatus->refresh($search);
     }

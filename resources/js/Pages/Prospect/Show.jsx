@@ -55,8 +55,13 @@ export default function ProspectShow({ auth, prospect, search, report, outreachE
                             onClick={generateReport}
                             className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-lg"
                         >
-                            {report ? 'Regenerate report' : 'Generate report'}
+                            {report ? 'Regenerate report' : 'Generate report now'}
                         </button>
+                        {!report && prospect.audit_status !== 'pending' && (
+                            <p className="text-xs text-gray-500 w-full">
+                                Reports are usually created automatically when a scan finishes.
+                            </p>
+                        )}
                         <button
                             type="button"
                             onClick={generateOutreach}
