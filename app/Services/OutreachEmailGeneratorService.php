@@ -90,7 +90,22 @@ PROMPT;
             $lines[] = 'Booking link for a call: '.config('scanner.report_booking_url');
         }
 
+        if ($instruction = $this->performancePromptInstruction($prospect)) {
+            $lines[] = $instruction;
+        }
+
         return implode("\n", $lines);
+    }
+
+    public function performancePromptInstruction(Prospect $prospect): ?string
+    {
+        $score = (int) $prospect->performance_score;
+
+        if ($score <= 0 || $score >= 30) {
+            return null;
+        }
+
+        return "Add exactly one secondary sentence (not the opening) noting their site scored {$score}/100 on Google's performance benchmark and that slow load times affect rankings and bounce rate.";
     }
 
     /**
