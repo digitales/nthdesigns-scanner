@@ -41,4 +41,9 @@ return [
 
     'search_rate_limit_seconds' => (int) env('SEARCH_RATE_LIMIT_SECONDS', 30),
 
+    'horizon_allowed_emails' => array_values(array_filter(array_map(
+        'trim',
+        explode(',', (string) env('HORIZON_ALLOWED_EMAILS', ''))
+    ))),
+
 ];
