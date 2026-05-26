@@ -55,14 +55,6 @@ class A11yScoringService
 
         $performance = $payload['lighthouse']['performance'] ?? null;
 
-        if ($performance !== null && $performance < 50) {
-            $score += 15;
-            $flags[] = 'Performance score below 50';
-        } elseif ($performance !== null && $performance < 70) {
-            $score += 8;
-            $flags[] = 'Performance score below 70';
-        }
-
         $lhA11y = $payload['lighthouse']['accessibility'] ?? null;
 
         if ($lhA11y !== null && $lhA11y < 70) {
