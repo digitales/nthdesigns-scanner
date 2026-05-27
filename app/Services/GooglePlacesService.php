@@ -90,6 +90,7 @@ class GooglePlacesService
             'regularOpeningHours',
             'editorialSummary',
             'primaryType',
+            'businessStatus',
         ]);
 
         $response = Http::withHeaders([

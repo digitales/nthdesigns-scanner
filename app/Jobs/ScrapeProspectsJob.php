@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Search;
 use App\Support\ScrapingQueue;
+use App\Services\BenchmarkNormalizer;
 use App\Services\GooglePlacesService;
 use App\Services\SearchStatusService;
 use Illuminate\Bus\Queueable;
@@ -36,7 +37,24 @@ class ScrapeProspectsJob implements ShouldQueue
                 $this->search->country,
             );
 
-            $this->search->update(['total_found' => count($placeIds)]);
+            $benchmarkPlace = $places->getTopRankedInNiche(
+                $this->search->niche,
+                $this->search->city,
+                $this->search->country,
+            );
+
+            if (! $benchmarkPlace) {
+                Log::warning('ScrapeProspectsJob: no benchmark place returned', [
+                    'search_id' => $this->search->id,
+                ]);
+            }
+
+            $this->search->update([
+                'total_found' => count($placeIds),
+                'benchmark_snapshot' => $benchmarkPlace
+                    ? (new BenchmarkNormalizer())->fromPlace($benchmarkPlace)
+                    : null,
+            ]);
 
             if (count($placeIds) === 0) {
                 $this->search->update(['status' => 'complete']);

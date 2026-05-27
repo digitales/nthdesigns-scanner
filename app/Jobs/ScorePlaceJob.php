@@ -53,9 +53,13 @@ class ScorePlaceJob implements ShouldQueue
             return;
         }
 
-        $fields = $scorer->extractFields($payload);
-        $scored = $scorer->score($payload);
         $search = $this->search->fresh();
+        $fields = $scorer->extractFields($payload);
+        $scored = $scorer->score(
+            $payload,
+            $search->benchmark_snapshot,
+            $search->city,
+        );
 
         $prospect = Prospect::updateOrCreate(
             [
