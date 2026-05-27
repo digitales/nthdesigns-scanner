@@ -9,6 +9,7 @@ use App\Http\Controllers\ProspectController;
 use App\Http\Controllers\PublicReportController;
 use App\Http\Controllers\ReportDashboardController;
 use App\Http\Controllers\SavedProspectController;
+use App\Http\Controllers\NicheScanController;
 use App\Http\Controllers\SearchController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -38,6 +39,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    Route::get('/niches', [NicheScanController::class, 'index'])->name('niches.index');
+    Route::post('/niches/scan', [NicheScanController::class, 'trigger'])->name('niches.scan');
 
     Route::get('/search', [SearchController::class, 'index'])->name('search.index');
     Route::post('/searches', [SearchController::class, 'store'])->name('searches.store');

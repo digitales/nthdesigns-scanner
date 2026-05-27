@@ -9,6 +9,7 @@ export default function AppShell({ children }) {
 
     const navItems = [
         { href: '/search', label: 'Search', match: ['search.index', 'searches.show'] },
+        { href: '/niches', label: 'Niches', match: ['niches.index'] },
         { href: '/outreach', label: 'Outreach', match: ['outreach.index', 'outreach.*'], count: outreachSelectionCount },
         { href: '/saved', label: 'Saved', match: ['saved.index'] },
         { href: '/reports', label: 'Reports', match: ['reports.index'] },
