@@ -564,7 +564,23 @@ The managed `auditing` worker ran **local** `scripts/audit.js` instead of `POST`
 php artisan tinker --execute="echo config('scanner.audit_driver');"
 ```
 
-Must print **`http`**, not `playwright`. Also verify Fly: `curl -s https://nth-scanner-browser.fly.dev/health`. Re-run failed prospects after fixing (new search or reset `audit_status` to `pending` and re-dispatch).
+Must print **`http`**, not `playwright`. Also verify Fly: `curl -s https://nth-scanner-browser.fly.dev/health`.
+
+**Re-run incomplete audits after fixing the driver or browser service**
+
+Preview prospects missing audit payloads (dry-run is the default):
+
+```bash
+php artisan scanner:backfill-audits
+```
+
+Execute (staggered dispatches to the auditing queue; adjust `--delay` if Fly is rate-limited):
+
+```bash
+php artisan scanner:backfill-audits --execute --delay=5
+```
+
+Optional filters: `--search=ID`, `--prospect=ID`, `--limit=50`. Run on an app instance; auditing workers process the jobs. See `docs/superpowers/specs/2026-05-27-audit-backfill-design.md`.
 
 ### Rate limiting
 
