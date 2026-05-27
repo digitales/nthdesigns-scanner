@@ -716,9 +716,10 @@ fly secrets set BROWSER_SERVICE_TOKEN="$(openssl rand -hex 32)" \
 ### 2. Deploy
 
 ```bash
-fly deploy --config scripts/browser-service/fly.toml \
-  --dockerfile scripts/browser-service/Dockerfile .
+fly deploy . --config scripts/browser-service/fly.toml
 ```
+
+Use `.` as the build context (repository root) so the Dockerfile can `COPY scripts/`. Do not pass `--dockerfile scripts/browser-service/Dockerfile` — with this config file, Fly resolves that path twice and errors.
 
 The image uses `mcr.microsoft.com/playwright` (Chromium + system libraries preinstalled). Default VM: **2 GB RAM** in `fly.toml` — adjust if needed.
 

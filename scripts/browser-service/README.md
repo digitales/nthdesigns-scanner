@@ -19,8 +19,10 @@ Build context must be the **repository root** so the Dockerfile can copy `script
 ```bash
 fly apps create nth-scanner-browser   # once
 fly secrets set BROWSER_SERVICE_TOKEN="$(openssl rand -hex 32)" --config scripts/browser-service/fly.toml
-fly deploy --config scripts/browser-service/fly.toml --dockerfile scripts/browser-service/Dockerfile .
+fly deploy . --config scripts/browser-service/fly.toml
 ```
+
+The `.` is the Docker **build context** (repository root). `dockerfile = "Dockerfile"` in `fly.toml` is relative to this config file’s directory. Do not pass `--dockerfile scripts/browser-service/Dockerfile` — that path is resolved twice and fails.
 
 Set the same token on Laravel Cloud:
 

@@ -1,11 +1,12 @@
 # Fly.io app for Playwright audits and screenshots.
-# From repo root: fly launch --config scripts/browser-service/fly.toml --dockerfile scripts/browser-service/Dockerfile
+# Deploy from repository root (`.` = build context so Dockerfile can COPY scripts/):
+#   fly deploy . --config scripts/browser-service/fly.toml
 
 app = 'nth-scanner-browser'
 primary_region = 'lhr'
 
 [build]
-  dockerfile = 'scripts/browser-service/Dockerfile'
+  dockerfile = 'Dockerfile'
 
 [http_service]
   internal_port = 8080
