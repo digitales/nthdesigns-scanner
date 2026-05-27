@@ -24,7 +24,10 @@ class AuditSiteJob implements ShouldQueue
     public int $backoff = 60;
     public int $timeout = 150;
 
-    public function __construct(public Prospect $prospect) {}
+    public function __construct(public Prospect $prospect)
+    {
+        $this->onQueue('auditing');
+    }
 
     public function handle(
         AuditRunnerService $auditRunner,
@@ -108,8 +111,4 @@ class AuditSiteJob implements ShouldQueue
         }
     }
 
-    public function queue(): string
-    {
-        return 'auditing';
-    }
 }

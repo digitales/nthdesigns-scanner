@@ -5,6 +5,7 @@ import OutreachEmailCard from '@/Components/OutreachEmailCard';
 import {
     AnglePill,
     Button,
+    Card,
     PageHeader,
     ScoreCard,
     Status,
@@ -58,8 +59,7 @@ export default function ProspectShow({ prospect, search, report, outreachEmails 
                             <ScoreCard label="Accessibility" value={prospect.a11y_score} />
                         </div>
 
-                        <section className="card card-pad" style={{ marginBottom: 24 }}>
-                            <div className="card-title">Weakness flags</div>
+                        <Card title="Weakness flags" style={{ marginBottom: 24 }}>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
                                 <div>
                                     <div className="eyebrow" style={{ marginBottom: 10 }}>GBP</div>
@@ -94,7 +94,7 @@ export default function ProspectShow({ prospect, search, report, outreachEmails 
                                     </div>
                                 </div>
                             </div>
-                        </section>
+                        </Card>
 
                         {outreachEmails.length > 0 && (
                             <section>
@@ -113,8 +113,7 @@ export default function ProspectShow({ prospect, search, report, outreachEmails 
                     </div>
 
                     <aside style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                        <div className="card card-pad">
-                            <div className="card-title">Public report</div>
+                        <Card title="Public report">
                             {report ? (
                                 <>
                                     <div className="micro" style={{ marginBottom: 8, wordBreak: 'break-all' }}>/r/{report.token}</div>
@@ -142,10 +141,9 @@ export default function ProspectShow({ prospect, search, report, outreachEmails 
                                     <Button kind="primary" size="sm" onClick={generateReport}>Generate report</Button>
                                 </>
                             )}
-                        </div>
+                        </Card>
 
-                        <div className="card card-pad">
-                            <div className="card-title">Outreach</div>
+                        <Card title="Outreach">
                             {latestOutreach ? (
                                 <>
                                     <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 4 }}>{latestOutreach.subject_line}</div>
@@ -159,10 +157,9 @@ export default function ProspectShow({ prospect, search, report, outreachEmails 
                                     <Button kind="primary" size="sm" onClick={addToOutreach}>Add to outreach</Button>
                                 </>
                             )}
-                        </div>
+                        </Card>
 
-                        <div className="card card-pad">
-                            <div className="card-title">Profile</div>
+                        <Card title="Profile">
                             <dl style={{ fontSize: 13, display: 'flex', flexDirection: 'column', gap: 8 }}>
                                 <div><span className="micro">Angle </span><AnglePill angle={prospect.dominant_angle} /></div>
                                 {prospect.phone && <div><span className="micro">Phone </span>{prospect.phone}</div>}
@@ -175,7 +172,7 @@ export default function ProspectShow({ prospect, search, report, outreachEmails 
                                     </div>
                                 )}
                             </dl>
-                        </div>
+                        </Card>
                     </aside>
                 </div>
             </main>

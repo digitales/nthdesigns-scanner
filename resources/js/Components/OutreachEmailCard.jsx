@@ -3,11 +3,9 @@ import { useState } from 'react';
 import {
     AnglePill,
     Button,
-    Field,
-    Icon,
-    Icons,
+    Card,
+    RowActions,
     ScoreBadge,
-    Segmented,
 } from '@/Components/ui';
 
 export default function OutreachEmailCard({ email, reportUrl, performanceScore }) {
@@ -26,7 +24,7 @@ export default function OutreachEmailCard({ email, reportUrl, performanceScore }
     const showSlowSite = performanceScore != null && performanceScore < 30;
 
     return (
-        <div className={`email-card${isSent ? ' sent' : ''}`}>
+        <Card pad={false} className={`email-card${isSent ? ' sent' : ''}`}>
             <div className="email-card-header">
                 <div>
                     <div className="micro" style={{ marginBottom: 4 }}>To: {email.to_email ?? '—'}</div>
@@ -38,7 +36,7 @@ export default function OutreachEmailCard({ email, reportUrl, performanceScore }
                         </div>
                     </div>
                 </div>
-                <div className="row-actions">
+                <RowActions>
                     {reportUrl && (
                         <a href={reportUrl} target="_blank" rel="noopener noreferrer" className="btn-ghost btn-xs">
                             Preview report
@@ -53,7 +51,7 @@ export default function OutreachEmailCard({ email, reportUrl, performanceScore }
                     {isSent && !email.response_received && (
                         <button type="button" className="btn-ghost btn-xs" onClick={markResponse}>Got response</button>
                     )}
-                </div>
+                </RowActions>
             </div>
             <div className="email-card-body">
                 <input
@@ -75,6 +73,6 @@ export default function OutreachEmailCard({ email, reportUrl, performanceScore }
                     <span style={{ marginLeft: 12 }}>Sent {new Date(email.sent_at).toLocaleDateString()}</span>
                 )}
             </div>
-        </div>
+        </Card>
     );
 }

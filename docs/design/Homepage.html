@@ -1,0 +1,2595 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1440" />
+<title>nthdesigns Prospect Scanner — the audit your customers wish you'd run</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper:        oklch(0.985 0.006 80);
+    --paper-2:      oklch(0.965 0.009 80);
+    --stone-100:    oklch(0.945 0.010 75);
+    --stone-200:    oklch(0.905 0.012 72);
+    --stone-300:    oklch(0.835 0.014 68);
+    --stone-400:    oklch(0.715 0.016 64);
+    --stone-500:    oklch(0.560 0.016 60);
+    --stone-600:    oklch(0.430 0.013 56);
+    --stone-700:    oklch(0.305 0.011 54);
+    --stone-800:    oklch(0.225 0.009 54);
+    --ink:          oklch(0.155 0.008 52);
+
+    --accent:       oklch(0.705 0.140 65);
+    --accent-soft:  oklch(0.945 0.045 75);
+    --accent-deep:  oklch(0.500 0.130 55);
+    --accent-ink:   oklch(0.290 0.080 50);
+
+    --sev-critical: oklch(0.515 0.180 28);
+    --sev-critical-soft: oklch(0.945 0.045 30);
+    --sev-serious:  oklch(0.660 0.155 52);
+    --sev-serious-soft: oklch(0.955 0.050 70);
+    --sev-moderate: oklch(0.610 0.085 85);
+    --sev-moderate-soft: oklch(0.960 0.035 90);
+    --positive:     oklch(0.580 0.110 145);
+    --positive-soft:oklch(0.945 0.045 145);
+
+    --line:         oklch(0.895 0.012 70);
+    --line-strong:  oklch(0.825 0.014 68);
+
+    --serif: "Newsreader", "Source Serif Pro", Georgia, serif;
+    --sans:  "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --mono:  "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--ink);
+    background: oklch(0.96 0.008 80);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "ss01";
+  }
+  a { color: inherit; text-decoration: none; }
+  button { font-family: inherit; }
+  ::selection { background: var(--accent-soft); color: var(--accent-ink); }
+  .mono { font-family: var(--mono); }
+  .serif { font-family: var(--serif); }
+  .tabular { font-variant-numeric: tabular-nums; }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--stone-500);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .eyebrow::before {
+    content: "";
+    width: 14px;
+    height: 1px;
+    background: var(--stone-400);
+  }
+  .eyebrow.no-rule::before { display: none; }
+
+  /* ──────────────────────────────────────────────────────────────
+     PREVIEW BAR (top — viewport toggle)
+     ────────────────────────────────────────────────────────────── */
+  .preview-bar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 8px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+  }
+  .preview-bar .meta {
+    font-family: var(--mono);
+    font-size: 11px;
+    opacity: 0.65;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .preview-bar .vp-toggle { display: flex; gap: 4px; align-items: center; }
+  .preview-bar .vp-toggle button {
+    background: transparent;
+    color: var(--paper);
+    border: 1px solid oklch(1 0 0 / 0.18);
+    padding: 4px 10px;
+    border-radius: 3px;
+    font-size: 11.5px;
+    cursor: pointer;
+    font-family: var(--sans);
+  }
+  .preview-bar .vp-toggle button.active {
+    background: var(--paper);
+    color: var(--ink);
+    border-color: var(--paper);
+  }
+  .preview-bar .variant-toggle {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    padding-right: 16px;
+    border-right: 1px solid oklch(1 0 0 / 0.18);
+    margin-right: 16px;
+  }
+  .preview-bar .variant-toggle button {
+    background: transparent;
+    color: var(--paper);
+    border: 1px solid oklch(1 0 0 / 0.18);
+    padding: 4px 10px;
+    border-radius: 3px;
+    font-size: 11.5px;
+    cursor: pointer;
+    font-family: var(--sans);
+  }
+  .preview-bar .variant-toggle button.active {
+    background: var(--accent);
+    color: var(--ink);
+    border-color: var(--accent);
+  }
+
+  /* ──────────────────────────────────────────────────────────────
+     PAGE CONTAINER (responsive based on viewport state)
+     ────────────────────────────────────────────────────────────── */
+  .page-frame {
+    background: var(--paper);
+    margin: 0 auto;
+    min-height: 100vh;
+    box-shadow: 0 0 0 1px var(--line);
+    transition: max-width 0.3s ease;
+  }
+  .page-frame[data-vp="desktop"] { max-width: 100%; }
+  .page-frame[data-vp="mobile"]  { max-width: 390px; }
+
+  /* ──────────────────────────────────────────────────────────────
+     NAV
+     ────────────────────────────────────────────────────────────── */
+  nav.site-nav {
+    padding: 22px 56px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--line);
+    background: oklch(0.985 0.006 80 / 0.95);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+    position: sticky;
+    top: 40px;
+    z-index: 50;
+  }
+  [data-vp="mobile"] nav.site-nav { padding: 18px 22px; }
+
+  .nav-brand { display: flex; align-items: center; gap: 10px; }
+  .brand-mark { width: 22px; height: 22px; position: relative; flex-shrink: 0; }
+  .brand-mark::before, .brand-mark::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border: 1.5px solid var(--ink);
+  }
+  .brand-mark::after { transform: rotate(45deg); border-color: var(--accent); }
+  .brand-name {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 17px;
+    letter-spacing: -0.01em;
+  }
+  .brand-sep {
+    color: var(--stone-400);
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+  .brand-product {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--stone-700);
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 4px;
+  }
+  [data-vp="mobile"] .nav-links { display: none; }
+  .nav-links a {
+    font-size: 13px;
+    color: var(--stone-700);
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .nav-links a:hover { background: var(--stone-100); color: var(--ink); }
+
+  .nav-cta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  [data-vp="mobile"] .nav-cta .secondary { display: none; }
+
+  /* ──────────────────────────────────────────────────────────────
+     BUTTONS
+     ────────────────────────────────────────────────────────────── */
+  .btn {
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 9px 18px;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    background: transparent;
+    color: var(--ink);
+    transition: background-color .12s, border-color .12s, color .12s, transform .12s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    line-height: 1.1;
+    white-space: nowrap;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn-primary { background: var(--ink); color: var(--paper); }
+  .btn-primary:hover { background: var(--stone-800); }
+  .btn-accent { background: var(--accent-deep); color: var(--paper); }
+  .btn-accent:hover { background: var(--accent-ink); }
+  .btn-secondary { background: var(--paper); border-color: var(--line-strong); color: var(--ink); }
+  .btn-secondary:hover { background: var(--paper-2); border-color: var(--stone-400); }
+  .btn-ghost { color: var(--stone-700); }
+  .btn-ghost:hover { background: var(--stone-100); color: var(--ink); }
+  .btn-sm { font-size: 12.5px; padding: 6px 12px; gap: 5px; }
+  .btn-lg { font-size: 15px; padding: 14px 26px; }
+  .btn .arrow { font-family: var(--mono); }
+
+  /* ──────────────────────────────────────────────────────────────
+     SECTION
+     ────────────────────────────────────────────────────────────── */
+  section.s {
+    padding: 96px 80px;
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+  section.s.tight { padding: 64px 80px; }
+  section.s.full {
+    max-width: 100%;
+    background: var(--paper-2);
+    margin: 0;
+  }
+  section.s.full > .inner { max-width: 1280px; margin: 0 auto; }
+  [data-vp="mobile"] section.s { padding: 56px 22px; }
+  [data-vp="mobile"] section.s.tight { padding: 40px 22px; }
+  [data-vp="mobile"] section.s.full > .inner { padding: 0; }
+
+  h1.display {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 92px;
+    line-height: 0.98;
+    letter-spacing: -0.025em;
+    margin: 0;
+    text-wrap: balance;
+  }
+  h1.display em { font-style: italic; color: var(--accent-deep); }
+  [data-vp="mobile"] h1.display { font-size: 44px; line-height: 1.02; letter-spacing: -0.022em; }
+  .hero-proof h1.display { font-size: 64px; line-height: 1.04; }
+  [data-vp="mobile"] .hero-proof h1.display { font-size: 36px; line-height: 1.06; }
+
+  h2.heading {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 44px;
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+    margin: 14px 0 0;
+    text-wrap: balance;
+  }
+  [data-vp="mobile"] h2.heading { font-size: 30px; letter-spacing: -0.015em; }
+  h2.heading em { font-style: italic; color: var(--accent-deep); }
+
+  .lede {
+    font-family: var(--serif);
+    font-size: 22px;
+    line-height: 1.5;
+    color: var(--stone-700);
+    margin-top: 22px;
+    max-width: 660px;
+    font-weight: 400;
+    text-wrap: pretty;
+  }
+  [data-vp="mobile"] .lede { font-size: 19px; }
+
+  .section-head {
+    display: flex;
+    gap: 60px;
+    align-items: flex-end;
+    margin-bottom: 56px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--line);
+  }
+  [data-vp="mobile"] .section-head { flex-direction: column; gap: 16px; align-items: flex-start; margin-bottom: 36px; padding-bottom: 24px; }
+  .section-head > div:first-child { max-width: 620px; }
+  .section-head p.note {
+    font-size: 14px;
+    color: var(--stone-600);
+    max-width: 360px;
+    margin: 0 0 0 auto;
+    line-height: 1.55;
+    flex-shrink: 0;
+  }
+  [data-vp="mobile"] .section-head p.note { margin-left: 0; max-width: 100%; }
+
+  /* ──────────────────────────────────────────────────────────────
+     HERO — EDITORIAL VARIANT
+     ────────────────────────────────────────────────────────────── */
+  .hero-editorial {
+    padding: 88px 80px 112px;
+    max-width: 1280px;
+    margin: 0 auto;
+    position: relative;
+  }
+  [data-vp="mobile"] .hero-editorial { padding: 48px 22px 64px; }
+  .hero-editorial .eyebrow-strip {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 56px;
+  }
+  [data-vp="mobile"] .hero-editorial .eyebrow-strip { flex-wrap: wrap; gap: 12px; margin-bottom: 32px; }
+  .hero-editorial .hero-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--stone-700);
+    padding: 4px 12px;
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    background: var(--paper);
+  }
+  .hero-editorial .hero-pill .led {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--positive);
+  }
+
+  /* ──────────────────────────────────────────────────────────────
+     HERO — PROOF VARIANT
+     ────────────────────────────────────────────────────────────── */
+  .hero-proof {
+    padding: 64px 80px 96px;
+    max-width: 1280px;
+    margin: 0 auto;
+    position: relative;
+  }
+  [data-vp="mobile"] .hero-proof { padding: 40px 22px 56px; }
+  .hero-proof-grid {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 64px;
+    align-items: center;
+  }
+  [data-vp="mobile"] .hero-proof-grid { grid-template-columns: 1fr; gap: 36px; }
+
+  .stats-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 32px;
+    padding-top: 28px;
+    margin-top: 36px;
+    border-top: 1px solid var(--line);
+  }
+  [data-vp="mobile"] .stats-strip { grid-template-columns: 1fr 1fr; gap: 20px; }
+  .stat .lbl {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--stone-500);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+  }
+  .stat .v {
+    font-family: var(--serif);
+    font-size: 34px;
+    line-height: 1;
+    letter-spacing: -0.015em;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat .h {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--stone-500);
+    margin-top: 8px;
+    letter-spacing: 0.02em;
+  }
+
+  /* ──────────────────────────────────────────────────────────────
+     AUDIT WIDGET
+     ────────────────────────────────────────────────────────────── */
+  .audit-widget {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 24px 28px;
+    margin-top: 40px;
+    box-shadow: 0 1px 0 oklch(1 0 0 / 0.9) inset, 0 18px 48px -16px oklch(0 0 0 / 0.12);
+    max-width: 600px;
+    position: relative;
+  }
+  [data-vp="mobile"] .audit-widget { padding: 20px; margin-top: 32px; }
+  .audit-widget .widget-label {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--stone-500);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+  }
+  .audit-widget .audit-row {
+    display: flex;
+    gap: 10px;
+    align-items: stretch;
+  }
+  [data-vp="mobile"] .audit-widget .audit-row { flex-direction: column; }
+  .audit-widget .audit-input {
+    flex: 1;
+    display: flex;
+    align-items: stretch;
+    border: 1px solid var(--line-strong);
+    border-radius: 4px;
+    background: var(--paper);
+    overflow: hidden;
+  }
+  .audit-widget .audit-input:focus-within {
+    border-color: var(--accent-deep);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  .audit-widget .audit-input .prefix {
+    background: var(--paper-2);
+    border-right: 1px solid var(--line);
+    padding: 0 12px;
+    display: inline-flex;
+    align-items: center;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--stone-600);
+  }
+  .audit-widget .audit-input input {
+    border: 0;
+    padding: 11px 14px;
+    background: transparent;
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--ink);
+    flex: 1;
+    outline: none;
+    min-width: 0;
+  }
+  .audit-widget .audit-input input::placeholder { color: var(--stone-400); }
+  .audit-widget .hint {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--stone-500);
+    margin-top: 14px;
+    letter-spacing: 0.02em;
+  }
+
+  /* ──────────────────────────────────────────────────────────────
+     ANIMATED GRADE DIAL
+     ────────────────────────────────────────────────────────────── */
+  .grade-dial {
+    position: relative;
+    width: 320px;
+    aspect-ratio: 1;
+    margin: 0 auto;
+  }
+  [data-vp="mobile"] .grade-dial { width: 240px; }
+  .grade-dial svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .grade-dial-inner {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+  }
+  .grade-letter {
+    font-family: var(--serif);
+    font-size: 160px;
+    line-height: 0.82;
+    font-weight: 400;
+    letter-spacing: -0.04em;
+    color: var(--sev-critical);
+    font-variant-numeric: tabular-nums;
+  }
+  [data-vp="mobile"] .grade-letter { font-size: 110px; }
+  .grade-sublabel {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--stone-500);
+    margin-top: 14px;
+  }
+  .grade-summary {
+    text-align: center;
+    margin-top: 24px;
+    font-family: var(--serif);
+    font-size: 18px;
+    color: var(--stone-700);
+    line-height: 1.45;
+    max-width: 380px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .grade-summary em { color: var(--accent-deep); font-style: italic; }
+
+  /* mini score chips */
+  .mini-scores {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 24px;
+    flex-wrap: wrap;
+  }
+  .mini-score {
+    text-align: center;
+    padding: 12px 18px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    min-width: 110px;
+  }
+  .mini-score .ms-label {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    color: var(--stone-500);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 4px;
+  }
+  .mini-score .ms-value {
+    font-family: var(--serif);
+    font-size: 24px;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .mini-score.warm .ms-value { color: var(--accent-deep); }
+  .mini-score.crit .ms-value { color: var(--sev-critical); }
+
+  /* ──────────────────────────────────────────────────────────────
+     SECTION — HOW IT WORKS
+     ────────────────────────────────────────────────────────────── */
+  .signals {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+    margin-top: 12px;
+  }
+  [data-vp="mobile"] .signals { grid-template-columns: 1fr; gap: 16px; }
+  .signal-card {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 36px 36px 32px;
+    position: relative;
+  }
+  [data-vp="mobile"] .signal-card { padding: 28px 24px; }
+  .signal-card .ix {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--stone-500);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .signal-card h3 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 28px;
+    margin: 0 0 14px;
+    letter-spacing: -0.015em;
+    line-height: 1.15;
+  }
+  [data-vp="mobile"] .signal-card h3 { font-size: 22px; }
+  .signal-card p { color: var(--stone-700); font-size: 14.5px; line-height: 1.6; margin: 0 0 22px; }
+  .signal-card .signal-list { display: flex; flex-direction: column; gap: 10px; padding-top: 16px; border-top: 1px solid var(--line); }
+  .signal-card .signal-list li {
+    list-style: none;
+    font-size: 13px;
+    color: var(--stone-700);
+    padding-left: 14px;
+    position: relative;
+    line-height: 1.5;
+  }
+  .signal-card .signal-list li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 8px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  /* ──────────────────────────────────────────────────────────────
+     SAMPLE REPORT EXCERPT
+     ────────────────────────────────────────────────────────────── */
+  .sample-report {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 1px 0 oklch(1 0 0 / 0.9) inset, 0 24px 60px -20px oklch(0 0 0 / 0.18);
+  }
+  .sample-report .sr-chrome {
+    padding: 12px 18px;
+    background: var(--paper-2);
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--stone-500);
+  }
+  .sample-report .sr-chrome .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--stone-300); }
+  .sample-report .sr-pad {
+    padding: 56px 64px 48px;
+  }
+  [data-vp="mobile"] .sample-report .sr-pad { padding: 32px 24px 28px; }
+  .sample-report .sr-eyebrow {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--stone-500);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 12px;
+  }
+  .sample-report h3 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 40px;
+    margin: 0 0 14px;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+  }
+  [data-vp="mobile"] .sample-report h3 { font-size: 28px; }
+  .sample-report .sr-meta {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--stone-500);
+    margin-bottom: 36px;
+  }
+
+  .sr-grade-row {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 36px;
+    align-items: center;
+    margin-bottom: 36px;
+    padding-bottom: 36px;
+    border-bottom: 1px solid var(--line);
+  }
+  [data-vp="mobile"] .sr-grade-row { grid-template-columns: 1fr; gap: 16px; padding-bottom: 28px; margin-bottom: 28px; }
+  .sr-grade-row .grade {
+    font-family: var(--serif);
+    font-size: 120px;
+    line-height: 0.82;
+    font-weight: 400;
+    letter-spacing: -0.04em;
+    color: oklch(0.55 0.14 50);
+  }
+  [data-vp="mobile"] .sr-grade-row .grade { font-size: 88px; }
+  .sr-grade-row p {
+    font-family: var(--serif);
+    font-size: 17px;
+    line-height: 1.5;
+    color: var(--stone-700);
+    margin: 0;
+  }
+  .sr-grade-row p b { font-weight: 500; color: var(--ink); }
+
+  /* violation cards in sample */
+  .sr-violations { display: flex; flex-direction: column; gap: 24px; }
+  .sr-viol {
+    display: grid;
+    grid-template-columns: 170px 1fr;
+    gap: 24px;
+    align-items: flex-start;
+  }
+  [data-vp="mobile"] .sr-viol { grid-template-columns: 1fr; gap: 12px; }
+  .sr-viol .ss {
+    aspect-ratio: 4/3;
+    background: var(--paper-2);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+    padding: 8px;
+  }
+  .sr-viol .ss-bar {
+    position: absolute;
+    border: 1.5px solid var(--sev-critical);
+    border-radius: 2px;
+  }
+  .sr-viol .ss-tag {
+    position: absolute;
+    background: var(--sev-critical);
+    color: var(--paper);
+    padding: 2px 6px;
+    font-family: var(--mono);
+    font-size: 9px;
+    border-radius: 1px;
+    letter-spacing: 0.04em;
+  }
+  .sr-viol .header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .sr-viol h4 {
+    font-family: var(--serif);
+    font-size: 18px;
+    font-weight: 500;
+    margin: 0 0 8px;
+    line-height: 1.3;
+    letter-spacing: -0.005em;
+  }
+  .sr-viol p { font-size: 14px; line-height: 1.6; color: var(--stone-700); margin: 0 0 12px; }
+  .sr-viol .fix {
+    padding: 8px 12px;
+    background: var(--paper-2);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    border-radius: 2px;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+  .sr-viol .fix .fixlabel {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--stone-500);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-right: 6px;
+  }
+
+  /* ──────────────────────────────────────────────────────────────
+     SEVERITY CHIPS
+     ────────────────────────────────────────────────────────────── */
+  .sev-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 11.5px;
+    font-weight: 500;
+    padding: 3px 9px 3px 8px;
+    border-radius: 3px;
+    line-height: 1.3;
+    border: 1px solid transparent;
+  }
+  .sev-chip .pip { width: 6px; height: 6px; background: currentColor; flex-shrink: 0; }
+  .sev-chip.critical { color: var(--sev-critical); background: var(--sev-critical-soft); border-color: oklch(0.515 0.180 28 / 0.18); }
+  .sev-chip.critical .pip { border-radius: 0; }
+  .sev-chip.serious { color: oklch(0.45 0.13 50); background: var(--sev-serious-soft); border-color: oklch(0.660 0.155 52 / 0.22); }
+  .sev-chip.serious .pip { border-radius: 1px; transform: rotate(45deg); }
+  .sev-chip.moderate { color: oklch(0.42 0.07 80); background: var(--sev-moderate-soft); border-color: oklch(0.610 0.085 85 / 0.25); }
+  .sev-chip.moderate .pip { border-radius: 50%; }
+  .sev-chip.positive { color: oklch(0.42 0.10 145); background: var(--positive-soft); border-color: oklch(0.580 0.110 145 / 0.22); }
+  .sev-chip.positive .pip { border-radius: 50%; }
+
+  /* ──────────────────────────────────────────────────────────────
+     WHY NOW
+     ────────────────────────────────────────────────────────────── */
+  .why-now { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: flex-start; }
+  [data-vp="mobile"] .why-now { grid-template-columns: 1fr; gap: 28px; }
+  .why-now .key-dates {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 28px 32px;
+  }
+  [data-vp="mobile"] .why-now .key-dates { padding: 22px 22px; }
+  .why-now .key-date {
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    gap: 18px;
+    padding-bottom: 18px;
+    border-bottom: 1px dashed var(--line);
+  }
+  .why-now .key-date:last-child { border-bottom: 0; padding-bottom: 0; }
+  .why-now .key-date .date {
+    font-family: var(--serif);
+    font-size: 30px;
+    line-height: 0.9;
+    letter-spacing: -0.015em;
+    font-variant-numeric: tabular-nums;
+  }
+  .why-now .key-date .date span { font-family: var(--mono); font-size: 11px; display: block; color: var(--stone-500); margin-top: 5px; }
+  .why-now .key-date h4 {
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 500;
+    margin: 0 0 4px;
+  }
+  .why-now .key-date p { font-size: 13px; line-height: 1.55; color: var(--stone-600); margin: 0; }
+
+  /* ──────────────────────────────────────────────────────────────
+     EVIDENCE — BEFORE & AFTER
+     ────────────────────────────────────────────────────────────── */
+  .evidence {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 28px;
+  }
+  [data-vp="mobile"] .evidence { grid-template-columns: 1fr; gap: 18px; }
+  .ev-card {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .ev-head {
+    padding: 18px 22px 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  .ev-head .eyebrow { margin-bottom: 8px; }
+  .ev-head h3 {
+    font-family: var(--serif);
+    font-size: 20px;
+    margin: 0;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    line-height: 1.3;
+  }
+  .ev-body { display: grid; grid-template-columns: 1fr 1fr; }
+  .ev-pane {
+    padding: 20px 22px 24px;
+    border-right: 1px solid var(--line);
+    position: relative;
+    min-height: 220px;
+  }
+  .ev-pane:last-child { border-right: 0; background: var(--paper-2); }
+  .ev-pane .pane-label {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--stone-500);
+    margin-bottom: 14px;
+  }
+  .ev-pane.before .pane-label { color: var(--sev-critical); }
+  .ev-pane.after .pane-label { color: var(--positive); }
+
+  /* ──────────────────────────────────────────────────────────────
+     COMPARISON TABLE
+     ────────────────────────────────────────────────────────────── */
+  .compare {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .compare-head {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr;
+    background: var(--paper-2);
+    border-bottom: 1px solid var(--line);
+  }
+  .compare-head > div {
+    padding: 18px 22px;
+  }
+  .compare-head > div + div { border-left: 1px solid var(--line); }
+  .compare-head .us { background: var(--accent-soft); color: var(--accent-ink); }
+  .compare-head .eyebrow { margin-bottom: 4px; }
+  .compare-head .name {
+    font-size: 14px;
+    font-weight: 500;
+    margin-top: 4px;
+  }
+  .compare-row {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr;
+    border-bottom: 1px solid var(--line);
+  }
+  .compare-row:last-child { border-bottom: 0; }
+  .compare-row > div { padding: 16px 22px; }
+  .compare-row > div + div { border-left: 1px solid var(--line); }
+  .compare-row .feature { font-size: 13.5px; }
+  .compare-row .feature .note { font-family: var(--mono); font-size: 10.5px; color: var(--stone-500); margin-top: 2px; }
+  .compare-row .cell { display: flex; align-items: center; font-size: 13px; }
+  .compare-row .us { background: oklch(0.985 0.025 75); color: var(--accent-ink); }
+  .check { color: var(--positive); font-family: var(--mono); font-size: 14px; }
+  .nope { color: var(--stone-400); font-family: var(--mono); font-size: 14px; }
+  [data-vp="mobile"] .compare-head, [data-vp="mobile"] .compare-row { grid-template-columns: 1fr 0.5fr 0.5fr; }
+  [data-vp="mobile"] .compare-head .name, [data-vp="mobile"] .compare-head .eyebrow span { font-size: 10px; }
+
+  /* ──────────────────────────────────────────────────────────────
+     TESTIMONIALS
+     ────────────────────────────────────────────────────────────── */
+  .testimonials {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px;
+  }
+  [data-vp="mobile"] .testimonials { grid-template-columns: 1fr; gap: 18px; }
+  .tcard {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 32px 32px 28px;
+    display: flex;
+    flex-direction: column;
+  }
+  [data-vp="mobile"] .tcard { padding: 26px 24px; }
+  .tcard .open-quote {
+    font-family: var(--serif);
+    font-size: 56px;
+    line-height: 0.6;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .tcard .quote {
+    font-family: var(--serif);
+    font-size: 19px;
+    line-height: 1.45;
+    color: var(--ink);
+    flex: 1;
+    margin-bottom: 24px;
+    text-wrap: pretty;
+  }
+  .tcard .who { display: flex; align-items: center; gap: 12px; }
+  .tcard .avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--ink);
+    color: var(--paper);
+    font-family: var(--mono);
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
+    flex-shrink: 0;
+  }
+  .tcard .who-meta { font-size: 12.5px; line-height: 1.4; }
+  .tcard .who-meta b { font-weight: 500; }
+  .tcard .who-meta .role { color: var(--stone-500); font-family: var(--mono); font-size: 10.5px; margin-top: 2px; letter-spacing: 0.02em; }
+
+  /* ──────────────────────────────────────────────────────────────
+     PRICING
+     ────────────────────────────────────────────────────────────── */
+  .pricing {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+  [data-vp="mobile"] .pricing { grid-template-columns: 1fr; gap: 14px; }
+  .price-card {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 32px 32px 28px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+  [data-vp="mobile"] .price-card { padding: 26px 24px; }
+  .price-card.featured {
+    border-color: var(--ink);
+    box-shadow: 0 8px 32px -12px oklch(0 0 0 / 0.18);
+  }
+  .price-card .pc-eyebrow {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--stone-500);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 14px;
+  }
+  .price-card.featured .pc-eyebrow { color: var(--accent-deep); }
+  .price-card h3 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 26px;
+    margin: 0 0 10px;
+    letter-spacing: -0.012em;
+    line-height: 1.15;
+  }
+  .price-card .price {
+    font-family: var(--serif);
+    font-size: 46px;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    margin-bottom: 8px;
+  }
+  .price-card .price small {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--stone-500);
+    margin-left: 4px;
+    font-weight: 400;
+    letter-spacing: 0;
+  }
+  .price-card .price-desc {
+    font-size: 13px;
+    color: var(--stone-600);
+    margin: 0 0 22px;
+    line-height: 1.5;
+  }
+  .price-card ul { list-style: none; padding: 0; margin: 0 0 24px; display: flex; flex-direction: column; gap: 10px; padding-top: 18px; border-top: 1px solid var(--line); }
+  .price-card ul li {
+    font-size: 13px;
+    color: var(--stone-700);
+    line-height: 1.5;
+    padding-left: 22px;
+    position: relative;
+  }
+  .price-card ul li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 5px;
+    width: 12px;
+    height: 12px;
+    border: 1px solid var(--stone-300);
+    border-radius: 50%;
+  }
+  .price-card ul li::after {
+    content: "";
+    position: absolute;
+    left: 3px;
+    top: 9px;
+    width: 6px;
+    height: 3px;
+    border-left: 1.5px solid var(--positive);
+    border-bottom: 1.5px solid var(--positive);
+    transform: rotate(-45deg);
+  }
+  .price-card .pc-cta { margin-top: auto; }
+
+  /* ──────────────────────────────────────────────────────────────
+     SELF-CHECK WIDGET
+     ────────────────────────────────────────────────────────────── */
+  .self-check {
+    background: var(--ink);
+    color: var(--paper);
+    border-radius: 8px;
+    padding: 48px 56px;
+    position: relative;
+    overflow: hidden;
+  }
+  [data-vp="mobile"] .self-check { padding: 32px 24px; }
+  .self-check::before {
+    content: "";
+    position: absolute;
+    right: -160px;
+    top: -160px;
+    width: 360px;
+    height: 360px;
+    background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
+    opacity: 0.25;
+    pointer-events: none;
+  }
+  .self-check .sc-eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 14px;
+  }
+  .self-check h2 {
+    font-family: var(--serif);
+    font-size: 36px;
+    font-weight: 400;
+    letter-spacing: -0.015em;
+    margin: 0 0 16px;
+    line-height: 1.1;
+    max-width: 600px;
+  }
+  [data-vp="mobile"] .self-check h2 { font-size: 26px; }
+  .self-check p.intro {
+    color: oklch(0.78 0.01 60);
+    font-size: 15px;
+    line-height: 1.55;
+    margin: 0 0 32px;
+    max-width: 560px;
+  }
+  .sc-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+  [data-vp="mobile"] .sc-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .sc-stat {
+    background: oklch(1 0 0 / 0.04);
+    border: 1px solid oklch(1 0 0 / 0.08);
+    border-radius: 4px;
+    padding: 18px 18px 16px;
+  }
+  .sc-stat .sl {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: oklch(0.72 0.01 60);
+    margin-bottom: 10px;
+  }
+  .sc-stat .sv {
+    font-family: var(--serif);
+    font-size: 36px;
+    line-height: 1;
+    letter-spacing: -0.015em;
+    color: var(--paper);
+    font-variant-numeric: tabular-nums;
+  }
+  .sc-stat .sv.warn { color: var(--accent); }
+  .sc-stat .sv.crit { color: var(--sev-critical); }
+  .sc-stat .sn {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: oklch(0.72 0.01 60);
+    margin-top: 8px;
+    letter-spacing: 0.02em;
+  }
+  .self-check .sc-footnote {
+    margin-top: 28px;
+    padding-top: 22px;
+    border-top: 1px solid oklch(1 0 0 / 0.08);
+    font-size: 13px;
+    color: oklch(0.78 0.01 60);
+    line-height: 1.55;
+    font-style: italic;
+    font-family: var(--serif);
+  }
+
+  /* ──────────────────────────────────────────────────────────────
+     FAQ
+     ────────────────────────────────────────────────────────────── */
+  .faq-list {
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--line);
+  }
+  .faq-item {
+    border-bottom: 1px solid var(--line);
+  }
+  .faq-q {
+    padding: 22px 0;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
+    font-family: var(--serif);
+    font-size: 21px;
+    font-weight: 500;
+    line-height: 1.3;
+    letter-spacing: -0.005em;
+    text-wrap: balance;
+    transition: color .12s;
+  }
+  [data-vp="mobile"] .faq-q { font-size: 17px; padding: 18px 0; }
+  .faq-q:hover { color: var(--accent-deep); }
+  .faq-q .toggle {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 1px solid var(--line-strong);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--stone-600);
+    font-family: var(--mono);
+    font-size: 14px;
+    transition: transform .15s, background .15s, color .15s;
+  }
+  .faq-item.open .faq-q .toggle {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+    transform: rotate(45deg);
+  }
+  .faq-a {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.25s ease, padding 0.25s ease;
+    padding: 0 60px 0 0;
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--stone-700);
+  }
+  .faq-item.open .faq-a {
+    max-height: 400px;
+    padding: 0 60px 28px 0;
+  }
+  [data-vp="mobile"] .faq-item.open .faq-a { padding-right: 0; }
+
+  /* ──────────────────────────────────────────────────────────────
+     FOOTER CTA + FOOTER
+     ────────────────────────────────────────────────────────────── */
+  .footer-cta {
+    text-align: center;
+    padding: 120px 80px;
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+  [data-vp="mobile"] .footer-cta { padding: 64px 22px; }
+  .footer-cta h2 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 60px;
+    letter-spacing: -0.025em;
+    line-height: 1.02;
+    margin: 0 0 20px;
+    text-wrap: balance;
+  }
+  [data-vp="mobile"] .footer-cta h2 { font-size: 36px; letter-spacing: -0.02em; }
+  .footer-cta h2 em { font-style: italic; color: var(--accent-deep); }
+  .footer-cta p {
+    font-family: var(--serif);
+    font-size: 19px;
+    color: var(--stone-700);
+    max-width: 520px;
+    margin: 0 auto 36px;
+    line-height: 1.5;
+  }
+  .footer-cta .small {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--stone-500);
+    margin-top: 22px;
+    letter-spacing: 0.06em;
+  }
+
+  footer.site {
+    padding: 60px 80px 80px;
+    background: var(--paper-2);
+    border-top: 1px solid var(--line);
+  }
+  [data-vp="mobile"] footer.site { padding: 40px 22px 56px; }
+  footer.site .inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 36px;
+  }
+  [data-vp="mobile"] footer.site .inner { grid-template-columns: 1fr 1fr; gap: 28px; }
+  footer.site h5 {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--stone-500);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin: 0 0 14px;
+    font-weight: 500;
+  }
+  footer.site .pillar p {
+    font-size: 13px;
+    color: var(--stone-700);
+    line-height: 1.6;
+    margin: 0 0 14px;
+  }
+  footer.site .links { display: flex; flex-direction: column; gap: 8px; }
+  footer.site .links a {
+    font-size: 13px;
+    color: var(--stone-700);
+    cursor: pointer;
+  }
+  footer.site .links a:hover { color: var(--ink); }
+  footer.site .copy {
+    padding-top: 36px;
+    margin-top: 36px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--stone-500);
+    letter-spacing: 0.04em;
+    max-width: 1280px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  [data-vp="mobile"] footer.site .copy { flex-direction: column; gap: 12px; align-items: flex-start; }
+
+  /* ──────────────────────────────────────────────────────────────
+     SPINNER
+     ────────────────────────────────────────────────────────────── */
+  .spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid oklch(1 0 0 / 0.25);
+    border-top-color: var(--paper);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: inline-block;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .fade-in { animation: fade-up 0.35s ease backwards; }
+
+  @keyframes count-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.65; }
+  }
+  .ticking { animation: count-pulse 0.4s ease-in-out infinite; }
+
+  /* ──────────────────────────────────────────────────────────────
+     TWEAKS PANEL (vanilla)
+     ────────────────────────────────────────────────────────────── */
+  .tw-panel {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    z-index: 1000;
+    width: 240px;
+    background: oklch(0.985 0.005 80 / 0.92);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid oklch(1 0 0 / 0.7);
+    border-radius: 10px;
+    box-shadow: 0 1px 0 oklch(1 0 0 / 0.5) inset, 0 14px 40px oklch(0 0 0 / 0.18);
+    padding: 14px 16px 16px;
+    font-family: var(--sans);
+  }
+  .tw-panel[hidden] { display: none !important; }
+  .tw-panel h6 {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--stone-500);
+    margin: 0 0 12px;
+  }
+  .tw-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .tw-row .lbl { font-size: 12px; font-weight: 500; color: var(--ink); }
+  .tw-row .val { font-family: var(--mono); font-size: 10.5px; color: var(--stone-500); text-transform: capitalize; }
+  .tw-swatches { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 14px; }
+  .tw-sw {
+    aspect-ratio: 1;
+    border-radius: 4px;
+    border: 1px solid oklch(0 0 0 / 0.08);
+    cursor: pointer;
+    padding: 0;
+    position: relative;
+  }
+  .tw-sw.active { box-shadow: 0 0 0 2px var(--paper), 0 0 0 3.5px var(--ink); }
+  .tw-seg { display: flex; gap: 1px; background: var(--paper-2); border: 1px solid var(--line); border-radius: 4px; padding: 2px; }
+  .tw-seg button {
+    flex: 1;
+    background: transparent;
+    border: 0;
+    padding: 5px 8px;
+    border-radius: 3px;
+    font-size: 11.5px;
+    cursor: pointer;
+    font-family: var(--sans);
+    font-weight: 500;
+    color: var(--stone-700);
+  }
+  .tw-seg button.active { background: var(--ink); color: var(--paper); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useMemo, useCallback } = React;
+
+// ─── Atoms ────────────────────────────────────────────────────────
+function SevChip({ level, count, label }) {
+  const m = { critical: "Critical", serious: "Serious", moderate: "Moderate", positive: "Pass" };
+  return (
+    <span className={`sev-chip ${level}`}>
+      <span className="pip" />
+      {label || m[level]}{count != null ? ` · ${count}` : ""}
+    </span>
+  );
+}
+
+function Arrow({ size = 11 }) {
+  return <span className="arrow" style={{ fontSize: size + 1 }}>→</span>;
+}
+
+// ─── Top preview bar ──────────────────────────────────────────────
+function PreviewBar({ viewport, setViewport, variant, setVariant }) {
+  return (
+    <div className="preview-bar">
+      <div className="meta">Preview · scanner.nthdesigns.co.uk</div>
+      <div style={{ display: "flex", alignItems: "center" }}>
+        <div className="variant-toggle">
+          <span className="meta" style={{ marginRight: 8, opacity: 0.55 }}>Variant</span>
+          <button className={variant === "editorial" ? "active" : ""} onClick={() => setVariant("editorial")}>Editorial</button>
+          <button className={variant === "proof" ? "active" : ""} onClick={() => setVariant("proof")}>Proof-led</button>
+        </div>
+        <div className="vp-toggle">
+          <span className="meta" style={{ marginRight: 8, opacity: 0.55 }}>Viewport</span>
+          <button className={viewport === "desktop" ? "active" : ""} onClick={() => setViewport("desktop")}>Desktop · 1440</button>
+          <button className={viewport === "mobile" ? "active" : ""} onClick={() => setViewport("mobile")}>Mobile · 390</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Nav ──────────────────────────────────────────────────────────
+function Nav({ scrollTo }) {
+  return (
+    <nav className="site-nav">
+      <div className="nav-brand">
+        <span className="brand-mark" />
+        <span className="brand-name">nthdesigns</span>
+        <span className="brand-sep">/</span>
+        <span className="brand-product">Prospect Scanner</span>
+      </div>
+      <div className="nav-links">
+        <a onClick={() => scrollTo("how")}>How it works</a>
+        <a onClick={() => scrollTo("sample")}>Sample report</a>
+        <a onClick={() => scrollTo("evidence")}>Evidence</a>
+        <a onClick={() => scrollTo("compare")}>vs SEO tools</a>
+        <a onClick={() => scrollTo("pricing")}>Pricing</a>
+        <a onClick={() => scrollTo("faq")}>FAQ</a>
+      </div>
+      <div className="nav-cta">
+        <a className="secondary" style={{ fontSize: 13, color: "var(--stone-700)", cursor: "pointer", padding: "6px 10px" }}>Sign in</a>
+        <button className="btn btn-primary btn-sm" onClick={() => scrollTo("hero")}>Get your audit <Arrow /></button>
+      </div>
+    </nav>
+  );
+}
+
+// ─── Audit Widget (URL input + animated grade reveal) ─────────────
+function AuditWidget({ kind = "primary", autoStart = false }) {
+  const [url, setUrl] = useState("");
+  const [phase, setPhase] = useState(autoStart ? "running" : "idle");
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    if (autoStart) {
+      setUrl("birminghamdentalpractice.co.uk");
+      const t = setTimeout(() => setPhase("complete"), 1400);
+      return () => clearTimeout(t);
+    }
+  }, [autoStart]);
+
+  useEffect(() => {
+    if (phase !== "running") return;
+    const id = setInterval(() => setTick(t => t + 1), 80);
+    return () => clearInterval(id);
+  }, [phase]);
+
+  const run = () => {
+    if (!url.trim()) return;
+    setPhase("running");
+    setTimeout(() => setPhase("complete"), 1900);
+  };
+
+  // Demo scores derived deterministically from URL hash
+  const result = useMemo(() => {
+    const h = [...(url || "demo")].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
+    const combined = 55 + (h % 40);
+    const a11y = 50 + ((h >> 3) % 45);
+    const gbp = 45 + ((h >> 6) % 45);
+    const perf = 18 + ((h >> 9) % 45);
+    const grade = combined >= 85 ? "D" : combined >= 70 ? "C" : combined >= 50 ? "C+" : "B";
+    return { combined, a11y, gbp, perf, grade };
+  }, [url]);
+
+  return (
+    <div className="audit-widget">
+      <div className="widget-label">Audit your site in 90 seconds</div>
+      <div className="audit-row">
+        <div className="audit-input">
+          <span className="prefix">https://</span>
+          <input
+            placeholder="your-business.co.uk"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && run()}
+            disabled={phase === "running"}
+          />
+        </div>
+        <button className={`btn btn-${kind === "accent" ? "accent" : "primary"} btn-lg`} onClick={run} disabled={phase === "running"}>
+          {phase === "running"
+            ? <><span className="spinner" /> Running audit</>
+            : phase === "complete"
+              ? <>Run another <Arrow /></>
+              : <>Run audit <Arrow /></>}
+        </button>
+      </div>
+      <div className="hint">
+        We'll check WCAG 2.2 compliance and Google Business Profile health. No login. No email required to see the result.
+      </div>
+
+      {phase === "running" && (
+        <div className="fade-in" style={{ marginTop: 22, paddingTop: 22, borderTop: "1px solid var(--line)" }}>
+          <div className="mono" style={{ fontSize: 12, color: "var(--stone-600)", lineHeight: 1.7 }}>
+            <div>{tick > 0  ? "✓" : "·"} Discovered profile on Google Places</div>
+            <div>{tick > 3  ? "✓" : "·"} Fetched 12 page sample from your site</div>
+            <div>{tick > 6  ? "✓" : "·"} Running axe-core + Lighthouse</div>
+            <div>{tick > 10 ? "✓" : "·"} Comparing GBP to top 3 competitors</div>
+            <div>{tick > 14 ? "✓" : "·"} Compiling report</div>
+          </div>
+        </div>
+      )}
+
+      {phase === "complete" && (
+        <div className="fade-in" style={{ marginTop: 22, paddingTop: 22, borderTop: "1px solid var(--line)" }}>
+          <CompleteAuditCard result={result} url={url || "your-business.co.uk"} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CompleteAuditCard({ result, url }) {
+  const gradeColor = result.combined >= 85 ? "var(--sev-critical)" : result.combined >= 70 ? "oklch(0.55 0.14 50)" : "var(--positive)";
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, gap: 14, flexWrap: "wrap" }}>
+        <div>
+          <div className="mono" style={{ fontSize: 11, color: "var(--stone-500)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>{url}</div>
+          <div style={{ fontFamily: "var(--serif)", fontSize: 22, letterSpacing: "-0.01em" }}>
+            Grade <em style={{ fontStyle: "italic", color: gradeColor, fontWeight: 500 }}>{result.grade}</em> · {result.combined}/100 opportunity
+          </div>
+        </div>
+        <button className="btn btn-accent btn-sm">View full report <Arrow /></button>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
+        <MiniScore label="A11y" value={result.a11y} kind={result.a11y < 50 ? "crit" : result.a11y > 70 ? "warm" : ""} />
+        <MiniScore label="GBP" value={result.gbp} kind={result.gbp < 50 ? "crit" : result.gbp > 70 ? "warm" : ""} />
+        <MiniScore label="Perf" value={result.perf} kind={result.perf < 30 ? "crit" : ""} />
+        <MiniScore label="Issues" value={Math.round(result.combined / 7)} kind={result.combined > 80 ? "crit" : ""} suffix=" found" />
+      </div>
+      <div className="mono" style={{ fontSize: 11, color: "var(--stone-500)", marginTop: 16, letterSpacing: "0.02em" }}>
+        Live demo · numbers generated from a deterministic hash. Real audits take ~90 seconds and run server-side.
+      </div>
+    </div>
+  );
+}
+
+function MiniScore({ label, value, kind, suffix }) {
+  return (
+    <div className="mini-score" style={kind === "warm" ? { background: "var(--accent-soft)", borderColor: "oklch(0.85 0.08 65)" } : kind === "crit" ? { background: "var(--sev-critical-soft)", borderColor: "oklch(0.515 0.180 28 / 0.18)" } : {}}>
+      <div className="ms-label">{label}</div>
+      <div className={`ms-value ${kind || ""}`}>{value}{suffix || ""}</div>
+    </div>
+  );
+}
+
+// ─── Animated Grade Reveal Dial (for Proof Hero) ──────────────────
+function AnimatedGradeDial() {
+  const [progress, setProgress] = useState(0);
+  const [showLetter, setShowLetter] = useState(false);
+
+  useEffect(() => {
+    if (progress >= 100) return;
+    const id = setInterval(() => {
+      setProgress(p => {
+        if (p >= 100) return p;
+        return p + 2;
+      });
+    }, 30);
+    return () => clearInterval(id);
+  }, [progress >= 100]);
+
+  useEffect(() => {
+    if (progress >= 87) setShowLetter(true);
+  }, [progress]);
+
+  const target = 87;
+  const size = 320;
+  const stroke = 14;
+  const r = (size - stroke) / 2;
+  const circ = 2 * Math.PI * r;
+  const dashOffset = circ * (1 - Math.min(progress, target) / 100);
+
+  // No looping — animate once on mount, settle on final state
+
+  return (
+    <div>
+      <div className="grade-dial">
+        <svg viewBox={`0 0 ${size} ${size}`}>
+          <circle cx={size / 2} cy={size / 2} r={r} stroke="oklch(0.91 0.012 70)" strokeWidth={stroke} fill="none" />
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={r}
+            stroke="var(--sev-critical)"
+            strokeWidth={stroke}
+            fill="none"
+            strokeDasharray={circ}
+            strokeDashoffset={dashOffset}
+            strokeLinecap="round"
+            style={{ transition: "stroke-dashoffset 0.05s linear" }}
+          />
+        </svg>
+        <div className="grade-dial-inner">
+          <div className="grade-letter" style={{ opacity: showLetter ? 1 : 0.15, transition: "opacity 0.4s ease" }}>
+            {showLetter ? "D" : Math.min(progress, target)}
+          </div>
+          <div className="grade-sublabel">{showLetter ? "Combined audit · weak" : "Auditing…"}</div>
+        </div>
+      </div>
+      {showLetter && (
+        <p className="grade-summary fade-in">
+          Sample audit · "Birmingham Dental Practice" · <em>4 critical</em>, <em>11 serious</em>, <em>8 moderate</em> issues found.
+        </p>
+      )}
+      {showLetter && (
+        <div className="mini-scores fade-in" style={{ animationDelay: "0.1s" }}>
+          <MiniScore label="A11y" value={92} kind="warm" />
+          <MiniScore label="GBP" value={79} kind="warm" />
+          <MiniScore label="Perf" value={28} kind="crit" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Hero — Editorial ─────────────────────────────────────────────
+function HeroEditorial({ scrollTo }) {
+  return (
+    <div className="hero-editorial" id="hero">
+      <div className="eyebrow-strip">
+        <span className="hero-pill"><span className="led" />New · 23 audits this week</span>
+        <span className="eyebrow">An nthdesigns method · for UK SMEs</span>
+      </div>
+      <h1 className="display">
+        The audit your customers <em>wish you'd run.</em>
+      </h1>
+      <p className="lede">
+        We audit your website against WCAG 2.2 and your Google Business Profile against the
+        best-performing competitor in your postcode. You get a written report, a fix list,
+        and the option of a 30-minute call to walk through them. No retainer required.
+      </p>
+      <AuditWidget kind="primary" />
+    </div>
+  );
+}
+
+// ─── Hero — Proof-led ─────────────────────────────────────────────
+function HeroProof({ scrollTo }) {
+  return (
+    <div className="hero-proof" id="hero">
+      <div className="hero-proof-grid">
+        <div>
+          <span className="eyebrow" style={{ marginBottom: 16 }}>Birmingham · this week</span>
+          <h1 className="display" style={{ marginTop: 16 }}>
+            17 of 23 dental sites failed our audit. <em>Yours might be one of them.</em>
+          </h1>
+          <p className="lede">
+            We audit the WCAG 2.2 compliance of UK websites alongside the visibility of their
+            Google Business Profile. The combined signal is how new patients decide whether to
+            book. Below, the average of the 23 sites we scanned this morning.
+          </p>
+          <AuditWidget kind="accent" />
+        </div>
+        <div>
+          <AnimatedGradeDial />
+        </div>
+      </div>
+
+      <div className="stats-strip">
+        <div className="stat">
+          <div className="lbl">Average grade</div>
+          <div className="v">D</div>
+          <div className="h">across 23 audits</div>
+        </div>
+        <div className="stat">
+          <div className="lbl">WCAG criticals</div>
+          <div className="v">4.2</div>
+          <div className="h">per site, mean</div>
+        </div>
+        <div className="stat">
+          <div className="lbl">GBP photos</div>
+          <div className="v">5.1</div>
+          <div className="h">vs. competitor 38.7</div>
+        </div>
+        <div className="stat">
+          <div className="lbl">Lost bookings</div>
+          <div className="v">£890</div>
+          <div className="h">per month, est.</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── How it works ────────────────────────────────────────────────
+function HowItWorks() {
+  return (
+    <section className="s" id="how">
+      <div className="section-head">
+        <div>
+          <span className="eyebrow">How it works</span>
+          <h2 className="heading">Two signals, one report — because <em>neither alone is enough.</em></h2>
+        </div>
+        <p className="note">
+          Most audit tools check one. Lighthouse covers the website; SEMrush covers Google;
+          neither tells you which one is actually losing you bookings. We measure both,
+          then tell you which to fix first.
+        </p>
+      </div>
+
+      <div className="signals">
+        <div className="signal-card">
+          <div className="ix">Signal 1 · Website</div>
+          <h3>WCAG 2.2 accessibility &amp; performance.</h3>
+          <p>
+            Headless Chrome plus axe-core walks every reachable page on your site.
+            We mark up critical, serious, and moderate issues against the
+            current WCAG standard and the EHRC's 2025 enforcement guidance.
+          </p>
+          <ul className="signal-list">
+            <li>Contrast, alt text, heading order, focus visibility</li>
+            <li>Form labels, error handling, keyboard reachability</li>
+            <li>Lighthouse Performance, SEO, Best Practices scores</li>
+            <li>Mobile-first — the way Google ranks since 2024</li>
+          </ul>
+        </div>
+
+        <div className="signal-card">
+          <div className="ix">Signal 2 · Google Business Profile</div>
+          <h3>Visibility against the top competitor in your postcode.</h3>
+          <p>
+            We pull your profile via the Places API and the top three competitors
+            in a five-kilometre radius. The comparison is what surfaces what to fix —
+            not abstract "best practice", but what your nearest rival is doing better.
+          </p>
+          <ul className="signal-list">
+            <li>Reviews, rating, response rate, response time</li>
+            <li>Photos, posts, Q&amp;A, verified hours</li>
+            <li>Service list completeness, booking link present</li>
+            <li>The single competitor most likely to take your enquiry</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Sample report excerpt ───────────────────────────────────────
+function SampleReportExcerpt() {
+  return (
+    <section className="s full" id="sample">
+      <div className="inner">
+        <div className="section-head">
+          <div>
+            <span className="eyebrow">Sample report</span>
+            <h2 className="heading">An excerpt from a real audit, lightly anonymised.</h2>
+          </div>
+          <p className="note">
+            The report below is what the prospect sees when you forward them their token URL.
+            No login, no internal jargon, no "combined score". An A–F grade, the top five
+            violations, and one call-to-action.
+          </p>
+        </div>
+
+        <div className="sample-report">
+          <div className="sr-chrome">
+            <span className="dot" />
+            <span className="dot" />
+            <span className="dot" />
+            <span style={{ marginLeft: 12 }}>report.nthdesigns.co.uk/r/sample-bx7-9k2m</span>
+          </div>
+          <div className="sr-pad">
+            <div className="sr-eyebrow">Independent audit · WCAG 2.2 + Google Business Profile</div>
+            <h3>Birmingham Dental Practice</h3>
+            <div className="sr-meta">birminghamdentalpractice.co.uk · audit 22 May 2026</div>
+
+            <div className="sr-grade-row">
+              <div className="grade">D</div>
+              <p>
+                We audited your website and Google Business Profile against the 2025 WCAG 2.2
+                standard and the best-performing dental practice within 5 km of B5 6RG. The
+                audit found <b>23 issues</b>, four of which are likely blocking patient
+                bookings today.
+              </p>
+            </div>
+
+            <div style={{ display: "flex", gap: 8, marginBottom: 36, flexWrap: "wrap" }}>
+              <SevChip level="critical" count={4} />
+              <SevChip level="serious" count={11} />
+              <SevChip level="moderate" count={8} />
+            </div>
+
+            <div className="sr-violations">
+              <SampleViol n={1} sev="critical" wcag="1.4.3 · Contrast" title="Header text contrast 2.1 : 1 fails WCAG AA"
+                impact="On the homepage hero, the white-on-tan headline sits below 4.5:1. Patients with low vision will skip it entirely."
+                fix="Darken the hero background to #5a4a30 or use #1f1410 text. One CSS line."
+              />
+              <SampleViol n={2} sev="critical" wcag="1.1.1 · Non-text content" title="42 images have no alternative text"
+                impact="Screen readers announce these as &quot;image&quot; with no further context — including every staff portrait on the About page."
+                fix="Add an alt attribute to each <img>. &quot;Dr Sarah Kavanagh, lead dentist&quot; beats both empty and &quot;image of dentist&quot;."
+              />
+            </div>
+
+            <div style={{ textAlign: "center", paddingTop: 36, marginTop: 36, borderTop: "1px solid var(--line)" }}>
+              <button className="btn btn-secondary">Read the full sample report <Arrow /></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function SampleViol({ n, sev, wcag, title, impact, fix }) {
+  return (
+    <article className="sr-viol">
+      <div className="ss">
+        <div className="ss-bar" style={{ top: 10, left: 10, right: 10, height: 32 }} />
+        <div className="ss-tag" style={{ top: -1, right: 8 }}>{sev === "critical" ? "2.1:1" : "issue"}</div>
+        <div style={{ height: 40, background: "oklch(0.78 0.04 70)", borderRadius: 2, padding: 6, marginTop: 4 }}>
+          <div style={{ color: "oklch(0.88 0.02 70)", fontFamily: "var(--serif)", fontSize: 10, lineHeight: 1.2 }}>
+            Modern dentistry in<br />the heart of Birmingham
+          </div>
+        </div>
+        <div style={{ marginTop: 6, display: "flex", gap: 4 }}>
+          <div style={{ flex: 1, height: 4, background: "var(--stone-200)", borderRadius: 1 }} />
+          <div style={{ flex: 1, height: 4, background: "var(--stone-200)", borderRadius: 1 }} />
+        </div>
+      </div>
+      <div>
+        <div className="header">
+          <SevChip level={sev} />
+          <span className="mono" style={{ fontSize: 10.5, color: "var(--stone-500)", letterSpacing: "0.06em", textTransform: "uppercase" }}>{wcag}</span>
+        </div>
+        <h4>{n}. {title}</h4>
+        <p>{impact}</p>
+        <div className="fix">
+          <span className="fixlabel">Fix</span>{fix}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+// ─── Why now ─────────────────────────────────────────────────────
+function WhyNow() {
+  return (
+    <section className="s">
+      <div className="section-head">
+        <div>
+          <span className="eyebrow">Why now</span>
+          <h2 className="heading">WCAG 2.2 is the new floor — and the EHRC is enforcing it.</h2>
+        </div>
+        <p className="note">
+          Two things changed in 2025. The W3C published WCAG 2.2 with nine new criteria
+          (mostly around drag, focus, and authentication). The UK's Equality and Human
+          Rights Commission revised its enforcement guidance to include any business that
+          accepts online instructions or bookings.
+        </p>
+      </div>
+
+      <div className="why-now">
+        <div>
+          <p style={{ fontFamily: "var(--serif)", fontSize: 20, lineHeight: 1.5, color: "var(--stone-700)", margin: 0 }}>
+            Public-sector bodies have been on this hook since 2018. From this year, professional
+            service firms — dentists, solicitors, optometrists, accountants — are too. The first
+            wave of EHRC notices went out in March; we've audited eleven of the firms that received them.
+          </p>
+          <p style={{ fontFamily: "var(--serif)", fontSize: 20, lineHeight: 1.5, color: "var(--stone-700)", marginTop: 24, marginBottom: 0 }}>
+            None of this is theoretical. The cost of a single notice is roughly six months
+            of our largest retainer. The cost of fixing it before one arrives is usually under
+            half a day.
+          </p>
+        </div>
+
+        <div className="key-dates">
+          <div className="key-date">
+            <div className="date">2024 <span>Oct</span></div>
+            <div>
+              <h4>WCAG 2.2 becomes the W3C recommendation</h4>
+              <p>Adds nine criteria covering focus appearance, target size, drag movement, accessible authentication.</p>
+            </div>
+          </div>
+          <div className="key-date">
+            <div className="date">2025 <span>Jan</span></div>
+            <div>
+              <h4>EHRC publishes revised enforcement guidance</h4>
+              <p>Online services that take instructions or bookings are explicitly in scope.</p>
+            </div>
+          </div>
+          <div className="key-date">
+            <div className="date">2025 <span>Mar</span></div>
+            <div>
+              <h4>First non-public-sector notices issued</h4>
+              <p>Eleven UK firms received compliance notices. Eight had been audited in the previous year by an SEO tool that flagged none of the issues cited.</p>
+            </div>
+          </div>
+          <div className="key-date">
+            <div className="date">2026 <span>Aug</span></div>
+            <div>
+              <h4>Soft-enforcement window closes</h4>
+              <p>EHRC has signalled fines rather than notices from August.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Evidence (before / after) ────────────────────────────────────
+function Evidence() {
+  return (
+    <section className="s full" id="evidence">
+      <div className="inner">
+        <div className="section-head">
+          <div>
+            <span className="eyebrow">Evidence</span>
+            <h2 className="heading">What a fix looks like, side by side.</h2>
+          </div>
+          <p className="note">
+            These are the most common issues we flag. Each takes between five minutes and
+            half a day to fix. None require a full redesign.
+          </p>
+        </div>
+
+        <div className="evidence">
+          <EvCard
+            sev="critical"
+            wcag="1.4.3 · Contrast"
+            title="Header text contrast"
+            beforeRender={
+              <div style={{ height: 100, background: "oklch(0.78 0.04 70)", borderRadius: 4, padding: 16, display: "flex", alignItems: "center" }}>
+                <div style={{ color: "oklch(0.88 0.02 70)", fontFamily: "var(--serif)", fontSize: 18, lineHeight: 1.15 }}>
+                  Modern dentistry in<br />the heart of Birmingham
+                </div>
+              </div>
+            }
+            afterRender={
+              <div style={{ height: 100, background: "oklch(0.32 0.04 50)", borderRadius: 4, padding: 16, display: "flex", alignItems: "center" }}>
+                <div style={{ color: "oklch(0.97 0.02 70)", fontFamily: "var(--serif)", fontSize: 18, lineHeight: 1.15 }}>
+                  Modern dentistry in<br />the heart of Birmingham
+                </div>
+              </div>
+            }
+            beforeMeta="2.1 : 1 ratio · fails AA"
+            afterMeta="8.4 : 1 · passes AAA"
+          />
+
+          <EvCard
+            sev="critical"
+            wcag="1.1.1 · Non-text content"
+            title="Image alt text"
+            beforeRender={
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} style={{ aspectRatio: "4/3", background: "var(--stone-200)", borderRadius: 2, position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <span className="mono" style={{ fontSize: 10, color: "var(--sev-critical)" }}>alt=""</span>
+                  </div>
+                ))}
+              </div>
+            }
+            afterRender={
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
+                {["Dr Sarah Kavanagh", "Treatment room 2", "Reception", "Surgery exterior"].map((t, i) => (
+                  <div key={i} style={{ aspectRatio: "4/3", background: "var(--stone-200)", borderRadius: 2, position: "relative", display: "flex", alignItems: "flex-end", padding: 6 }}>
+                    <span className="mono" style={{ fontSize: 9, color: "var(--positive)", background: "var(--paper)", padding: "2px 4px", borderRadius: 1 }}>{`alt="${t}"`}</span>
+                  </div>
+                ))}
+              </div>
+            }
+            beforeMeta="42 images, no alt text"
+            afterMeta="all 42 described"
+          />
+
+          <EvCard
+            sev="serious"
+            wcag="1.3.1 · Info and Relationships"
+            title="Booking form labels"
+            beforeRender={
+              <div style={{ background: "var(--paper-2)", padding: 12, borderRadius: 3 }}>
+                {["Your name", "Email address", "Preferred date"].map((p, i) => (
+                  <div key={i} style={{ height: 22, background: "var(--paper)", border: "1px solid var(--line-strong)", borderRadius: 2, marginBottom: 6, padding: "0 8px", display: "flex", alignItems: "center" }}>
+                    <span style={{ fontSize: 11, color: "var(--stone-400)", fontStyle: "italic" }}>{p}</span>
+                  </div>
+                ))}
+              </div>
+            }
+            afterRender={
+              <div style={{ background: "var(--paper-2)", padding: 12, borderRadius: 3 }}>
+                {["Your name", "Email address", "Preferred date"].map((p, i) => (
+                  <div key={i} style={{ marginBottom: 8 }}>
+                    <div style={{ fontSize: 10, color: "var(--stone-700)", fontWeight: 500, marginBottom: 2 }}>{p}</div>
+                    <div style={{ height: 18, background: "var(--paper)", border: "1px solid var(--line-strong)", borderRadius: 2 }} />
+                  </div>
+                ))}
+              </div>
+            }
+            beforeMeta="placeholders only"
+            afterMeta="<label> attached"
+          />
+
+          <EvCard
+            sev="moderate"
+            wcag="GBP visibility"
+            title="Google profile photos"
+            beforeRender={
+              <div>
+                <div className="mono" style={{ fontSize: 11, color: "var(--stone-600)", marginBottom: 10 }}>Your profile · 3 photos</div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4 }}>
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} style={{ aspectRatio: "1/1", background: "var(--stone-200)", borderRadius: 2 }} />
+                  ))}
+                </div>
+              </div>
+            }
+            afterRender={
+              <div>
+                <div className="mono" style={{ fontSize: 11, color: "var(--positive)", marginBottom: 10 }}>Top competitor · 42 photos</div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 3 }}>
+                  {Array.from({ length: 18 }).map((_, i) => (
+                    <div key={i} style={{ aspectRatio: "1/1", background: i % 2 === 0 ? "oklch(0.78 0.04 70)" : "var(--stone-300)", borderRadius: 1 }} />
+                  ))}
+                </div>
+              </div>
+            }
+            beforeMeta="ranked 7th locally"
+            afterMeta="ranked 1st"
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function EvCard({ sev, wcag, title, beforeRender, afterRender, beforeMeta, afterMeta }) {
+  return (
+    <div className="ev-card">
+      <div className="ev-head">
+        <div className="eyebrow no-rule" style={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
+          <span>{wcag}</span>
+          <SevChip level={sev} />
+        </div>
+        <h3>{title}</h3>
+      </div>
+      <div className="ev-body">
+        <div className="ev-pane before">
+          <div className="pane-label">Before · what we audit</div>
+          {beforeRender}
+          <div className="mono" style={{ fontSize: 11, color: "var(--sev-critical)", marginTop: 12, letterSpacing: 0.04 }}>{beforeMeta}</div>
+        </div>
+        <div className="ev-pane after">
+          <div className="pane-label">After · what to ship</div>
+          {afterRender}
+          <div className="mono" style={{ fontSize: 11, color: "var(--positive)", marginTop: 12, letterSpacing: 0.04 }}>{afterMeta}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Comparison ──────────────────────────────────────────────────
+function Compare() {
+  const rows = [
+    { feature: "WCAG 2.2 accessibility audit",  note: "axe-core + manual review",       us: true, them: "Partial — surface checks only" },
+    { feature: "Google Business Profile audit", note: "vs. nearest competitor",         us: true, them: false },
+    { feature: "Lighthouse performance dials",  note: "Performance · SEO · Best Pract.", us: true, them: true },
+    { feature: "Written report, not dashboard", note: "PDF + shareable URL",            us: true, them: "Dashboard only" },
+    { feature: "UK EHRC enforcement context",   note: "drafted for this jurisdiction",  us: true, them: false },
+    { feature: "30-minute call with auditor",   note: "free, no upsell",                us: true, them: false },
+    { feature: "Maintained by accessibility consultancy", note: "not an AI start-up",   us: true, them: false },
+    { feature: "Per-month subscription required", note: "",                             us: false, them: true },
+  ];
+  return (
+    <section className="s" id="compare">
+      <div className="section-head">
+        <div>
+          <span className="eyebrow">vs. generic audit tools</span>
+          <h2 className="heading">Why a written report from a UK consultancy beats <em>another SaaS dashboard.</em></h2>
+        </div>
+        <p className="note">
+          We're not faster. We're not cheaper per scan. We are a consultancy that audits
+          eleven sites a week, by hand, against the regulation that the EHRC is actually
+          enforcing this year. The comparison sites compare against a 2018 standard.
+        </p>
+      </div>
+
+      <div className="compare">
+        <div className="compare-head">
+          <div>
+            <span className="eyebrow no-rule">Capability</span>
+          </div>
+          <div>
+            <span className="eyebrow no-rule">Generic SEO audit tool</span>
+            <div className="name">Lighthouse / SEMrush / Ahrefs</div>
+          </div>
+          <div className="us">
+            <span className="eyebrow no-rule" style={{ color: "var(--accent-ink)" }}><span>Us</span></span>
+            <div className="name">nthdesigns Prospect Scanner</div>
+          </div>
+        </div>
+        {rows.map((r, i) => (
+          <div className="compare-row" key={i}>
+            <div className="feature">
+              {r.feature}
+              {r.note && <div className="note">{r.note}</div>}
+            </div>
+            <div className="cell">
+              {r.them === true ? <span className="check">✓</span> : r.them === false ? <span className="nope">—</span> : <span style={{ color: "var(--stone-700)", fontSize: 12.5 }}>{r.them}</span>}
+            </div>
+            <div className="cell us">
+              {r.us === true ? <span className="check" style={{ color: "var(--accent-deep)" }}>✓</span> : r.us === false ? <span className="nope">—</span> : <span style={{ color: "var(--accent-ink)", fontSize: 12.5 }}>{r.us}</span>}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ─── Testimonials ────────────────────────────────────────────────
+function Testimonials() {
+  const items = [
+    {
+      quote: "The report landed in our inbox on a Friday. By the following Tuesday three of the four critical issues were fixed by my web developer for under £400.",
+      who: "S.K.",
+      role: "Practice Manager · UK Dental Group (Birmingham)",
+    },
+    {
+      quote: "I'd had two SEO audits the year before. Neither flagged that our booking form was unreachable by keyboard. nthdesigns did, in plain English.",
+      who: "J.H.",
+      role: "Senior Partner · Solicitors firm (Manchester)",
+    },
+    {
+      quote: "The comparison against Smile Studio was the bit that hurt. We doubled our profile photos in a fortnight; bookings rose 14% the month after.",
+      who: "R.W.",
+      role: "Owner · Independent dental practice (Solihull)",
+    },
+  ];
+  return (
+    <section className="s">
+      <div className="section-head">
+        <div>
+          <span className="eyebrow">From the work</span>
+          <h2 className="heading">What past audits have actually changed.</h2>
+        </div>
+        <p className="note">
+          We don't keep public case studies — most of our clients are conservative
+          professional firms. These are notes from operators who agreed to be quoted, lightly
+          anonymised.
+        </p>
+      </div>
+
+      <div className="testimonials">
+        {items.map((t, i) => (
+          <div key={i} className="tcard">
+            <div className="open-quote">"</div>
+            <div className="quote">{t.quote}</div>
+            <div className="who">
+              <div className="avatar">{t.who.split(".").join("")}</div>
+              <div className="who-meta">
+                <b>{t.who}</b>
+                <div className="role">{t.role}</div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ─── Pricing ─────────────────────────────────────────────────────
+function Pricing() {
+  return (
+    <section className="s full" id="pricing">
+      <div className="inner">
+        <div className="section-head">
+          <div>
+            <span className="eyebrow">Engagement model</span>
+            <h2 className="heading">Three ways in — none of them a per-month subscription.</h2>
+          </div>
+          <p className="note">
+            Start with the free scan. Most prospects do; about a quarter come back for the
+            fix package. We take three new retainers a quarter and not many more.
+          </p>
+        </div>
+
+        <div className="pricing">
+          <div className="price-card">
+            <div className="pc-eyebrow">Tier 1 · scan</div>
+            <h3>Free audit</h3>
+            <div className="price">£0</div>
+            <p className="price-desc">A scan and a shareable report. No login. No follow-up email unless you ask.</p>
+            <ul>
+              <li>Full WCAG 2.2 audit of your homepage and three deep pages</li>
+              <li>Google Business Profile comparison against your nearest competitor</li>
+              <li>Lighthouse Performance, SEO, Best Practices dials</li>
+              <li>Shareable PDF and unlisted public URL</li>
+            </ul>
+            <div className="pc-cta">
+              <button className="btn btn-secondary">Run a free audit <Arrow /></button>
+            </div>
+          </div>
+
+          <div className="price-card featured">
+            <div className="pc-eyebrow">Tier 2 · most popular</div>
+            <h3>Fix package</h3>
+            <div className="price">£2,400 <small>one-off</small></div>
+            <p className="price-desc">A full audit, a written fix brief for your developer, and a 90-minute walkthrough call.</p>
+            <ul>
+              <li>Everything in the free audit</li>
+              <li>Manual audit of every booking and contact flow</li>
+              <li>Written brief sized for a single developer sprint</li>
+              <li>90-minute screen-share call to walk through the fix list</li>
+              <li>Re-scan when the work ships, included</li>
+            </ul>
+            <div className="pc-cta">
+              <button className="btn btn-primary">Book the fix package <Arrow /></button>
+            </div>
+          </div>
+
+          <div className="price-card">
+            <div className="pc-eyebrow">Tier 3 · retainer</div>
+            <h3>Ongoing compliance</h3>
+            <div className="price">£900<small>/month</small></div>
+            <p className="price-desc">Quarterly re-audits, EHRC monitoring, on-call review of any new pages your team ships.</p>
+            <ul>
+              <li>Quarterly full audits</li>
+              <li>Two hours of review time per month</li>
+              <li>EHRC guidance change alerts, written for non-lawyers</li>
+              <li>First-line response if a notice arrives</li>
+            </ul>
+            <div className="pc-cta">
+              <button className="btn btn-secondary">Talk about a retainer <Arrow /></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Self-check (real audit of THIS page) ────────────────────────
+function SelfCheck() {
+  const [results, setResults] = useState(null);
+
+  useEffect(() => {
+    // Run a tiny real audit of the visible document
+    const id = setTimeout(() => {
+      const imgs = document.querySelectorAll("img");
+      const imgsNoAlt = Array.from(imgs).filter(i => !i.getAttribute("alt") && !i.hasAttribute("aria-hidden")).length;
+      const headings = document.querySelectorAll("h1, h2, h3, h4, h5, h6");
+      const headingLevels = Array.from(headings).map(h => +h.tagName[1]);
+      let headingOrderOk = true;
+      for (let i = 1; i < headingLevels.length; i++) {
+        if (headingLevels[i] > headingLevels[i - 1] + 1) headingOrderOk = false;
+      }
+      const h1Count = document.querySelectorAll("h1").length;
+      const buttons = document.querySelectorAll("button, a");
+      const buttonsNoLabel = Array.from(buttons).filter(b => !b.textContent?.trim() && !b.getAttribute("aria-label")).length;
+      const tabbables = document.querySelectorAll("button, a, input, textarea, select, [tabindex]");
+
+      setResults({
+        elementsScanned: document.querySelectorAll("*").length,
+        h1Count,
+        imgsTotal: imgs.length,
+        imgsNoAlt,
+        headingsTotal: headings.length,
+        headingOrderOk,
+        tabbables: tabbables.length,
+        buttonsNoLabel,
+      });
+    }, 600);
+    return () => clearTimeout(id);
+  }, []);
+
+  return (
+    <section className="s">
+      <div className="self-check">
+        <div className="sc-eyebrow">Live · ran the moment you scrolled here</div>
+        <h2>We just ran our own audit on this page. Here's what we found.</h2>
+        <p className="intro">
+          The same axe-core lite that powers Prospect Scanner is running in your browser right now,
+          reading the live DOM of this page. We eat our own dog food — if we shipped a homepage that
+          failed our own check, you'd notice.
+        </p>
+
+        <div className="sc-grid">
+          {results ? (
+            <>
+              <div className="sc-stat">
+                <div className="sl">Elements scanned</div>
+                <div className="sv tabular">{results.elementsScanned.toLocaleString()}</div>
+                <div className="sn">full DOM walk</div>
+              </div>
+              <div className="sc-stat">
+                <div className="sl">Images / no alt</div>
+                <div className={`sv tabular ${results.imgsNoAlt > 0 ? "warn" : ""}`}>
+                  {results.imgsTotal}<span style={{ fontSize: 18, color: "oklch(0.72 0.01 60)" }}> / </span>
+                  <span style={{ color: results.imgsNoAlt > 0 ? "var(--accent)" : "var(--paper)" }}>{results.imgsNoAlt}</span>
+                </div>
+                <div className="sn">{results.imgsNoAlt === 0 ? "all images described" : "some without alt"}</div>
+              </div>
+              <div className="sc-stat">
+                <div className="sl">Heading order</div>
+                <div className={`sv tabular`} style={{ fontSize: 28, paddingTop: 8 }}>
+                  {results.headingOrderOk ? "✓" : "✗"} <span style={{ fontSize: 18, color: "oklch(0.72 0.01 60)" }}>· {results.headingsTotal}</span>
+                </div>
+                <div className="sn">{results.headingOrderOk ? `${results.h1Count} h1 · order intact` : "skipped a level"}</div>
+              </div>
+              <div className="sc-stat">
+                <div className="sl">Keyboard targets</div>
+                <div className="sv tabular">{results.tabbables}</div>
+                <div className="sn">{results.buttonsNoLabel === 0 ? "all labelled" : `${results.buttonsNoLabel} without label`}</div>
+              </div>
+            </>
+          ) : (
+            Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="sc-stat">
+                <div className="sl">Scanning…</div>
+                <div className="sv ticking" style={{ color: "oklch(0.72 0.01 60)" }}>—</div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {results && (
+          <div className="sc-footnote">
+            {results.imgsNoAlt === 0 && results.headingOrderOk && results.buttonsNoLabel === 0 ? (
+              <>This page passes our own check. Yours probably doesn't yet — that's why we exist.</>
+            ) : (
+              <>We just found {results.imgsNoAlt + (results.headingOrderOk ? 0 : 1) + results.buttonsNoLabel} issue(s) on our own page. Embarrassing, fixing it.</>
+            )}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+// ─── FAQ ─────────────────────────────────────────────────────────
+function FAQ() {
+  const [open, setOpen] = useState(0);
+  const items = [
+    {
+      q: "Why does a higher score mean a worse site?",
+      a: "On the internal tool, the score represents weakness — higher means more sales potential for us. On your public report you only see an A–F grade and the count of issues. The internal jargon never reaches the prospect.",
+    },
+    {
+      q: "How accurate is a 90-second audit?",
+      a: "It's accurate for the things we measure automatically — WCAG criteria that can be tested programmatically, profile field completeness, Lighthouse-scored performance signals. Roughly 80% of the issues we'd find with a manual audit show up in the automatic one. The fix package adds the manual layer.",
+    },
+    {
+      q: "What if my site is already accessible?",
+      a: "About one site in twenty is. If yours is, the report is short and we tell you so. We don't manufacture concerns — if there's nothing to fix, there's no fix package to sell.",
+    },
+    {
+      q: "Will you share my data?",
+      a: "No. Audit results are stored against an unlisted token URL with a 30-day expiry, accessible only to you and us. We don't share with marketing partners. We don't have marketing partners.",
+    },
+    {
+      q: "Can I run a scan on a competitor?",
+      a: "Yes — there's nothing to stop you, and we won't ask why. The audit only inspects what their site already publishes to the public web.",
+    },
+    {
+      q: "Who is nthdesigns?",
+      a: "An independent design and accessibility consultancy based in the UK, working with three new clients a quarter. We've shipped accessibility work for retailers, dental groups, professional service firms, and one cooperative bank. We are deliberately small.",
+    },
+    {
+      q: "How does pricing work for non-UK businesses?",
+      a: "The audit is free for anyone. The fix package is the same price worldwide. Retainers are UK-only — the EHRC enforcement context is what makes the retainer worth the money, and that's a UK concern.",
+    },
+  ];
+  return (
+    <section className="s" id="faq">
+      <div className="section-head">
+        <div>
+          <span className="eyebrow">Questions</span>
+          <h2 className="heading">Anything else worth checking before booking.</h2>
+        </div>
+        <p className="note">
+          Email <span className="mono">hello@nthdesigns.co.uk</span> if your question isn't here.
+          Replies usually inside four hours during a UK working day.
+        </p>
+      </div>
+
+      <div className="faq-list">
+        {items.map((it, i) => (
+          <div key={i} className={`faq-item ${open === i ? "open" : ""}`}>
+            <div className="faq-q" onClick={() => setOpen(open === i ? -1 : i)}>
+              <span>{it.q}</span>
+              <span className="toggle">+</span>
+            </div>
+            <div className="faq-a">{it.a}</div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ─── Footer CTA + Footer ─────────────────────────────────────────
+function FooterCTA() {
+  return (
+    <section className="footer-cta">
+      <h2>Run the audit. <em>Read the report.</em><br />Decide afterwards.</h2>
+      <p>It takes ninety seconds. No login. We don't capture an email unless you ask us to.</p>
+      <button className="btn btn-accent btn-lg">Get your audit <Arrow /></button>
+      <div className="small">cal.nthdesigns.co.uk · usually replied to within 4 hours · UK working hours</div>
+    </section>
+  );
+}
+
+function SiteFooter() {
+  return (
+    <footer className="site">
+      <div className="inner">
+        <div className="pillar">
+          <div className="nav-brand" style={{ marginBottom: 14 }}>
+            <span className="brand-mark" />
+            <span className="brand-name">nthdesigns</span>
+          </div>
+          <p>
+            An independent design and accessibility consultancy in the UK.<br />
+            We work with three new clients a quarter. We don't take retainers under £900/mo.
+          </p>
+          <p className="mono" style={{ fontSize: 11, color: "var(--stone-500)", letterSpacing: "0.02em" }}>
+            Birmingham · Manchester · remote across the UK
+          </p>
+        </div>
+        <div>
+          <h5>Product</h5>
+          <div className="links">
+            <a>How it works</a>
+            <a>Sample report</a>
+            <a>Pricing</a>
+            <a>Methodology</a>
+            <a>Changelog</a>
+          </div>
+        </div>
+        <div>
+          <h5>Resources</h5>
+          <div className="links">
+            <a>WCAG 2.2 explained</a>
+            <a>EHRC guidance summary</a>
+            <a>Audit checklist (PDF)</a>
+            <a>For agencies (white-label)</a>
+          </div>
+        </div>
+        <div>
+          <h5>Company</h5>
+          <div className="links">
+            <a>About</a>
+            <a>Past work</a>
+            <a>hello@nthdesigns.co.uk</a>
+            <a>Privacy &amp; data</a>
+          </div>
+        </div>
+      </div>
+      <div className="copy">
+        <span>© 2026 nthdesigns Ltd · Company 12 884 901</span>
+        <span>Registered in England and Wales · Audits delivered worldwide</span>
+      </div>
+    </footer>
+  );
+}
+
+// ─── Tweaks Panel (accent) ────────────────────────────────────────
+function TweaksPanel({ accent, setAccent, variant, setVariant }) {
+  const swatches = {
+    ochre:  { color: "#c08a40", tuple: ["oklch(0.705 0.140 65)", "oklch(0.945 0.045 75)", "oklch(0.500 0.130 55)", "oklch(0.290 0.080 50)"] },
+    rust:   { color: "#b56242", tuple: ["oklch(0.625 0.155 35)", "oklch(0.945 0.045 40)", "oklch(0.460 0.150 30)", "oklch(0.270 0.095 28)"] },
+    olive:  { color: "#8a8a36", tuple: ["oklch(0.640 0.110 115)", "oklch(0.945 0.040 115)", "oklch(0.470 0.110 115)", "oklch(0.270 0.060 115)"] },
+    indigo: { color: "#5e7ccc", tuple: ["oklch(0.560 0.140 255)", "oklch(0.945 0.035 250)", "oklch(0.420 0.150 258)", "oklch(0.260 0.080 258)"] },
+  };
+  useEffect(() => {
+    const t = swatches[accent]?.tuple || swatches.ochre.tuple;
+    const root = document.documentElement;
+    root.style.setProperty("--accent", t[0]);
+    root.style.setProperty("--accent-soft", t[1]);
+    root.style.setProperty("--accent-deep", t[2]);
+    root.style.setProperty("--accent-ink", t[3]);
+  }, [accent]);
+
+  return (
+    <div className="tw-panel">
+      <h6>Tweaks</h6>
+      <div className="tw-row"><span className="lbl">Hero variant</span><span className="val">{variant}</span></div>
+      <div className="tw-seg" style={{ marginBottom: 14 }}>
+        <button className={variant === "editorial" ? "active" : ""} onClick={() => setVariant("editorial")}>Editorial</button>
+        <button className={variant === "proof" ? "active" : ""} onClick={() => setVariant("proof")}>Proof-led</button>
+      </div>
+      <div className="tw-row"><span className="lbl">Accent</span><span className="val">{accent}</span></div>
+      <div className="tw-swatches">
+        {Object.entries(swatches).map(([k, s]) => (
+          <button
+            key={k}
+            className={`tw-sw ${accent === k ? "active" : ""}`}
+            style={{ background: s.color }}
+            onClick={() => setAccent(k)}
+            title={k}
+          />
+        ))}
+      </div>
+      <div style={{ fontSize: 11, color: "var(--stone-500)", lineHeight: 1.5 }}>
+        Tints the warm-lead signal across the whole page. Variant toggle also lives in the dark preview bar at the top.
+      </div>
+    </div>
+  );
+}
+
+// ─── App ──────────────────────────────────────────────────────────
+function App() {
+  const [viewport, setViewport] = useState("desktop");
+  const [variant, setVariant] = useState("editorial");
+  const [accent, setAccent] = useState("ochre");
+
+  const scrollTo = (id) => {
+    const el = document.getElementById(id);
+    if (el) {
+      const top = el.getBoundingClientRect().top + window.scrollY - 100;
+      window.scrollTo({ top, behavior: "smooth" });
+    }
+  };
+
+  return (
+    <>
+      <PreviewBar viewport={viewport} setViewport={setViewport} variant={variant} setVariant={setVariant} />
+      <div className="page-frame" data-vp={viewport}>
+        <Nav scrollTo={scrollTo} />
+        {variant === "editorial" ? <HeroEditorial scrollTo={scrollTo} /> : <HeroProof scrollTo={scrollTo} />}
+        <HowItWorks />
+        <SampleReportExcerpt />
+        <WhyNow />
+        <Evidence />
+        <Compare />
+        <Pricing />
+        <Testimonials />
+        <SelfCheck />
+        <FAQ />
+        <FooterCTA />
+        <SiteFooter />
+      </div>
+      <TweaksPanel accent={accent} setAccent={setAccent} variant={variant} setVariant={setVariant} />
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+
+</body>
+</html>

@@ -36,7 +36,8 @@ Configure `.env`:
 | `GOOGLE_PLACES_API_KEY` | Business discovery + benchmarks |
 | `OPENROUTER_API_KEY` | Outreach email generation (Anthropic models via OpenRouter) |
 | `OPENROUTER_MODEL` | Model slug, e.g. `anthropic/claude-sonnet-4` |
-| `QUEUE_CONNECTION=redis` | Job queues |
+| `QUEUE_CONNECTION` | `database` for local dev (no Redis); `redis` in production with Horizon |
+| `REDIS_CLIENT=predis` | Redis client when using `QUEUE_CONNECTION=redis` (Predis is bundled; use `phpredis` only if the PHP extension is installed) |
 | `AUDIT_SCRIPT_PATH` | Path to `scripts/audit.js` |
 | `REPORT_BOOKING_URL` | CTA on public reports |
 | `REPORT_EXPIRY_DAYS` | Report link expiry (default 30) |
@@ -44,10 +45,14 @@ Configure `.env`:
 ## Running
 
 ```bash
-php artisan horizon    # scraping + auditing queues
+composer dev           # serve, queue worker, logs, Vite (uses QUEUE_CONNECTION from .env)
+# or manually:
+php artisan queue:work --queue=scraping,auditing --timeout=180
 php artisan serve
 npm run dev
 ```
+
+With `QUEUE_CONNECTION=redis`, run `php artisan horizon` instead of `queue:work` for multi-process workers and the `/horizon` dashboard. Horizon does not process `database` queues.
 
 ## Workflow
 

@@ -1,18 +1,7 @@
 import { Link, usePage } from '@inertiajs/react';
+import Brand from './Brand';
 import Status from './Status';
-
-function Avatar({ initials }) {
-    return <span className="avatar">{initials}</span>;
-}
-
-function userInitials(name) {
-    if (!name) return '?';
-    const parts = name.trim().split(/\s+/);
-    if (parts.length >= 2) {
-        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-    }
-    return name.slice(0, 2).toUpperCase();
-}
+import UserMenu from './UserMenu';
 
 export default function AppShell({ children }) {
     const { auth, outreachSelectionCount = 0 } = usePage().props;
@@ -23,6 +12,7 @@ export default function AppShell({ children }) {
         { href: '/outreach', label: 'Outreach', match: ['outreach.index', 'outreach.*'], count: outreachSelectionCount },
         { href: '/saved', label: 'Saved', match: ['saved.index'] },
         { href: '/reports', label: 'Reports', match: ['reports.index'] },
+        { href: '/settings', label: 'Settings', match: ['settings.index', 'settings.*'] },
     ];
 
     const isActive = (patterns) =>
@@ -37,12 +27,7 @@ export default function AppShell({ children }) {
     return (
         <div className="app">
             <div className="app-topbar">
-                <Link href="/search" className="app-brand" style={{ textDecoration: 'none', color: 'inherit' }}>
-                    <span className="brand-mark" />
-                    <span className="brand-name">nthdesigns</span>
-                    <span className="brand-sep">/</span>
-                    <span className="brand-product">Prospect Scanner</span>
-                </Link>
+                <Brand href="/search" />
 
                 <nav className="app-nav">
                     {navItems.map((n) => (
@@ -59,10 +44,7 @@ export default function AppShell({ children }) {
 
                 <div className="app-tools">
                     <Status kind="ready">APIs online</Status>
-                    <span className="user-chip">
-                        <Avatar initials={userInitials(user?.name)} />
-                        {user?.name}
-                    </span>
+                    <UserMenu user={user} />
                 </div>
             </div>
             {children}

@@ -17,7 +17,10 @@ class CombineScoresJob implements ShouldQueue
 
     public int $tries = 3;
 
-    public function __construct(public Prospect $prospect) {}
+    public function __construct(public Prospect $prospect)
+    {
+        $this->onQueue('auditing');
+    }
 
     public function handle(
         CombineScoresService $combiner,
@@ -56,8 +59,4 @@ class CombineScoresJob implements ShouldQueue
         $searchStatus->refresh($search);
     }
 
-    public function queue(): string
-    {
-        return 'auditing';
-    }
 }

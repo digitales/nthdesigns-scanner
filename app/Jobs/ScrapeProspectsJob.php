@@ -19,7 +19,10 @@ class ScrapeProspectsJob implements ShouldQueue
     public int $tries = 3;
     public int $backoff = 30;
 
-    public function __construct(public Search $search) {}
+    public function __construct(public Search $search)
+    {
+        $this->onQueue('scraping');
+    }
 
     public function handle(GooglePlacesService $places, SearchStatusService $searchStatus): void
     {
@@ -55,8 +58,4 @@ class ScrapeProspectsJob implements ShouldQueue
         }
     }
 
-    public function queue(): string
-    {
-        return 'scraping';
-    }
 }

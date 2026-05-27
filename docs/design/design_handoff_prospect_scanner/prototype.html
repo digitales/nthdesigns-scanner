@@ -1,0 +1,3649 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1440" />
+<title>Prospect Scanner — Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ──────────────────────────────────────────────────────────────
+   PROSPECT SCANNER — shared tokens + component CSS
+   ────────────────────────────────────────────────────────────── */
+:root {
+  /* warm-tinted neutrals */
+  --paper:        oklch(0.985 0.006 80);
+  --paper-2:      oklch(0.965 0.009 80);
+  --stone-100:    oklch(0.945 0.010 75);
+  --stone-200:    oklch(0.905 0.012 72);
+  --stone-300:    oklch(0.835 0.014 68);
+  --stone-400:    oklch(0.715 0.016 64);
+  --stone-500:    oklch(0.560 0.016 60);
+  --stone-600:    oklch(0.430 0.013 56);
+  --stone-700:    oklch(0.305 0.011 54);
+  --stone-800:    oklch(0.225 0.009 54);
+  --ink:          oklch(0.155 0.008 52);
+
+  /* accent (tweakable) — defaults to ochre */
+  --accent:       oklch(0.705 0.140 65);
+  --accent-soft:  oklch(0.945 0.045 75);
+  --accent-deep:  oklch(0.500 0.130 55);
+  --accent-ink:   oklch(0.290 0.080 50);
+
+  /* severity */
+  --sev-critical:      oklch(0.515 0.180 28);
+  --sev-critical-soft: oklch(0.945 0.045 30);
+  --sev-serious:       oklch(0.660 0.155 52);
+  --sev-serious-soft:  oklch(0.955 0.050 70);
+  --sev-moderate:      oklch(0.610 0.085 85);
+  --sev-moderate-soft: oklch(0.960 0.035 90);
+  --positive:          oklch(0.580 0.110 145);
+  --positive-soft:     oklch(0.945 0.045 145);
+
+  /* score bands */
+  --score-low-bg:  var(--stone-100);
+  --score-mid-bg:  oklch(0.93 0.020 75);
+  --score-high-bg: var(--accent-soft);
+
+  /* surfaces */
+  --line:         oklch(0.895 0.012 70);
+  --line-strong:  oklch(0.825 0.014 68);
+  --shadow-1: 0 1px 0 oklch(1 0 0 / .8) inset, 0 1px 2px oklch(0 0 0 / .04);
+  --shadow-2: 0 1px 0 oklch(1 0 0 / .9) inset, 0 8px 24px -8px oklch(0 0 0 / .12);
+  --shadow-3: 0 1px 0 oklch(1 0 0 / .9) inset, 0 18px 48px -16px oklch(0 0 0 / .22);
+
+  /* type */
+  --serif: "Newsreader", "Source Serif Pro", Georgia, serif;
+  --sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "ss01";
+}
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; }
+::selection { background: var(--accent-soft); color: var(--accent-ink); }
+.tabular, .num { font-variant-numeric: tabular-nums; }
+.mono { font-family: var(--mono); }
+.serif { font-family: var(--serif); }
+
+.micro {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--stone-500);
+  letter-spacing: 0.04em;
+}
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--stone-500);
+}
+
+/* ──────────────────────────────────────────────────────────────
+   APP SHELL
+   ────────────────────────────────────────────────────────────── */
+.app { min-height: 100vh; background: var(--paper); }
+.app-topbar {
+  height: 56px;
+  border-bottom: 1px solid var(--line);
+  background: oklch(0.99 0.005 80 / 0.92);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 24px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.app-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-right: 18px;
+  border-right: 1px solid var(--line);
+  height: 56px;
+}
+.brand-mark {
+  width: 20px;
+  height: 20px;
+  position: relative;
+  flex-shrink: 0;
+}
+.brand-mark::before, .brand-mark::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1.4px solid var(--ink);
+}
+.brand-mark::after { transform: rotate(45deg); border-color: var(--accent); }
+.brand-name {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+}
+.brand-sep {
+  color: var(--stone-400);
+  font-family: var(--mono);
+  font-size: 11px;
+}
+.brand-product {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--stone-700);
+}
+
+.app-nav {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  flex: 1;
+}
+.app-nav a {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--stone-600);
+  padding: 7px 12px;
+  border-radius: 4px;
+  letter-spacing: -0.005em;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.app-nav a:hover { background: var(--stone-100); color: var(--ink); }
+.app-nav a.active { color: var(--ink); background: var(--stone-100); }
+.app-nav a .count {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 1px 5px;
+  border-radius: 2px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.app-nav a.active .count { background: var(--accent-deep); }
+
+.app-tools {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--stone-700);
+  padding: 5px 10px 5px 5px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+}
+.avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   PAGE HEADER (inside screens)
+   ────────────────────────────────────────────────────────────── */
+.page {
+  padding: 36px 40px 80px;
+  max-width: 1440px;
+  margin: 0 auto;
+}
+.page-wide { padding: 36px 32px 80px; }
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 32px;
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--line);
+}
+.page-header h1 {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 36px;
+  line-height: 1.1;
+  letter-spacing: -0.018em;
+  margin: 6px 0 0;
+}
+.page-header p {
+  font-size: 14px;
+  color: var(--stone-600);
+  margin: 8px 0 0;
+  max-width: 540px;
+}
+.page-header .header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.back-link {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--stone-500);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.back-link:hover { color: var(--ink); }
+
+/* ──────────────────────────────────────────────────────────────
+   BUTTONS
+   ────────────────────────────────────────────────────────────── */
+.btn {
+  font-family: var(--sans);
+  font-size: 13.5px;
+  font-weight: 500;
+  padding: 8px 14px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  background: transparent;
+  color: var(--ink);
+  transition: background-color .12s, border-color .12s, color .12s;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+.btn-primary { background: var(--ink); color: var(--paper); }
+.btn-primary:hover { background: var(--stone-800); }
+.btn-accent { background: var(--accent-deep); color: var(--paper); }
+.btn-accent:hover { background: var(--accent-ink); }
+.btn-secondary { background: var(--paper); border-color: var(--line-strong); color: var(--ink); }
+.btn-secondary:hover { background: var(--paper-2); border-color: var(--stone-400); }
+.btn-ghost { color: var(--stone-700); }
+.btn-ghost:hover { background: var(--stone-100); color: var(--ink); }
+.btn-destructive { color: var(--sev-critical); border-color: oklch(0.515 0.180 28 / 0.3); background: var(--paper); }
+.btn-destructive:hover { background: var(--sev-critical-soft); }
+.btn-sm { font-size: 12px; padding: 5px 10px; gap: 5px; }
+.btn-xs { font-size: 11px; padding: 4px 8px; gap: 4px; }
+.btn-lg { font-size: 14.5px; padding: 11px 20px; gap: 8px; }
+.btn[disabled] { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+.btn .ico { width: 13px; height: 13px; stroke: currentColor; stroke-width: 1.6; fill: none; flex-shrink: 0; }
+
+/* ──────────────────────────────────────────────────────────────
+   FIELDS
+   ────────────────────────────────────────────────────────────── */
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field-label {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--stone-700);
+  letter-spacing: 0.005em;
+  display: flex;
+  justify-content: space-between;
+}
+.field-hint { font-family: var(--mono); font-size: 10.5px; color: var(--stone-500); }
+.input, .select, .textarea {
+  font-family: var(--sans);
+  font-size: 13.5px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  padding: 9px 12px;
+  width: 100%;
+  transition: border-color .12s, box-shadow .12s;
+}
+.input:focus, .select:focus, .textarea:focus {
+  outline: none;
+  border-color: var(--accent-deep);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.input::placeholder, .textarea::placeholder { color: var(--stone-400); }
+.select {
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%23736b5c' stroke-width='1.4' fill='none'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+}
+.textarea { resize: vertical; min-height: 100px; line-height: 1.55; }
+.input-with-prefix {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  background: var(--paper);
+}
+.input-with-prefix .prefix {
+  background: var(--paper-2);
+  border-right: 1px solid var(--line);
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--stone-600);
+}
+.input-with-prefix input {
+  border: 0;
+  padding: 9px 12px;
+  background: transparent;
+  font-family: var(--sans);
+  font-size: 13.5px;
+  color: var(--ink);
+  flex: 1;
+  outline: none;
+}
+
+/* checkbox */
+.checkbox {
+  appearance: none;
+  width: 15px;
+  height: 15px;
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
+  background: var(--paper);
+  cursor: pointer;
+  position: relative;
+  vertical-align: -2px;
+  flex-shrink: 0;
+}
+.checkbox:checked {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+.checkbox:checked::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  width: 4px;
+  height: 8px;
+  border: solid var(--paper);
+  border-width: 0 1.6px 1.6px 0;
+  transform: rotate(45deg);
+}
+
+/* radio group / segmented */
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  background: var(--paper);
+  padding: 2px;
+  gap: 1px;
+}
+.segmented button {
+  font-family: var(--sans);
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--stone-700);
+  background: transparent;
+  border: 0;
+  padding: 6px 12px;
+  border-radius: 3px;
+  cursor: pointer;
+  letter-spacing: -0.005em;
+}
+.segmented button:hover { background: var(--paper-2); }
+.segmented button.active { background: var(--ink); color: var(--paper); }
+
+/* ──────────────────────────────────────────────────────────────
+   BADGES
+   ────────────────────────────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 3px;
+  background: var(--stone-100);
+  color: var(--stone-700);
+  line-height: 1.4;
+}
+.badge .dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: 0.55; }
+
+.score-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 4px 9px 4px 7px;
+  border-radius: 3px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid transparent;
+}
+.score-badge.low { background: var(--score-low-bg); color: var(--stone-700); border-color: var(--stone-200); }
+.score-badge.mid { background: var(--score-mid-bg); color: var(--ink); border-color: oklch(0.85 0.03 75); }
+.score-badge.high { background: var(--score-high-bg); color: var(--accent-ink); border-color: oklch(0.85 0.08 65); }
+.score-badge .num { font-weight: 600; }
+.score-badge .bar {
+  width: 24px;
+  height: 3px;
+  border-radius: 2px;
+  background: oklch(0 0 0 / 0.08);
+  position: relative;
+  overflow: hidden;
+}
+.score-badge .bar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  opacity: 0.7;
+}
+
+/* Score with adjacent weak-pip (used for Perf column when value < 30) */
+.score-with-pip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.weak-pip {
+  width: 7px;
+  height: 7px;
+  background: var(--sev-critical);
+  border-radius: 1px;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* Outreach card — secondary "slow site" signal */
+.slow-site-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  font-family: var(--mono);
+  color: var(--stone-500);
+  letter-spacing: 0.02em;
+  padding: 1px 6px 1px 5px;
+  border-radius: 2px;
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  line-height: 1.5;
+}
+.slow-site-tag::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  background: var(--sev-critical);
+  border-radius: 1px;
+  flex-shrink: 0;
+}
+
+.angle-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px 2px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: var(--paper);
+  color: var(--stone-700);
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.angle-pill .glyph {
+  width: 12px;
+  height: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1;
+}
+.angle-pill.gbp .glyph { color: var(--stone-600); }
+.angle-pill.a11y .glyph { color: var(--accent-deep); }
+.angle-pill.both .glyph { color: var(--ink); }
+
+.sev-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11.5px;
+  font-weight: 500;
+  padding: 3px 9px 3px 8px;
+  border-radius: 3px;
+  line-height: 1.3;
+  border: 1px solid transparent;
+}
+.sev-chip .pip { width: 6px; height: 6px; background: currentColor; flex-shrink: 0; }
+.sev-chip.critical { color: var(--sev-critical); background: var(--sev-critical-soft); border-color: oklch(0.515 0.180 28 / 0.18); }
+.sev-chip.critical .pip { border-radius: 0; }
+.sev-chip.serious { color: oklch(0.45 0.13 50); background: var(--sev-serious-soft); border-color: oklch(0.660 0.155 52 / 0.22); }
+.sev-chip.serious .pip { border-radius: 1px; transform: rotate(45deg); }
+.sev-chip.moderate { color: oklch(0.42 0.07 80); background: var(--sev-moderate-soft); border-color: oklch(0.610 0.085 85 / 0.25); }
+.sev-chip.moderate .pip { border-radius: 50%; }
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--stone-700);
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  white-space: nowrap;
+}
+.status .led {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--stone-400);
+}
+.status.ready .led { background: var(--positive); }
+.status.pending .led { background: var(--sev-serious); animation: pulse 1.6s ease-in-out infinite; }
+.status.failed .led { background: var(--sev-critical); }
+.status.warm { background: var(--accent-soft); border-color: oklch(0.85 0.08 65); color: var(--accent-ink); }
+.status.warm .led { background: var(--accent); }
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   CARDS & PANELS
+   ────────────────────────────────────────────────────────────── */
+.card {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.card-pad { padding: 22px 24px; }
+.card-title {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--stone-500);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 0 0 12px;
+  font-weight: 500;
+}
+.card h3.title {
+  font-family: var(--sans);
+  font-size: 16px;
+  font-weight: 500;
+  margin: 0 0 4px;
+  letter-spacing: -0.005em;
+}
+
+.score-card {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 18px 20px 20px;
+  position: relative;
+}
+.score-card.highlight { border-color: oklch(0.85 0.08 65); background: linear-gradient(180deg, var(--accent-soft) 0%, var(--paper) 70%); }
+.score-card .label {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--stone-600);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 10px;
+}
+.score-card .value {
+  font-family: var(--serif);
+  font-size: 48px;
+  line-height: 1;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.score-card.highlight .value { color: var(--accent-ink); }
+.score-card .value .unit {
+  font-size: 14px;
+  color: var(--stone-500);
+  margin-left: 3px;
+  font-family: var(--mono);
+  letter-spacing: 0;
+}
+.score-card .delta {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--stone-500);
+  margin-top: 8px;
+  letter-spacing: 0.02em;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   TABLE
+   ────────────────────────────────────────────────────────────── */
+.ptable {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+}
+.ptable thead th {
+  text-align: left;
+  font-family: var(--mono);
+  font-weight: 500;
+  font-size: 10.5px;
+  color: var(--stone-500);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--paper-2);
+  white-space: nowrap;
+}
+.ptable thead th:first-child { padding-left: 20px; }
+.ptable thead th:last-child { padding-right: 20px; }
+.ptable thead th.sortable { cursor: pointer; }
+.ptable thead th.sortable:hover { color: var(--ink); }
+.ptable thead th .sort-glyph { color: var(--stone-400); margin-left: 4px; }
+.ptable tbody td {
+  padding: 14px 14px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+  color: var(--ink);
+}
+.ptable tbody td:first-child { padding-left: 20px; }
+.ptable tbody td:last-child { padding-right: 20px; }
+.ptable tbody tr:last-child td { border-bottom: 0; }
+.ptable tbody tr:hover { background: var(--paper-2); cursor: pointer; }
+.ptable .biz { font-weight: 500; }
+.ptable .biz .url {
+  display: block;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--stone-500);
+  font-weight: 400;
+  margin-top: 2px;
+  letter-spacing: 0;
+}
+.ptable tbody tr.warm { background: linear-gradient(90deg, var(--accent-soft) 0%, transparent 50%); }
+.ptable tbody tr.warm:hover { background: linear-gradient(90deg, var(--accent-soft) 0%, var(--paper-2) 50%); }
+.ptable tbody tr.failed td { color: var(--stone-500); }
+.ptable tbody tr.expanded { background: var(--paper-2); }
+.ptable tbody tr.selected { background: oklch(0.92 0.012 70); }
+.ptable tbody tr.selected:hover { background: oklch(0.91 0.012 70); }
+
+.row-actions {
+  display: flex;
+  gap: 2px;
+  justify-content: flex-end;
+  align-items: center;
+}
+.row-actions .btn-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 3px;
+  border: 0;
+  background: transparent;
+  color: var(--stone-500);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.row-actions .btn-icon:hover { background: var(--stone-200); color: var(--ink); }
+.row-actions .btn-icon svg { width: 13px; height: 13px; stroke: currentColor; stroke-width: 1.6; fill: none; }
+
+.expanded-row td {
+  padding: 0 !important;
+  background: var(--paper-2);
+  border-bottom: 1px solid var(--line) !important;
+}
+.expanded-row .ex-inner {
+  padding: 22px 24px 26px 50px;
+  border-left: 3px solid var(--accent);
+  margin-left: 14px;
+}
+
+/* skeleton */
+.skel {
+  background: linear-gradient(90deg, var(--stone-100) 0%, var(--stone-200) 50%, var(--stone-100) 100%);
+  background-size: 200% 100%;
+  border-radius: 3px;
+  animation: shimmer 1.6s ease-in-out infinite;
+  display: inline-block;
+  height: 12px;
+}
+@keyframes shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   FILTER BAR
+   ────────────────────────────────────────────────────────────── */
+.filter-bar {
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 14px 18px;
+  display: flex;
+  gap: 14px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.filter-bar .field { gap: 4px; min-width: 0; }
+.filter-bar .field-label { font-size: 10.5px; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--stone-500); }
+.filter-bar .input, .filter-bar .select { padding: 6px 10px; font-size: 13px; }
+.filter-bar .select { padding-right: 26px; }
+.filter-bar .filter-action {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   PROGRESS / RUNNING STATE
+   ────────────────────────────────────────────────────────────── */
+.progress-bar {
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+.progress-bar .progress-text {
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.progress-bar .progress-text strong { font-weight: 500; }
+.progress-bar .progress-meta { font-family: var(--mono); font-size: 11px; color: var(--stone-500); }
+.progress-bar .progress-track {
+  flex: 1;
+  height: 4px;
+  background: var(--stone-200);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+.progress-bar .progress-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--ink);
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+.progress-bar .progress-pct {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--stone-700);
+  font-weight: 500;
+  min-width: 36px;
+  text-align: right;
+}
+
+/* spinner */
+.spinner {
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid var(--stone-300);
+  border-top-color: var(--ink);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ──────────────────────────────────────────────────────────────
+   ANNOTATION
+   ────────────────────────────────────────────────────────────── */
+.anno-toggle {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  z-index: 60;
+  background: var(--ink);
+  color: var(--paper);
+  border: 0;
+  border-radius: 999px;
+  padding: 9px 16px 9px 12px;
+  font-family: var(--sans);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 8px 24px oklch(0 0 0 / 0.18);
+  letter-spacing: -0.005em;
+  transition: transform .15s;
+}
+.anno-toggle:hover { transform: translateY(-1px); }
+.anno-toggle.active { background: var(--accent-deep); }
+.anno-toggle .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--paper);
+  opacity: 0.7;
+}
+.anno-toggle.active .dot { background: var(--paper); opacity: 1; animation: pulse 1.8s ease-in-out infinite; }
+
+.anno-pin {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--paper);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 4px oklch(1 0 0 / 0.65), 0 2px 8px oklch(0 0 0 / 0.2);
+  line-height: 1;
+  cursor: default;
+  z-index: 40;
+  transform-origin: center;
+  animation: pin-in 0.3s ease backwards;
+}
+@keyframes pin-in {
+  from { opacity: 0; transform: scale(0.4); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.anno-callout {
+  position: absolute;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 10px 14px;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  max-width: 260px;
+  box-shadow: 0 10px 28px oklch(0 0 0 / 0.22);
+  z-index: 41;
+  animation: pin-in 0.25s ease 0.1s backwards;
+}
+.anno-callout::before {
+  content: "";
+  position: absolute;
+  left: -5px;
+  top: 12px;
+  width: 10px;
+  height: 10px;
+  background: var(--ink);
+  transform: rotate(45deg);
+}
+.anno-callout b { font-weight: 500; color: var(--accent-soft); }
+.anno-callout .micro {
+  color: oklch(0.7 0.01 60);
+  margin-bottom: 4px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   TOAST / FLASH
+   ────────────────────────────────────────────────────────────── */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 12px 16px;
+  border-radius: 4px;
+  font-size: 13px;
+  box-shadow: 0 14px 36px oklch(0 0 0 / 0.22);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: toast-in 0.25s ease;
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.toast .check {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--positive);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.toast .check svg { width: 10px; height: 10px; stroke: var(--paper); stroke-width: 2; fill: none; }
+
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<!-- Inline data + components + screens (Babel scripts process in order) -->
+<script type="text/babel">
+// ─── DATA ─────────────────────────────────────────────────────────
+const DATA = {
+  searches: [
+    { id: "s-001", niche: "Dental practice",   city: "Birmingham",  country: "GB", type: "combined", status: "complete", ran: "26 May 2026 · 11:24", found: 23, scanned: 21 },
+    { id: "s-002", niche: "Solicitor",         city: "Manchester",  country: "GB", type: "combined", status: "complete", ran: "24 May 2026 · 09:18", found: 31, scanned: 28 },
+    { id: "s-003", niche: "Independent hotel", city: "Bassenthwaite", country: "GB", type: "accessibility", status: "complete", ran: "22 May 2026 · 16:02", found: 14, scanned: 14 },
+    { id: "s-004", niche: "Chiropractor",      city: "Solihull",    country: "GB", type: "gbp", status: "complete", ran: "20 May 2026 · 10:45", found: 11, scanned: 11 },
+  ],
+  prospects: [
+    { id: "p-101", searchId: "s-001", business: "Birmingham Dental Practice", url: "birminghamdentalpractice.co.uk", address: "142 Bromsgrove St, Birmingham B5 6RG", phone: "0121 622 7044", niche: "Dental practice", city: "Birmingham", combined: 87, gbp: 79, a11y: 92, perf: 28, angle: "both", status: "ready", warm: true, lastViewed: "2 hours ago", viewerLoc: "Solihull, UK", reportToken: "bx7-9k2m-q4", reportViews: 4, outreachSent: "23 May 2026 · 14:20", gbpFlags: ["Only 3 photos on profile", "No posts this quarter", "Phone but no email", "Hours not verified"], a11yFlags: ["Missing <h1>", "Contrast 2.1 : 1 on header", "42 images without alt text", "Form labels missing", "Heading hierarchy broken"], flagsCounts: { critical: 4, serious: 11, moderate: 8 }, reviews: 12, rating: 4.6, photos: 3 },
+    { id: "p-102", searchId: "s-001", business: "Smile Studio Birmingham", url: "smilestudio-bham.co.uk", address: "9 Temple Row, Birmingham B2 5LG", phone: "0121 633 1900", niche: "Dental practice", city: "Birmingham", combined: 41, gbp: 38, a11y: 44, perf: 78, angle: "gbp", status: "ready", warm: false, reportToken: "qw3-7n8m-x2", reportViews: 0, flagsCounts: { critical: 1, serious: 4, moderate: 3 }, reviews: 187, rating: 4.8, photos: 42 },
+    { id: "p-103", searchId: "s-001", business: "King's Heath Family Dental", url: "kingsheathfamilydental.co.uk", niche: "Dental practice", city: "Birmingham", combined: 74, gbp: 68, a11y: 80, perf: 51, angle: "a11y", status: "ready", warm: false, reportToken: "lp9-2k4j-h8", reportViews: 1, flagsCounts: { critical: 2, serious: 7, moderate: 5 }, reviews: 64, rating: 4.7, photos: 9 },
+    { id: "p-104", searchId: "s-002", business: "Hartley & Co Solicitors", url: "hartley-solicitors.co.uk", niche: "Solicitor", city: "Manchester", combined: 74, gbp: 68, a11y: 80, perf: 64, angle: "a11y", status: "ready", warm: true, lastViewed: "5 hours ago", reportToken: "mz4-8j3p-r1", reportViews: 3, outreachSent: "23 May 2026 · 09:12", flagsCounts: { critical: 3, serious: 9, moderate: 6 }, reviews: 28, rating: 4.5 },
+    { id: "p-105", searchId: "s-001", business: "Cobble & Last (cobblers)", url: "cobbleandlast.co.uk", niche: "Cobblers", city: "Birmingham", combined: 52, gbp: 48, a11y: 56, perf: 42, angle: "both", status: "ready", warm: false, reportViews: 0, flagsCounts: { critical: 1, serious: 5, moderate: 4 } },
+    { id: "p-106", searchId: "s-003", business: "The Pheasant Inn, Bassenthwaite", url: "pheasant-bassenthwaite.co.uk", niche: "Independent hotel", city: "Bassenthwaite", combined: 66, gbp: 71, a11y: 61, perf: null, angle: "gbp", status: "pending" },
+    { id: "p-107", searchId: "s-001", business: "Singh Family Dentistry", url: "singhfamilydentistry.co.uk", niche: "Dental practice", city: "Birmingham", combined: null, gbp: 42, a11y: null, perf: null, angle: "gbp", status: "failed", failureReason: "Site returned 503 — audit failed" },
+    { id: "p-108", searchId: "s-001", business: "Mosley Lane Chiropractic", url: "mosleylane-chiro.co.uk", niche: "Chiropractic", city: "Birmingham", combined: 38, gbp: 35, a11y: 40, perf: 88, angle: "gbp", status: "ready", reportViews: 0, flagsCounts: { critical: 0, serious: 3, moderate: 2 } },
+    { id: "p-109", searchId: "s-002", business: "Briar & Wren Solicitors", url: "briarwren.co.uk", niche: "Solicitor", city: "Manchester", combined: 93, gbp: 88, a11y: 96, perf: 21, angle: "both", status: "ready", warm: true, lastViewed: "30 minutes ago", reportToken: "vy7-3k1n-d6", reportViews: 6, outreachSent: "25 May 2026 · 11:40", flagsCounts: { critical: 6, serious: 14, moderate: 9 } },
+    { id: "p-110", searchId: "s-003", business: "Lakeside Manor House", url: "lakesidemanorhouse.co.uk", niche: "Independent hotel", city: "Keswick", combined: 58, gbp: 52, a11y: 64, perf: 35, angle: "a11y", status: "ready", reportViews: 2, flagsCounts: { critical: 1, serious: 6, moderate: 4 } },
+    { id: "p-111", searchId: "s-004", business: "Acorn Chiropractic Clinic", url: "acornchiropractic.co.uk", niche: "Chiropractor", city: "Solihull", combined: 79, gbp: 82, a11y: 76, perf: 47, angle: "gbp", status: "ready", reportViews: 1, flagsCounts: { critical: 2, serious: 8, moderate: 5 } },
+  ],
+  reports: [
+    { token: "vy7-3k1n-d6", prospectId: "p-109", business: "Briar & Wren Solicitors", niche: "Solicitor", views: 6, lastViewed: "30 minutes ago", viewerIp: "Salford, UK", created: "23 May 2026", warmBadge: true, outreachSent: true },
+    { token: "bx7-9k2m-q4", prospectId: "p-101", business: "Birmingham Dental Practice", niche: "Dental practice", views: 4, lastViewed: "2 hours ago", viewerIp: "Solihull, UK", created: "22 May 2026", warmBadge: true, outreachSent: true },
+    { token: "mz4-8j3p-r1", prospectId: "p-104", business: "Hartley & Co Solicitors", niche: "Solicitor", views: 3, lastViewed: "5 hours ago", viewerIp: "Manchester, UK", created: "22 May 2026", warmBadge: true, outreachSent: true },
+    { token: "lp9-2k4j-h8", prospectId: "p-103", business: "King's Heath Family Dental", niche: "Dental practice", views: 1, lastViewed: "yesterday", viewerIp: "Birmingham, UK", created: "20 May 2026", warmBadge: true, outreachSent: false },
+    { token: "rt2-4n6p-y9", prospectId: "p-110", business: "Lakeside Manor House", niche: "Independent hotel", views: 2, lastViewed: "3 days ago", viewerIp: "Penrith, UK", created: "19 May 2026", warmBadge: true, outreachSent: true },
+    { token: "qw3-7n8m-x2", prospectId: "p-102", business: "Smile Studio Birmingham", niche: "Dental practice", views: 0, lastViewed: null, viewerIp: null, created: "20 May 2026", warmBadge: false, outreachSent: false },
+    { token: "fb8-1m9k-z3", prospectId: "p-111", business: "Acorn Chiropractic Clinic", niche: "Chiropractor", views: 1, lastViewed: "8 days ago", viewerIp: "Solihull, UK", created: "18 May 2026", warmBadge: false, outreachSent: true },
+  ],
+  outreachEmails: {
+    "p-101": { pitchAngle: "a11y", subject: "23 accessibility violations on birminghamdentalpractice.co.uk", body: "Hi,\n\nI'm Alex from nthdesigns — we run free accessibility audits for UK dental practices, focusing on the WCAG 2.2 changes that came into force this year.\n\nI ran one on birminghamdentalpractice.co.uk this morning and the site has 4 critical violations (header contrast at 2.1:1, missing main heading, 42 images without alt text). Under the new rules these are the ones the EHRC enforces first.\n\nThe site also scores 28/100 on Google's mobile performance test — pages over 3 seconds to interactive typically lose half their visitors before the first tap.\n\nFull report (private link, 30-day expiry):\n→ https://report.nthdesigns.co.uk/r/bx7-9k2m-q4\n\nWorth a 30-minute call to walk through it? Happy to send the fixes as a written brief either way.\n\n— Alex\nnthdesigns", sent: false, generatedAt: "Just now" },
+    "p-104": { pitchAngle: "a11y", subject: "Hartley & Co — 12 accessibility issues your booking form is hiding", body: "Hi there,\n\nAlex from nthdesigns. I audit UK law firm websites for accessibility compliance — under the EHRC's revised guidance, \"professional services that take online instructions\" are now in scope for the 2025 WCAG 2.2 update.\n\nhartley-solicitors.co.uk has 12 issues I'd want fixed before our August deadline — the worst being focus order in the contact form (keyboard users can't reach Submit without backtracking).\n\nPrivate report:\n→ https://report.nthdesigns.co.uk/r/mz4-8j3p-r1\n\nI run small fixed-price retainers for firms in this position. Free 30-minute call if useful.\n\n— Alex\nnthdesigns", sent: true, sentAt: "23 May 2026 · 09:12", generatedAt: "23 May 2026 · 08:47" },
+    "p-109": { pitchAngle: "both", subject: "Briar & Wren — your Google profile is invisible above Salford Quays", body: "Hi,\n\nAlex here from nthdesigns. Sending this because Briar & Wren's Google Business Profile is ranking 7th for \"Manchester solicitor\" — the firms above you have 3× more photos, weekly posts, and verified opening hours. The CPC benchmark for that search is £14.20, so roughly £900/mo of missed traffic.\n\nThe site has accessibility issues too (6 critical), which compounds the Google ranking problem. Performance score of 21/100 on mobile compounds it further — the homepage takes around 6 seconds to become interactive on a typical 4G connection.\n\nFull report:\n→ https://report.nthdesigns.co.uk/r/vy7-3k1n-d6\n\nWorth a 30-minute call?\n\n— Alex\nnthdesigns", sent: false, generatedAt: "Just now" }
+  },
+  settings: {
+    apis: [
+      { name: "Google Places", status: "online", latency: "142ms", quotaUsed: 41, quotaTotal: 100 },
+      { name: "Anthropic (Claude)", status: "online", latency: "880ms", quotaUsed: 1240, quotaTotal: 5000, unit: "tokens (k) today" },
+      { name: "axe-core / Lighthouse runner", status: "online", latency: "—", quotaUsed: null },
+      { name: "Object storage (R2)", status: "online", usedGb: 0.84, totalGb: 10 },
+    ],
+    defaults: {
+      country: "United Kingdom",
+      agencyName: "nthdesigns",
+      bookingUrl: "https://cal.nthdesigns.co.uk/30min",
+      reportExpiryDays: 30,
+    }
+  }
+};
+window.DATA = DATA;
+</script>
+
+<script type="text/babel">
+/* ── components.jsx ── */
+// components.jsx — shared atoms
+// Loaded after React/Babel. Exports to window for cross-script access.
+
+const { useState, useEffect, useRef, useMemo, useCallback } = React;
+
+// ─── Icons ────────────────────────────────────────────────────────
+const Icon = ({ d, size = 13, className = "" }) => (
+  <svg className={"ico " + className} viewBox="0 0 16 16" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <path d={d} />
+  </svg>
+);
+const Icons = {
+  Search:    "M7 2a5 5 0 1 1 0 10 5 5 0 0 1 0-10zM14 14l-3.5-3.5",
+  Arrow:     "M3 8h10M9 4l4 4-4 4",
+  ArrowLeft: "M13 8H3M7 4L3 8l4 4",
+  Plus:      "M8 3v10M3 8h10",
+  Copy:      "M5 2h7v9H5zM3 5v9h8",
+  Check:     "M3 8.5l3 3 7-7",
+  External:  "M6 3H3v10h10v-3M9 3h4v4M13 3l-7 7",
+  Filter:    "M2 4h12M4 8h8M6 12h4",
+  Sort:      "M5 3v10M3 11l2 2 2-2M11 13V3M9 5l2-2 2 2",
+  Download:  "M8 2v9M5 8l3 3 3-3M3 13h10",
+  More:      "M3 8h.01M8 8h.01M13 8h.01",
+  Chevron:   "M5 6l3 3 3-3",
+  ChevronR:  "M6 4l3 3-3 3",
+  ChevronD:  "M5 6l3 3 3-3",
+  ChevronU:  "M5 10l3-3 3 3",
+  Map:       "M3 4l3-1 4 2 3-1v9l-3 1-4-2-3 1zM6 3v9M10 5v9",
+  Trash:     "M3 4h10M6 4V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1M5 4l1 9h4l1-9",
+  Refresh:   "M14 7A6 6 0 0 0 3 4M2 9a6 6 0 0 0 11 3M14 2v5h-5M2 14V9h5",
+  Eye:       "M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5S1 8 1 8zM8 6a2 2 0 1 0 0 4 2 2 0 0 0 0-4z",
+  Mail:      "M2 4h12v8H2zM2 4l6 5 6-5",
+  X:         "M4 4l8 8M12 4l-8 8",
+  Calendar:  "M3 3h10v10H3zM3 6h10M5 1v3M11 1v3",
+  Globe:     "M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zM1 8h14M8 1c2 2 3 4 3 7s-1 5-3 7c-2-2-3-4-3-7s1-5 3-7",
+  Star:      "M8 2l1.8 4 4.2.4-3.2 3 1 4.2L8 11.5 4.2 13.6l1-4.2L2 6.4l4.2-.4z",
+  Camera:    "M2 5h2l1-2h6l1 2h2v8H2zM8 11a2 2 0 1 0 0-4 2 2 0 0 0 0 4z",
+  Phone:     "M3 3h3l1 3-2 1a8 8 0 0 0 4 4l1-2 3 1v3a1 1 0 0 1-1 1A11 11 0 0 1 2 4a1 1 0 0 1 1-1z",
+  Lock:      "M4 7V5a4 4 0 0 1 8 0v2M3 7h10v7H3z",
+  Settings:  "M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM8 1v2M8 13v2M3.5 3.5l1.4 1.4M11.1 11.1l1.4 1.4M1 8h2M13 8h2M3.5 12.5l1.4-1.4M11.1 4.9l1.4-1.4",
+  PlayCircle:"M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zM6 5l5 3-5 3z",
+  Send:      "M14 2L7 9M14 2l-5 12-2-5-5-2z"
+};
+
+// ─── Buttons ──────────────────────────────────────────────────────
+function Button({ kind = "secondary", size = "md", icon, iconRight, onClick, disabled, children, className = "", ...rest }) {
+  const cls = `btn btn-${kind}${size === "sm" ? " btn-sm" : size === "xs" ? " btn-xs" : size === "lg" ? " btn-lg" : ""} ${className}`;
+  return (
+    <button className={cls} onClick={onClick} disabled={disabled} {...rest}>
+      {icon ? <Icon d={icon} /> : null}
+      {children}
+      {iconRight ? <Icon d={iconRight} /> : null}
+    </button>
+  );
+}
+
+// ─── Score badge ──────────────────────────────────────────────────
+function scoreBand(n) {
+  if (n == null) return "low";
+  if (n >= 71) return "high";
+  if (n >= 41) return "mid";
+  return "low";
+}
+function ScoreBadge({ value, withBar = true, size = "md", weakPip = false }) {
+  if (value == null || value === "—") {
+    return <span className="score-badge low" style={{ opacity: 0.5 }}><span className="num">—</span></span>;
+  }
+  const band = scoreBand(value);
+  const barPct = Math.min(100, Math.max(8, value));
+  const badge = (
+    <span className={`score-badge ${band}`}>
+      {withBar ? (
+        <span className="bar">
+          <span style={{ position: "absolute", inset: 0, background: "currentColor", opacity: 0.7, right: `${100 - barPct}%` }} />
+        </span>
+      ) : null}
+      <span className="num">{value}</span>
+    </span>
+  );
+  if (weakPip) {
+    return (
+      <span className="score-with-pip">
+        {badge}
+        <span className="weak-pip" title="Below 30 — meaningful weakness in this column" />
+      </span>
+    );
+  }
+  return badge;
+}
+
+// ─── Pitch angle pill ─────────────────────────────────────────────
+function AnglePill({ angle }) {
+  const map = {
+    gbp:  { cls: "gbp",  glyph: "◐", label: "GBP" },
+    a11y: { cls: "a11y", glyph: "◢", label: "Accessibility" },
+    both: { cls: "both", glyph: "◆", label: "Both" }
+  };
+  const m = map[angle] || map.both;
+  return (
+    <span className={`angle-pill ${m.cls}`}>
+      <span className="glyph">{m.glyph}</span>
+      {m.label}
+    </span>
+  );
+}
+
+// ─── Severity chip ────────────────────────────────────────────────
+function SevChip({ level, count, label }) {
+  const m = { critical: "Critical", serious: "Serious", moderate: "Moderate" };
+  return (
+    <span className={`sev-chip ${level}`}>
+      <span className="pip" />
+      {label || m[level]}{count != null ? ` · ${count}` : ""}
+    </span>
+  );
+}
+
+// ─── Status pill ──────────────────────────────────────────────────
+function Status({ kind = "ready", children }) {
+  return (
+    <span className={`status ${kind}`}>
+      <span className="led" />
+      {children}
+    </span>
+  );
+}
+
+// ─── Badge ────────────────────────────────────────────────────────
+function Badge({ children, dot = true }) {
+  return (
+    <span className="badge">
+      {dot && <span className="dot" />}
+      {children}
+    </span>
+  );
+}
+
+// ─── Field ────────────────────────────────────────────────────────
+function Field({ label, hint, children }) {
+  return (
+    <div className="field">
+      {label && (
+        <label className="field-label">
+          <span>{label}</span>
+          {hint && <span className="field-hint">{hint}</span>}
+        </label>
+      )}
+      {children}
+    </div>
+  );
+}
+
+// ─── Segmented ────────────────────────────────────────────────────
+function Segmented({ value, onChange, options }) {
+  return (
+    <div className="segmented">
+      {options.map(o => (
+        <button
+          key={o.value}
+          className={o.value === value ? "active" : ""}
+          onClick={() => onChange(o.value)}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ─── Checkbox ────────────────────────────────────────────────────
+function Checkbox({ checked, onChange, indeterminate }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    if (ref.current) ref.current.indeterminate = !!indeterminate;
+  }, [indeterminate]);
+  return (
+    <input
+      ref={ref}
+      type="checkbox"
+      className="checkbox"
+      checked={!!checked}
+      onChange={(e) => onChange && onChange(e.target.checked)}
+      onClick={(e) => e.stopPropagation()}
+    />
+  );
+}
+
+// ─── Avatar ──────────────────────────────────────────────────────
+function Avatar({ initials = "AN" }) {
+  return <span className="avatar">{initials}</span>;
+}
+
+// ─── Annotation pin + callout (positioned absolutely by parent) ──
+// AnnotationContext: { active: bool, openId: string | null }
+const AnnoCtx = React.createContext({ active: false, openId: null, setOpen: () => {} });
+
+function AnnoProvider({ active, children }) {
+  const [openId, setOpen] = useState(null);
+  // Close when annotation mode turned off
+  useEffect(() => { if (!active) setOpen(null); }, [active]);
+  return <AnnoCtx.Provider value={{ active, openId, setOpen }}>{children}</AnnoCtx.Provider>;
+}
+
+function Anno({ id, n, position = { top: 0, left: 0 }, callout, calloutPosition }) {
+  const { active, openId, setOpen } = React.useContext(AnnoCtx);
+  if (!active) return null;
+  const isOpen = openId === id;
+  const onEnter = () => setOpen(id);
+  const onLeave = () => setOpen((cur) => (cur === id ? null : cur));
+  return (
+    <>
+      <span
+        className="anno-pin"
+        style={position}
+        onMouseEnter={onEnter}
+        onMouseLeave={onLeave}
+      >{n}</span>
+      {isOpen && callout && (
+        <span
+          className="anno-callout"
+          style={calloutPosition || { top: position.top, left: (typeof position.left === "number" ? position.left + 34 : `calc(${position.left} + 34px)`) }}
+          onMouseEnter={onEnter}
+          onMouseLeave={onLeave}
+        >
+          {callout}
+        </span>
+      )}
+    </>
+  );
+}
+
+// ─── Toast ────────────────────────────────────────────────────────
+function Toast({ children, onClose }) {
+  useEffect(() => {
+    const t = setTimeout(() => onClose && onClose(), 3200);
+    return () => clearTimeout(t);
+  }, [onClose]);
+  return (
+    <div className="toast">
+      <span className="check">
+        <svg viewBox="0 0 12 12"><path d="M3 6.5l2 2 4-5" /></svg>
+      </span>
+      {children}
+    </div>
+  );
+}
+
+// ─── App shell (top bar + nav) ────────────────────────────────────
+function AppShell({ route, navigate, children, selectionCount = 0 }) {
+  const navItems = [
+    { id: "search",   label: "Search",   match: ["search", "search/results"] },
+    { id: "outreach", label: "Outreach", match: ["outreach"], count: selectionCount },
+    { id: "saved",    label: "Saved",    match: ["saved"] },
+    { id: "reports",  label: "Reports",  match: ["reports"] },
+    { id: "settings", label: "Settings", match: ["settings"] },
+  ];
+  const isActive = (m) => m.some((p) => route === p || route.startsWith(p + "/"));
+  return (
+    <div className="app">
+      <div className="app-topbar">
+        <div className="app-brand" onClick={() => navigate("search")} style={{ cursor: "pointer" }}>
+          <span className="brand-mark" />
+          <span className="brand-name">nthdesigns</span>
+          <span className="brand-sep">/</span>
+          <span className="brand-product">Prospect Scanner</span>
+        </div>
+        <nav className="app-nav">
+          {navItems.map(n => (
+            <a
+              key={n.id}
+              className={isActive(n.match) ? "active" : ""}
+              onClick={() => navigate(n.id === "search" ? "search" : n.id)}
+            >
+              {n.label}
+              {n.count > 0 ? <span className="count">{n.count}</span> : null}
+            </a>
+          ))}
+        </nav>
+        <div className="app-tools">
+          <span className="status ready" title="All systems online">
+            <span className="led" />
+            APIs online
+          </span>
+          <span className="user-chip">
+            <Avatar initials="AN" />
+            Alex N
+          </span>
+        </div>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+// ─── Page header ──────────────────────────────────────────────────
+function PageHeader({ eyebrow, title, sub, actions, back, onBack }) {
+  return (
+    <div className="page-header">
+      <div>
+        {back && (
+          <a className="back-link" onClick={onBack}>
+            <Icon d={Icons.ArrowLeft} size={11} />
+            {back}
+          </a>
+        )}
+        {eyebrow && <div className="eyebrow" style={{ marginBottom: 6 }}>{eyebrow}</div>}
+        <h1>{title}</h1>
+        {sub && <p>{sub}</p>}
+      </div>
+      {actions && <div className="header-actions">{actions}</div>}
+    </div>
+  );
+}
+
+// ─── Empty state ──────────────────────────────────────────────────
+function EmptyState({ icon, title, sub, action }) {
+  return (
+    <div style={{
+      padding: "72px 24px",
+      textAlign: "center",
+      border: "1px dashed var(--line-strong)",
+      borderRadius: 6,
+      background: "var(--paper)"
+    }}>
+      {icon && (
+        <div style={{
+          width: 40, height: 40, margin: "0 auto 16px",
+          borderRadius: 999, background: "var(--paper-2)",
+          border: "1px solid var(--line)",
+          display: "inline-flex", alignItems: "center", justifyContent: "center",
+          color: "var(--stone-500)"
+        }}>
+          <Icon d={icon} size={16} />
+        </div>
+      )}
+      <h3 style={{ fontFamily: "var(--serif)", fontWeight: 500, fontSize: 22, margin: "0 0 8px" }}>{title}</h3>
+      {sub && <p style={{ color: "var(--stone-600)", margin: "0 0 20px", maxWidth: 380, marginLeft: "auto", marginRight: "auto" }}>{sub}</p>}
+      {action}
+    </div>
+  );
+}
+
+// ─── Stats inline ─────────────────────────────────────────────────
+function Stat({ label, value, hint }) {
+  return (
+    <div>
+      <div style={{ fontFamily: "var(--mono)", fontSize: 10.5, color: "var(--stone-500)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>{label}</div>
+      <div style={{ fontFamily: "var(--serif)", fontSize: 28, lineHeight: 1, letterSpacing: "-0.015em", fontVariantNumeric: "tabular-nums" }}>{value}</div>
+      {hint && <div style={{ fontFamily: "var(--mono)", fontSize: 10.5, color: "var(--stone-500)", marginTop: 6 }}>{hint}</div>}
+    </div>
+  );
+}
+
+// Export to window so other text/babel scripts can use them
+Object.assign(window, {
+  Icon, Icons, Button, ScoreBadge, scoreBand, AnglePill, SevChip, Status, Badge,
+  Field, Segmented, Checkbox, Avatar, Anno, AnnoProvider, Toast, AppShell,
+  PageHeader, EmptyState, Stat,
+  useState, useEffect, useRef, useMemo, useCallback
+});
+
+</script>
+<script type="text/babel">
+/* ── screens-search.jsx ── */
+// screens-search.jsx — A (Search create) + B (Search results)
+
+// ─── A. Search create ────────────────────────────────────────────
+function SearchScreen({ navigate, startSearch }) {
+  const [niche, setNiche] = useState("Dental practice");
+  const [city, setCity] = useState("Birmingham");
+  const [country, setCountry] = useState("GB");
+  const [scanType, setScanType] = useState("combined");
+
+  const recent = DATA.searches.slice(0, 4);
+
+  return (
+    <main className="page" style={{ maxWidth: 1160 }}>
+      <PageHeader
+        eyebrow="A · New search"
+        title="Run a prospect scan."
+        sub="We'll discover up to 25 businesses on Google, score their Google Business Profile, then audit their websites for WCAG 2.2 accessibility violations."
+      />
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 40 }}>
+        {/* Form */}
+        <div className="card card-pad" style={{ position: "relative" }}>
+          <div className="card-title" style={{ marginBottom: 18 }}>Parameters</div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 18 }}>
+            <Field label="Niche" hint="local trade or profession">
+              <input className="input" value={niche} onChange={e => setNiche(e.target.value)} placeholder="e.g. Dental practice" />
+            </Field>
+            <Field label="City" hint="UK city or town">
+              <input className="input" value={city} onChange={e => setCity(e.target.value)} placeholder="e.g. Birmingham" />
+            </Field>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
+            <Field label="Country">
+              <select className="select" value={country} onChange={e => setCountry(e.target.value)}>
+                <option value="GB">United Kingdom</option>
+                <option value="IE">Ireland</option>
+              </select>
+            </Field>
+            <Field label="Search radius" hint="default for cities">
+              <select className="select" defaultValue="10">
+                <option value="5">5 km</option>
+                <option value="10">10 km</option>
+                <option value="20">20 km</option>
+              </select>
+            </Field>
+          </div>
+
+          <Field label="Scan type">
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginTop: 4 }}>
+              {[
+                { v: "gbp",      title: "GBP only",          sub: "Visibility audit · ~30s/biz" },
+                { v: "a11y",     title: "Accessibility only",sub: "WCAG 2.2 audit · ~90s/biz" },
+                { v: "combined", title: "Combined",          sub: "Both signals · ~2m/biz" },
+              ].map(o => (
+                <button
+                  key={o.v}
+                  onClick={() => setScanType(o.v)}
+                  style={{
+                    textAlign: "left",
+                    padding: "14px 14px",
+                    borderRadius: 4,
+                    border: scanType === o.v ? "1px solid var(--ink)" : "1px solid var(--line-strong)",
+                    background: scanType === o.v ? "var(--ink)" : "var(--paper)",
+                    color: scanType === o.v ? "var(--paper)" : "var(--ink)",
+                    cursor: "pointer",
+                    fontFamily: "var(--sans)",
+                  }}
+                >
+                  <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 4 }}>{o.title}</div>
+                  <div style={{
+                    fontFamily: "var(--mono)", fontSize: 10.5,
+                    color: scanType === o.v ? "oklch(0.85 0.02 70)" : "var(--stone-500)",
+                    letterSpacing: "0.02em"
+                  }}>{o.sub}</div>
+                </button>
+              ))}
+            </div>
+          </Field>
+
+          <div style={{
+            marginTop: 24,
+            padding: "12px 16px",
+            background: "var(--paper-2)",
+            border: "1px solid var(--line)",
+            borderRadius: 4,
+            fontSize: 12.5,
+            color: "var(--stone-600)",
+            display: "flex",
+            alignItems: "center",
+            gap: 10
+          }}>
+            <Icon d={Icons.Globe} size={14} className="" />
+            <span>
+              {scanType === "combined" ? <>Combined scans take roughly <b style={{ color: "var(--ink)" }}>3–5 minutes</b> for 20 businesses. You can leave this tab.</> :
+               scanType === "a11y"     ? <>Accessibility audits run Lighthouse + axe-core against each homepage. <b style={{ color: "var(--ink)" }}>~90 seconds</b> per site.</> :
+                                         <>GBP visibility checks run via the Places API. Fast — <b style={{ color: "var(--ink)" }}>30 seconds</b> per business.</>}
+            </span>
+          </div>
+
+          <div style={{ display: "flex", gap: 10, marginTop: 28, paddingTop: 22, borderTop: "1px solid var(--line)" }}>
+            <Button kind="primary" size="lg" onClick={() => startSearch({ niche, city, country, scanType })} iconRight={Icons.Arrow}>
+              Run search
+            </Button>
+            <Button kind="ghost">Save as template</Button>
+          </div>
+
+          {/* Annotations */}
+          <Anno id="a-1" n="1"
+            position={{ top: 248, left: -28 }}
+            callout={<>
+              <div className="micro">SCAN TYPE</div>
+              <b>Combined</b> is the default for cold outreach — gives you both pitch angles in one go. Pick <b>GBP-only</b> when you've already audited the niche's sites.
+            </>}
+            calloutPosition={{ top: 230, left: 290 }}
+          />
+        </div>
+
+        {/* Recent searches sidebar */}
+        <aside>
+          <div className="eyebrow" style={{ marginBottom: 12 }}>Recent searches</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {recent.map(s => (
+              <div key={s.id} className="card" style={{ padding: "12px 14px", cursor: "pointer" }} onClick={() => navigate("search/results", { id: s.id })}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
+                  <div style={{ fontSize: 13, fontWeight: 500 }}>{s.niche}</div>
+                  <div className="micro" style={{ fontSize: 10 }}>{s.found} found</div>
+                </div>
+                <div style={{ fontSize: 12, color: "var(--stone-600)" }}>{s.city}, {s.country === "GB" ? "UK" : s.country}</div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, alignItems: "center" }}>
+                  <span className="micro" style={{ fontSize: 10 }}>{s.ran.split(" · ")[0]}</span>
+                  <Status kind={s.status === "complete" ? "ready" : "pending"}>
+                    {s.status === "complete" ? "Complete" : "Running"}
+                  </Status>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ marginTop: 24 }} className="eyebrow">Tips</div>
+          <ul style={{ margin: "12px 0 0", padding: "0 0 0 16px", color: "var(--stone-600)", fontSize: 12.5, lineHeight: 1.7 }}>
+            <li>Single niche per scan — "dental practice" not "dental and orthodontist"</li>
+            <li>UK cities only · postcode searches return higher score variance</li>
+            <li>Combined scans cap at 25 businesses to stay inside API quotas</li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  );
+}
+
+// ─── B. Search results ───────────────────────────────────────────
+function SearchResultsScreen({ search, navigate, addToOutreach, selection }) {
+  // Live progress simulation
+  const total = search.found;
+  const [scanned, setScanned] = useState(search.live ? 4 : total);
+  const [running, setRunning] = useState(!!search.live);
+  const [expanded, setExpanded] = useState(null);
+  const [selected, setSelected] = useState({});
+  const [angleFilter, setAngleFilter] = useState("all");
+  const [minScore, setMinScore] = useState(0);
+
+  useEffect(() => {
+    if (!running) return;
+    if (scanned >= total) { setRunning(false); return; }
+    const t = setTimeout(() => setScanned(s => Math.min(s + 1, total)), 850);
+    return () => clearTimeout(t);
+  }, [running, scanned, total]);
+
+  // Filter prospects (only those in this search)
+  const rows = DATA.prospects.filter(p => p.searchId === search.id);
+  const visible = rows.filter(p =>
+    (angleFilter === "all" || p.angle === angleFilter) &&
+    ((p.combined || 0) >= minScore)
+  );
+  const skeletonCount = running ? Math.max(0, total - scanned) : 0;
+
+  const pct = Math.round((scanned / total) * 100);
+
+  const selectedIds = Object.keys(selected).filter(k => selected[k]);
+  const toggleRow = (id) => setSelected(s => ({ ...s, [id]: !s[id] }));
+  const inOutreach = (id) => selection.includes(id);
+
+  return (
+    <main className="page-wide page" style={{ maxWidth: 1440 }}>
+      <PageHeader
+        eyebrow={`B · ${search.niche} · ${search.city}, ${search.country === "GB" ? "UK" : search.country}`}
+        title={running ? "Auditing…" : "23 prospects scanned."}
+        sub={running
+          ? "Discovering businesses on Google, then running both audits in parallel. Rows will appear as their audits complete."
+          : "Sort by combined score for the warmest leads — top decile is auto-tinted ochre. Expand any row to see the weakness flags."}
+        back="Back to search"
+        onBack={() => navigate("search")}
+        actions={
+          <>
+            <Button kind="ghost" size="sm" icon={Icons.Refresh}>Re-run</Button>
+            {selectedIds.length > 0 && (
+              <Button kind="primary" size="sm" icon={Icons.Plus} onClick={() => { addToOutreach(selectedIds); setSelected({}); }}>
+                Add {selectedIds.length} to outreach
+              </Button>
+            )}
+          </>
+        }
+      />
+
+      {/* Live progress */}
+      {running && (
+        <div className="progress-bar">
+          <div className="progress-text">
+            <span className="spinner" />
+            <strong>Auditing websites</strong>
+            <span className="progress-meta">scanned {scanned} of {total} · ~{Math.max(1, Math.round((total - scanned) * 0.7))} min remaining</span>
+          </div>
+          <div className="progress-track">
+            <div className="progress-fill" style={{ width: `${pct}%` }} />
+          </div>
+          <div className="progress-pct">{pct}%</div>
+        </div>
+      )}
+
+      {/* Filter bar */}
+      <div className="filter-bar" style={{ position: "relative" }}>
+        <Field label="Angle">
+          <Segmented value={angleFilter} onChange={setAngleFilter}
+            options={[
+              { value: "all", label: "All" },
+              { value: "both", label: "Both" },
+              { value: "gbp", label: "GBP" },
+              { value: "a11y", label: "A11y" },
+            ]}
+          />
+        </Field>
+        <Field label="Min combined score">
+          <div style={{ display: "flex", alignItems: "center", gap: 10, paddingTop: 6 }}>
+            <input type="range" min="0" max="100" step="5" value={minScore}
+              onChange={e => setMinScore(+e.target.value)}
+              style={{ width: 140, accentColor: "var(--ink)" }} />
+            <span className="mono" style={{ fontSize: 12, color: "var(--stone-700)", minWidth: 36 }}>{minScore}+</span>
+          </div>
+        </Field>
+        <div className="filter-action">
+          <span className="micro">Showing {visible.length} of {rows.length}</span>
+          <Button kind="ghost" size="sm" icon={Icons.Download}>Export CSV</Button>
+        </div>
+
+        <Anno id="b-1" n="1"
+          position={{ top: -10, right: 220, left: "auto" }}
+          callout={<>
+            <div className="micro">FILTER BY SCORE</div>
+            Bumping this to <b>70+</b> shows only the warmest leads — usually 3–5 out of 20 rows. The default 0 is for browsing.
+          </>}
+        />
+      </div>
+
+      {/* Results table */}
+      <div style={{ border: "1px solid var(--line)", borderRadius: 6, overflow: "hidden", background: "var(--paper)", position: "relative" }}>
+        <table className="ptable">
+          <thead>
+            <tr>
+              <th style={{ width: 36, paddingLeft: 20 }}>
+                <Checkbox
+                  checked={selectedIds.length > 0 && selectedIds.length === visible.length}
+                  indeterminate={selectedIds.length > 0 && selectedIds.length < visible.length}
+                  onChange={(c) => setSelected(c ? Object.fromEntries(visible.map(p => [p.id, true])) : {})}
+                />
+              </th>
+              <th style={{ width: "28%" }} className="sortable">Business <span className="sort-glyph">↕</span></th>
+              <th style={{ width: "9%" }} className="sortable">Combined <span className="sort-glyph">↓</span></th>
+              <th style={{ width: "6%" }}>GBP</th>
+              <th style={{ width: "6%" }}>A11y</th>
+              <th style={{ width: "8%" }}>Perf</th>
+              <th style={{ width: "11%" }}>Angle</th>
+              <th style={{ width: "14%" }}>Report status</th>
+              <th style={{ width: "14%", textAlign: "right" }}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {visible.map((p, idx) => {
+              const isExpanded = expanded === p.id;
+              const isFailed = p.status === "failed";
+              const isPending = p.status === "pending";
+              const isSelected = !!selected[p.id];
+              const isWarm = p.warm;
+              return (
+                <React.Fragment key={p.id}>
+                  <tr
+                    className={`${isWarm ? "warm " : ""}${isFailed ? "failed " : ""}${isSelected ? "selected " : ""}${isExpanded ? "expanded" : ""}`}
+                    onClick={() => navigate("prospect", { id: p.id })}
+                  >
+                    <td onClick={(e) => e.stopPropagation()} style={{ paddingLeft: 20 }}>
+                      <Checkbox checked={isSelected} onChange={() => toggleRow(p.id)} />
+                    </td>
+                    <td className="biz">
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        {p.business}
+                        {inOutreach(p.id) && <span className="badge" style={{ fontSize: 10, background: "var(--stone-200)" }}>In outreach</span>}
+                      </div>
+                      <span className="url" style={isFailed ? { color: "var(--sev-critical)" } : {}}>
+                        {isFailed ? p.failureReason : p.url}
+                      </span>
+                    </td>
+                    <td><ScoreBadge value={p.combined} /></td>
+                    <td className="num">{p.gbp ?? "—"}</td>
+                    <td className="num" style={isFailed && p.a11y == null ? { color: "var(--sev-critical)" } : {}}>{p.a11y ?? "—"}</td>
+                    <td><ScoreBadge value={p.perf} withBar={false} weakPip={p.perf != null && p.perf < 30} /></td>
+                    <td><AnglePill angle={p.angle} /></td>
+                    <td>
+                      {isFailed   ? <Status kind="failed">Audit failed</Status>
+                       : isPending ? <Status kind="pending">Auditing site</Status>
+                       : isWarm    ? <Status kind="warm">Viewed {p.lastViewed}</Status>
+                       :             <Status kind="ready">Report ready</Status>}
+                    </td>
+                    <td onClick={(e) => e.stopPropagation()} style={{ paddingRight: 20 }}>
+                      <div className="row-actions">
+                        <button className="btn-icon" title="Expand weaknesses" onClick={() => setExpanded(isExpanded ? null : p.id)}>
+                          <svg viewBox="0 0 16 16"><path d={isExpanded ? Icons.ChevronU : Icons.ChevronD} /></svg>
+                        </button>
+                        <button className="btn-icon" title="View on Maps"><svg viewBox="0 0 16 16"><path d={Icons.Map} /></svg></button>
+                        <button className="btn-icon" title="Preview report" disabled={isFailed || isPending}>
+                          <svg viewBox="0 0 16 16"><path d={Icons.Eye} /></svg>
+                        </button>
+                        <button className="btn-icon" title="Open prospect" onClick={() => navigate("prospect", { id: p.id })}>
+                          <svg viewBox="0 0 16 16"><path d={Icons.ChevronR} /></svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  {isExpanded && (
+                    <tr className="expanded-row">
+                      <td colSpan={9}>
+                        <div className="ex-inner">
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, marginBottom: 14 }}>
+                            <div>
+                              <div className="eyebrow" style={{ marginBottom: 10 }}>GBP weaknesses</div>
+                              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                                {(p.gbpFlags || ["Only 3 photos", "No posts this quarter", "Hours not verified"]).map(f => <Badge key={f}>{f}</Badge>)}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="eyebrow" style={{ marginBottom: 10 }}>Accessibility weaknesses</div>
+                              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                                {(p.a11yFlags || ["Missing alt text · 42", "Contrast 2.1 : 1", "Form labels missing"]).map(f => <Badge key={f}>{f}</Badge>)}
+                              </div>
+                            </div>
+                          </div>
+                          {p.flagsCounts && (
+                            <div style={{ display: "flex", gap: 8, paddingTop: 6 }}>
+                              {p.flagsCounts.critical > 0 && <SevChip level="critical" count={p.flagsCounts.critical} />}
+                              {p.flagsCounts.serious > 0 && <SevChip level="serious" count={p.flagsCounts.serious} />}
+                              {p.flagsCounts.moderate > 0 && <SevChip level="moderate" count={p.flagsCounts.moderate} />}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              );
+            })}
+
+            {/* Skeleton rows while running */}
+            {Array.from({ length: Math.min(skeletonCount, 4) }).map((_, i) => (
+              <tr key={`skel-${i}`}>
+                <td style={{ paddingLeft: 20 }}><span className="skel" style={{ width: 14, height: 14, borderRadius: 3 }} /></td>
+                <td>
+                  <span className="skel" style={{ width: `${50 + (i * 7) % 30}%`, height: 13 }} />
+                  <br />
+                  <span className="skel" style={{ width: `${35 + (i * 11) % 25}%`, height: 9, marginTop: 4 }} />
+                </td>
+                <td><span className="skel" style={{ width: 50, height: 22, borderRadius: 3 }} /></td>
+                <td><span className="skel" style={{ width: 22 }} /></td>
+                <td><span className="skel" style={{ width: 22 }} /></td>
+                <td><span className="skel" style={{ width: 22 }} /></td>
+                <td><span className="skel" style={{ width: 80, height: 18, borderRadius: 999 }} /></td>
+                <td><span className="skel" style={{ width: 110, height: 18, borderRadius: 999 }} /></td>
+                <td></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <Anno id="b-2" n="2"
+          position={{ top: 96, left: 8 }}
+          callout={<>
+            <div className="micro">WARM ROW</div>
+            Soft ochre wash from the left = the prospect's public report has been opened. Overrides the standard hover state.
+          </>}
+        />
+        <Anno id="b-3" n="3"
+          position={{ top: 220, left: 8 }}
+          callout={<>
+            <div className="micro">AUDIT FAILED</div>
+            Row dims and the URL line turns red. Operator chooses Retry — failed audits aren't auto-deleted.
+          </>}
+        />
+        <Anno id="b-4" n="4"
+          position={{ top: 84, right: 60, left: "auto" }}
+          callout={<>
+            <div className="micro">SCORE 87 · COMBINED</div>
+            Top decile in this niche. Both signals weak — open with the accessibility angle first, it's the easier story on a phone.
+          </>}
+        />
+      </div>
+
+      {!running && (
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14, fontSize: 12, color: "var(--stone-500)" }}>
+          <span className="micro">Search completed 4 min ago · {rows.length} businesses</span>
+          <div style={{ display: "flex", gap: 14 }}>
+            <span className="micro">Sort: <b style={{ color: "var(--ink)" }}>Combined ↓</b></span>
+            <span className="micro">⌘K to focus search</span>
+          </div>
+        </div>
+      )}
+    </main>
+  );
+}
+
+window.SearchScreen = SearchScreen;
+window.SearchResultsScreen = SearchResultsScreen;
+
+</script>
+<script type="text/babel">
+/* ── screens-prospect.jsx ── */
+// screens-prospect.jsx — C (Prospect detail)
+
+function ProspectScreen({ prospect, navigate, addToOutreach, selection }) {
+  const p = prospect;
+  const inOutreach = selection.includes(p.id);
+  const [copied, setCopied] = useState(false);
+  const reportUrl = p.reportToken ? `https://report.nthdesigns.co.uk/r/${p.reportToken}` : null;
+
+  const copy = () => {
+    if (navigator.clipboard && reportUrl) navigator.clipboard.writeText(reportUrl).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  // Mini view history sparkline
+  const views = p.reportViews || 0;
+  const viewBars = views > 0 ? Array.from({ length: 14 }).map((_, i) => {
+    // synthetic distribution based on token
+    const seed = (p.reportToken || "").charCodeAt(i % (p.reportToken || "x").length) || 0;
+    return (seed % 5) / 5;
+  }) : [];
+
+  return (
+    <main className="page" style={{ maxWidth: 1280, position: "relative" }}>
+      <PageHeader
+        eyebrow={`C · Prospect · ${p.niche} · ${p.city}`}
+        title={p.business}
+        sub={
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 16 }}>
+            <span className="mono" style={{ fontSize: 13, color: "var(--stone-700)" }}>{p.url}</span>
+            {p.address && <span style={{ color: "var(--stone-500)" }}>·</span>}
+            {p.address && <span style={{ fontSize: 13 }}>{p.address}</span>}
+          </span>
+        }
+        back="Back to search results"
+        onBack={() => navigate("search/results", { id: p.searchId })}
+        actions={
+          <>
+            {p.warm && <Status kind="warm">Warm · viewed {p.lastViewed}</Status>}
+            <Button kind="ghost" size="sm" icon={Icons.External}>View on Maps</Button>
+            <Button kind="secondary" size="sm" icon={Icons.Phone}>{p.phone || "Call"}</Button>
+            {!inOutreach
+              ? <Button kind="primary" size="sm" icon={Icons.Plus} onClick={() => addToOutreach([p.id])}>Add to outreach</Button>
+              : <Button kind="secondary" size="sm" onClick={() => navigate("outreach")}>In outreach queue →</Button>}
+          </>
+        }
+      />
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 32 }}>
+
+        {/* LEFT: scores + flags */}
+        <div>
+          {/* Score cards */}
+          <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr", gap: 12, marginBottom: 32, position: "relative" }}>
+            <div className="score-card highlight">
+              <div className="label">Combined opportunity</div>
+              <div className="value">{p.combined ?? "—"}<span className="unit">/100</span></div>
+              <div className="delta">
+                {p.combined >= 71 ? "Top decile in this niche — multi-signal" :
+                 p.combined >= 41 ? "Mid-pack · pick the dominant angle" :
+                 "Below threshold · skip or watch"}
+              </div>
+            </div>
+            <div className="score-card">
+              <div className="label">GBP weakness</div>
+              <div className="value">{p.gbp ?? "—"}<span className="unit">/100</span></div>
+              <div className="delta">
+                {p.photos != null ? `${p.photos} photos · ${p.reviews || 0} reviews` : "Profile incomplete"}
+              </div>
+            </div>
+            <div className="score-card">
+              <div className="label">Accessibility</div>
+              <div className="value">{p.a11y ?? "—"}<span className="unit">/100</span></div>
+              <div className="delta">
+                {p.flagsCounts ? `${p.flagsCounts.critical} critical · ${p.flagsCounts.serious} serious` : "Not audited"}
+              </div>
+            </div>
+
+            <Anno id="c-1" n="1"
+              position={{ top: -10, left: -28 }}
+              callout={<>
+                <div className="micro">SCORE CARDS</div>
+                Combined gets the serif emphasis. <b>Higher = warmer opportunity</b> — never inverted on these cards.
+              </>}
+            />
+          </div>
+
+          {/* Dominant angle */}
+          <div className="card card-pad" style={{ marginBottom: 24 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+              <div>
+                <div className="card-title" style={{ margin: 0 }}>Dominant pitch angle</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
+                  <AnglePill angle={p.angle} />
+                  <span style={{ fontSize: 13, color: "var(--stone-700)" }}>
+                    {p.angle === "both"  && <>Both signals are weak. Lead with accessibility — it's the easier story to tell.</>}
+                    {p.angle === "a11y"  && <>Accessibility is the bigger gap. Lead with WCAG 2.2 risk + EHRC enforcement.</>}
+                    {p.angle === "gbp"   && <>Google profile is the bigger gap. Lead with missed visibility & CPC benchmark.</>}
+                  </span>
+                </div>
+              </div>
+              {p.flagsCounts && (
+                <div style={{ display: "flex", gap: 8 }}>
+                  {p.flagsCounts.critical > 0 && <SevChip level="critical" count={p.flagsCounts.critical} />}
+                  {p.flagsCounts.serious > 0 && <SevChip level="serious" count={p.flagsCounts.serious} />}
+                  {p.flagsCounts.moderate > 0 && <SevChip level="moderate" count={p.flagsCounts.moderate} />}
+                </div>
+              )}
+            </div>
+
+            {/* Two-column flags */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28 }}>
+              <div>
+                <div className="eyebrow" style={{ marginBottom: 12, display: "flex", justifyContent: "space-between" }}>
+                  <span>GBP weaknesses</span>
+                  <span style={{ color: "var(--stone-600)" }} className="num">{(p.gbpFlags || []).length || 4} flags</span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {(p.gbpFlags || ["Only 3 photos on profile", "No posts this quarter", "Phone but no email", "Hours not verified"]).map(f => (
+                    <div key={f} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "8px 10px", background: "var(--paper-2)", borderRadius: 3, border: "1px solid var(--line)", fontSize: 13 }}>
+                      <span style={{ width: 5, height: 5, borderRadius: 50, background: "var(--stone-500)", marginTop: 7, flexShrink: 0 }} />
+                      <span>{f}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <div className="eyebrow" style={{ marginBottom: 12, display: "flex", justifyContent: "space-between" }}>
+                  <span>Accessibility weaknesses</span>
+                  <span style={{ color: "var(--stone-600)" }} className="num">{(p.a11yFlags || []).length || 5} flags</span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {(p.a11yFlags || ["Missing <h1>", "Contrast 2.1 : 1 on header", "42 images without alt text", "Form labels missing", "Heading hierarchy broken"]).map((f, i) => {
+                    const sev = i < 2 ? "critical" : i < 4 ? "serious" : "moderate";
+                    const color = sev === "critical" ? "var(--sev-critical)" : sev === "serious" ? "oklch(0.55 0.14 50)" : "oklch(0.55 0.08 80)";
+                    return (
+                      <div key={f} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "8px 10px", background: "var(--paper-2)", borderRadius: 3, border: "1px solid var(--line)", fontSize: 13 }}>
+                        <span style={{ width: 5, height: 5, borderRadius: 1, background: color, marginTop: 7, flexShrink: 0, transform: sev === "serious" ? "rotate(45deg)" : "none", borderRadius: sev === "moderate" ? 50 : sev === "critical" ? 0 : 1 }} />
+                        <span style={{ flex: 1 }}>{f}</span>
+                        <span className="mono" style={{ fontSize: 10, color: "var(--stone-500)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{sev}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Audit metadata */}
+          <div className="card card-pad">
+            <div className="card-title">Audit timeline</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 20 }}>
+              <Stat label="Discovered" value="11:24" hint="26 May 2026 · Places API" />
+              <Stat label="GBP scored" value="11:24" hint="38 sec · 12 fields read" />
+              <Stat label="Site audited" value="11:26" hint="Lighthouse + axe-core" />
+              <Stat label="Report built" value="11:27" hint="Cached · 30-day expiry" />
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT: report + outreach actions */}
+        <aside>
+          {/* Public report card */}
+          <div className="card" style={{ padding: 0, marginBottom: 16, overflow: "hidden", position: "relative" }}>
+            <div style={{ padding: "18px 20px 14px", background: p.reportToken ? "var(--paper)" : "var(--paper-2)" }}>
+              <div className="card-title" style={{ margin: 0, display: "flex", justifyContent: "space-between" }}>
+                <span>Public report</span>
+                {p.reportToken && <span className="num" style={{ fontSize: 10.5, color: "var(--stone-500)" }}>· token /r/{p.reportToken}</span>}
+              </div>
+            </div>
+
+            {p.reportToken ? (
+              <>
+                <div style={{ padding: "0 20px 16px" }}>
+                  <div style={{ display: "flex", gap: 8, alignItems: "stretch", marginBottom: 12 }}>
+                    <div style={{
+                      flex: 1,
+                      padding: "8px 10px",
+                      background: "var(--paper-2)",
+                      border: "1px solid var(--line)",
+                      borderRadius: 3,
+                      fontFamily: "var(--mono)",
+                      fontSize: 11.5,
+                      color: "var(--stone-700)",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      display: "flex",
+                      alignItems: "center"
+                    }}>
+                      report.nthdesigns.co.uk/r/{p.reportToken}
+                    </div>
+                    <button className="btn btn-secondary btn-sm" onClick={copy} style={{ flexShrink: 0 }}>
+                      {copied ? <><Icon d={Icons.Check} />Copied</> : <><Icon d={Icons.Copy} />Copy</>}
+                    </button>
+                  </div>
+
+                  <Button kind="ghost" size="sm" icon={Icons.Eye} onClick={() => navigate("public", { token: p.reportToken })}>
+                    Preview report
+                  </Button>
+                </div>
+
+                {/* View stats */}
+                <div style={{ padding: "14px 20px", borderTop: "1px solid var(--line)", background: "var(--paper-2)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                    <span className="eyebrow">View activity</span>
+                    <span className="num" style={{ fontSize: 11, color: "var(--stone-700)" }}>{views} {views === 1 ? "view" : "views"}</span>
+                  </div>
+                  {views > 0 ? (
+                    <>
+                      {/* sparkline */}
+                      <div style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 28, marginBottom: 12 }}>
+                        {viewBars.map((v, i) => (
+                          <div key={i} style={{
+                            flex: 1,
+                            background: v > 0.6 ? "var(--accent)" : "var(--stone-300)",
+                            height: `${Math.max(2, v * 100)}%`,
+                            borderRadius: 1
+                          }} />
+                        ))}
+                      </div>
+                      <div style={{ fontSize: 12, color: "var(--stone-700)", lineHeight: 1.5 }}>
+                        Last view: <b style={{ fontWeight: 500 }}>{p.lastViewed}</b>
+                        {p.viewerLoc && <><br/><span style={{ color: "var(--stone-500)" }}>from {p.viewerLoc}</span></>}
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{ fontSize: 12, color: "var(--stone-500)" }}>Not yet opened.</div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div style={{ padding: 20, textAlign: "center" }}>
+                <div style={{ fontSize: 13, color: "var(--stone-600)", marginBottom: 12 }}>
+                  Report not yet generated — outreach will be skipped until you do.
+                </div>
+                <Button kind="primary" size="sm" icon={Icons.Plus}>Generate report</Button>
+              </div>
+            )}
+
+            <Anno id="c-2" n="2"
+              position={{ top: -10, right: -10, left: "auto" }}
+              callout={<>
+                <div className="micro">VIEW ACTIVITY</div>
+                The sparkline turns ochre when a view lands in the last 7 days — sets the <b>warm</b> badge on the row.
+              </>}
+              calloutPosition={{ top: -20, right: 36, left: "auto" }}
+            />
+          </div>
+
+          {/* Outreach card */}
+          <div className="card card-pad" style={{ position: "relative" }}>
+            <div className="card-title" style={{ margin: 0, marginBottom: 12 }}>Outreach</div>
+            {DATA.outreachEmails[p.id] ? (
+              <>
+                <div style={{ fontSize: 13, lineHeight: 1.5, marginBottom: 12 }}>
+                  <div style={{ fontWeight: 500, marginBottom: 4 }}>{DATA.outreachEmails[p.id].subject}</div>
+                  <div style={{ color: "var(--stone-600)" }}>
+                    {DATA.outreachEmails[p.id].sent
+                      ? <>Sent {DATA.outreachEmails[p.id].sentAt}</>
+                      : <>Drafted · not yet sent</>}
+                  </div>
+                </div>
+                <Button kind="secondary" size="sm" onClick={() => navigate("outreach")}>Open in Outreach →</Button>
+              </>
+            ) : (
+              <>
+                <div style={{ fontSize: 13, color: "var(--stone-600)", marginBottom: 12 }}>
+                  No email drafted yet. Add this prospect to the outreach queue to batch-generate.
+                </div>
+                <Button kind="primary" size="sm" icon={Icons.Plus} onClick={() => addToOutreach([p.id])} disabled={inOutreach}>
+                  {inOutreach ? "In queue" : "Add to outreach"}
+                </Button>
+              </>
+            )}
+          </div>
+
+          {/* Meta */}
+          <div className="card card-pad" style={{ marginTop: 16 }}>
+            <div className="card-title">Profile</div>
+            <table style={{ fontSize: 12.5, width: "100%", color: "var(--stone-700)", lineHeight: 1.7 }}>
+              <tbody>
+                <tr><td style={{ color: "var(--stone-500)", paddingRight: 14 }}>Phone</td><td className="num">{p.phone || "—"}</td></tr>
+                <tr><td style={{ color: "var(--stone-500)", paddingRight: 14 }}>Rating</td><td className="num">{p.rating ? `${p.rating} ★` : "—"} {p.reviews ? <span style={{ color: "var(--stone-500)" }}>({p.reviews} reviews)</span> : null}</td></tr>
+                <tr><td style={{ color: "var(--stone-500)", paddingRight: 14 }}>Photos</td><td className="num">{p.photos ?? "—"}</td></tr>
+                <tr><td style={{ color: "var(--stone-500)", paddingRight: 14 }}>Search</td><td>{p.city}</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </aside>
+      </div>
+    </main>
+  );
+}
+
+window.ProspectScreen = ProspectScreen;
+
+</script>
+<script type="text/babel">
+/* ── screens-outreach.jsx ── */
+// screens-outreach.jsx — D (Outreach workspace)
+
+function OutreachScreen({ navigate, selection, removeFromOutreach }) {
+  const [pitchAngle, setPitchAngle] = useState("auto");
+  const [agencyName, setAgencyName] = useState("nthdesigns");
+  const [cpc, setCpc] = useState("");
+  const [activeProspect, setActiveProspect] = useState(selection[0] || null);
+  const [generating, setGenerating] = useState(false);
+  const [generated, setGenerated] = useState(true); // start with already generated
+  const [emailEdits, setEmailEdits] = useState({});
+  const [sentMap, setSentMap] = useState({ "p-104": true }); // Hartley already sent
+
+  const queuedProspects = selection.map(id => DATA.prospects.find(p => p.id === id)).filter(Boolean);
+
+  const skipped = queuedProspects.filter(p => !p.reportToken);
+  const eligible = queuedProspects.filter(p => p.reportToken);
+
+  const generateAll = () => {
+    setGenerating(true);
+    setTimeout(() => {
+      setGenerating(false);
+      setGenerated(true);
+    }, 2200);
+  };
+
+  return (
+    <main className="page-wide page" style={{ maxWidth: 1440 }}>
+      <PageHeader
+        eyebrow="D · Outreach"
+        title="Outreach workspace."
+        sub="Personalised emails generated against each prospect's audit report. Subjects and bodies stay editable until you mark sent — the embedded report link is what builds trust before they reply."
+        actions={
+          <>
+            <span className="micro">{eligible.length} ready · {skipped.length} blocked · {Object.values(sentMap).filter(Boolean).length} sent</span>
+            <Button kind="ghost" size="sm" onClick={() => navigate("saved")}>Saved prospects</Button>
+          </>
+        }
+      />
+
+      <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 28 }}>
+
+        {/* LEFT — queue */}
+        <aside style={{ position: "sticky", top: 80, alignSelf: "flex-start" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
+            <span className="eyebrow">Queue · {queuedProspects.length}</span>
+            <button className="btn btn-ghost btn-xs" style={{ padding: "2px 6px" }}>Clear all</button>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {queuedProspects.map(p => {
+              const isActive = activeProspect === p.id;
+              const isSent = sentMap[p.id];
+              const isSkipped = !p.reportToken;
+              return (
+                <div
+                  key={p.id}
+                  onClick={() => setActiveProspect(p.id)}
+                  style={{
+                    padding: "10px 12px",
+                    border: "1px solid " + (isActive ? "var(--ink)" : "var(--line)"),
+                    background: isActive ? "var(--paper)" : "var(--paper-2)",
+                    borderRadius: 4,
+                    cursor: "pointer",
+                    position: "relative",
+                    transition: "border-color .15s"
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.3 }}>{p.business}</div>
+                    <button
+                      className="btn-icon"
+                      style={{ width: 20, height: 20, color: "var(--stone-400)" }}
+                      onClick={(e) => { e.stopPropagation(); removeFromOutreach(p.id); }}
+                      title="Remove"
+                    >
+                      <svg viewBox="0 0 16 16" width="10" height="10" stroke="currentColor" strokeWidth="1.5" fill="none"><path d={Icons.X} /></svg>
+                    </button>
+                  </div>
+                  <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6 }}>
+                    <ScoreBadge value={p.combined} withBar={false} />
+                    <AnglePill angle={p.angle} />
+                  </div>
+                  <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                    {isSkipped
+                      ? <span className="status failed"><span className="led" />No report</span>
+                      : isSent
+                        ? <span className="status warm"><span className="led" />Sent</span>
+                        : generated
+                          ? <span className="status ready"><span className="led" />Drafted</span>
+                          : <span className="status pending"><span className="led" />Awaiting</span>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <Button kind="ghost" size="sm" icon={Icons.Plus} className="" onClick={() => navigate("saved")} style={{ marginTop: 14, width: "100%", justifyContent: "center" }}>
+            Add more from Saved
+          </Button>
+        </aside>
+
+        {/* RIGHT — controls + cards */}
+        <div style={{ position: "relative" }}>
+
+          {/* Controls */}
+          <div className="card card-pad" style={{ marginBottom: 24, position: "relative" }}>
+            <div className="card-title" style={{ marginBottom: 16 }}>Generation parameters</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 0.8fr auto", gap: 14, alignItems: "flex-end" }}>
+              <Field label="Pitch angle override" hint={pitchAngle === "auto" ? "uses dominant_angle per prospect" : ""}>
+                <Segmented value={pitchAngle} onChange={setPitchAngle}
+                  options={[
+                    { value: "auto", label: "Auto" },
+                    { value: "gbp", label: "GBP" },
+                    { value: "a11y", label: "A11y" },
+                    { value: "both", label: "Both" },
+                  ]}
+                />
+              </Field>
+              <Field label="Agency name" hint="appears in sign-off">
+                <input className="input" value={agencyName} onChange={e => setAgencyName(e.target.value)} />
+              </Field>
+              <Field label="CPC benchmark" hint="optional · £ / click">
+                <div className="input-with-prefix">
+                  <span className="prefix">£</span>
+                  <input value={cpc} onChange={e => setCpc(e.target.value)} placeholder="14.20" />
+                </div>
+              </Field>
+              <Button kind="primary" onClick={generateAll} disabled={generating || eligible.length === 0} iconRight={generating ? null : Icons.PlayCircle}>
+                {generating ? <><span className="spinner" /> Generating…</> : `Generate ${eligible.length}`}
+              </Button>
+            </div>
+
+            {skipped.length > 0 && (
+              <div style={{
+                marginTop: 14,
+                padding: "10px 14px",
+                background: "var(--sev-moderate-soft)",
+                border: "1px solid oklch(0.610 0.085 85 / 0.25)",
+                borderRadius: 4,
+                fontSize: 12.5,
+                color: "oklch(0.40 0.07 80)",
+                display: "flex",
+                alignItems: "center",
+                gap: 10
+              }}>
+                <Icon d={Icons.Lock} size={12} />
+                <span>
+                  <b>{skipped.length} prospect{skipped.length === 1 ? "" : "s"} will be skipped</b> until a report is generated — outreach requires an embedded link.
+                  &nbsp;<a style={{ color: "inherit", textDecoration: "underline" }}>Generate reports</a>
+                </span>
+              </div>
+            )}
+
+            <Anno id="d-1" n="1"
+              position={{ top: -10, left: -28 }}
+              callout={<>
+                <div className="micro">PITCH ANGLE</div>
+                <b>Auto</b> uses each prospect's dominant_angle. Override only when you know your audience — e.g. all-solicitor batches usually pitch better with the accessibility angle.
+              </>}
+            />
+          </div>
+
+          {/* Email cards */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+            {eligible.map(p => {
+              const email = DATA.outreachEmails[p.id];
+              if (!email) return null;
+              const isSent = sentMap[p.id];
+              const edit = emailEdits[p.id] || {};
+              const subject = edit.subject ?? email.subject;
+              const body = edit.body ?? email.body;
+              return (
+                <EmailCard
+                  key={p.id}
+                  prospect={p}
+                  email={email}
+                  subject={subject}
+                  body={body}
+                  isSent={isSent}
+                  isActive={activeProspect === p.id}
+                  onChangeSubject={(v) => setEmailEdits(e => ({ ...e, [p.id]: { ...(e[p.id] || {}), subject: v } }))}
+                  onChangeBody={(v) => setEmailEdits(e => ({ ...e, [p.id]: { ...(e[p.id] || {}), body: v } }))}
+                  onMarkSent={() => setSentMap(s => ({ ...s, [p.id]: !s[p.id] }))}
+                  onPreview={() => navigate("public", { token: p.reportToken })}
+                />
+              );
+            })}
+          </div>
+
+          <Anno id="d-2" n="2"
+            position={{ top: 320, right: 60, left: "auto" }}
+            callout={<>
+              <div className="micro">EMAIL CARD</div>
+              Subject + body are <b>directly editable</b>. The report URL line stays visible so operators can verify the link before copy/paste.
+            </>}
+          />
+        </div>
+      </div>
+    </main>
+  );
+}
+
+function EmailCard({ prospect, email, subject, body, isSent, onChangeSubject, onChangeBody, onMarkSent, onPreview }) {
+  const [copied, setCopied] = useState(false);
+  const p = prospect;
+
+  const copyEmail = () => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(`Subject: ${subject}\n\n${body}`).catch(() => {});
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  };
+
+  return (
+    <div className="card" style={{ padding: 0, opacity: isSent ? 0.7 : 1, transition: "opacity .2s" }}>
+      {/* card header */}
+      <div style={{
+        padding: "14px 20px",
+        borderBottom: "1px solid var(--line)",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        background: "var(--paper-2)"
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, flex: 1 }}>
+          <div style={{ fontSize: 13, fontWeight: 500, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            To: {p.business}
+            <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--stone-500)", marginLeft: 8 }}>
+              &lt;hello@{p.url}&gt;
+            </span>
+          </div>
+          <ScoreBadge value={p.combined} withBar={false} />
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 3 }}>
+            <AnglePill angle={email.pitchAngle} />
+            {p.perf != null && p.perf < 30 && (
+              <span className="slow-site-tag" title={`Performance ${p.perf}/100 — slow-site line included in email body`}>+ slow site</span>
+            )}
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
+          <Button kind="ghost" size="xs" icon={Icons.Eye} onClick={onPreview}>Preview report</Button>
+          <Button kind="ghost" size="xs" icon={copied ? Icons.Check : Icons.Copy} onClick={copyEmail}>{copied ? "Copied" : "Copy"}</Button>
+          <Button kind={isSent ? "secondary" : "primary"} size="xs" icon={isSent ? Icons.Check : Icons.Send} onClick={onMarkSent}>
+            {isSent ? "Marked sent" : "Mark sent"}
+          </Button>
+        </div>
+      </div>
+
+      {/* subject + body */}
+      <div style={{ padding: "18px 20px 22px" }}>
+        <div style={{ marginBottom: 14 }}>
+          <div className="eyebrow" style={{ marginBottom: 6 }}>Subject</div>
+          <input
+            className="input"
+            value={subject}
+            onChange={(e) => onChangeSubject(e.target.value)}
+            style={{ fontSize: 14, fontWeight: 500, fontFamily: "var(--serif)", padding: "10px 12px" }}
+            readOnly={isSent}
+          />
+        </div>
+        <div>
+          <div className="eyebrow" style={{ marginBottom: 6, display: "flex", justifyContent: "space-between" }}>
+            <span>Body</span>
+            <span className="num" style={{ fontSize: 10.5, color: "var(--stone-500)" }}>{body.length} chars · ~{Math.ceil(body.split(/\s+/).length / 220)} min read</span>
+          </div>
+          <textarea
+            className="textarea"
+            value={body}
+            onChange={(e) => onChangeBody(e.target.value)}
+            rows={14}
+            style={{ fontSize: 13, fontFamily: "var(--sans)", lineHeight: 1.65, whiteSpace: "pre-wrap" }}
+            readOnly={isSent}
+          />
+        </div>
+      </div>
+
+      {/* footer */}
+      <div style={{
+        padding: "12px 20px",
+        borderTop: "1px solid var(--line)",
+        background: "var(--paper-2)",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        fontSize: 11.5,
+        color: "var(--stone-500)"
+      }}>
+        <span className="mono">Embedded link: report.nthdesigns.co.uk/r/{p.reportToken}</span>
+        {isSent && email.sentAt && <span className="mono">Sent {email.sentAt}</span>}
+      </div>
+    </div>
+  );
+}
+
+window.OutreachScreen = OutreachScreen;
+
+</script>
+<script type="text/babel">
+/* ── screens-management.jsx ── */
+// screens-management.jsx — E (Saved), F (Reports), G (Settings)
+
+// ─── E. Saved prospects ──────────────────────────────────────────
+function SavedScreen({ navigate, addToOutreach, selection }) {
+  const [filters, setFilters] = useState({
+    from: "", to: "",
+    niche: "all", city: "", scanType: "all",
+    minScore: 0, angle: "all", warm: false
+  });
+
+  const setF = (k, v) => setFilters(s => ({ ...s, [k]: v }));
+
+  // Filter prospects
+  const filtered = DATA.prospects.filter(p => {
+    if (p.status === "failed" || p.status === "pending") return false;
+    if (filters.niche !== "all" && p.niche !== filters.niche) return false;
+    if (filters.angle !== "all" && p.angle !== filters.angle) return false;
+    if ((p.combined || 0) < filters.minScore) return false;
+    if (filters.city && !p.city.toLowerCase().includes(filters.city.toLowerCase())) return false;
+    if (filters.warm && !p.warm) return false;
+    return true;
+  }).sort((a, b) => (b.combined || 0) - (a.combined || 0));
+
+  const warmLeads = DATA.prospects.filter(p => p.warm).sort((a, b) => (b.combined || 0) - (a.combined || 0));
+  const niches = Array.from(new Set(DATA.prospects.map(p => p.niche)));
+  const inOutreach = (id) => selection.includes(id);
+
+  return (
+    <main className="page-wide page" style={{ maxWidth: 1440, position: "relative" }}>
+      <PageHeader
+        eyebrow="E · Saved prospects"
+        title="Every prospect, across every scan."
+        sub="Filter across searches, mark warm leads, export the CSV for handoff."
+        actions={
+          <>
+            <span className="micro">{filtered.length} of {DATA.prospects.length}</span>
+            <Button kind="secondary" size="sm" icon={Icons.Download}>Export CSV</Button>
+          </>
+        }
+      />
+
+      {/* Warm leads panel */}
+      {!filters.warm && warmLeads.length > 0 && (
+        <div style={{
+          background: "linear-gradient(180deg, var(--accent-soft) 0%, var(--paper) 100%)",
+          border: "1px solid oklch(0.85 0.08 65)",
+          borderRadius: 6,
+          padding: "18px 22px",
+          marginBottom: 24,
+          position: "relative"
+        }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+            <div>
+              <div className="eyebrow" style={{ color: "var(--accent-ink)", marginBottom: 4 }}>Warm leads · viewed in last 7 days, no reply</div>
+              <h2 style={{ fontFamily: "var(--serif)", fontWeight: 500, fontSize: 22, margin: 0, color: "var(--accent-ink)", letterSpacing: "-0.015em" }}>
+                {warmLeads.length} prospects opened your report — follow up
+              </h2>
+            </div>
+            <Button kind="accent" size="sm" iconRight={Icons.Arrow} onClick={() => setF("warm", true)}>
+              Filter to warm
+            </Button>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+            {warmLeads.slice(0, 3).map(p => (
+              <div
+                key={p.id}
+                className="card"
+                style={{ padding: "14px 16px", cursor: "pointer", border: "1px solid var(--line)" }}
+                onClick={() => navigate("prospect", { id: p.id })}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                  <div style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.3 }}>{p.business}</div>
+                  <ScoreBadge value={p.combined} withBar={false} />
+                </div>
+                <div className="mono" style={{ fontSize: 10.5, color: "var(--stone-500)", marginBottom: 8 }}>{p.url}</div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12, color: "var(--stone-700)" }}>
+                  <span>Viewed <b style={{ fontWeight: 500 }}>{p.lastViewed}</b></span>
+                  <span style={{ color: "var(--stone-500)" }}>{p.outreachSent ? "Sent " + p.outreachSent.split(" · ")[0] : "Not sent"}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <Anno id="e-1" n="1"
+            position={{ top: 8, right: 8, left: "auto" }}
+            callout={<>
+              <div className="micro">WARM PANEL</div>
+              Strict definition: report <b>viewed_at</b> set + outreach <b>sent_at</b> set + no <b>response_received</b>. Disappears when filter is set to Warm only.
+            </>}
+          />
+        </div>
+      )}
+
+      {/* Filter bar */}
+      <div className="filter-bar">
+        <Field label="Date from">
+          <input type="date" className="input" value={filters.from} onChange={e => setF("from", e.target.value)} placeholder="—" style={{ width: 130 }} />
+        </Field>
+        <Field label="Date to">
+          <input type="date" className="input" value={filters.to} onChange={e => setF("to", e.target.value)} style={{ width: 130 }} />
+        </Field>
+        <Field label="Niche">
+          <select className="select" value={filters.niche} onChange={e => setF("niche", e.target.value)} style={{ width: 160 }}>
+            <option value="all">All niches</option>
+            {niches.map(n => <option key={n} value={n}>{n}</option>)}
+          </select>
+        </Field>
+        <Field label="City">
+          <input className="input" value={filters.city} onChange={e => setF("city", e.target.value)} placeholder="Any" style={{ width: 130 }} />
+        </Field>
+        <Field label="Scan type">
+          <select className="select" value={filters.scanType} onChange={e => setF("scanType", e.target.value)} style={{ width: 130 }}>
+            <option value="all">All</option>
+            <option value="gbp">GBP only</option>
+            <option value="a11y">A11y only</option>
+            <option value="combined">Combined</option>
+          </select>
+        </Field>
+        <Field label="Angle">
+          <Segmented value={filters.angle} onChange={(v) => setF("angle", v)}
+            options={[
+              { value: "all", label: "All" },
+              { value: "both", label: "Both" },
+              { value: "gbp", label: "GBP" },
+              { value: "a11y", label: "A11y" },
+            ]}
+          />
+        </Field>
+        <Field label={`Min score · ${filters.minScore}+`}>
+          <input type="range" min="0" max="100" step="5" value={filters.minScore} onChange={e => setF("minScore", +e.target.value)} style={{ width: 110, accentColor: "var(--ink)" }} />
+        </Field>
+        <div className="filter-action">
+          <label style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12, color: "var(--stone-700)", cursor: "pointer" }}>
+            <Checkbox checked={filters.warm} onChange={(c) => setF("warm", c)} />
+            Warm leads only
+          </label>
+          <Button kind="ghost" size="sm" onClick={() => setFilters({ from: "", to: "", niche: "all", city: "", scanType: "all", minScore: 0, angle: "all", warm: false })}>Reset</Button>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div style={{ border: "1px solid var(--line)", borderRadius: 6, overflow: "hidden", background: "var(--paper)" }}>
+        <table className="ptable">
+          <thead>
+            <tr>
+              <th style={{ width: "26%" }}>Business</th>
+              <th>Niche · City</th>
+              <th style={{ width: "8%" }}>Combined</th>
+              <th style={{ width: "6%" }}>GBP</th>
+              <th style={{ width: "6%" }}>A11y</th>
+              <th style={{ width: "10%" }}>Angle</th>
+              <th style={{ width: "16%" }}>Outreach history</th>
+              <th style={{ width: "12%", textAlign: "right" }}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map(p => (
+              <tr key={p.id} className={p.warm ? "warm" : ""} onClick={() => navigate("prospect", { id: p.id })}>
+                <td className="biz">
+                  {p.business}
+                  <span className="url">{p.url}</span>
+                </td>
+                <td>
+                  <div style={{ fontSize: 12.5 }}>{p.niche}</div>
+                  <div style={{ fontFamily: "var(--mono)", fontSize: 10.5, color: "var(--stone-500)" }}>{p.city}</div>
+                </td>
+                <td><ScoreBadge value={p.combined} /></td>
+                <td className="num">{p.gbp ?? "—"}</td>
+                <td className="num">{p.a11y ?? "—"}</td>
+                <td><AnglePill angle={p.angle} /></td>
+                <td>
+                  {p.outreachSent
+                    ? <div>
+                        <div style={{ fontSize: 12 }}><b style={{ fontWeight: 500 }}>Sent</b> · {p.outreachSent.split(" · ")[0]}</div>
+                        {p.warm && <div style={{ fontFamily: "var(--mono)", fontSize: 10.5, color: "var(--accent-ink)" }}>Viewed {p.lastViewed}</div>}
+                      </div>
+                    : <span style={{ fontSize: 12, color: "var(--stone-500)" }}>—</span>}
+                </td>
+                <td onClick={(e) => e.stopPropagation()} style={{ textAlign: "right" }}>
+                  <div className="row-actions">
+                    {p.reportToken && (
+                      <button className="btn-icon" title="Copy report link" onClick={() => navigator.clipboard?.writeText(`https://report.nthdesigns.co.uk/r/${p.reportToken}`)}>
+                        <svg viewBox="0 0 16 16"><path d={Icons.Copy} /></svg>
+                      </button>
+                    )}
+                    {!inOutreach(p.id)
+                      ? <button className="btn-icon" title="Add to outreach" onClick={() => addToOutreach([p.id])}>
+                          <svg viewBox="0 0 16 16"><path d={Icons.Plus} /></svg>
+                        </button>
+                      : <span className="badge" style={{ fontSize: 10, background: "var(--stone-200)" }}>In queue</span>}
+                    <button className="btn-icon" title="Open" onClick={() => navigate("prospect", { id: p.id })}>
+                      <svg viewBox="0 0 16 16"><path d={Icons.ChevronR} /></svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {filtered.length === 0 && (
+              <tr><td colSpan={8} style={{ padding: "60px 20px", textAlign: "center" }}>
+                <div style={{ color: "var(--stone-500)", fontSize: 13 }}>No prospects match these filters. <a style={{ color: "var(--ink)", cursor: "pointer", textDecoration: "underline" }} onClick={() => setFilters({ from: "", to: "", niche: "all", city: "", scanType: "all", minScore: 0, angle: "all", warm: false })}>Reset</a>.</div>
+              </td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </main>
+  );
+}
+
+// ─── F. Reports dashboard ────────────────────────────────────────
+function ReportsScreen({ navigate }) {
+  const [filter, setFilter] = useState("all"); // all | viewed | unviewed | warm
+  const [niche, setNiche] = useState("all");
+  const [copyToast, setCopyToast] = useState(null);
+
+  const reports = DATA.reports.filter(r => {
+    if (filter === "viewed" && r.views === 0) return false;
+    if (filter === "unviewed" && r.views > 0) return false;
+    if (filter === "warm" && !r.warmBadge) return false;
+    if (niche !== "all" && r.niche !== niche) return false;
+    return true;
+  });
+
+  const niches = Array.from(new Set(DATA.reports.map(r => r.niche)));
+
+  const copyToken = (token) => {
+    const url = `https://report.nthdesigns.co.uk/r/${token}`;
+    if (navigator.clipboard) navigator.clipboard.writeText(url).catch(() => {});
+    setCopyToast(token);
+    setTimeout(() => setCopyToast(null), 1800);
+  };
+
+  const totalViews = DATA.reports.reduce((sum, r) => sum + r.views, 0);
+  const viewedCount = DATA.reports.filter(r => r.views > 0).length;
+  const warmCount = DATA.reports.filter(r => r.warmBadge).length;
+
+  return (
+    <main className="page-wide page" style={{ maxWidth: 1440 }}>
+      <PageHeader
+        eyebrow="F · Reports dashboard"
+        title="Every public report you've shared."
+        sub="Track who opened what, copy the unlisted URL, and surface warm leads — anything viewed in the last 7 days gets the badge."
+      />
+
+      {/* Stats strip */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
+        <div className="card card-pad"><Stat label="Reports generated" value={DATA.reports.length} hint="across 4 searches" /></div>
+        <div className="card card-pad"><Stat label="Total views" value={totalViews} hint={`${viewedCount} of ${DATA.reports.length} opened`} /></div>
+        <div className="card card-pad" style={{ borderColor: "oklch(0.85 0.08 65)", background: "linear-gradient(180deg, var(--accent-soft) 0%, var(--paper) 70%)" }}>
+          <Stat label="Warm · 7d" value={warmCount} hint="viewed in last week" />
+        </div>
+        <div className="card card-pad"><Stat label="Avg views per report" value={(totalViews / DATA.reports.length).toFixed(1)} hint="median: 2" /></div>
+      </div>
+
+      {/* Filter bar */}
+      <div className="filter-bar">
+        <Field label="View status">
+          <Segmented value={filter} onChange={setFilter}
+            options={[
+              { value: "all", label: "All" },
+              { value: "viewed", label: "Viewed" },
+              { value: "unviewed", label: "Unviewed" },
+              { value: "warm", label: "Warm · 7d" },
+            ]}
+          />
+        </Field>
+        <Field label="Niche">
+          <select className="select" value={niche} onChange={e => setNiche(e.target.value)} style={{ width: 160 }}>
+            <option value="all">All niches</option>
+            {niches.map(n => <option key={n} value={n}>{n}</option>)}
+          </select>
+        </Field>
+        <div className="filter-action">
+          <span className="micro">{reports.length} of {DATA.reports.length}</span>
+        </div>
+      </div>
+
+      <div style={{ border: "1px solid var(--line)", borderRadius: 6, overflow: "hidden", background: "var(--paper)", position: "relative" }}>
+        <table className="ptable">
+          <thead>
+            <tr>
+              <th style={{ width: "26%" }}>Business</th>
+              <th style={{ width: "20%" }}>Public URL</th>
+              <th style={{ width: "9%" }}>Created</th>
+              <th style={{ width: "8%" }}>Views</th>
+              <th style={{ width: "13%" }}>Last viewed</th>
+              <th style={{ width: "12%" }}>Viewer</th>
+              <th style={{ width: "12%", textAlign: "right" }}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {reports.map(r => (
+              <tr key={r.token} className={r.warmBadge ? "warm" : ""} onClick={() => navigate("prospect", { id: r.prospectId })}>
+                <td className="biz">
+                  {r.business}
+                  <span className="url">{r.niche}</span>
+                </td>
+                <td>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <code style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--stone-700)", background: "var(--paper-2)", padding: "2px 6px", borderRadius: 2, border: "1px solid var(--line)" }}>/r/{r.token}</code>
+                    {r.warmBadge && <Status kind="warm">Warm</Status>}
+                  </div>
+                </td>
+                <td className="num">{r.created}</td>
+                <td>
+                  <span style={{
+                    fontFamily: "var(--mono)",
+                    fontVariantNumeric: "tabular-nums",
+                    fontSize: 13,
+                    fontWeight: r.views > 0 ? 500 : 400,
+                    color: r.views > 0 ? "var(--ink)" : "var(--stone-400)"
+                  }}>{r.views}</span>
+                  {r.warmBadge && <span style={{ marginLeft: 6, fontSize: 10, color: "var(--accent-deep)" }}>● new</span>}
+                </td>
+                <td className="num" style={{ color: r.lastViewed ? "var(--ink)" : "var(--stone-400)", fontSize: 12 }}>
+                  {r.lastViewed || "—"}
+                </td>
+                <td style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--stone-600)" }}>
+                  {r.viewerIp || <span style={{ color: "var(--stone-400)" }}>—</span>}
+                </td>
+                <td onClick={(e) => e.stopPropagation()} style={{ textAlign: "right" }}>
+                  <div className="row-actions">
+                    <button className="btn-icon" title="Copy URL" onClick={() => copyToken(r.token)}>
+                      <svg viewBox="0 0 16 16"><path d={copyToast === r.token ? Icons.Check : Icons.Copy} /></svg>
+                    </button>
+                    <button className="btn-icon" title="Open report" onClick={() => navigate("public", { token: r.token })}>
+                      <svg viewBox="0 0 16 16"><path d={Icons.External} /></svg>
+                    </button>
+                    <button className="btn-icon" title="Open prospect" onClick={() => navigate("prospect", { id: r.prospectId })}>
+                      <svg viewBox="0 0 16 16"><path d={Icons.ChevronR} /></svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <Anno id="f-1" n="1"
+          position={{ top: 84, right: 60, left: "auto" }}
+          callout={<>
+            <div className="micro">VIEW COUNT</div>
+            Each open from a new IP increments the count. The <b>● new</b> dot marks views that landed within the warm-badge window (last 7 days).
+          </>}
+        />
+      </div>
+
+      {copyToast && (
+        <div className="toast">
+          <span className="check"><svg viewBox="0 0 12 12"><path d="M3 6.5l2 2 4-5" /></svg></span>
+          Public URL copied · /r/{copyToast}
+        </div>
+      )}
+    </main>
+  );
+}
+
+// ─── G. Settings ─────────────────────────────────────────────────
+function SettingsScreen({ navigate }) {
+  const s = DATA.settings;
+  return (
+    <main className="page" style={{ maxWidth: 920 }}>
+      <PageHeader
+        eyebrow="G · Settings"
+        title="Operator defaults &amp; system health."
+        sub="Defaults applied to new searches and outreach generations. API status updates every 30 seconds."
+      />
+
+      {/* API health */}
+      <div style={{ marginBottom: 32 }}>
+        <div className="eyebrow" style={{ marginBottom: 14 }}>System health</div>
+        <div className="card" style={{ overflow: "hidden" }}>
+          {s.apis.map((api, i) => (
+            <div key={api.name} style={{
+              padding: "16px 22px",
+              borderBottom: i < s.apis.length - 1 ? "1px solid var(--line)" : 0,
+              display: "grid",
+              gridTemplateColumns: "1fr auto auto",
+              alignItems: "center",
+              gap: 24
+            }}>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 4 }}>
+                  <Status kind="ready">Online</Status>
+                  <span style={{ fontSize: 14, fontWeight: 500 }}>{api.name}</span>
+                </div>
+                <div className="mono" style={{ fontSize: 11, color: "var(--stone-500)" }}>
+                  {api.latency && api.latency !== "—" ? `latency ${api.latency}` : ""}
+                  {api.quotaUsed != null && (
+                    <span style={{ marginLeft: api.latency && api.latency !== "—" ? 14 : 0 }}>
+                      {api.quotaUsed.toLocaleString()} / {api.quotaTotal.toLocaleString()} {api.unit || "calls / day"}
+                    </span>
+                  )}
+                  {api.usedGb != null && <span>{api.usedGb} GB / {api.totalGb} GB</span>}
+                </div>
+              </div>
+              {/* quota bar */}
+              {(api.quotaUsed != null || api.usedGb != null) && (
+                <div style={{ width: 160 }}>
+                  <div style={{ height: 4, background: "var(--stone-200)", borderRadius: 2, overflow: "hidden" }}>
+                    <div style={{
+                      height: "100%",
+                      width: `${api.quotaUsed != null ? (api.quotaUsed / api.quotaTotal * 100) : (api.usedGb / api.totalGb * 100)}%`,
+                      background: "var(--ink)"
+                    }} />
+                  </div>
+                </div>
+              )}
+              <Button kind="ghost" size="xs">Logs</Button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Defaults */}
+      <div style={{ marginBottom: 32 }}>
+        <div className="eyebrow" style={{ marginBottom: 14 }}>Defaults</div>
+        <div className="card card-pad">
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+            <Field label="Default country" hint="applied to new searches">
+              <select className="select" defaultValue="GB">
+                <option value="GB">United Kingdom</option>
+                <option value="IE">Ireland</option>
+              </select>
+            </Field>
+            <Field label="Agency name" hint="appears in outreach sign-off">
+              <input className="input" defaultValue={s.defaults.agencyName} />
+            </Field>
+            <Field label="Booking URL" hint="public report CTA target">
+              <input className="input" defaultValue={s.defaults.bookingUrl} />
+            </Field>
+            <Field label="Report expiry" hint="days before /r/{token} 404s">
+              <div className="input-with-prefix">
+                <input defaultValue={s.defaults.reportExpiryDays} />
+                <span className="prefix" style={{ borderRight: 0, borderLeft: "1px solid var(--line)" }}>days</span>
+              </div>
+            </Field>
+          </div>
+          <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--line)", display: "flex", justifyContent: "flex-end", gap: 10 }}>
+            <Button kind="ghost" size="sm">Reset</Button>
+            <Button kind="primary" size="sm">Save changes</Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Account */}
+      <div>
+        <div className="eyebrow" style={{ marginBottom: 14 }}>Account</div>
+        <div className="card card-pad" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <Avatar initials="AN" />
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 500 }}>Alex Naden</div>
+              <div className="mono" style={{ fontSize: 11.5, color: "var(--stone-500)" }}>alex@nthdesigns.co.uk · Operator</div>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <Button kind="ghost" size="sm">Change password</Button>
+            <Button kind="destructive" size="sm">Sign out</Button>
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+window.SavedScreen = SavedScreen;
+window.ReportsScreen = ReportsScreen;
+window.SettingsScreen = SettingsScreen;
+
+</script>
+<script type="text/babel">
+/* ── screen-public.jsx ── */
+// screen-public.jsx — H (Public prospect report)
+// Long-form editorial dossier. Desktop + mobile variants.
+// No app chrome. nthdesigns branding only. Single CTA.
+
+function PublicReportScreen({ token, navigate, viewport = "desktop", setViewport }) {
+  const report = DATA.reports.find(r => r.token === token) || DATA.reports[1]; // default to Birmingham Dental
+  const prospect = DATA.prospects.find(p => p.id === report.prospectId);
+  const isMobile = viewport === "mobile";
+
+  // Calculate grade A–F from combined (inverted: high combined = low grade)
+  const grade = (() => {
+    const c = prospect.combined;
+    if (c >= 85) return "D";
+    if (c >= 70) return "C";
+    if (c >= 50) return "C+";
+    if (c >= 30) return "B";
+    return "B+";
+  })();
+  const gradeColor = (() => {
+    const c = prospect.combined;
+    if (c >= 71) return "var(--sev-critical)";
+    if (c >= 41) return "oklch(0.55 0.13 50)";
+    return "var(--positive)";
+  })();
+
+  return (
+    <div style={{
+      background: "oklch(0.965 0.008 80)",
+      minHeight: "100vh",
+      paddingTop: 0
+    }}>
+      {/* Viewport toggle (demo only — not part of the real public report) */}
+      <DemoViewportSwitch viewport={viewport} setViewport={setViewport} navigate={navigate} />
+
+      <div style={{
+        background: "var(--paper)",
+        maxWidth: isMobile ? 390 : 880,
+        margin: "0 auto",
+        minHeight: "100vh",
+        boxShadow: "0 0 0 1px var(--line)",
+      }}>
+        <ReportInner prospect={prospect} report={report} isMobile={isMobile} grade={grade} gradeColor={gradeColor} />
+      </div>
+    </div>
+  );
+}
+
+function DemoViewportSwitch({ viewport, setViewport, navigate }) {
+  return (
+    <div style={{
+      position: "sticky",
+      top: 0,
+      zIndex: 50,
+      background: "var(--ink)",
+      color: "var(--paper)",
+      padding: "10px 20px",
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      fontSize: 12.5
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        <span className="mono" style={{ fontSize: 11, opacity: 0.6, letterSpacing: "0.1em", textTransform: "uppercase" }}>Preview · not visible to prospect</span>
+        <button onClick={() => navigate("prospect", { id: "p-101" })} style={{ background: "transparent", border: "1px solid oklch(1 0 0 / 0.15)", color: "var(--paper)", padding: "4px 10px", borderRadius: 3, fontSize: 12, cursor: "pointer", fontFamily: "var(--sans)" }}>← Back to internal</button>
+      </div>
+      <div style={{ display: "flex", gap: 6 }}>
+        <button onClick={() => setViewport("desktop")} style={{
+          background: viewport === "desktop" ? "var(--paper)" : "transparent",
+          color: viewport === "desktop" ? "var(--ink)" : "var(--paper)",
+          border: "1px solid " + (viewport === "desktop" ? "var(--paper)" : "oklch(1 0 0 / 0.15)"),
+          padding: "4px 10px", borderRadius: 3, fontSize: 12, cursor: "pointer", fontFamily: "var(--sans)"
+        }}>Desktop · 880px</button>
+        <button onClick={() => setViewport("mobile")} style={{
+          background: viewport === "mobile" ? "var(--paper)" : "transparent",
+          color: viewport === "mobile" ? "var(--ink)" : "var(--paper)",
+          border: "1px solid " + (viewport === "mobile" ? "var(--paper)" : "oklch(1 0 0 / 0.15)"),
+          padding: "4px 10px", borderRadius: 3, fontSize: 12, cursor: "pointer", fontFamily: "var(--sans)"
+        }}>Mobile · 390px</button>
+      </div>
+    </div>
+  );
+}
+
+function ReportInner({ prospect, report, isMobile, grade, gradeColor }) {
+  const PAD = isMobile ? 24 : 80;
+  const p = prospect;
+
+  return (
+    <>
+      {/* Header */}
+      <header style={{ padding: `${isMobile ? 32 : 56}px ${PAD}px ${isMobile ? 32 : 40}px`, borderBottom: "1px solid var(--line)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: isMobile ? 32 : 48 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span className="brand-mark" style={{ width: 22, height: 22 }} />
+            <span style={{ fontFamily: "var(--serif)", fontStyle: "italic", fontSize: 17 }}>nthdesigns</span>
+          </div>
+          <div className="mono" style={{ fontSize: 10.5, color: "var(--stone-500)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+            Audit · {report.created}
+          </div>
+        </div>
+
+        <div className="eyebrow" style={{ marginBottom: 14 }}>Independent audit · WCAG 2.2 + Google Business Profile</div>
+        <h1 style={{
+          fontFamily: "var(--serif)",
+          fontWeight: 400,
+          fontSize: isMobile ? 36 : 56,
+          lineHeight: 1.05,
+          letterSpacing: "-0.022em",
+          margin: "0 0 18px",
+          textWrap: "balance"
+        }}>
+          {p.business}
+        </h1>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 14, flexWrap: "wrap", color: "var(--stone-600)", fontSize: 14 }}>
+          <span className="mono" style={{ fontSize: 13, color: "var(--stone-700)" }}>{p.url}</span>
+          <span style={{ color: "var(--stone-400)" }}>·</span>
+          <span>{p.address}</span>
+        </div>
+      </header>
+
+      {/* Grade hero */}
+      <section style={{ padding: `${isMobile ? 40 : 64}px ${PAD}px`, borderBottom: "1px solid var(--line)", position: "relative" }}>
+        <div className="eyebrow" style={{ marginBottom: 14 }}>Overall grade</div>
+
+        <div style={{ display: isMobile ? "block" : "grid", gridTemplateColumns: "auto 1fr", gap: isMobile ? 24 : 48, alignItems: "center" }}>
+          <div style={{ textAlign: isMobile ? "left" : "left", marginBottom: isMobile ? 18 : 0 }}>
+            <div style={{
+              fontFamily: "var(--serif)",
+              fontSize: isMobile ? 120 : 160,
+              lineHeight: 0.85,
+              fontWeight: 400,
+              color: gradeColor,
+              letterSpacing: "-0.04em"
+            }}>{grade}</div>
+            <div className="mono" style={{ fontSize: 11, color: "var(--stone-500)", textTransform: "uppercase", letterSpacing: "0.1em", marginTop: 8 }}>
+              based on 23 measured signals
+            </div>
+          </div>
+
+          <div>
+            <p style={{
+              fontFamily: "var(--serif)",
+              fontSize: isMobile ? 19 : 22,
+              lineHeight: 1.5,
+              color: "var(--stone-700)",
+              margin: 0,
+              textWrap: "pretty"
+            }}>
+              We audited your website and Google Business Profile against the 2025 WCAG 2.2 standard and the best-performing dental practice profiles within 5 km of B5 6RG. The audit found <b style={{ color: "var(--ink)", fontWeight: 400 }}>23 issues</b>, four of which are likely blocking patient bookings today.
+            </p>
+            <div style={{ marginTop: 24, display: "flex", flexWrap: "wrap", gap: 8 }}>
+              <SevChip level="critical" count={p.flagsCounts.critical} />
+              <SevChip level="serious" count={p.flagsCounts.serious} />
+              <SevChip level="moderate" count={p.flagsCounts.moderate} />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Accessibility findings */}
+      <section style={{ padding: `${isMobile ? 40 : 72}px ${PAD}px`, borderBottom: "1px solid var(--line)" }}>
+        <div className="eyebrow" style={{ marginBottom: 10 }}>Section 1 · Accessibility</div>
+        <h2 style={{
+          fontFamily: "var(--serif)",
+          fontWeight: 500,
+          fontSize: isMobile ? 28 : 38,
+          letterSpacing: "-0.018em",
+          margin: "0 0 16px",
+          lineHeight: 1.15
+        }}>The five issues to fix first.</h2>
+        <p style={{ color: "var(--stone-600)", fontSize: 15, lineHeight: 1.6, maxWidth: 620, margin: "0 0 36px" }}>
+          Every issue is mapped to a WCAG 2.2 success criterion. The fixes are usually a few lines of HTML or CSS — but the consequence of leaving them is a patient who can't book online, or an EHRC complaint.
+        </p>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 28 : 36 }}>
+          {VIOLATIONS.map((v, i) => (
+            <ViolationCard key={v.id} v={v} idx={i + 1} isMobile={isMobile} />
+          ))}
+        </div>
+      </section>
+
+      {/* GBP comparison */}
+      <section style={{ padding: `${isMobile ? 40 : 72}px ${PAD}px`, borderBottom: "1px solid var(--line)", background: "var(--paper-2)" }}>
+        <div className="eyebrow" style={{ marginBottom: 10 }}>Section 2 · Google Business Profile</div>
+        <h2 style={{
+          fontFamily: "var(--serif)",
+          fontWeight: 500,
+          fontSize: isMobile ? 28 : 38,
+          letterSpacing: "-0.018em",
+          margin: "0 0 16px",
+          lineHeight: 1.15
+        }}>You, next to the top-ranking practice in Birmingham.</h2>
+        <p style={{ color: "var(--stone-600)", fontSize: 15, lineHeight: 1.6, maxWidth: 620, margin: "0 0 36px" }}>
+          When a patient searches "dentist near me" in B5, Google shows three profiles. <b style={{ color: "var(--ink)", fontWeight: 500 }}>Smile Studio Birmingham</b> ranks first; you rank seventh. Here's what they do that you don't.
+        </p>
+
+        <ComparisonTable isMobile={isMobile} you={p} />
+      </section>
+
+      {/* Performance dials */}
+      <section style={{ padding: `${isMobile ? 40 : 72}px ${PAD}px`, borderBottom: "1px solid var(--line)" }}>
+        <div className="eyebrow" style={{ marginBottom: 10 }}>Section 3 · Site performance</div>
+        <h2 style={{
+          fontFamily: "var(--serif)",
+          fontWeight: 500,
+          fontSize: isMobile ? 28 : 38,
+          letterSpacing: "-0.018em",
+          margin: "0 0 28px",
+          lineHeight: 1.15
+        }}>How the site loads, for real users.</h2>
+        <p style={{ color: "var(--stone-600)", fontSize: 15, lineHeight: 1.6, maxWidth: 620, margin: "0 0 36px" }}>
+          Measured via Google Lighthouse on a mid-range mobile connection (4G). Below 50 in any dial is where Google starts penalising the site in mobile search.
+        </p>
+
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr 1fr" : "repeat(3, 1fr)", gap: isMobile ? 16 : 32, marginTop: 8 }}>
+          <PerfDial label="Performance" value={prospect.perf ?? 42} note="Slow image load" isMobile={isMobile} />
+          <PerfDial label="SEO" value={68} note="Meta description short" isMobile={isMobile} />
+          <PerfDial label="Best practices" value={56} note="Mixed-content asset" isMobile={isMobile} />
+        </div>
+
+        {prospect.perf != null && prospect.perf < 30 && (
+          <p style={{
+            marginTop: isMobile ? 28 : 36,
+            paddingTop: isMobile ? 24 : 28,
+            borderTop: "1px solid var(--line)",
+            fontFamily: "var(--serif)",
+            fontSize: isMobile ? 17 : 19,
+            lineHeight: 1.55,
+            color: "var(--stone-700)",
+            maxWidth: 640,
+            margin: `${isMobile ? 28 : 36}px 0 0`,
+            textWrap: "pretty"
+          }}>
+            This site loads slowly on mobile. Google's research shows that pages taking over 3 seconds to load lose approximately half their visitors before the first interaction.
+          </p>
+        )}
+      </section>
+
+      {/* CTA */}
+      <section style={{ padding: `${isMobile ? 56 : 96}px ${PAD}px`, textAlign: "center", borderBottom: "1px solid var(--line)", background: "var(--paper)" }}>
+        <div className="eyebrow" style={{ marginBottom: 18, color: "var(--accent-deep)" }}>Next step</div>
+        <h2 style={{
+          fontFamily: "var(--serif)",
+          fontWeight: 400,
+          fontSize: isMobile ? 32 : 48,
+          letterSpacing: "-0.02em",
+          margin: "0 0 18px",
+          lineHeight: 1.1,
+          textWrap: "balance"
+        }}>
+          A free 30-minute call to walk you through every fix.
+        </h2>
+        <p style={{
+          fontFamily: "var(--serif)",
+          fontSize: isMobile ? 17 : 19,
+          color: "var(--stone-700)",
+          maxWidth: 540,
+          margin: "0 auto 32px",
+          lineHeight: 1.55
+        }}>
+          No pitch deck. We'll share screens, work through this report line by line, and you'll leave with a written brief — whether or not you hire us.
+        </p>
+        <Button kind="accent" size="lg" iconRight={Icons.Arrow}>
+          Book a free 30-minute review
+        </Button>
+        <div className="mono" style={{ fontSize: 11, color: "var(--stone-500)", marginTop: 18, letterSpacing: "0.04em" }}>
+          cal.nthdesigns.co.uk · usually replied to within 4 hours
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer style={{ padding: `${isMobile ? 32 : 48}px ${PAD}px`, color: "var(--stone-500)", fontSize: 12 }}>
+        <div style={{ display: isMobile ? "block" : "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 24 }}>
+          <div style={{ marginBottom: isMobile ? 16 : 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+              <span className="brand-mark" style={{ width: 16, height: 16 }} />
+              <span style={{ fontFamily: "var(--serif)", fontStyle: "italic", fontSize: 14, color: "var(--ink)" }}>nthdesigns</span>
+            </div>
+            <p style={{ margin: 0, lineHeight: 1.6 }}>
+              An independent design and accessibility consultancy based in the UK.<br/>
+              We work with three new clients a quarter. We don't take retainers under £900/mo.
+            </p>
+          </div>
+          <div style={{ textAlign: isMobile ? "left" : "right" }}>
+            <div className="mono" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>This report</div>
+            <div style={{ color: "var(--stone-700)" }}>Token /r/{report.token}</div>
+            <div>Generated {report.created} · expires 21 June 2026</div>
+          </div>
+        </div>
+      </footer>
+    </>
+  );
+}
+
+// Violation cards — top 5
+const VIOLATIONS = [
+  {
+    id: "v1",
+    sev: "critical",
+    title: "Header text contrast 2.1 : 1 fails WCAG 2.2 SC 1.4.3",
+    wcag: "1.4.3 · Contrast (Minimum) · Level AA",
+    impact: "On the homepage hero, the white-on-tan headline (\"Modern dentistry in the heart of Birmingham\") sits below the 4.5:1 ratio. Patients with low vision will skip it entirely.",
+    fix: "Darken hero background to #5a4a30 or use #1f1410 text. One CSS line.",
+  },
+  {
+    id: "v2",
+    sev: "critical",
+    title: "42 images have no alternative text",
+    wcag: "1.1.1 · Non-text Content · Level A",
+    impact: "Screen readers announce these as \"image\" with no further context — including the photos of your clinic on the About page and every staff portrait.",
+    fix: "Add an alt attribute to each <img>. \"Dr Sarah Kavanagh, lead dentist\" beats both empty and \"image of dentist\".",
+  },
+  {
+    id: "v3",
+    sev: "critical",
+    title: "The main heading element is missing from the homepage",
+    wcag: "1.3.1 · Info and Relationships · Level A",
+    impact: "Search engines and screen readers both rely on <h1> to understand what the page is about. Yours uses styled <div>s, which neither one can parse.",
+    fix: "Wrap the homepage hero text in <h1>...</h1>. Visual styling stays identical.",
+  },
+  {
+    id: "v4",
+    sev: "serious",
+    title: "Booking form labels are visually-only, not connected to inputs",
+    wcag: "1.3.1 · Info and Relationships · Level A",
+    impact: "On /book-appointment, the placeholder text disappears the moment a patient starts typing, leaving fields unlabelled. People using voice input or assistive tech can't recover.",
+    fix: "Add <label for=\"…\"> for each input. Two lines per field.",
+  },
+  {
+    id: "v5",
+    sev: "serious",
+    title: "Focus order skips the Submit button on the booking form",
+    wcag: "2.4.3 · Focus Order · Level A",
+    impact: "Tab from the message textarea and the next focus stop is the footer — not Submit. Keyboard-only users have to shift-tab back.",
+    fix: "Remove tabindex=\"-1\" from the submit button (it appears to have been added during a recent layout fix).",
+  },
+];
+
+function ViolationCard({ v, idx, isMobile }) {
+  return (
+    <article style={{
+      display: isMobile ? "block" : "grid",
+      gridTemplateColumns: "240px 1fr",
+      gap: isMobile ? 16 : 36,
+      paddingTop: idx === 1 ? 0 : 16,
+    }}>
+      {/* Screenshot placeholder */}
+      <ScreenshotPlaceholder type={v.id} sev={v.sev} isMobile={isMobile} />
+
+      <div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
+          <SevChip level={v.sev} />
+          <span className="mono" style={{ fontSize: 10.5, color: "var(--stone-500)", letterSpacing: "0.06em", textTransform: "uppercase" }}>{v.wcag}</span>
+        </div>
+        <h3 style={{
+          fontFamily: "var(--serif)",
+          fontSize: isMobile ? 19 : 22,
+          fontWeight: 500,
+          margin: "0 0 12px",
+          lineHeight: 1.3,
+          letterSpacing: "-0.005em",
+          textWrap: "balance"
+        }}>{idx}. {v.title}</h3>
+        <p style={{ fontSize: 15, lineHeight: 1.65, color: "var(--stone-700)", margin: "0 0 16px" }}>
+          {v.impact}
+        </p>
+        <div style={{
+          padding: "10px 14px",
+          background: "var(--paper-2)",
+          border: "1px solid var(--line)",
+          borderRadius: 3,
+          borderLeft: "3px solid var(--accent)",
+          fontSize: 13.5,
+          lineHeight: 1.5,
+          color: "var(--ink)"
+        }}>
+          <span className="mono" style={{ fontSize: 10.5, color: "var(--stone-500)", textTransform: "uppercase", letterSpacing: "0.08em", marginRight: 8 }}>Fix</span>
+          {v.fix}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function ScreenshotPlaceholder({ type, sev, isMobile }) {
+  // Render a stylised browser frame with sev-coloured indicators showing the issue area
+  const sevColor = sev === "critical" ? "var(--sev-critical)" : sev === "serious" ? "oklch(0.55 0.14 50)" : "oklch(0.55 0.08 80)";
+
+  return (
+    <div style={{
+      width: isMobile ? "100%" : 240,
+      aspectRatio: isMobile ? "16 / 10" : "4 / 3",
+      background: "var(--paper-2)",
+      border: "1px solid var(--line)",
+      borderRadius: 4,
+      overflow: "hidden",
+      position: "relative",
+      marginBottom: isMobile ? 16 : 0,
+    }}>
+      {/* browser chrome */}
+      <div style={{
+        height: 18,
+        background: "var(--stone-200)",
+        borderBottom: "1px solid var(--line)",
+        display: "flex",
+        alignItems: "center",
+        padding: "0 6px",
+        gap: 4,
+      }}>
+        <span style={{ width: 5, height: 5, borderRadius: 50, background: "var(--stone-400)" }} />
+        <span style={{ width: 5, height: 5, borderRadius: 50, background: "var(--stone-400)" }} />
+        <span style={{ width: 5, height: 5, borderRadius: 50, background: "var(--stone-400)" }} />
+        <span className="mono" style={{ fontSize: 8.5, color: "var(--stone-500)", marginLeft: 8 }}>birminghamdentalpractice.co.uk</span>
+      </div>
+
+      {/* page content placeholder — different per violation type */}
+      <div style={{ padding: 8, height: "calc(100% - 18px)", position: "relative" }}>
+        {type === "v1" && (
+          <>
+            {/* Hero with low-contrast text */}
+            <div style={{ height: 50, background: "oklch(0.78 0.04 70)", borderRadius: 2, padding: 8, display: "flex", alignItems: "center" }}>
+              <div style={{ color: "oklch(0.88 0.02 70)", fontFamily: "var(--serif)", fontSize: 10, lineHeight: 1.2 }}>
+                Modern dentistry in<br/>the heart of Birmingham
+              </div>
+            </div>
+            <div style={{ marginTop: 4, display: "flex", gap: 4 }}>
+              <div style={{ flex: 1, height: 4, background: "var(--stone-200)", borderRadius: 1 }} />
+              <div style={{ flex: 1, height: 4, background: "var(--stone-200)", borderRadius: 1 }} />
+            </div>
+            <Marker sev={sev} label="2.1 : 1" pos={{ top: 12, left: 10, right: 10, height: 50 }} />
+          </>
+        )}
+
+        {type === "v2" && (
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4 }}>
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} style={{
+                  aspectRatio: "4/3",
+                  background: "var(--stone-200)",
+                  borderRadius: 1,
+                  position: "relative",
+                  display: "flex", alignItems: "center", justifyContent: "center"
+                }}>
+                  <span style={{ color: sevColor, fontSize: 9, fontFamily: "var(--mono)" }}>alt=""</span>
+                </div>
+              ))}
+            </div>
+            <Marker sev={sev} label="42 images" pos={{ top: 4, left: 4, right: 4, bottom: 4 }} dashed />
+          </>
+        )}
+
+        {type === "v3" && (
+          <>
+            <div style={{ background: "var(--paper)", padding: 6, borderRadius: 2 }}>
+              <div style={{ fontFamily: "var(--serif)", fontSize: 12, color: "var(--stone-700)", marginBottom: 4 }}>
+                Welcome to our practice
+                <span className="mono" style={{ marginLeft: 6, fontSize: 8, color: sevColor }}>&lt;div&gt;</span>
+              </div>
+              <div style={{ height: 3, background: "var(--stone-200)", borderRadius: 1, marginBottom: 3 }} />
+              <div style={{ height: 3, background: "var(--stone-200)", borderRadius: 1, width: "80%" }} />
+            </div>
+            <Marker sev={sev} label="No <h1>" pos={{ top: 12, left: 10, right: 10, height: 18 }} />
+          </>
+        )}
+
+        {type === "v4" && (
+          <div style={{ background: "var(--paper)", padding: 8, borderRadius: 2 }}>
+            <div className="mono" style={{ fontSize: 8, color: "var(--stone-500)", marginBottom: 4 }}>Book an appointment</div>
+            <div style={{ height: 10, background: "var(--paper-2)", border: "1px solid var(--line)", borderRadius: 1, marginBottom: 4, padding: "1px 4px", display: "flex", alignItems: "center" }}>
+              <span style={{ fontSize: 8, color: "var(--stone-400)", fontStyle: "italic" }}>Your name</span>
+            </div>
+            <div style={{ height: 10, background: "var(--paper-2)", border: "1px solid var(--line)", borderRadius: 1, marginBottom: 4, padding: "1px 4px", display: "flex", alignItems: "center" }}>
+              <span style={{ fontSize: 8, color: "var(--stone-400)", fontStyle: "italic" }}>Email address</span>
+            </div>
+            <div style={{ height: 10, background: "var(--paper-2)", border: "1px solid var(--line)", borderRadius: 1, padding: "1px 4px", display: "flex", alignItems: "center" }}>
+              <span style={{ fontSize: 8, color: "var(--stone-400)", fontStyle: "italic" }}>Preferred date</span>
+            </div>
+            <Marker sev={sev} label="no <label>" pos={{ top: 4, right: 4, width: 50, height: 36 }} />
+          </div>
+        )}
+
+        {type === "v5" && (
+          <div style={{ background: "var(--paper)", padding: 8, borderRadius: 2, position: "relative" }}>
+            <div style={{ height: 18, background: "var(--paper-2)", border: "1px solid var(--line)", borderRadius: 1, marginBottom: 4 }} />
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
+              <div style={{
+                padding: "3px 8px",
+                background: "var(--ink)",
+                color: "var(--paper)",
+                fontSize: 8,
+                borderRadius: 1,
+                fontFamily: "var(--sans)"
+              }}>Submit</div>
+            </div>
+            <Marker sev={sev} label="skipped" pos={{ bottom: 6, right: 4, width: 36, height: 14 }} />
+            {/* tab arrow showing it skips */}
+            <svg viewBox="0 0 100 50" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }}>
+              <path d="M20 14 Q60 4 90 38" fill="none" stroke={sevColor} strokeWidth="1" strokeDasharray="2 2" />
+              <circle cx="90" cy="38" r="2" fill={sevColor} />
+            </svg>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Marker({ sev, label, pos, dashed }) {
+  const sevColor = sev === "critical" ? "var(--sev-critical)" : sev === "serious" ? "oklch(0.55 0.14 50)" : "oklch(0.55 0.08 80)";
+  return (
+    <>
+      <div style={{
+        position: "absolute",
+        ...pos,
+        border: `1.4px ${dashed ? "dashed" : "solid"} ${sevColor}`,
+        borderRadius: 2,
+        pointerEvents: "none",
+      }} />
+      <div style={{
+        position: "absolute",
+        ...(pos.bottom != null ? { bottom: -10 } : { top: pos.top != null ? pos.top - 13 : 0 }),
+        ...(pos.right != null ? { right: pos.right } : { left: pos.left }),
+        background: sevColor,
+        color: "var(--paper)",
+        padding: "1px 5px",
+        fontSize: 8.5,
+        fontFamily: "var(--mono)",
+        borderRadius: 1,
+        letterSpacing: "0.02em",
+        whiteSpace: "nowrap"
+      }}>{label}</div>
+    </>
+  );
+}
+
+// GBP comparison
+function ComparisonTable({ isMobile, you }) {
+  const rows = [
+    { label: "Reviews",       you: "12",      them: "187",   note: "16× more recent reviews" },
+    { label: "Average rating",you: "4.6 ★",   them: "4.8 ★", note: "" },
+    { label: "Photos",        you: "3",       them: "42",    note: "Photos directly affect ranking" },
+    { label: "Posts this quarter", you: "0",  them: "11",    note: "Posts signal 'open for business'" },
+    { label: "Q&A entries",   you: "0",       them: "8",     note: "" },
+    { label: "Hours verified",you: "No",      them: "Yes",   note: "" },
+    { label: "Booking link in profile", you: "No", them: "Yes", note: "" },
+    { label: "Service list completeness", you: "20%", them: "100%", note: "" },
+  ];
+
+  return (
+    <div style={{ background: "var(--paper)", border: "1px solid var(--line)", borderRadius: 6, overflow: "hidden" }}>
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: isMobile ? "1.4fr 1fr 1fr" : "1.8fr 1fr 1fr",
+        background: "var(--paper-2)",
+        borderBottom: "1px solid var(--line)",
+      }}>
+        <div style={{ padding: "14px 18px" }}>
+          <div className="eyebrow" style={{ fontSize: 10 }}>Signal</div>
+        </div>
+        <div style={{ padding: "14px 18px", borderLeft: "1px solid var(--line)" }}>
+          <div className="eyebrow" style={{ fontSize: 10 }}>You</div>
+          <div style={{ fontSize: 12.5, fontWeight: 500, marginTop: 2 }}>{isMobile ? "Birmingham Dental" : "Birmingham Dental Practice"}</div>
+        </div>
+        <div style={{ padding: "14px 18px", borderLeft: "1px solid var(--line)", background: "var(--accent-soft)" }}>
+          <div className="eyebrow" style={{ fontSize: 10, color: "var(--accent-ink)" }}>Top competitor</div>
+          <div style={{ fontSize: 12.5, fontWeight: 500, marginTop: 2, color: "var(--accent-ink)" }}>{isMobile ? "Smile Studio" : "Smile Studio Birmingham"}</div>
+        </div>
+      </div>
+
+      {rows.map((r, i) => (
+        <div key={r.label} style={{
+          display: "grid",
+          gridTemplateColumns: isMobile ? "1.4fr 1fr 1fr" : "1.8fr 1fr 1fr",
+          borderBottom: i < rows.length - 1 ? "1px solid var(--line)" : 0,
+          alignItems: "stretch"
+        }}>
+          <div style={{ padding: "14px 18px" }}>
+            <div style={{ fontSize: 13.5 }}>{r.label}</div>
+            {r.note && !isMobile && <div className="mono" style={{ fontSize: 10.5, color: "var(--stone-500)", marginTop: 2 }}>{r.note}</div>}
+          </div>
+          <div style={{ padding: "14px 18px", borderLeft: "1px solid var(--line)", display: "flex", alignItems: "center" }}>
+            <span style={{ fontFamily: "var(--serif)", fontSize: 20, fontVariantNumeric: "tabular-nums", color: "var(--stone-700)" }}>{r.you}</span>
+          </div>
+          <div style={{ padding: "14px 18px", borderLeft: "1px solid var(--line)", display: "flex", alignItems: "center", background: "oklch(0.985 0.025 75)" }}>
+            <span style={{ fontFamily: "var(--serif)", fontSize: 20, fontVariantNumeric: "tabular-nums", color: "var(--accent-ink)", fontWeight: 500 }}>{r.them}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PerfDial({ label, value, note, isMobile }) {
+  const color = value < 50 ? "var(--sev-critical)" : value < 70 ? "oklch(0.55 0.14 50)" : "var(--positive)";
+  const size = isMobile ? 80 : 120;
+  const stroke = isMobile ? 6 : 8;
+  const r = (size - stroke) / 2;
+  const circ = 2 * Math.PI * r;
+  return (
+    <div style={{ textAlign: "center" }}>
+      <div style={{ position: "relative", width: size, height: size, margin: "0 auto" }}>
+        <svg viewBox={`0 0 ${size} ${size}`} style={{ transform: "rotate(-90deg)" }}>
+          <circle cx={size / 2} cy={size / 2} r={r} stroke="var(--stone-200)" strokeWidth={stroke} fill="none" />
+          <circle cx={size / 2} cy={size / 2} r={r}
+            stroke={color}
+            strokeWidth={stroke}
+            fill="none"
+            strokeDasharray={circ}
+            strokeDashoffset={circ * (1 - value / 100)}
+            strokeLinecap="round"
+          />
+        </svg>
+        <div style={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontFamily: "var(--serif)",
+          fontSize: isMobile ? 28 : 38,
+          color: color,
+          fontVariantNumeric: "tabular-nums",
+          letterSpacing: "-0.02em"
+        }}>{value}</div>
+      </div>
+      <div style={{ fontSize: isMobile ? 13 : 14, fontWeight: 500, marginTop: 10 }}>{label}</div>
+      {!isMobile && <div className="mono" style={{ fontSize: 10.5, color: "var(--stone-500)", marginTop: 4 }}>{note}</div>}
+    </div>
+  );
+}
+
+window.PublicReportScreen = PublicReportScreen;
+
+</script>
+
+<script type="text/babel">
+// ─── ROUTER & APP ─────────────────────────────────────────────────
+function mountApp() {
+  if (!window.AppShell || !window.SearchScreen || !window.PublicReportScreen) {
+    return setTimeout(mountApp, 30);
+  }
+
+  const {
+    AppShell, SearchScreen, SearchResultsScreen, ProspectScreen, OutreachScreen,
+    SavedScreen, ReportsScreen, SettingsScreen, PublicReportScreen,
+    AnnoProvider, Anno, Toast, Icon, Icons, useState, useEffect
+  } = window;
+
+  function parseHash() {
+    const h = (window.location.hash || "#/search").replace(/^#\/?/, "");
+    const [path, ...rest] = h.split("?");
+    const params = {};
+    if (rest.length > 0) {
+      rest.join("?").split("&").forEach(kv => {
+        const [k, v] = kv.split("=");
+        if (k) params[k] = decodeURIComponent(v || "");
+      });
+    }
+    return { path: path || "search", params };
+  }
+
+  function App() {
+    const [{ path, params }, setRoute] = useState(parseHash());
+    const [annoActive, setAnnoActive] = useState(false);
+    const [selection, setSelection] = useState(["p-101", "p-104", "p-109"]);
+    const [toast, setToast] = useState(null);
+    const [publicViewport, setPublicViewport] = useState("desktop");
+
+    useEffect(() => {
+      const onHash = () => setRoute(parseHash());
+      window.addEventListener("hashchange", onHash);
+      return () => window.removeEventListener("hashchange", onHash);
+    }, []);
+
+    const navigate = (target, p = {}) => {
+      const qs = Object.keys(p).length ? "?" + Object.entries(p).map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join("&") : "";
+      window.location.hash = `#/${target}${qs}`;
+      window.scrollTo({ top: 0, behavior: "instant" });
+    };
+
+    const addToOutreach = (ids) => {
+      setSelection((cur) => {
+        const next = Array.from(new Set([...cur, ...ids]));
+        const added = next.length - cur.length;
+        if (added > 0) setToast(`Added ${added} prospect${added === 1 ? "" : "s"} to outreach queue`);
+        return next;
+      });
+    };
+    const removeFromOutreach = (id) => {
+      setSelection(s => s.filter(x => x !== id));
+    };
+
+    // Choose screen
+    let screen, isPublic = false;
+    if (path === "public" || path === "r") {
+      isPublic = true;
+      screen = <PublicReportScreen token={params.token || "bx7-9k2m-q4"} navigate={navigate} viewport={publicViewport} setViewport={setPublicViewport} />;
+    } else if (path === "search/results") {
+      const searchId = params.id || "s-001";
+      const search = DATA.searches.find(s => s.id === searchId) || DATA.searches[0];
+      const live = params.live === "1" ? { live: true } : {};
+      screen = <SearchResultsScreen search={{ ...search, ...live }} navigate={navigate} addToOutreach={addToOutreach} selection={selection} />;
+    } else if (path === "prospect") {
+      const p = DATA.prospects.find(x => x.id === (params.id || "p-101")) || DATA.prospects[0];
+      screen = <ProspectScreen prospect={p} navigate={navigate} addToOutreach={addToOutreach} selection={selection} />;
+    } else if (path === "outreach") {
+      screen = <OutreachScreen navigate={navigate} selection={selection} removeFromOutreach={removeFromOutreach} />;
+    } else if (path === "saved") {
+      screen = <SavedScreen navigate={navigate} addToOutreach={addToOutreach} selection={selection} />;
+    } else if (path === "reports") {
+      screen = <ReportsScreen navigate={navigate} />;
+    } else if (path === "settings") {
+      screen = <SettingsScreen navigate={navigate} />;
+    } else {
+      // "search" default
+      screen = <SearchScreen navigate={navigate} startSearch={() => navigate("search/results", { id: "s-001", live: "1" })} />;
+    }
+
+    if (isPublic) {
+      return <AnnoProvider active={false}>{screen}</AnnoProvider>;
+    }
+
+    return (
+      <AnnoProvider active={annoActive}>
+        <AppShell route={path} navigate={navigate} selectionCount={selection.length}>
+          {screen}
+        </AppShell>
+
+        {/* Annotation toggle */}
+        <button
+          className={`anno-toggle ${annoActive ? "active" : ""}`}
+          onClick={() => setAnnoActive(a => !a)}
+          title="Toggle annotation overlay"
+        >
+          <span className="dot" />
+          {annoActive ? "Annotations on" : "Show annotations"}
+        </button>
+
+        {toast && (
+          <div className="toast">
+            <span className="check"><svg viewBox="0 0 12 12"><path d="M3 6.5l2 2 4-5" stroke="white" strokeWidth="2" fill="none" /></svg></span>
+            {toast}
+            <button
+              onClick={() => setToast(null)}
+              style={{ background: "transparent", border: 0, color: "oklch(0.7 0.01 60)", cursor: "pointer", marginLeft: 8, fontSize: 16, padding: 0, lineHeight: 1 }}
+            >×</button>
+          </div>
+        )}
+      </AnnoProvider>
+    );
+  }
+
+  // Auto-dismiss toast
+  // (handled inside App via setTimeout in setToast wrapper - keep simple)
+
+  ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+}
+
+mountApp();
+</script>
+
+</body>
+</html>

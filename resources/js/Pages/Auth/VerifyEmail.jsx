@@ -1,6 +1,6 @@
-import PrimaryButton from '@/Components/PrimaryButton';
-import GuestLayout from '@/Layouts/GuestLayout';
-import { Head, Link, useForm } from '@inertiajs/react';
+import AuthLayout from '@/Layouts/AuthLayout';
+import { Button } from '@/Components/ui';
+import { Link, useForm } from '@inertiajs/react';
 
 export default function VerifyEmail({ status }) {
     const { post, processing } = useForm({});
@@ -12,39 +12,34 @@ export default function VerifyEmail({ status }) {
     };
 
     return (
-        <GuestLayout>
-            <Head title="Email Verification" />
+        <AuthLayout title="Email Verification">
+            <h1 className="font-serif text-3xl font-normal tracking-tight text-ink mb-3">Verify email</h1>
 
-            <div className="mb-4 text-sm text-gray-600">
+            <p className="micro mb-6">
                 Thanks for signing up! Before getting started, could you verify
                 your email address by clicking on the link we just emailed to
                 you? If you didn't receive the email, we will gladly send you
                 another.
-            </div>
+            </p>
 
             {status === 'verification-link-sent' && (
-                <div className="mb-4 text-sm font-medium text-green-600">
+                <p className="micro mb-4" style={{ color: 'var(--color-positive)' }}>
                     A new verification link has been sent to the email address
                     you provided during registration.
-                </div>
+                </p>
             )}
 
             <form onSubmit={submit}>
-                <div className="mt-4 flex items-center justify-between">
-                    <PrimaryButton disabled={processing}>
+                <div className="flex items-center justify-between gap-3">
+                    <Button kind="primary" type="submit" disabled={processing}>
                         Resend Verification Email
-                    </PrimaryButton>
+                    </Button>
 
-                    <Link
-                        href={route('logout')}
-                        method="post"
-                        as="button"
-                        className="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                    >
+                    <Link href={route('logout')} method="post" as="button" className="micro">
                         Log Out
                     </Link>
                 </div>
             </form>
-        </GuestLayout>
+        </AuthLayout>
     );
 }

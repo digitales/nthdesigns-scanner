@@ -1,5 +1,5 @@
 import { Head } from '@inertiajs/react';
-import { SevChip } from '@/Components/ui';
+import { DataTable, LinkButton, SevChip } from '@/Components/ui';
 import { gradeColor } from '@/Components/ui/scoreBand';
 
 export default function PublicReport({ report }) {
@@ -7,9 +7,8 @@ export default function PublicReport({ report }) {
     const benchmark = report.benchmark;
     const summary = report.violation_summary ?? {};
     const lighthouse = report.lighthouse ?? {};
-    const combined = report.combined_score ?? 0;
     const grade = report.grade ?? 'C';
-    const color = gradeColor(combined);
+    const color = gradeColor(report.combined_score ?? 0);
     const hasA11y = (summary.total ?? 0) > 0 || (report.top_violations?.length ?? 0) > 0;
     const hasLighthouse = lighthouse.performance != null
         || lighthouse.accessibility != null
@@ -198,9 +197,15 @@ export default function PublicReport({ report }) {
                             }}>
                                 No obligation. We'll go through the audit findings and outline what fixing them would involve.
                             </p>
-                            <a href={report.booking_url} target="_blank" rel="noopener noreferrer" className="btn btn-accent btn-lg">
+                            <LinkButton
+                                href={report.booking_url}
+                                kind="accent"
+                                size="lg"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
                                 Book a free 30-minute review
-                            </a>
+                            </LinkButton>
                             <div className="micro" style={{ marginTop: 20 }}>
                                 {report.booking_url.replace(/^https?:\/\//, '')} · Typical reply within one working day
                             </div>
@@ -300,26 +305,24 @@ function ComparisonTable({ businessName, you, benchmark }) {
     ];
 
     return (
-        <div style={{ border: '1px solid var(--color-line)', borderRadius: 6, overflow: 'hidden', background: 'var(--color-paper)' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
-                <thead>
-                    <tr style={{ background: 'var(--color-paper-2)' }}>
-                        <th className="micro" style={{ textAlign: 'left', padding: '12px 20px' }}>Signal</th>
-                        <th className="micro" style={{ textAlign: 'left', padding: '12px 20px' }}>You</th>
-                        <th className="micro" style={{ textAlign: 'left', padding: '12px 20px', background: 'var(--color-accent-soft)' }}>{benchmark.name}</th>
+        <DataTable style={{ background: 'var(--color-paper)' }}>
+            <thead>
+                <tr>
+                    <th>Signal</th>
+                    <th>You</th>
+                    <th style={{ background: 'var(--color-accent-soft)' }}>{benchmark.name}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {rows.map((row) => (
+                    <tr key={row.label}>
+                        <td style={{ color: 'var(--color-stone-600)' }}>{row.label}</td>
+                        <td style={{ fontFamily: 'var(--font-serif)', fontSize: 28 }}>{row.you}</td>
+                        <td style={{ fontFamily: 'var(--font-serif)', fontSize: 28, background: 'var(--color-accent-soft)' }}>{row.them}</td>
                     </tr>
-                </thead>
-                <tbody>
-                    {rows.map((row) => (
-                        <tr key={row.label} style={{ borderTop: '1px solid var(--color-line)' }}>
-                            <td style={{ padding: '16px 20px', color: 'var(--color-stone-600)' }}>{row.label}</td>
-                            <td style={{ padding: '16px 20px', fontFamily: 'var(--font-serif)', fontSize: 28 }}>{row.you}</td>
-                            <td style={{ padding: '16px 20px', fontFamily: 'var(--font-serif)', fontSize: 28, background: 'var(--color-accent-soft)' }}>{row.them}</td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
+                ))}
+            </tbody>
+        </DataTable>
     );
 }
 

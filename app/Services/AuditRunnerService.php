@@ -28,6 +28,8 @@ class AuditRunnerService
      */
     private function runPlaywright(string $url, string $screenshotDir): array
     {
+        $this->assertNodeBinaryAvailable();
+
         $result = Process::timeout(config('scanner.audit_timeout'))
             ->env([
                 'LIGHTHOUSE_BINARY' => config('scanner.lighthouse_binary'),
@@ -56,6 +58,25 @@ class AuditRunnerService
         }
 
         return $payload;
+    }
+
+    private function assertNodeBinaryAvailable(): void
+    {
+        $binary = (string) config('scanner.node_binary');
+
+        $probe = Process::timeout(5)->run([$binary, '--version']);
+
+        if ($probe->successful()) {
+            return;
+        }
+
+        $stderr = trim($probe->errorOutput() ?: $probe->output());
+
+        throw new \RuntimeException(
+            'Node.js is not available at NODE_BINARY ('.$binary.'). '.
+            ($stderr !== '' ? $stderr.'. ' : '').
+            'Set NODE_BINARY=node or the path from `which node` in .env, then restart queue workers.'
+        );
     }
 
     /**

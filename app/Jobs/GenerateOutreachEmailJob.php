@@ -24,7 +24,9 @@ class GenerateOutreachEmailJob implements ShouldQueue
         public Prospect $prospect,
         public User $user,
         public array $options = [],
-    ) {}
+    ) {
+        $this->onQueue('auditing');
+    }
 
     public function handle(OutreachEmailGeneratorService $generator): void
     {
@@ -57,8 +59,4 @@ class GenerateOutreachEmailJob implements ShouldQueue
         }
     }
 
-    public function queue(): string
-    {
-        return 'auditing';
-    }
 }

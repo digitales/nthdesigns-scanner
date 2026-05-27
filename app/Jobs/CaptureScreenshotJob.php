@@ -21,7 +21,10 @@ class CaptureScreenshotJob implements ShouldQueue
     public int $tries = 2;
     public int $timeout = 90;
 
-    public function __construct(public ProspectReport $report) {}
+    public function __construct(public ProspectReport $report)
+    {
+        $this->onQueue('auditing');
+    }
 
     public function handle(
         ScreenshotCaptureService $capture,
@@ -72,8 +75,4 @@ class CaptureScreenshotJob implements ShouldQueue
         }
     }
 
-    public function queue(): string
-    {
-        return 'auditing';
-    }
 }

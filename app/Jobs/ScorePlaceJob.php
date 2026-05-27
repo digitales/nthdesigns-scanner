@@ -24,7 +24,9 @@ class ScorePlaceJob implements ShouldQueue
     public function __construct(
         public Search $search,
         public string $placeId,
-    ) {}
+    ) {
+        $this->onQueue('scraping');
+    }
 
     public function handle(
         GooglePlacesService $places,
@@ -87,8 +89,4 @@ class ScorePlaceJob implements ShouldQueue
         CombineScoresJob::dispatch($prospect->fresh())->onQueue('auditing');
     }
 
-    public function queue(): string
-    {
-        return 'scraping';
-    }
 }

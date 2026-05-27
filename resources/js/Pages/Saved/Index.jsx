@@ -4,12 +4,17 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import {
     AnglePill,
     Button,
+    Card,
+    DataTable,
     EmptyState,
     Field,
+    FilterBar,
     Icons,
+    Input,
     PageHeader,
+    RowActions,
     ScoreBadge,
-    Segmented,
+    Select,
     Status,
     Toast,
 } from '@/Components/ui';
@@ -90,51 +95,52 @@ export default function SavedIndex({ prospects, warmLeads, filters, meta }) {
                                 <Link
                                     key={p.id}
                                     href={`/prospects/${p.id}`}
-                                    className="card card-pad"
-                                    style={{ textDecoration: 'none', color: 'inherit', padding: '14px 16px' }}
+                                    style={{ textDecoration: 'none', color: 'inherit' }}
                                 >
-                                    <div style={{ fontWeight: 500, fontSize: 13 }}>{p.business_name}</div>
-                                    <div className="micro" style={{ marginTop: 4 }}>{p.niche} · {p.city}</div>
-                                    <div style={{ marginTop: 10 }}>
-                                        <ScoreBadge value={p.combined_score} withBar={false} />
-                                    </div>
+                                    <Card pad style={{ padding: '14px 16px' }}>
+                                        <div style={{ fontWeight: 500, fontSize: 13 }}>{p.business_name}</div>
+                                        <div className="micro" style={{ marginTop: 4 }}>{p.niche} · {p.city}</div>
+                                        <div style={{ marginTop: 10 }}>
+                                            <ScoreBadge value={p.combined_score} withBar={false} />
+                                        </div>
+                                    </Card>
                                 </Link>
                             ))}
                         </div>
                     </section>
                 )}
 
-                <form onSubmit={submitFilters} className="filter-bar">
+                <FilterBar onSubmit={submitFilters}>
                     <Field label="From">
-                        <input type="date" name="from" className="input" defaultValue={filters.from ?? ''} />
+                        <Input type="date" name="from" defaultValue={filters.from ?? ''} />
                     </Field>
                     <Field label="To">
-                        <input type="date" name="to" className="input" defaultValue={filters.to ?? ''} />
+                        <Input type="date" name="to" defaultValue={filters.to ?? ''} />
                     </Field>
                     <Field label="Niche">
-                        <input type="text" name="niche" className="input" defaultValue={filters.niche ?? ''} />
+                        <Input type="text" name="niche" defaultValue={filters.niche ?? ''} />
                     </Field>
                     <Field label="City">
-                        <input type="text" name="city" className="input" defaultValue={filters.city ?? ''} />
+                        <Input type="text" name="city" defaultValue={filters.city ?? ''} />
                     </Field>
                     <Field label="Scan type">
-                        <select name="scan_type" className="select" defaultValue={filters.scan_type ?? ''}>
+                        <Select name="scan_type" defaultValue={filters.scan_type ?? ''}>
                             <option value="">Any</option>
                             <option value="combined">Combined</option>
                             <option value="gbp_only">GBP only</option>
                             <option value="accessibility_only">Accessibility only</option>
-                        </select>
+                        </Select>
                     </Field>
                     <Field label="Angle">
-                        <select name="dominant_angle" className="select" defaultValue={filters.dominant_angle ?? ''}>
+                        <Select name="dominant_angle" defaultValue={filters.dominant_angle ?? ''}>
                             <option value="">Any</option>
                             <option value="gbp">GBP</option>
                             <option value="accessibility">Accessibility</option>
                             <option value="both">Both</option>
-                        </select>
+                        </Select>
                     </Field>
                     <Field label="Min score">
-                        <input type="number" name="min_score" min="0" max="100" className="input" defaultValue={filters.min_score ?? ''} />
+                        <Input type="number" name="min_score" min="0" max="100" defaultValue={filters.min_score ?? ''} />
                     </Field>
                     <Field label="Warm">
                         <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, paddingTop: 8 }}>
@@ -146,7 +152,7 @@ export default function SavedIndex({ prospects, warmLeads, filters, meta }) {
                         <Button kind="primary" size="sm" type="submit">Apply</Button>
                         <Link href="/saved" className="micro">Reset</Link>
                     </div>
-                </form>
+                </FilterBar>
 
                 {prospects.length === 0 ? (
                     <EmptyState
@@ -155,8 +161,7 @@ export default function SavedIndex({ prospects, warmLeads, filters, meta }) {
                         sub="Try widening your date range or lowering the minimum score."
                     />
                 ) : (
-                    <div style={{ border: '1px solid var(--color-line)', borderRadius: 6, overflow: 'hidden' }}>
-                        <table className="ptable">
+                    <DataTable>
                             <thead>
                                 <tr>
                                     <th>Business</th>
@@ -193,7 +198,7 @@ export default function SavedIndex({ prospects, warmLeads, filters, meta }) {
                                             )}
                                         </td>
                                         <td onClick={(e) => e.stopPropagation()} style={{ textAlign: 'right' }}>
-                                            <div className="row-actions">
+                                            <RowActions>
                                                 {p.report_url && (
                                                     <button type="button" className="btn-icon" title="Copy report URL" onClick={() => copyUrl(p.report_url)}>
                                                         <span className="micro">Copy</span>
@@ -202,13 +207,12 @@ export default function SavedIndex({ prospects, warmLeads, filters, meta }) {
                                                 <button type="button" className="btn-ghost btn-xs" onClick={() => addToOutreach(p.id)}>
                                                     + Queue
                                                 </button>
-                                            </div>
+                                            </RowActions>
                                         </td>
                                     </tr>
                                 ))}
                             </tbody>
-                        </table>
-                    </div>
+                    </DataTable>
                 )}
 
                 {toast && <Toast onClose={() => setToast(null)}>{toast}</Toast>}

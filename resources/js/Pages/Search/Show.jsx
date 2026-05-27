@@ -6,11 +6,14 @@ import {
     Badge,
     Button,
     Checkbox,
+    DataTable,
     EmptyState,
     Field,
+    FilterBar,
     Icon,
     Icons,
     PageHeader,
+    RowActions,
     ScoreBadge,
     Segmented,
     Status,
@@ -103,7 +106,7 @@ export default function SearchShow({ search, prospects, outreachProspectIds = []
                     </div>
                 )}
 
-                <div className="filter-bar">
+                <FilterBar onSubmit={(e) => e.preventDefault()}>
                     <Field label="Angle">
                         <Segmented
                             value={angleFilter}
@@ -133,7 +136,7 @@ export default function SearchShow({ search, prospects, outreachProspectIds = []
                     <div className="filter-action">
                         <span className="micro">Showing {visible.length} of {prospects.length}</span>
                     </div>
-                </div>
+                </FilterBar>
 
                 {visible.length === 0 && !isRunning ? (
                     <EmptyState
@@ -142,8 +145,7 @@ export default function SearchShow({ search, prospects, outreachProspectIds = []
                         sub="Try lowering the minimum score or clearing the angle filter."
                     />
                 ) : (
-                    <div style={{ border: '1px solid var(--color-line)', borderRadius: 6, overflow: 'hidden', background: 'var(--color-paper)' }}>
-                        <table className="ptable">
+                    <DataTable style={{ background: 'var(--color-paper)' }}>
                             <thead>
                                 <tr>
                                     <th style={{ width: 36 }}>
@@ -189,8 +191,7 @@ export default function SearchShow({ search, prospects, outreachProspectIds = []
                                         </tr>
                                     ))}
                             </tbody>
-                        </table>
-                    </div>
+                    </DataTable>
                 )}
             </main>
         </AuthenticatedLayout>
@@ -269,7 +270,7 @@ function ProspectRow({
                     )}
                 </td>
                 <td onClick={(e) => e.stopPropagation()} style={{ textAlign: 'right' }}>
-                    <div className="row-actions">
+                    <RowActions>
                         <button type="button" className="btn-icon" title="Expand weaknesses" onClick={onToggleExpand}>
                             <Icon d={isExpanded ? Icons.ChevronU : Icons.ChevronD} />
                         </button>
@@ -309,7 +310,7 @@ function ProspectRow({
                         >
                             <Icon d={Icons.ChevronR} />
                         </Link>
-                    </div>
+                    </RowActions>
                 </td>
             </tr>
             {isExpanded && (

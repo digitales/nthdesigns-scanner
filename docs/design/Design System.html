@@ -1,0 +1,1494 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1280" />
+<title>Prospect Scanner — Design System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ──────────────────────────────────────────────────────────────
+     TOKENS
+     ────────────────────────────────────────────────────────────── */
+  :root {
+    /* warm-tinted neutrals */
+    --paper:        oklch(0.985 0.006 80);
+    --paper-2:      oklch(0.965 0.009 80);
+    --stone-100:    oklch(0.945 0.010 75);
+    --stone-200:    oklch(0.905 0.012 72);
+    --stone-300:    oklch(0.835 0.014 68);
+    --stone-400:    oklch(0.715 0.016 64);
+    --stone-500:    oklch(0.560 0.016 60);
+    --stone-600:    oklch(0.430 0.013 56);
+    --stone-700:    oklch(0.305 0.011 54);
+    --stone-800:    oklch(0.225 0.009 54);
+    --ink:          oklch(0.155 0.008 52);
+
+    /* accent (tweakable) — defaults to ochre */
+    --accent:       oklch(0.705 0.140 65);
+    --accent-soft:  oklch(0.945 0.045 75);
+    --accent-deep:  oklch(0.500 0.130 55);
+    --accent-ink:   oklch(0.290 0.080 50);
+
+    /* severity */
+    --sev-critical: oklch(0.515 0.180 28);
+    --sev-critical-soft: oklch(0.945 0.045 30);
+    --sev-serious:  oklch(0.660 0.155 52);
+    --sev-serious-soft: oklch(0.955 0.050 70);
+    --sev-moderate: oklch(0.610 0.085 85);
+    --sev-moderate-soft: oklch(0.960 0.035 90);
+
+    /* score bands — monochrome → warm */
+    --score-low:    var(--stone-500);
+    --score-low-bg: var(--stone-100);
+    --score-mid:    var(--stone-700);
+    --score-mid-bg: oklch(0.93 0.020 75);
+    --score-high:   var(--accent-deep);
+    --score-high-bg: var(--accent-soft);
+
+    /* surfaces */
+    --line:         oklch(0.895 0.012 70);
+    --line-strong:  oklch(0.825 0.014 68);
+    --shadow-1:     0 1px 0 oklch(1 0 0 / .8) inset, 0 1px 2px oklch(0 0 0 / .04);
+    --shadow-2:     0 1px 0 oklch(1 0 0 / .9) inset, 0 8px 24px -8px oklch(0 0 0 / .12);
+
+    /* type */
+    --serif: "Newsreader", "Source Serif Pro", Georgia, serif;
+    --sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--ink);
+    background: var(--paper);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "ss01", "cv11";
+  }
+  a { color: inherit; text-decoration-color: var(--stone-300); text-underline-offset: 3px; }
+  ::selection { background: var(--accent-soft); color: var(--accent-ink); }
+
+  /* ──────────────────────────────────────────────────────────────
+     LAYOUT
+     ────────────────────────────────────────────────────────────── */
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 0 56px; }
+  section { padding: 88px 0; border-top: 1px solid var(--line); }
+  section:first-of-type { border-top: 0; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--stone-500);
+    margin: 0 0 18px;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .eyebrow::before {
+    content: "";
+    display: inline-block;
+    width: 14px;
+    height: 1px;
+    background: var(--stone-400);
+  }
+  h1, h2, h3 { font-family: var(--serif); font-weight: 500; letter-spacing: -0.012em; margin: 0; }
+  h1 { font-size: 72px; line-height: 1.02; letter-spacing: -0.022em; }
+  h2 { font-size: 42px; line-height: 1.08; letter-spacing: -0.018em; margin-bottom: 14px; }
+  h3 { font-size: 22px; line-height: 1.25; font-weight: 500; margin-bottom: 6px; }
+  .lede {
+    font-family: var(--serif);
+    font-size: 22px;
+    line-height: 1.45;
+    color: var(--stone-700);
+    font-weight: 400;
+    max-width: 720px;
+  }
+  .small { font-size: 13px; color: var(--stone-600); }
+  .micro { font-family: var(--mono); font-size: 11px; color: var(--stone-500); letter-spacing: 0.02em; }
+  .tabular { font-variant-numeric: tabular-nums; }
+
+  .grid-2 { display: grid; grid-template-columns: 280px 1fr; gap: 64px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .stack > * + * { margin-top: 12px; }
+
+  /* ──────────────────────────────────────────────────────────────
+     HERO
+     ────────────────────────────────────────────────────────────── */
+  .hero { padding: 96px 0 80px; }
+  .hero-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 64px;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .brand-mark {
+    width: 26px;
+    height: 26px;
+    position: relative;
+  }
+  .brand-mark::before, .brand-mark::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border: 1.5px solid var(--ink);
+  }
+  .brand-mark::before { transform: rotate(0deg); }
+  .brand-mark::after { transform: rotate(45deg); border-color: var(--accent); border-width: 1.5px; }
+  .brand-name {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 19px;
+    letter-spacing: -0.01em;
+  }
+  .brand-sep {
+    color: var(--stone-400);
+    margin: 0 4px;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+  .brand-product {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--stone-700);
+  }
+  .meta {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--stone-500);
+    text-align: right;
+    letter-spacing: 0.04em;
+  }
+  .meta b { color: var(--ink); font-weight: 500; }
+
+  .hero h1 em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--accent-deep);
+  }
+  .hero-bottom {
+    margin-top: 64px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 64px;
+    padding-top: 36px;
+    border-top: 1px solid var(--line);
+  }
+  .principle h4 {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--stone-600);
+    margin: 0 0 10px;
+  }
+  .principle p { margin: 0; font-size: 14px; color: var(--stone-700); line-height: 1.55; }
+
+  /* ──────────────────────────────────────────────────────────────
+     COLOR
+     ────────────────────────────────────────────────────────────── */
+  .swatch-row { display: grid; grid-template-columns: repeat(10, 1fr); gap: 8px; }
+  .swatch-row.severity { grid-template-columns: repeat(3, 1fr); gap: 24px; max-width: 720px; }
+  .swatch-row.score { grid-template-columns: repeat(3, 1fr); gap: 24px; max-width: 720px; }
+  .swatch-row.accent { grid-template-columns: repeat(4, 1fr); gap: 12px; max-width: 480px; }
+
+  .sw {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .sw-chip {
+    aspect-ratio: 1 / 1.15;
+    border-radius: 4px;
+    border: 1px solid var(--line);
+    position: relative;
+    overflow: hidden;
+  }
+  .sw-chip.tall { aspect-ratio: 1 / 1.4; }
+  .sw-name { font-size: 12px; font-weight: 500; color: var(--ink); }
+  .sw-val { font-family: var(--mono); font-size: 10px; color: var(--stone-500); letter-spacing: 0.02em; }
+
+  .swatch-pair {
+    display: grid;
+    grid-template-columns: 1fr;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .swatch-pair > div:first-child {
+    aspect-ratio: 2 / 1;
+  }
+  .swatch-pair-meta {
+    padding: 14px 16px;
+    background: var(--paper);
+    border-top: 1px solid var(--line);
+  }
+  .swatch-pair-meta .nm { font-size: 14px; font-weight: 500; margin-bottom: 2px; }
+  .swatch-pair-meta .vl { font-family: var(--mono); font-size: 11px; color: var(--stone-500); }
+  .swatch-pair-meta .use { font-size: 12px; color: var(--stone-600); margin-top: 6px; line-height: 1.5; }
+
+  /* ──────────────────────────────────────────────────────────────
+     TYPE
+     ────────────────────────────────────────────────────────────── */
+  .type-card {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 56px;
+    padding: 32px 0;
+    border-top: 1px solid var(--line);
+    align-items: baseline;
+  }
+  .type-card:last-child { border-bottom: 1px solid var(--line); }
+  .type-meta { padding-top: 12px; }
+  .type-meta .fam { font-family: var(--mono); font-size: 11px; color: var(--stone-500); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
+  .type-meta .nm { font-size: 14px; font-weight: 500; }
+  .type-meta .spec { font-family: var(--mono); font-size: 11px; color: var(--stone-500); margin-top: 4px; }
+  .type-sample { color: var(--ink); }
+
+  /* Type scale rows */
+  .scale-row { display: flex; align-items: baseline; gap: 32px; padding: 14px 0; border-bottom: 1px dashed var(--line); }
+  .scale-row:last-child { border-bottom: 0; }
+  .scale-row .label { width: 120px; font-family: var(--mono); font-size: 11px; color: var(--stone-500); text-transform: uppercase; letter-spacing: 0.08em; flex-shrink: 0; }
+  .scale-row .size { width: 64px; font-family: var(--mono); font-size: 11px; color: var(--stone-500); flex-shrink: 0; }
+  .scale-row .sample { flex: 1; }
+
+  /* ──────────────────────────────────────────────────────────────
+     COMPONENT SHOWCASE
+     ────────────────────────────────────────────────────────────── */
+  .showcase {
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--paper);
+    padding: 36px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: center;
+  }
+  .showcase.dark { background: var(--ink); border-color: var(--ink); }
+  .showcase.dark .micro { color: var(--stone-400); }
+
+  .showcase-row {
+    display: grid;
+    grid-template-columns: 160px 1fr;
+    gap: 32px;
+    padding: 28px 0;
+    border-top: 1px solid var(--line);
+    align-items: center;
+  }
+  .showcase-row:first-of-type { border-top: 0; padding-top: 0; }
+  .showcase-row .row-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--stone-500);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .showcase-row .row-content { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+
+  /* Buttons */
+  .btn {
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 9px 16px;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    background: transparent;
+    color: var(--ink);
+    transition: background-color .15s, border-color .15s, color .15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    line-height: 1;
+  }
+  .btn-primary { background: var(--ink); color: var(--paper); }
+  .btn-primary:hover { background: var(--stone-800); }
+  .btn-accent { background: var(--accent-deep); color: var(--paper); }
+  .btn-accent:hover { background: var(--accent-ink); }
+  .btn-secondary { background: var(--paper); border-color: var(--line-strong); color: var(--ink); }
+  .btn-secondary:hover { background: var(--paper-2); border-color: var(--stone-400); }
+  .btn-ghost { color: var(--stone-700); }
+  .btn-ghost:hover { background: var(--stone-100); color: var(--ink); }
+  .btn-destructive { color: var(--sev-critical); border-color: oklch(0.515 0.180 28 / 0.3); background: var(--paper); }
+  .btn-destructive:hover { background: var(--sev-critical-soft); }
+  .btn-sm { font-size: 12.5px; padding: 6px 11px; }
+  .btn-lg { font-size: 15px; padding: 12px 22px; }
+  .btn .ico { width: 14px; height: 14px; stroke: currentColor; stroke-width: 1.6; fill: none; }
+
+  /* Inputs */
+  .field { display: flex; flex-direction: column; gap: 6px; min-width: 220px; }
+  .field-label { font-size: 12px; font-weight: 500; color: var(--stone-700); letter-spacing: 0.01em; }
+  .input, .select, .textarea {
+    font-family: var(--sans);
+    font-size: 14px;
+    color: var(--ink);
+    background: var(--paper);
+    border: 1px solid var(--line-strong);
+    border-radius: 4px;
+    padding: 9px 12px;
+    width: 100%;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .input:focus, .select:focus, .textarea:focus {
+    outline: none;
+    border-color: var(--accent-deep);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  .input::placeholder { color: var(--stone-400); }
+  .select { appearance: none; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%23736b5c' stroke-width='1.4' fill='none'/></svg>"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
+
+  /* Badges */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--sans);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 3px 9px;
+    border-radius: 3px;
+    background: var(--stone-100);
+    color: var(--stone-700);
+    line-height: 1.4;
+    border: 1px solid transparent;
+  }
+  .badge .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: 0.6; }
+
+  /* Score badges */
+  .score-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 5px 10px 5px 8px;
+    border-radius: 3px;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    border: 1px solid transparent;
+  }
+  .score-badge.low { background: var(--score-low-bg); color: var(--stone-700); border-color: var(--stone-200); }
+  .score-badge.mid { background: var(--score-mid-bg); color: var(--ink); border-color: oklch(0.85 0.03 75); }
+  .score-badge.high { background: var(--score-high-bg); color: var(--accent-ink); border-color: oklch(0.85 0.08 65); }
+  .score-badge .num { font-weight: 600; }
+  .score-badge .bar {
+    width: 28px;
+    height: 4px;
+    border-radius: 2px;
+    background: oklch(0 0 0 / 0.08);
+    position: relative;
+    overflow: hidden;
+  }
+  .score-badge .bar::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: currentColor;
+    opacity: 0.7;
+  }
+  .score-badge.low .bar::after { right: 65%; }
+  .score-badge.mid .bar::after { right: 42%; }
+  .score-badge.high .bar::after { right: 18%; }
+
+  /* Pitch angle pills */
+  .angle-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--sans);
+    font-size: 11.5px;
+    font-weight: 500;
+    padding: 2px 8px 2px 6px;
+    border-radius: 999px;
+    border: 1px solid var(--line-strong);
+    background: var(--paper);
+    color: var(--stone-700);
+    line-height: 1.45;
+    letter-spacing: 0.005em;
+  }
+  .angle-pill .glyph {
+    width: 14px;
+    height: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--stone-500);
+  }
+  .angle-pill.gbp .glyph { color: var(--stone-600); }
+  .angle-pill.a11y .glyph { color: var(--accent-deep); }
+  .angle-pill.both .glyph { color: var(--ink); }
+
+  /* Severity chips */
+  .sev-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--sans);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 4px 10px 4px 8px;
+    border-radius: 3px;
+    line-height: 1.3;
+    border: 1px solid transparent;
+  }
+  .sev-chip .pip {
+    width: 6px;
+    height: 6px;
+    background: currentColor;
+    flex-shrink: 0;
+  }
+  .sev-chip.critical { color: var(--sev-critical); background: var(--sev-critical-soft); border-color: oklch(0.515 0.180 28 / 0.18); }
+  .sev-chip.critical .pip { border-radius: 0; }
+  .sev-chip.serious { color: oklch(0.45 0.13 50); background: var(--sev-serious-soft); border-color: oklch(0.660 0.155 52 / 0.22); }
+  .sev-chip.serious .pip { border-radius: 1px; transform: rotate(45deg); }
+  .sev-chip.moderate { color: oklch(0.42 0.07 80); background: var(--sev-moderate-soft); border-color: oklch(0.610 0.085 85 / 0.25); }
+  .sev-chip.moderate .pip { border-radius: 50%; }
+
+  /* Status pills */
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--sans);
+    font-size: 12px;
+    color: var(--stone-700);
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: var(--paper-2);
+    border: 1px solid var(--line);
+  }
+  .status .led {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--stone-400);
+  }
+  .status.ready .led { background: oklch(0.65 0.13 145); }
+  .status.pending .led { background: var(--sev-serious); animation: pulse 1.6s ease-in-out infinite; }
+  .status.failed .led { background: var(--sev-critical); }
+  .status.warm { background: var(--accent-soft); border-color: oklch(0.85 0.08 65); color: var(--accent-ink); }
+  .status.warm .led { background: var(--accent); }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+
+  /* Cards */
+  .card {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 24px;
+  }
+  .card-title { font-family: var(--mono); font-size: 11px; color: var(--stone-500); text-transform: uppercase; letter-spacing: 0.1em; margin: 0 0 12px; }
+
+  .score-card {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 22px 24px 24px;
+    position: relative;
+  }
+  .score-card.highlight { border-color: oklch(0.85 0.08 65); background: linear-gradient(180deg, var(--accent-soft) 0%, var(--paper) 70%); }
+  .score-card .label {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--stone-600);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 12px;
+  }
+  .score-card .value {
+    font-family: var(--serif);
+    font-size: 56px;
+    line-height: 1;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .score-card.highlight .value { color: var(--accent-ink); }
+  .score-card .value .unit { font-size: 16px; color: var(--stone-500); margin-left: 4px; font-family: var(--mono); }
+  .score-card .delta {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--stone-500);
+    margin-top: 10px;
+    letter-spacing: 0.02em;
+  }
+
+  /* Table */
+  .ptable {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 13.5px;
+  }
+  .ptable thead th {
+    text-align: left;
+    font-family: var(--mono);
+    font-weight: 500;
+    font-size: 10.5px;
+    color: var(--stone-500);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--line);
+    background: var(--paper-2);
+  }
+  .ptable thead th:first-child { border-top-left-radius: 6px; }
+  .ptable thead th:last-child { border-top-right-radius: 6px; }
+  .ptable tbody td {
+    padding: 18px 16px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: middle;
+    color: var(--ink);
+  }
+  .ptable tbody tr:last-child td { border-bottom: 0; }
+  .ptable tbody tr:hover { background: var(--paper-2); }
+  .ptable .biz { font-weight: 500; }
+  .ptable .biz .url { display: block; font-family: var(--mono); font-size: 11px; color: var(--stone-500); font-weight: 400; margin-top: 2px; }
+  .ptable .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .ptable tbody tr.warm { background: linear-gradient(90deg, var(--accent-soft) 0%, transparent 60%); }
+  .ptable tbody tr.warm:hover { background: linear-gradient(90deg, var(--accent-soft) 0%, var(--paper-2) 60%); }
+  .ptable tbody tr.failed td { color: var(--stone-500); }
+
+  /* Skeleton */
+  .skel {
+    background: linear-gradient(90deg, var(--stone-100) 0%, var(--stone-200) 50%, var(--stone-100) 100%);
+    background-size: 200% 100%;
+    border-radius: 3px;
+    animation: shimmer 1.6s ease-in-out infinite;
+    display: inline-block;
+    height: 12px;
+  }
+  @keyframes shimmer {
+    0% { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
+  }
+
+  /* Annotation pin */
+  .anno-pin {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--paper);
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 0 4px oklch(1 0 0 / 0.6), 0 2px 8px oklch(0 0 0 / 0.15);
+    line-height: 1;
+  }
+  .anno-callout {
+    display: inline-block;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 10px 14px;
+    border-radius: 4px;
+    font-size: 12.5px;
+    line-height: 1.5;
+    max-width: 280px;
+    box-shadow: 0 8px 24px oklch(0 0 0 / 0.18);
+    position: relative;
+  }
+  .anno-callout::before {
+    content: "";
+    position: absolute;
+    left: -5px;
+    top: 14px;
+    width: 10px;
+    height: 10px;
+    background: var(--ink);
+    transform: rotate(45deg);
+  }
+  .anno-callout b { font-weight: 500; color: var(--accent-soft); }
+  .anno-callout .micro { color: oklch(0.7 0.01 60); margin-bottom: 4px; }
+
+  /* Footer note */
+  footer { padding: 56px 0 96px; }
+  .footer-rule { border-top: 1px solid var(--line); padding-top: 36px; display: flex; justify-content: space-between; align-items: flex-end; }
+  .footer-rule .lead { font-family: var(--serif); font-size: 22px; max-width: 480px; color: var(--stone-700); line-height: 1.4; }
+  .footer-rule .meta { text-align: right; }
+
+  /* small radius/shadow tokens */
+  .token-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
+  }
+  .token {
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 20px;
+    background: var(--paper);
+  }
+  .token .specimen {
+    width: 100%;
+    aspect-ratio: 2 / 1;
+    background: var(--paper-2);
+    border: 1px solid var(--line);
+    margin-bottom: 14px;
+  }
+  .token .specimen.r-0 { border-radius: 0; }
+  .token .specimen.r-2 { border-radius: 2px; }
+  .token .specimen.r-4 { border-radius: 4px; }
+  .token .specimen.r-6 { border-radius: 6px; }
+  .token .specimen.r-full { border-radius: 999px; }
+  .token .specimen.sh-1 { box-shadow: var(--shadow-1); }
+  .token .specimen.sh-2 { box-shadow: var(--shadow-2); }
+  .token .nm { font-size: 13px; font-weight: 500; }
+  .token .vl { font-family: var(--mono); font-size: 10.5px; color: var(--stone-500); margin-top: 2px; }
+
+  /* Two column for annotations */
+  .anno-demo {
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 56px;
+    background: var(--paper);
+    display: flex;
+    gap: 36px;
+    align-items: flex-start;
+    position: relative;
+  }
+  .anno-demo .mock {
+    width: 280px;
+    border: 1px solid var(--line-strong);
+    border-radius: 4px;
+    padding: 16px;
+    background: var(--paper-2);
+    position: relative;
+  }
+  .anno-demo .mock .pin-attached {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+  }
+  .anno-demo .mock .biz-nm { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+  .anno-demo .mock .biz-meta { font-family: var(--mono); font-size: 11px; color: var(--stone-500); margin-bottom: 14px; }
+  .anno-demo .mock .row-scores { display: flex; gap: 8px; }
+
+  .anno-stack { flex: 1; display: flex; flex-direction: column; gap: 14px; }
+  .anno-stack .anno-item { display: flex; gap: 14px; align-items: flex-start; }
+  .anno-stack .anno-item .num {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--paper);
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .anno-stack .anno-item .copy h5 { margin: 0 0 4px; font-size: 13.5px; font-weight: 500; }
+  .anno-stack .anno-item .copy p { margin: 0; font-size: 12.5px; color: var(--stone-600); line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- ─── HERO ─── -->
+  <header class="hero">
+    <div class="hero-top">
+      <div class="brand">
+        <span class="brand-mark"></span>
+        <span class="brand-name">nthdesigns</span>
+        <span class="brand-sep">/</span>
+        <span class="brand-product">Prospect Scanner</span>
+      </div>
+      <div class="meta">
+        <div>Design System &nbsp;·&nbsp; <b>v0.1</b></div>
+        <div>26 May 2026 &nbsp;·&nbsp; Foundations pass</div>
+      </div>
+    </div>
+
+    <p class="eyebrow">Foundations</p>
+    <h1>A quiet, evidence-led<br/>system for finding <em>warm</em> local prospects.</h1>
+    <p class="lede" style="margin-top: 28px;">
+      Two surfaces, one voice. An internal operator app built for scanning hundreds of rows quickly,
+      and a public report that reads like a senior consultant's audit — never a SaaS pitch.
+    </p>
+
+    <div class="hero-bottom">
+      <div class="principle">
+        <h4>Evidence over enthusiasm</h4>
+        <p>Show the operator (and the prospect) the data. Numbers are tabular, sources are cited, screenshots are attached. No exclamation marks.</p>
+      </div>
+      <div class="principle">
+        <h4>High score = warm lead</h4>
+        <p>Our scores measure weakness. The colour scale gets warmer as the opportunity gets larger — never "green is good".</p>
+      </div>
+      <div class="principle">
+        <h4>Calm in dense places</h4>
+        <p>Tables are roomy and scannable. Colour is reserved for signal: severity, status, and the warm-lead accent. Everything else is paper and ink.</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- ─── COLOUR ─── -->
+  <section>
+    <div class="grid-2">
+      <div>
+        <p class="eyebrow">01 — Colour</p>
+        <h2>Paper, ink &amp; a single warm signal.</h2>
+        <p class="small" style="max-width: 280px; margin-top: 12px;">
+          A monochrome palette tinted slightly warm (h ≈ 60–80) so the page never feels clinical.
+          One ochre accent does the heavy lifting for "warm lead", supplemented by severity tones
+          on the public report.
+        </p>
+      </div>
+      <div class="stack" style="gap: 56px; display: flex; flex-direction: column;">
+
+        <div>
+          <p class="micro" style="margin-bottom: 14px;">NEUTRALS — STONE SCALE</p>
+          <div class="swatch-row">
+            <div class="sw"><div class="sw-chip" style="background: var(--paper);"></div><div class="sw-name">paper</div><div class="sw-val">.985 .006 80</div></div>
+            <div class="sw"><div class="sw-chip" style="background: var(--paper-2);"></div><div class="sw-name">paper‑2</div><div class="sw-val">.965 .009 80</div></div>
+            <div class="sw"><div class="sw-chip" style="background: var(--stone-100);"></div><div class="sw-name">100</div><div class="sw-val">.945 .010 75</div></div>
+            <div class="sw"><div class="sw-chip" style="background: var(--stone-200);"></div><div class="sw-name">200</div><div class="sw-val">.905 .012 72</div></div>
+            <div class="sw"><div class="sw-chip" style="background: var(--stone-300);"></div><div class="sw-name">300</div><div class="sw-val">.835 .014 68</div></div>
+            <div class="sw"><div class="sw-chip" style="background: var(--stone-400);"></div><div class="sw-name">400</div><div class="sw-val">.715 .016 64</div></div>
+            <div class="sw"><div class="sw-chip" style="background: var(--stone-500);"></div><div class="sw-name">500</div><div class="sw-val">.560 .016 60</div></div>
+            <div class="sw"><div class="sw-chip" style="background: var(--stone-600);"></div><div class="sw-name">600</div><div class="sw-val">.430 .013 56</div></div>
+            <div class="sw"><div class="sw-chip" style="background: var(--stone-700);"></div><div class="sw-name">700</div><div class="sw-val">.305 .011 54</div></div>
+            <div class="sw"><div class="sw-chip" style="background: var(--ink);"></div><div class="sw-name">ink</div><div class="sw-val">.155 .008 52</div></div>
+          </div>
+        </div>
+
+        <div>
+          <p class="micro" style="margin-bottom: 14px;">ACCENT — WARM LEAD SIGNAL</p>
+          <div class="grid-3">
+            <div class="swatch-pair">
+              <div style="background: var(--accent-soft);"></div>
+              <div class="swatch-pair-meta">
+                <div class="nm">accent-soft</div>
+                <div class="vl">var(--accent-soft)</div>
+                <div class="use">Warm-lead row tint. Background of high-opportunity score badge.</div>
+              </div>
+            </div>
+            <div class="swatch-pair">
+              <div style="background: var(--accent);"></div>
+              <div class="swatch-pair-meta">
+                <div class="nm">accent</div>
+                <div class="vl">var(--accent)</div>
+                <div class="use">Annotation pins, the diamond in the brand mark, status LED.</div>
+              </div>
+            </div>
+            <div class="swatch-pair">
+              <div style="background: var(--accent-deep);"></div>
+              <div class="swatch-pair-meta">
+                <div class="nm">accent-deep</div>
+                <div class="vl">var(--accent-deep)</div>
+                <div class="use">CTAs on public report, focus rings, italic emphasis text.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <p class="micro" style="margin-bottom: 14px;">SCORE BANDS — HIGHER = WEAKER BUSINESS = WARMER LEAD</p>
+          <div class="grid-3">
+            <div class="swatch-pair">
+              <div style="background: var(--score-low-bg); display:flex; align-items:center; justify-content:center;">
+                <span class="score-badge low"><span class="bar"></span><span class="num">23</span></span>
+              </div>
+              <div class="swatch-pair-meta">
+                <div class="nm">0–40 &nbsp; Low opportunity</div>
+                <div class="vl">stone-100 / stone-700</div>
+                <div class="use">Business is doing fine. Skip or watch.</div>
+              </div>
+            </div>
+            <div class="swatch-pair">
+              <div style="background: var(--score-mid-bg); display:flex; align-items:center; justify-content:center;">
+                <span class="score-badge mid"><span class="bar"></span><span class="num">58</span></span>
+              </div>
+              <div class="swatch-pair-meta">
+                <div class="nm">41–70 &nbsp; Medium</div>
+                <div class="vl">stone-200 / ink</div>
+                <div class="use">Worth a look — usually a single weak angle.</div>
+              </div>
+            </div>
+            <div class="swatch-pair">
+              <div style="background: var(--score-high-bg); display:flex; align-items:center; justify-content:center;">
+                <span class="score-badge high"><span class="bar"></span><span class="num">87</span></span>
+              </div>
+              <div class="swatch-pair-meta">
+                <div class="nm">71–100 &nbsp; High — warm</div>
+                <div class="vl">accent-soft / accent-ink</div>
+                <div class="use">Multiple weakness signals. Prioritise outreach.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <p class="micro" style="margin-bottom: 14px;">SEVERITY — ACCESSIBILITY VIOLATIONS</p>
+          <div class="grid-3">
+            <div class="swatch-pair">
+              <div style="background: var(--sev-critical-soft); display:flex; align-items:center; justify-content:center;">
+                <span class="sev-chip critical"><span class="pip"></span>Critical · 4</span>
+              </div>
+              <div class="swatch-pair-meta">
+                <div class="nm">Critical</div>
+                <div class="vl">WCAG 2.2 AA — blocking</div>
+                <div class="use">Keyboard traps, missing alt text, contrast &lt; 3:1.</div>
+              </div>
+            </div>
+            <div class="swatch-pair">
+              <div style="background: var(--sev-serious-soft); display:flex; align-items:center; justify-content:center;">
+                <span class="sev-chip serious"><span class="pip"></span>Serious · 11</span>
+              </div>
+              <div class="swatch-pair-meta">
+                <div class="nm">Serious</div>
+                <div class="vl">WCAG 2.2 AA — degrading</div>
+                <div class="use">Form labels, focus order, headings hierarchy.</div>
+              </div>
+            </div>
+            <div class="swatch-pair">
+              <div style="background: var(--sev-moderate-soft); display:flex; align-items:center; justify-content:center;">
+                <span class="sev-chip moderate"><span class="pip"></span>Moderate · 8</span>
+              </div>
+              <div class="swatch-pair-meta">
+                <div class="nm">Moderate</div>
+                <div class="vl">WCAG 2.2 AA — polish</div>
+                <div class="use">Link text, ARIA misuse, redundant landmarks.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── TYPE ─── -->
+  <section>
+    <div class="grid-2">
+      <div>
+        <p class="eyebrow">02 — Typography</p>
+        <h2>An editorial display serif &amp; a workmanlike sans.</h2>
+        <p class="small" style="max-width: 280px; margin-top: 12px;">
+          Newsreader carries every headline and the public report's authoritative voice.
+          IBM Plex Sans handles dense interface text. IBM Plex Mono is reserved for tabular
+          figures, identifiers, and timestamp/eyebrow labels — never paragraphs.
+        </p>
+      </div>
+      <div>
+
+        <div class="type-card">
+          <div class="type-meta">
+            <div class="fam">Display</div>
+            <div class="nm">Newsreader</div>
+            <div class="spec">400, 500 · italic available</div>
+          </div>
+          <div class="type-sample">
+            <div style="font-family: var(--serif); font-size: 56px; line-height: 1.05; letter-spacing: -0.02em; font-weight: 400;">Birmingham Dental Practice <em style="color: var(--accent-deep);">scored 87</em>.</div>
+            <div style="font-family: var(--serif); font-size: 22px; line-height: 1.45; color: var(--stone-700); margin-top: 18px;">A two-signal audit of <em>23 sites</em> across Birmingham city centre — five are warm leads.</div>
+          </div>
+        </div>
+
+        <div class="type-card">
+          <div class="type-meta">
+            <div class="fam">Interface</div>
+            <div class="nm">IBM Plex Sans</div>
+            <div class="spec">300, 400, 500, 600</div>
+          </div>
+          <div class="type-sample">
+            <div class="scale-row"><span class="label">Title / 600</span><span class="size">22 / 28</span><span class="sample" style="font-size: 22px; font-weight: 600; line-height: 1.25;">Three score cards, one prospect</span></div>
+            <div class="scale-row"><span class="label">Body / 400</span><span class="size">15 / 24</span><span class="sample" style="font-size: 15px;">Review the combined score before drilling into individual weakness flags. Each row links to its source audit.</span></div>
+            <div class="scale-row"><span class="label">UI / 500</span><span class="size">14 / 20</span><span class="sample" style="font-size: 14px; font-weight: 500;">Add to outreach &nbsp;·&nbsp; Preview report &nbsp;·&nbsp; View on Maps</span></div>
+            <div class="scale-row"><span class="label">Small / 400</span><span class="size">13 / 20</span><span class="sample" style="font-size: 13px; color: var(--stone-600);">Combined audit completed 23 minutes ago — refresh to re-run.</span></div>
+            <div class="scale-row"><span class="label">Caption / 500</span><span class="size">12 / 16</span><span class="sample" style="font-size: 12px; font-weight: 500; color: var(--stone-700);">Last viewed by visitor in Solihull, 2 hours ago</span></div>
+          </div>
+        </div>
+
+        <div class="type-card">
+          <div class="type-meta">
+            <div class="fam">Numerics &amp; labels</div>
+            <div class="nm">IBM Plex Mono</div>
+            <div class="spec">400, 500 · tabular figures</div>
+          </div>
+          <div class="type-sample">
+            <div class="scale-row"><span class="label">Big number</span><span class="size">56</span><span class="sample" style="font-family: var(--serif); font-size: 56px; font-variant-numeric: tabular-nums; letter-spacing: -0.02em;">87 <span style="font-family: var(--mono); font-size: 14px; color: var(--stone-500);">/ 100</span></span></div>
+            <div class="scale-row"><span class="label">Table figure</span><span class="size">13</span><span class="sample tabular" style="font-family: var(--mono); font-size: 13px;">87 &nbsp;·&nbsp; 0.872 &nbsp;·&nbsp; £12.40 &nbsp;·&nbsp; 23/100</span></div>
+            <div class="scale-row"><span class="label">Eyebrow</span><span class="size">11</span><span class="sample" style="font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--stone-500);">— LAST AUDITED 23 MIN AGO</span></div>
+            <div class="scale-row"><span class="label">Identifier</span><span class="size">12</span><span class="sample" style="font-family: var(--mono); font-size: 12px; color: var(--stone-700);">/r/bx7-9k2m-q4</span></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── SHAPE & SPACE ─── -->
+  <section>
+    <div class="grid-2">
+      <div>
+        <p class="eyebrow">03 — Shape &amp; space</p>
+        <h2>Restrained radii, almost no shadow.</h2>
+        <p class="small" style="max-width: 280px; margin-top: 12px;">
+          Corner radius peaks at 6px. Shadows are reserved for floating surfaces (toasts, the
+          tweaks panel, annotation callouts). Everything else relies on a single hairline border.
+        </p>
+      </div>
+      <div>
+        <p class="micro" style="margin-bottom: 14px;">RADII</p>
+        <div class="token-row">
+          <div class="token"><div class="specimen r-0"></div><div class="nm">Sharp</div><div class="vl">0px · dividers, tags</div></div>
+          <div class="token"><div class="specimen r-2"></div><div class="nm">Tight</div><div class="vl">2px · chips, badges</div></div>
+          <div class="token"><div class="specimen r-4"></div><div class="nm">Default</div><div class="vl">4px · inputs, buttons</div></div>
+          <div class="token"><div class="specimen r-6"></div><div class="nm">Card</div><div class="vl">6px · cards, panels</div></div>
+          <div class="token"><div class="specimen r-full"></div><div class="nm">Pill</div><div class="vl">999px · status, angle</div></div>
+        </div>
+        <p class="micro" style="margin: 36px 0 14px;">ELEVATION</p>
+        <div class="token-row" style="grid-template-columns: repeat(3, 1fr); max-width: 720px;">
+          <div class="token"><div class="specimen r-4" style="box-shadow: none;"></div><div class="nm">Flat</div><div class="vl">Inline content</div></div>
+          <div class="token"><div class="specimen r-4 sh-1"></div><div class="nm">Subtle</div><div class="vl">Hover, focus</div></div>
+          <div class="token"><div class="specimen r-4 sh-2"></div><div class="nm">Floating</div><div class="vl">Toasts, popovers</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── BUTTONS & INPUTS ─── -->
+  <section>
+    <div class="grid-2">
+      <div>
+        <p class="eyebrow">04 — Controls</p>
+        <h2>Buttons, fields &amp; the form for a new scan.</h2>
+        <p class="small" style="max-width: 280px; margin-top: 12px;">
+          The primary action on the internal app is <b>ink on paper</b> — confident, neutral.
+          The accent button is reserved for the public report's single CTA so it stays singular.
+        </p>
+      </div>
+      <div>
+        <div class="showcase">
+          <div class="showcase-row" style="width: 100%;">
+            <div class="row-label">Primary</div>
+            <div class="row-content">
+              <button class="btn btn-primary">Run search</button>
+              <button class="btn btn-primary btn-lg">Run combined audit</button>
+              <button class="btn btn-primary btn-sm">Save</button>
+              <button class="btn btn-primary" disabled style="opacity: .35; cursor: not-allowed;">Generating…</button>
+            </div>
+          </div>
+          <div class="showcase-row" style="width: 100%;">
+            <div class="row-label">Accent</div>
+            <div class="row-content">
+              <button class="btn btn-accent btn-lg">
+                Book a free 30-minute review
+                <svg class="ico" viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+              </button>
+              <button class="btn btn-accent btn-sm">Verify report</button>
+            </div>
+          </div>
+          <div class="showcase-row" style="width: 100%;">
+            <div class="row-label">Secondary</div>
+            <div class="row-content">
+              <button class="btn btn-secondary">Add to outreach</button>
+              <button class="btn btn-secondary">
+                <svg class="ico" viewBox="0 0 16 16"><path d="M2 3h12v10H2zM2 6h12"/></svg>
+                Copy link
+              </button>
+              <button class="btn btn-secondary btn-sm">Mark sent</button>
+            </div>
+          </div>
+          <div class="showcase-row" style="width: 100%;">
+            <div class="row-label">Ghost</div>
+            <div class="row-content">
+              <button class="btn btn-ghost">View on Maps</button>
+              <button class="btn btn-ghost btn-sm">Expand weaknesses</button>
+              <button class="btn btn-ghost">Cancel</button>
+            </div>
+          </div>
+          <div class="showcase-row" style="width: 100%;">
+            <div class="row-label">Destructive</div>
+            <div class="row-content">
+              <button class="btn btn-destructive btn-sm">Delete prospect</button>
+              <button class="btn btn-destructive btn-sm">Revoke link</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="showcase" style="margin-top: 24px;">
+          <div class="showcase-row" style="width: 100%;">
+            <div class="row-label">Fields</div>
+            <div class="row-content" style="gap: 16px; align-items: flex-start;">
+              <div class="field">
+                <label class="field-label">Niche</label>
+                <input class="input" value="Dental practice" />
+              </div>
+              <div class="field" style="min-width: 180px;">
+                <label class="field-label">City</label>
+                <input class="input" value="Birmingham" />
+              </div>
+              <div class="field" style="min-width: 200px;">
+                <label class="field-label">Country</label>
+                <select class="select"><option>United Kingdom</option><option>Ireland</option></select>
+              </div>
+              <div class="field" style="min-width: 220px;">
+                <label class="field-label">Scan type</label>
+                <select class="select"><option>Combined — GBP + Accessibility</option><option>GBP only</option><option>Accessibility only</option></select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── BADGES & STATUS ─── -->
+  <section>
+    <div class="grid-2">
+      <div>
+        <p class="eyebrow">05 — Badges &amp; status</p>
+        <h2>Five families, learned in 30 seconds.</h2>
+        <p class="small" style="max-width: 280px; margin-top: 12px;">
+          Operators glance, never read. Each badge family is shape-coded as well as colour-coded,
+          so the system survives monochrome printing and colour-blind operators.
+        </p>
+      </div>
+      <div>
+        <div class="showcase-row" style="width: 100%;">
+          <div class="row-label">Score</div>
+          <div class="row-content">
+            <span class="score-badge low"><span class="bar"></span><span class="num">23</span></span>
+            <span class="score-badge low"><span class="bar"></span><span class="num">38</span></span>
+            <span class="score-badge mid"><span class="bar"></span><span class="num">52</span></span>
+            <span class="score-badge mid"><span class="bar"></span><span class="num">66</span></span>
+            <span class="score-badge high"><span class="bar"></span><span class="num">74</span></span>
+            <span class="score-badge high"><span class="bar"></span><span class="num">87</span></span>
+            <span class="score-badge high"><span class="bar"></span><span class="num">93</span></span>
+          </div>
+        </div>
+        <div class="showcase-row" style="width: 100%;">
+          <div class="row-label">Pitch angle</div>
+          <div class="row-content">
+            <span class="angle-pill gbp"><span class="glyph">◐</span>GBP</span>
+            <span class="angle-pill a11y"><span class="glyph">◢</span>Accessibility</span>
+            <span class="angle-pill both"><span class="glyph">◆</span>Both signals</span>
+          </div>
+        </div>
+        <div class="showcase-row" style="width: 100%;">
+          <div class="row-label">Severity</div>
+          <div class="row-content">
+            <span class="sev-chip critical"><span class="pip"></span>Critical · 4</span>
+            <span class="sev-chip serious"><span class="pip"></span>Serious · 11</span>
+            <span class="sev-chip moderate"><span class="pip"></span>Moderate · 8</span>
+          </div>
+        </div>
+        <div class="showcase-row" style="width: 100%;">
+          <div class="row-label">Status</div>
+          <div class="row-content">
+            <span class="status ready"><span class="led"></span>Report ready</span>
+            <span class="status pending"><span class="led"></span>Auditing…</span>
+            <span class="status failed"><span class="led"></span>Audit failed</span>
+            <span class="status"><span class="led"></span>Not started</span>
+            <span class="status warm"><span class="led"></span>Warm lead · viewed 2h ago</span>
+          </div>
+        </div>
+        <div class="showcase-row" style="width: 100%;">
+          <div class="row-label">Inline tags</div>
+          <div class="row-content">
+            <span class="badge"><span class="dot"></span>Missing &lt;h1&gt;</span>
+            <span class="badge"><span class="dot"></span>Contrast 2.1 : 1</span>
+            <span class="badge"><span class="dot"></span>No alt text · 42</span>
+            <span class="badge"><span class="dot"></span>3 photos</span>
+            <span class="badge"><span class="dot"></span>0 reviews this quarter</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── CARDS ─── -->
+  <section>
+    <div class="grid-2">
+      <div>
+        <p class="eyebrow">06 — Cards</p>
+        <h2>Three score cards form the prospect's identity.</h2>
+        <p class="small" style="max-width: 280px; margin-top: 12px;">
+          Combined score gets the visual lead — serif-set, ochre when warm. GBP and Accessibility
+          flank it with the same scale and tabular figures so they read as a row, not a hierarchy.
+        </p>
+      </div>
+      <div>
+        <div class="grid-3" style="gap: 12px;">
+          <div class="score-card highlight">
+            <div class="label">Combined opportunity</div>
+            <div class="value">87<span class="unit">/100</span></div>
+            <div class="delta">Top decile in Birmingham · multi-signal</div>
+          </div>
+          <div class="score-card">
+            <div class="label">GBP weakness</div>
+            <div class="value">79<span class="unit">/100</span></div>
+            <div class="delta">3 photos · 0 posts · no Q&amp;A</div>
+          </div>
+          <div class="score-card">
+            <div class="label">Accessibility</div>
+            <div class="value">92<span class="unit">/100</span></div>
+            <div class="delta">4 critical · 11 serious violations</div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top: 24px;">
+          <div style="display:flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+            <div>
+              <h3 style="margin-bottom: 4px; font-family: var(--sans); font-size: 18px; font-weight: 500;">Birmingham Dental Practice</h3>
+              <div class="micro">birminghamdentalpractice.co.uk · 142 Bromsgrove St, B5 6RG</div>
+            </div>
+            <span class="status warm"><span class="led"></span>Warm · viewed 2h ago</span>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <span class="angle-pill both"><span class="glyph">◆</span>Both signals</span>
+            <span class="badge"><span class="dot"></span>Missing &lt;h1&gt;</span>
+            <span class="badge"><span class="dot"></span>Contrast 2.1 : 1</span>
+            <span class="badge"><span class="dot"></span>No alt text · 42</span>
+            <span class="badge"><span class="dot"></span>3 photos on profile</span>
+            <span class="badge"><span class="dot"></span>0 posts this quarter</span>
+          </div>
+          <div style="display: flex; gap: 12px; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line);">
+            <button class="btn btn-primary btn-sm">Generate outreach</button>
+            <button class="btn btn-secondary btn-sm">Preview public report</button>
+            <button class="btn btn-ghost btn-sm">Copy link · /r/bx7-9k2m</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── TABLE ─── -->
+  <section>
+    <div>
+      <p class="eyebrow">07 — Data table</p>
+      <h2 style="max-width: 720px;">The scan results table — built for scanning 200 rows.</h2>
+      <p class="small" style="max-width: 540px; margin-top: 12px; margin-bottom: 32px;">
+        Generous row height (60px), tabular figures on every number, sticky header in real use.
+        Warm leads get a soft accent wash from the left edge; failed audits dim back into the page.
+      </p>
+
+      <div style="border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--paper);">
+        <table class="ptable">
+          <thead>
+            <tr>
+              <th style="width: 28%;">Business</th>
+              <th style="width: 10%;">Combined</th>
+              <th style="width: 10%;">GBP</th>
+              <th style="width: 10%;">A11y</th>
+              <th style="width: 14%;">Angle</th>
+              <th style="width: 14%;">Status</th>
+              <th style="width: 14%; text-align: right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="warm">
+              <td class="biz">Birmingham Dental Practice<span class="url">birminghamdentalpractice.co.uk</span></td>
+              <td><span class="score-badge high"><span class="bar"></span><span class="num">87</span></span></td>
+              <td class="num">79</td>
+              <td class="num">92</td>
+              <td><span class="angle-pill both"><span class="glyph">◆</span>Both</span></td>
+              <td><span class="status warm"><span class="led"></span>Viewed 2h ago</span></td>
+              <td style="text-align: right;"><button class="btn btn-ghost btn-sm">Open →</button></td>
+            </tr>
+            <tr>
+              <td class="biz">Hartley &amp; Co Solicitors<span class="url">hartley-solicitors.co.uk</span></td>
+              <td><span class="score-badge high"><span class="bar"></span><span class="num">74</span></span></td>
+              <td class="num">68</td>
+              <td class="num">80</td>
+              <td><span class="angle-pill a11y"><span class="glyph">◢</span>Accessibility</span></td>
+              <td><span class="status ready"><span class="led"></span>Report ready</span></td>
+              <td style="text-align: right;"><button class="btn btn-ghost btn-sm">Open →</button></td>
+            </tr>
+            <tr>
+              <td class="biz">The Pheasant Inn, Bassenthwaite<span class="url">pheasant-bassenthwaite.co.uk</span></td>
+              <td><span class="score-badge mid"><span class="bar"></span><span class="num">66</span></span></td>
+              <td class="num">71</td>
+              <td class="num">61</td>
+              <td><span class="angle-pill gbp"><span class="glyph">◐</span>GBP</span></td>
+              <td><span class="status pending"><span class="led"></span>Auditing site</span></td>
+              <td style="text-align: right;"><button class="btn btn-ghost btn-sm" disabled style="opacity: .35;">Open →</button></td>
+            </tr>
+            <tr>
+              <td class="biz">Cobble &amp; Last (cobblers)<span class="url">cobbleandlast.co.uk</span></td>
+              <td><span class="score-badge mid"><span class="bar"></span><span class="num">52</span></span></td>
+              <td class="num">48</td>
+              <td class="num">56</td>
+              <td><span class="angle-pill both"><span class="glyph">◆</span>Both</span></td>
+              <td><span class="status ready"><span class="led"></span>Report ready</span></td>
+              <td style="text-align: right;"><button class="btn btn-ghost btn-sm">Open →</button></td>
+            </tr>
+            <tr class="failed">
+              <td class="biz">Singh Family Dentistry<span class="url" style="color: var(--sev-critical);">site returned 503 · audit failed</span></td>
+              <td><span class="score-badge low" style="opacity: .5;"><span class="bar"></span><span class="num">—</span></span></td>
+              <td class="num">42</td>
+              <td class="num" style="color: var(--sev-critical);">×</td>
+              <td><span class="angle-pill gbp"><span class="glyph">◐</span>GBP</span></td>
+              <td><span class="status failed"><span class="led"></span>Audit failed · retry</span></td>
+              <td style="text-align: right;"><button class="btn btn-ghost btn-sm">Retry</button></td>
+            </tr>
+            <tr>
+              <td class="biz">Mosley Lane Chiropractic<span class="url">mosleylane-chiro.co.uk</span></td>
+              <td><span class="score-badge low"><span class="bar"></span><span class="num">38</span></span></td>
+              <td class="num">35</td>
+              <td class="num">40</td>
+              <td><span class="angle-pill gbp"><span class="glyph">◐</span>GBP</span></td>
+              <td><span class="status ready"><span class="led"></span>Report ready</span></td>
+              <td style="text-align: right;"><button class="btn btn-ghost btn-sm">Open →</button></td>
+            </tr>
+            <tr>
+              <td class="biz">
+                <span class="skel" style="width: 60%; height: 14px;"></span>
+                <span class="url"><span class="skel" style="width: 45%; height: 10px;"></span></span>
+              </td>
+              <td><span class="skel" style="width: 40px; height: 22px;"></span></td>
+              <td><span class="skel" style="width: 28px;"></span></td>
+              <td><span class="skel" style="width: 28px;"></span></td>
+              <td><span class="skel" style="width: 70px; height: 18px; border-radius: 999px;"></span></td>
+              <td><span class="skel" style="width: 100px; height: 18px; border-radius: 999px;"></span></td>
+              <td></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="display: flex; gap: 20px; margin-top: 16px; align-items: center;">
+        <span class="status pending"><span class="led"></span>Auditing 4 of 17 sites</span>
+        <span class="micro">— Search "Dental practice · Birmingham" started 4 min ago</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── ANNOTATION LAYER ─── -->
+  <section>
+    <div class="grid-2">
+      <div>
+        <p class="eyebrow">08 — Annotation layer</p>
+        <h2>The pin, the callout &amp; the legend.</h2>
+        <p class="small" style="max-width: 280px; margin-top: 12px;">
+          Numbered pins float above the prototype when annotation mode is on. Each pin opens a
+          dark callout describing what the operator should learn — what the score means, which
+          action is primary, what error states to expect.
+        </p>
+      </div>
+      <div>
+        <div class="anno-demo">
+          <div class="mock">
+            <div class="biz-nm">Birmingham Dental Practice</div>
+            <div class="biz-meta">birminghamdentalpractice.co.uk</div>
+            <div class="row-scores">
+              <span class="score-badge high"><span class="bar"></span><span class="num">87</span></span>
+              <span class="score-badge mid"><span class="bar"></span><span class="num">66</span></span>
+              <span class="score-badge low"><span class="bar"></span><span class="num">38</span></span>
+            </div>
+            <span class="anno-pin pin-attached">1</span>
+          </div>
+
+          <div class="anno-stack">
+            <div class="anno-item">
+              <span class="num">1</span>
+              <div class="copy">
+                <h5>Combined score = warm-lead probability</h5>
+                <p>Higher is "worse for the business, better for you." 71+ is automatically tinted with the accent — these are the rows operators should action first.</p>
+              </div>
+            </div>
+            <div class="anno-item">
+              <span class="num">2</span>
+              <div class="copy">
+                <h5>GBP &amp; A11y sub-scores</h5>
+                <p>Same scale, never inverted. If one sub-score is &gt; 70 and the other &lt; 40, the dominant angle pill labels the pitch direction (GBP or Accessibility, never "Both").</p>
+              </div>
+            </div>
+            <div class="anno-item">
+              <span class="num">3</span>
+              <div class="copy">
+                <h5>Warm-lead row tint</h5>
+                <p>Soft accent wash from the left edge appears once a prospect's public report has been opened. It overrides the standard hover state.</p>
+              </div>
+            </div>
+            <div class="anno-item">
+              <span class="num">4</span>
+              <div class="copy">
+                <h5>Audit-failed state</h5>
+                <p>Dimmed row, red sub-meta, single "Retry" action. The prospect is never auto-deleted — operators decide if a 503 is a permanent skip.</p>
+              </div>
+            </div>
+          </div>
+
+          <div style="position: absolute; right: 56px; bottom: 56px;">
+            <div class="anno-callout">
+              <div class="micro">SCORE 87 · BIRMINGHAM DENTAL</div>
+              Top decile in this niche. <b>Both</b> signals weak — open with the accessibility angle first; it's the easier story to tell on a phone.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── FOOTER ─── -->
+  <footer>
+    <div class="footer-rule">
+      <p class="lead">Next: lay these foundations into the eight prototype screens — public report first, then the operator shell.</p>
+      <div class="meta">
+        <div>nthdesigns &nbsp;·&nbsp; Prospect Scanner</div>
+        <div>Design System &nbsp;v0.1 &nbsp;·&nbsp; <b>Foundations</b></div>
+      </div>
+    </div>
+  </footer>
+
+</div>
+
+<!-- ─── TWEAKS PANEL (hand-rolled, vanilla) ─── -->
+<style>
+  .tw-panel {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    z-index: 1000;
+    width: 240px;
+    background: oklch(0.985 0.005 80 / 0.92);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid oklch(1 0 0 / 0.7);
+    border-radius: 10px;
+    box-shadow: 0 1px 0 oklch(1 0 0 / 0.5) inset, 0 14px 40px oklch(0 0 0 / 0.18);
+    padding: 14px 16px 16px;
+    font-family: var(--sans);
+    transition: opacity .2s, transform .2s;
+  }
+  .tw-panel[hidden] { display: none !important; }
+  .tw-panel h6 {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--stone-500);
+    margin: 0 0 12px;
+  }
+  .tw-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .tw-row .lbl { font-size: 12px; font-weight: 500; color: var(--ink); }
+  .tw-row .val { font-family: var(--mono); font-size: 10.5px; color: var(--stone-500); text-transform: capitalize; }
+  .tw-swatches { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .tw-sw {
+    aspect-ratio: 1;
+    border-radius: 4px;
+    border: 1px solid oklch(0 0 0 / 0.08);
+    cursor: pointer;
+    padding: 0;
+    position: relative;
+    transition: transform .12s, box-shadow .12s;
+  }
+  .tw-sw:hover { transform: translateY(-1px); }
+  .tw-sw.active { box-shadow: 0 0 0 2px var(--paper), 0 0 0 3.5px var(--ink); }
+  .tw-help {
+    font-size: 11px;
+    color: var(--stone-500);
+    line-height: 1.5;
+    margin: 12px 0 0;
+  }
+</style>
+<div class="tw-panel" id="tw-panel" hidden>
+  <h6>Tweaks · Brand</h6>
+  <div class="tw-row">
+    <span class="lbl">Accent</span>
+    <span class="val" id="tw-accent-val">Ochre</span>
+  </div>
+  <div class="tw-swatches" id="tw-swatches">
+    <button class="tw-sw" data-key="ochre"  style="background:#c08a40" title="Ochre"></button>
+    <button class="tw-sw" data-key="rust"   style="background:#b56242" title="Rust"></button>
+    <button class="tw-sw" data-key="olive"  style="background:#8a8a36" title="Olive"></button>
+    <button class="tw-sw" data-key="indigo" style="background:#5e7ccc" title="Indigo"></button>
+  </div>
+  <p class="tw-help">Tints the warm-lead signal across score badges, status pills, the brand mark and the report CTA.</p>
+</div>
+<script>
+(function(){
+  const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+    "accent": "ochre"
+  }/*EDITMODE-END*/;
+
+  const ACCENTS = {
+    ochre:  { tuple: ["oklch(0.705 0.140 65)",  "oklch(0.945 0.045 75)",  "oklch(0.500 0.130 55)",  "oklch(0.290 0.080 50)"],  label: "Ochre" },
+    rust:   { tuple: ["oklch(0.625 0.155 35)",  "oklch(0.945 0.045 40)",  "oklch(0.460 0.150 30)",  "oklch(0.270 0.095 28)"],  label: "Rust" },
+    olive:  { tuple: ["oklch(0.640 0.110 115)", "oklch(0.945 0.040 115)", "oklch(0.470 0.110 115)", "oklch(0.270 0.060 115)"], label: "Olive" },
+    indigo: { tuple: ["oklch(0.560 0.140 255)", "oklch(0.945 0.035 250)", "oklch(0.420 0.150 258)", "oklch(0.260 0.080 258)"], label: "Indigo" }
+  };
+
+  let current = TWEAK_DEFAULTS.accent || 'ochre';
+
+  function applyAccent(name) {
+    const a = ACCENTS[name] || ACCENTS.ochre;
+    const root = document.documentElement;
+    root.style.setProperty("--accent",      a.tuple[0]);
+    root.style.setProperty("--accent-soft", a.tuple[1]);
+    root.style.setProperty("--accent-deep", a.tuple[2]);
+    root.style.setProperty("--accent-ink",  a.tuple[3]);
+    document.getElementById('tw-accent-val').textContent = a.label;
+    document.querySelectorAll('#tw-swatches .tw-sw').forEach(b => {
+      b.classList.toggle('active', b.dataset.key === name);
+    });
+  }
+
+  function setAccent(name) {
+    if (!ACCENTS[name] || name === current) return;
+    current = name;
+    applyAccent(name);
+    try {
+      window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { accent: name } }, '*');
+    } catch (_) {}
+  }
+
+  applyAccent(current);
+
+  document.getElementById('tw-swatches').addEventListener('click', (e) => {
+    const btn = e.target.closest('.tw-sw');
+    if (!btn) return;
+    setAccent(btn.dataset.key);
+  });
+
+  // Host protocol — show/hide on toolbar Tweaks toggle
+  const panel = document.getElementById('tw-panel');
+  window.addEventListener('message', (ev) => {
+    const t = ev.data && ev.data.type;
+    if (t === '__activate_edit_mode') panel.hidden = false;
+    else if (t === '__deactivate_edit_mode') panel.hidden = true;
+  });
+  try {
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+  } catch (_) {}
+})();
+</script>
+
+</body>
+</html>

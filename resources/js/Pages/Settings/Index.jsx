@@ -1,7 +1,16 @@
 import { Head, useForm, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import {
+    Button,
+    Card,
+    Field,
+    FormError,
+    Input,
+    PageHeader,
+    Select,
+} from '@/Components/ui';
 
-export default function SettingsIndex({ auth, settings, health, env }) {
+export default function SettingsIndex({ settings, health, env }) {
     const { flash } = usePage().props;
     const { data, setData, patch, processing, errors, recentlySuccessful } = useForm({
         default_country: settings.default_country,
@@ -14,104 +23,108 @@ export default function SettingsIndex({ auth, settings, health, env }) {
         patch('/settings');
     };
 
+    const formatKey = (key) => key.replace(/_/g, ' ');
+
     return (
-        <AuthenticatedLayout user={auth.user}>
+        <AuthenticatedLayout>
             <Head title="Settings" />
 
-            <div className="max-w-3xl mx-auto py-10 px-4 space-y-8">
-                <h1 className="text-2xl font-semibold text-gray-900">Settings</h1>
+            <main className="page" style={{ maxWidth: 720 }}>
+                <PageHeader
+                    eyebrow="Settings"
+                    title="Workspace defaults."
+                    sub="API health, storage drivers, and values that pre-fill search and outreach."
+                />
 
                 {flash?.success && (
-                    <div className="rounded-lg bg-green-50 border border-green-200 text-green-800 text-sm px-4 py-3">
+                    <p className="micro" style={{ color: 'var(--color-positive)', marginBottom: 16 }}>
                         {flash.success}
-                    </div>
+                    </p>
                 )}
 
-                <section className="bg-white rounded-xl border border-gray-200 p-6">
-                    <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">
-                        API & storage health
-                    </h2>
-                    <ul className="space-y-3">
-                        {Object.entries(health).map(([key, status]) => (
-                            <li key={key} className="flex items-start justify-between gap-4 text-sm">
-                                <span className="font-medium text-gray-700 capitalize">{key.replace('_', ' ')}</span>
-                                <span className={status.ok ? 'text-green-700' : 'text-red-600'}>
-                                    {status.message}
-                                </span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                    <Card title="API & storage health">
+                        <ul style={{ display: 'flex', flexDirection: 'column', gap: 12, margin: 0, padding: 0, listStyle: 'none' }}>
+                            {Object.entries(health).map(([key, status]) => (
+                                <li
+                                    key={key}
+                                    style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}
+                                >
+                                    <span className="micro" style={{ fontWeight: 500, textTransform: 'capitalize' }}>
+                                        {formatKey(key)}
+                                    </span>
+                                    <span
+                                        className="micro"
+                                        style={status.ok ? undefined : { color: 'var(--color-sev-critical)' }}
+                                    >
+                                        {status.message}
+                                    </span>
+                                </li>
+                            ))}
+                            <li style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+                                <span className="micro" style={{ fontWeight: 500 }}>Reports disk</span>
+                                <span className="micro">{env.reports_disk}</span>
                             </li>
-                        ))}
-                        <li className="flex items-start justify-between gap-4 text-sm">
-                            <span className="font-medium text-gray-700">Reports disk</span>
-                            <span className="text-gray-600">{env.reports_disk}</span>
-                        </li>
-                        <li className="flex items-start justify-between gap-4 text-sm">
-                            <span className="font-medium text-gray-700">Audit driver</span>
-                            <span className="text-gray-600">{env.audit_driver}</span>
-                        </li>
-                        <li className="flex items-start justify-between gap-4 text-sm">
-                            <span className="font-medium text-gray-700">Screenshot driver</span>
-                            <span className="text-gray-600">{env.screenshot_driver}</span>
-                        </li>
-                    </ul>
-                </section>
+                            <li style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+                                <span className="micro" style={{ fontWeight: 500 }}>Audit driver</span>
+                                <span className="micro">{env.audit_driver}</span>
+                            </li>
+                            <li style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+                                <span className="micro" style={{ fontWeight: 500 }}>Screenshot driver</span>
+                                <span className="micro">{env.screenshot_driver}</span>
+                            </li>
+                        </ul>
+                    </Card>
 
-                <form onSubmit={submit} className="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
-                    <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">
-                        Defaults
-                    </h2>
+                    <Card title="Defaults">
+                        <form onSubmit={submit}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                <Field label="Default country">
+                                    <Select
+                                        value={data.default_country}
+                                        onChange={(e) => setData('default_country', e.target.value)}
+                                    >
+                                        <option value="GB">United Kingdom</option>
+                                        <option value="IE">Ireland</option>
+                                        <option value="US">United States</option>
+                                    </Select>
+                                    <FormError message={errors.default_country} />
+                                </Field>
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Default country</label>
-                        <select
-                            value={data.default_country}
-                            onChange={e => setData('default_country', e.target.value)}
-                            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                        >
-                            <option value="GB">United Kingdom</option>
-                            <option value="IE">Ireland</option>
-                            <option value="US">United States</option>
-                        </select>
-                        {errors.default_country && <p className="text-red-500 text-xs mt-1">{errors.default_country}</p>}
-                    </div>
+                                <Field label="Agency name" hint="pre-fills the outreach generator">
+                                    <Input
+                                        type="text"
+                                        value={data.agency_name}
+                                        onChange={(e) => setData('agency_name', e.target.value)}
+                                        placeholder="nthdesigns"
+                                    />
+                                </Field>
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Agency name</label>
-                        <input
-                            type="text"
-                            value={data.agency_name}
-                            onChange={e => setData('agency_name', e.target.value)}
-                            placeholder="nthdesigns"
-                            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">Pre-fills the outreach generator.</p>
-                    </div>
+                                <Field label="Booking URL" hint="public report CTA; overrides REPORT_BOOKING_URL">
+                                    <Input
+                                        type="url"
+                                        value={data.booking_url}
+                                        onChange={(e) => setData('booking_url', e.target.value)}
+                                        placeholder="https://tidycal.com/yourhandle"
+                                    />
+                                    <FormError message={errors.booking_url} />
+                                </Field>
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Booking URL</label>
-                        <input
-                            type="url"
-                            value={data.booking_url}
-                            onChange={e => setData('booking_url', e.target.value)}
-                            placeholder="https://tidycal.com/yourhandle"
-                            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">Used on public report CTA buttons. Overrides REPORT_BOOKING_URL.</p>
-                        {errors.booking_url && <p className="text-red-500 text-xs mt-1">{errors.booking_url}</p>}
-                    </div>
-
-                    <button
-                        type="submit"
-                        disabled={processing}
-                        className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2.5 rounded-lg"
-                    >
-                        {processing ? 'Saving...' : 'Save settings'}
-                    </button>
-
-                    {recentlySuccessful && (
-                        <p className="text-sm text-green-600">Saved.</p>
-                    )}
-                </form>
-            </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 4 }}>
+                                    <Button kind="primary" type="submit" disabled={processing}>
+                                        {processing ? 'Saving…' : 'Save settings'}
+                                    </Button>
+                                    {recentlySuccessful && (
+                                        <p className="micro" style={{ color: 'var(--color-positive)' }}>
+                                            Saved.
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        </form>
+                    </Card>
+                </div>
+            </main>
         </AuthenticatedLayout>
     );
 }

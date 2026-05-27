@@ -2,8 +2,12 @@ import { Head, Link, useForm } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import {
     Button,
+    Card,
     Field,
+    FormError,
+    Input,
     PageHeader,
+    Select,
     Status,
 } from '@/Components/ui';
 
@@ -44,44 +48,39 @@ export default function SearchIndex({ recentSearches, defaults = { country: 'GB'
                 />
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 40 }}>
-                    <div className="card card-pad">
-                        <div className="card-title" style={{ marginBottom: 18 }}>Parameters</div>
-
+                    <Card title="Parameters">
                         <form onSubmit={submit}>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 18 }}>
                                 <Field label="Niche" hint="local trade or profession">
-                                    <input
-                                        className="input"
+                                    <Input
                                         value={data.niche}
                                         onChange={(e) => setData('niche', e.target.value)}
                                         placeholder="e.g. Dental practice"
                                         required
                                     />
-                                    {errors.niche && <p className="text-xs text-sev-critical mt-1">{errors.niche}</p>}
+                                    <FormError message={errors.niche} />
                                 </Field>
                                 <Field label="City" hint="UK city or town">
-                                    <input
-                                        className="input"
+                                    <Input
                                         value={data.city}
                                         onChange={(e) => setData('city', e.target.value)}
                                         placeholder="e.g. Birmingham"
                                         required
                                     />
-                                    {errors.city && <p className="text-xs text-sev-critical mt-1">{errors.city}</p>}
+                                    <FormError message={errors.city} />
                                 </Field>
                             </div>
 
                             <div style={{ marginBottom: 24 }}>
                                 <Field label="Country">
-                                    <select
-                                        className="select"
+                                    <Select
                                         value={data.country}
                                         onChange={(e) => setData('country', e.target.value)}
                                     >
                                         <option value="GB">United Kingdom</option>
                                         <option value="IE">Ireland</option>
                                         <option value="US">United States</option>
-                                    </select>
+                                    </Select>
                                 </Field>
                             </div>
 
@@ -122,7 +121,7 @@ export default function SearchIndex({ recentSearches, defaults = { country: 'GB'
                                 </Button>
                             </div>
                         </form>
-                    </div>
+                    </Card>
 
                     <aside>
                         <div className="card-title" style={{ marginBottom: 12 }}>Recent searches</div>
@@ -134,21 +133,21 @@ export default function SearchIndex({ recentSearches, defaults = { country: 'GB'
                                     <li key={s.id}>
                                         <Link
                                             href={`/searches/${s.id}`}
-                                            className="card card-pad"
                                             style={{
                                                 display: 'block',
                                                 textDecoration: 'none',
                                                 color: 'inherit',
-                                                padding: '12px 14px',
                                             }}
                                         >
-                                            <div style={{ fontWeight: 500, fontSize: 13 }}>{s.niche}</div>
-                                            <div className="micro" style={{ marginTop: 4 }}>
-                                                {s.city} · {s.created_at}
-                                            </div>
-                                            <div style={{ marginTop: 8 }}>
-                                                <SearchStatus status={s.status} />
-                                            </div>
+                                            <Card pad style={{ padding: '12px 14px' }}>
+                                                <div style={{ fontWeight: 500, fontSize: 13 }}>{s.niche}</div>
+                                                <div className="micro" style={{ marginTop: 4 }}>
+                                                    {s.city} · {s.created_at}
+                                                </div>
+                                                <div style={{ marginTop: 8 }}>
+                                                    <SearchStatus status={s.status} />
+                                                </div>
+                                            </Card>
                                         </Link>
                                     </li>
                                 ))}

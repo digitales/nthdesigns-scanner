@@ -20,7 +20,10 @@ class GenerateProspectReportJob implements ShouldQueue
     public int $tries = 2;
     public int $timeout = 120;
 
-    public function __construct(public Prospect $prospect) {}
+    public function __construct(public Prospect $prospect)
+    {
+        $this->onQueue('auditing');
+    }
 
     public function handle(
         GooglePlacesService $places,
@@ -60,8 +63,4 @@ class GenerateProspectReportJob implements ShouldQueue
         }
     }
 
-    public function queue(): string
-    {
-        return 'auditing';
-    }
 }

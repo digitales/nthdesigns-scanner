@@ -3,11 +3,17 @@ import { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import {
     Button,
+    DataTable,
     EmptyState,
     Field,
+    FilterBar,
     Icons,
+    Input,
     PageHeader,
+    RowActions,
     Segmented,
+    StatTile,
+    StatsStrip,
     Status,
     Toast,
 } from '@/Components/ui';
@@ -52,26 +58,14 @@ export default function ReportsIndex({ reports, filters, stats }) {
                     sub="Track views, warm signals, and copy shareable URLs for outreach."
                 />
 
-                <div className="stats-strip">
-                    <div className="stat-tile">
-                        <div className="stat-label">Reports generated</div>
-                        <div className="stat-value tabular">{stats.total_reports}</div>
-                    </div>
-                    <div className="stat-tile">
-                        <div className="stat-label">Total views</div>
-                        <div className="stat-value tabular">{stats.total_views}</div>
-                    </div>
-                    <div className="stat-tile warm">
-                        <div className="stat-label">Warm (7d)</div>
-                        <div className="stat-value tabular">{stats.warm_7d}</div>
-                    </div>
-                    <div className="stat-tile">
-                        <div className="stat-label">Avg views per report</div>
-                        <div className="stat-value tabular">{stats.avg_views}</div>
-                    </div>
-                </div>
+                <StatsStrip>
+                    <StatTile label="Reports generated" value={stats.total_reports} />
+                    <StatTile label="Total views" value={stats.total_views} />
+                    <StatTile label="Warm (7d)" value={stats.warm_7d} warm />
+                    <StatTile label="Avg views per report" value={stats.avg_views} />
+                </StatsStrip>
 
-                <div className="filter-bar">
+                <FilterBar onSubmit={(e) => e.preventDefault()}>
                     <Field label="Filter">
                         <Segmented
                             value={viewFilter}
@@ -88,9 +82,8 @@ export default function ReportsIndex({ reports, filters, stats }) {
                         />
                     </Field>
                     <Field label="Niche">
-                        <input
+                        <Input
                             type="text"
-                            className="input"
                             defaultValue={filters.niche ?? ''}
                             onBlur={(e) => applyFilters({ niche: e.target.value, viewFilter })}
                         />
@@ -98,13 +91,12 @@ export default function ReportsIndex({ reports, filters, stats }) {
                     <div className="filter-action">
                         <Link href="/reports" className="micro">Reset</Link>
                     </div>
-                </div>
+                </FilterBar>
 
                 {reports.length === 0 ? (
                     <EmptyState icon={Icons.Eye} title="No reports yet." sub="Generate reports from prospect detail pages." />
                 ) : (
-                    <div style={{ border: '1px solid var(--color-line)', borderRadius: 6, overflow: 'hidden' }}>
-                        <table className="ptable">
+                    <DataTable>
                             <thead>
                                 <tr>
                                     <th>Business</th>
@@ -142,16 +134,15 @@ export default function ReportsIndex({ reports, filters, stats }) {
                                         </td>
                                         <td className="micro">{r.viewer_ip ?? '—'}</td>
                                         <td onClick={(e) => e.stopPropagation()} style={{ textAlign: 'right' }}>
-                                            <div className="row-actions">
+                                            <RowActions>
                                                 <button type="button" className="btn-ghost btn-xs" onClick={() => copyUrl(r)}>Copy URL</button>
                                                 <a href={r.public_url} target="_blank" rel="noopener noreferrer" className="btn-ghost btn-xs">Open</a>
-                                            </div>
+                                            </RowActions>
                                         </td>
                                     </tr>
                                 ))}
                             </tbody>
-                        </table>
-                    </div>
+                    </DataTable>
                 )}
 
                 {toast && <Toast duration={1800} onClose={() => setToast(null)}>{toast}</Toast>}

@@ -4,10 +4,12 @@ import OutreachEmailCard from '@/Components/OutreachEmailCard';
 import {
     AnglePill,
     Button,
+    Card,
     EmptyState,
     Field,
     Icon,
     Icons,
+    Input,
     PageHeader,
     ScoreBadge,
     Segmented,
@@ -111,8 +113,8 @@ export default function OutreachIndex({ selection, emailsByProspect, defaults, f
                     </section>
 
                     <section>
-                        <form onSubmit={generateAll} className="card card-pad" style={{ marginBottom: 24 }}>
-                            <div className="card-title">Generate emails</div>
+                        <Card title="Generate emails" style={{ marginBottom: 24 }}>
+                        <form onSubmit={generateAll}>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
                                 <Field label="Pitch angle">
                                     <Segmented
@@ -127,8 +129,7 @@ export default function OutreachIndex({ selection, emailsByProspect, defaults, f
                                     />
                                 </Field>
                                 <Field label="Agency name" hint="optional">
-                                    <input
-                                        className="input"
+                                    <Input
                                         value={data.agency_name}
                                         onChange={(e) => setData('agency_name', e.target.value)}
                                         placeholder="nthdesigns"
@@ -160,6 +161,7 @@ export default function OutreachIndex({ selection, emailsByProspect, defaults, f
                                 </Button>
                             </div>
                         </form>
+                        </Card>
 
                         {selection.map((item) => {
                             const emails = emailsByProspect[item.prospect_id] ?? [];
