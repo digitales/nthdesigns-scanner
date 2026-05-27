@@ -1,6 +1,7 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import LighthousePanel from '@/Components/audit/LighthousePanel';
 import SiteAuditSection from '@/Components/audit/SiteAuditSection';
 import OutreachEmailCard from '@/Components/OutreachEmailCard';
 import {
@@ -12,7 +13,7 @@ import {
     Status,
 } from '@/Components/ui';
 
-export default function ProspectShow({ prospect, search, report, outreachEmails, audit }) {
+export default function ProspectShow({ prospect, search, report, outreachEmails, audit, lighthouse }) {
     const { flash } = usePage().props;
     const [copied, setCopied] = useState(false);
 
@@ -59,6 +60,8 @@ export default function ProspectShow({ prospect, search, report, outreachEmails,
                             <ScoreCard label="GBP" value={prospect.gbp_score} />
                             <ScoreCard label="Accessibility" value={prospect.a11y_score} />
                         </div>
+
+                        <LighthousePanel lighthouse={lighthouse} style={{ marginBottom: 24 }} />
 
                         <Card title="Weakness flags" style={{ marginBottom: 24 }}>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>

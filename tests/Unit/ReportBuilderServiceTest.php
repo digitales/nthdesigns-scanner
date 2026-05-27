@@ -128,6 +128,47 @@ class ReportBuilderServiceTest extends TestCase
         $this->assertNull($this->service->buildOperatorAudit($prospect));
     }
 
+    public function test_lighthouse_for_prospect_uses_stored_payload(): void
+    {
+        $prospect = new Prospect([
+            'performance_score' => 42,
+            'raw_lighthouse_payload' => [
+                'performance' => 42,
+                'accessibility' => 55,
+                'seo' => 70,
+            ],
+        ]);
+
+        $lighthouse = $this->service->lighthouseForProspect($prospect);
+
+        $this->assertSame(42, $lighthouse['performance']);
+        $this->assertSame(55, $lighthouse['accessibility']);
+        $this->assertSame(70, $lighthouse['seo']);
+    }
+
+    public function test_lighthouse_for_prospect_falls_back_to_performance_score(): void
+    {
+        $prospect = new Prospect([
+            'performance_score' => 20,
+            'raw_lighthouse_payload' => null,
+        ]);
+
+        $lighthouse = $this->service->lighthouseForProspect($prospect);
+
+        $this->assertSame(20, $lighthouse['performance']);
+        $this->assertNull($lighthouse['accessibility']);
+    }
+
+    public function test_lighthouse_for_prospect_returns_null_when_no_metrics(): void
+    {
+        $prospect = new Prospect([
+            'performance_score' => 0,
+            'raw_lighthouse_payload' => null,
+        ]);
+
+        $this->assertNull($this->service->lighthouseForProspect($prospect));
+    }
+
     public function test_build_operator_audit_returns_null_when_payload_missing(): void
     {
         $prospect = new Prospect([

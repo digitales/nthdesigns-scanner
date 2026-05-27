@@ -96,11 +96,13 @@ class ReportBuilderService
             return null;
         }
 
-        $lighthouse = $this->extractLighthouse($lighthousePayload, $a11yPayload);
-        $hasLighthouse = $lighthouse['performance'] !== null
-            || $lighthouse['accessibility'] !== null
-            || $lighthouse['seo'] !== null
-            || $lighthouse['best_practices'] !== null;
+        $lighthouse = $this->lighthouseForProspect($prospect) ?? [
+            'performance' => null,
+            'accessibility' => null,
+            'seo' => null,
+            'best_practices' => null,
+        ];
+        $hasLighthouse = $this->hasLighthouseMetrics($lighthouse);
 
         if (($a11yPayload['violations'] ?? []) === [] && ! $hasLighthouse && ! isset($a11yPayload['pass_count'])) {
             return null;
@@ -127,6 +129,34 @@ class ReportBuilderService
             'lighthouse'        => $lighthouse,
             'performance_score' => (int) $prospect->performance_score,
         ];
+    }
+
+    /**
+     * Lighthouse scores for operator UI. Null when no metrics are stored.
+     *
+     * @return array{performance: int|null, accessibility: int|null, seo: int|null, best_practices: int|null}|null
+     */
+    public function lighthouseForProspect(Prospect $prospect): ?array
+    {
+        $a11yPayload = is_array($prospect->raw_a11y_payload) ? $prospect->raw_a11y_payload : [];
+        $lighthouse = $this->extractLighthouse($prospect->raw_lighthouse_payload ?? [], $a11yPayload);
+
+        if ($lighthouse['performance'] === null && (int) $prospect->performance_score > 0) {
+            $lighthouse['performance'] = (int) $prospect->performance_score;
+        }
+
+        return $this->hasLighthouseMetrics($lighthouse) ? $lighthouse : null;
+    }
+
+    /**
+     * @param  array{performance: int|null, accessibility: int|null, seo: int|null, best_practices: int|null}  $lighthouse
+     */
+    private function hasLighthouseMetrics(array $lighthouse): bool
+    {
+        return $lighthouse['performance'] !== null
+            || $lighthouse['accessibility'] !== null
+            || $lighthouse['seo'] !== null
+            || $lighthouse['best_practices'] !== null;
     }
 
     /** @see resources/css/tokens.css — grade thresholds from combined score */

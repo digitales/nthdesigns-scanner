@@ -1,6 +1,5 @@
 import { Card, SevChip } from '@/Components/ui';
 import ViolationCard from '@/Components/audit/ViolationCard';
-import LighthouseDial from '@/Components/audit/LighthouseDial';
 import ViolationsTable from '@/Components/audit/ViolationsTable';
 
 export default function SiteAuditSection({ audit }) {
@@ -8,15 +7,10 @@ export default function SiteAuditSection({ audit }) {
         return null;
     }
 
-    const lh = audit.lighthouse ?? {};
-    const hasLighthouse = lh.performance != null || lh.accessibility != null || lh.seo != null || lh.best_practices != null;
     const summary = audit.summary ?? {};
     const auditedLabel = audit.audited_at
         ? new Date(audit.audited_at).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })
         : null;
-    const showScannerScore = audit.performance_score != null
-        && (lh.performance == null || lh.performance !== audit.performance_score);
-
     return (
         <Card title="Site audit" style={{ marginBottom: 24 }}>
             <div style={{ marginBottom: 20 }}>
@@ -41,23 +35,6 @@ export default function SiteAuditSection({ audit }) {
                     {audit.pass_count} passes · {audit.incomplete_count} incomplete checks
                 </p>
             </div>
-
-            {hasLighthouse && (
-                <div style={{ marginBottom: 28 }}>
-                    <div className="eyebrow" style={{ marginBottom: 16 }}>Lighthouse</div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 16 }}>
-                        {lh.performance != null && <LighthouseDial label="Performance" score={lh.performance} />}
-                        {lh.accessibility != null && <LighthouseDial label="Accessibility" score={lh.accessibility} />}
-                        {lh.seo != null && <LighthouseDial label="SEO" score={lh.seo} />}
-                        {lh.best_practices != null && <LighthouseDial label="Best practices" score={lh.best_practices} />}
-                    </div>
-                    {showScannerScore && (
-                        <p className="micro" style={{ marginTop: 12 }}>
-                            Scanner score: <span className="num">{audit.performance_score}</span>
-                        </p>
-                    )}
-                </div>
-            )}
 
             {(audit.top_violations ?? []).length > 0 && (
                 <div style={{ marginBottom: 28 }}>

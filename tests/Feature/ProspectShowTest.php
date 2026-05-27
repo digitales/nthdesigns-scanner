@@ -45,7 +45,9 @@ class ProspectShowTest extends TestCase
                 ->component('Prospect/Show')
                 ->has('audit')
                 ->where('audit.summary.critical', 1)
-                ->where('audit.pass_count', 10));
+                ->where('audit.pass_count', 10)
+                ->where('lighthouse.performance', 50)
+                ->where('lighthouse.accessibility', 60));
     }
 
     public function test_show_omits_audit_when_pending(): void
@@ -62,6 +64,27 @@ class ProspectShowTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Prospect/Show')
-                ->where('audit', null));
+                ->where('audit', null)
+                ->where('lighthouse', null));
+    }
+
+    public function test_show_includes_lighthouse_from_performance_score_when_payload_missing(): void
+    {
+        $user = User::factory()->create();
+        $prospect = Prospect::factory()->create([
+            'search_id' => Search::factory()->create(['user_id' => $user->id])->id,
+            'audit_status' => 'complete',
+            'performance_score' => 20,
+            'raw_a11y_payload' => null,
+            'raw_lighthouse_payload' => null,
+        ]);
+
+        $this->actingAs($user)
+            ->get("/prospects/{$prospect->id}")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Prospect/Show')
+                ->where('lighthouse.performance', 20)
+                ->where('lighthouse.accessibility', null));
     }
 }
