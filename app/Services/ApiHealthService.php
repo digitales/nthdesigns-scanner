@@ -2,12 +2,17 @@
 
 namespace App\Services;
 
+use App\Support\PlaywrightBrowsers;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
 
 class ApiHealthService
 {
+    public function __construct(
+        private BrowserServiceClient $browserService,
+    ) {}
+
     /**
      * @return array<string, array{ok: bool, message: string}>
      */
@@ -23,8 +28,8 @@ class ApiHealthService
             $checks['cloudflare'] = $this->checkCloudflare();
         }
 
-        if (config('scanner.audit_driver') === 'http') {
-            $checks['audit_service'] = $this->checkAuditService();
+        if ($this->usesBrowserService()) {
+            $checks['browser_service'] = $this->browserService->healthCheck();
         }
 
         if ($this->usesLocalNode()) {
@@ -128,20 +133,6 @@ class ApiHealthService
     /**
      * @return array{ok: bool, message: string}
      */
-    public function checkAuditService(): array
-    {
-        $url = config('scanner.audit_service_url', '');
-
-        if ($url === '') {
-            return ['ok' => false, 'message' => 'AUDIT_SERVICE_URL is not set'];
-        }
-
-        return ['ok' => true, 'message' => 'Audit service URL configured'];
-    }
-
-    /**
-     * @return array{ok: bool, message: string}
-     */
     public function checkNode(): array
     {
         $binary = (string) config('scanner.node_binary');
@@ -168,41 +159,38 @@ class ApiHealthService
      */
     public function checkPlaywright(): array
     {
-        $browsersPath = config('scanner.playwright_browsers_path');
+        $browsersPath = PlaywrightBrowsers::resolve();
 
         if ($browsersPath === null || $browsersPath === '') {
             return [
-                'ok'      => true,
-                'message' => 'Using default Playwright browser cache',
+                'ok'      => false,
+                'message' => 'Chromium not installed — add Playwright build commands (see docs/deployment/laravel-cloud.md)',
             ];
         }
 
-        if ($browsersPath !== '0') {
-            if (!is_dir($browsersPath)) {
-                return [
-                    'ok'      => false,
-                    'message' => 'PLAYWRIGHT_BROWSERS_PATH directory not found: '.$browsersPath,
-                ];
-            }
-
-            return ['ok' => true, 'message' => 'Chromium at '.$browsersPath];
+        if ($browsersPath === '0') {
+            return ['ok' => true, 'message' => 'Bundled Chromium (scripts/node_modules)'];
         }
 
-        $bundled = base_path('scripts/node_modules/.cache/ms-playwright');
-
-        if (!is_dir($bundled)) {
+        if (!PlaywrightBrowsers::hasInstalledBrowsers($browsersPath)) {
             return [
                 'ok'      => false,
-                'message' => 'Bundled Chromium missing — run `PLAYWRIGHT_BROWSERS_PATH=0 npx playwright install chromium` in scripts/ during build',
+                'message' => 'PLAYWRIGHT_BROWSERS_PATH directory is empty or missing: '.$browsersPath,
             ];
         }
 
-        return ['ok' => true, 'message' => 'Bundled Chromium (PLAYWRIGHT_BROWSERS_PATH=0)'];
+        return ['ok' => true, 'message' => 'Chromium at '.$browsersPath];
     }
 
     private function usesLocalNode(): bool
     {
         return config('scanner.audit_driver') === 'playwright'
             || config('scanner.screenshot_driver') === 'playwright';
+    }
+
+    private function usesBrowserService(): bool
+    {
+        return config('scanner.audit_driver') === 'http'
+            || config('scanner.screenshot_driver') === 'http';
     }
 }

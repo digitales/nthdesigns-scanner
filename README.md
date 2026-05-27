@@ -53,7 +53,7 @@ php artisan serve
 npm run dev
 ```
 
-Production on [Laravel Cloud](docs/deployment/laravel-cloud.md) uses `QUEUE_CONNECTION=database` and `php artisan queue:work` on a worker cluster (not Horizon). See the deployment guide for background process commands.
+Production on [Laravel Cloud](docs/deployment/laravel-cloud.md) uses `QUEUE_CONNECTION=database` and `php artisan queue:work` on a worker cluster (not Horizon). Audits and screenshots run on a separate [Fly.io browser service](scripts/browser-service/README.md) (`AUDIT_SERVICE_URL`) — Playwright does not run on Cloud workers.
 
 ## Workflow
 

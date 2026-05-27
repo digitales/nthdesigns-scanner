@@ -12,14 +12,12 @@ if ($auditServiceUrl) {
 $screenshotDriver = env('SCREENSHOT_DRIVER');
 
 if (!$screenshotDriver) {
-    $screenshotDriver = env('AUDIT_DRIVER') === 'cloudflare' ? 'cloudflare' : 'playwright';
-}
-
-$playwrightBrowsersPath = env('PLAYWRIGHT_BROWSERS_PATH');
-
-if ($playwrightBrowsersPath === null || $playwrightBrowsersPath === '') {
-    if (is_dir(base_path('scripts/node_modules/.cache/ms-playwright'))) {
-        $playwrightBrowsersPath = '0';
+    if ($auditServiceUrl) {
+        $screenshotDriver = 'http';
+    } elseif (env('AUDIT_DRIVER') === 'cloudflare') {
+        $screenshotDriver = 'cloudflare';
+    } else {
+        $screenshotDriver = 'playwright';
     }
 }
 
@@ -39,7 +37,7 @@ return [
 
     'lighthouse_binary' => env('LIGHTHOUSE_BINARY', 'lighthouse'),
 
-    'playwright_browsers_path' => $playwrightBrowsersPath,
+    'playwright_browsers_path' => env('PLAYWRIGHT_BROWSERS_PATH'),
 
     'audit_timeout' => (int) env('AUDIT_TIMEOUT', 120),
 

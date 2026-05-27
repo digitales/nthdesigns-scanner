@@ -9,6 +9,7 @@ class ScreenshotCaptureService
 {
     public function __construct(
         private CloudflareBrowserService $cloudflare,
+        private BrowserServiceClient $browserService,
     ) {}
 
     /**
@@ -22,6 +23,10 @@ class ScreenshotCaptureService
             $this->cloudflare->captureScreenshot($url, $outputPath);
 
             return $outputPath;
+        }
+
+        if (config('scanner.screenshot_driver') === 'http') {
+            return $this->browserService->captureDesktop($url, $localDir);
         }
 
         $result = Process::timeout(90)

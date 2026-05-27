@@ -3,11 +3,14 @@
 namespace App\Services;
 
 use App\Support\PlaywrightEnv;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Process;
 
 class AuditRunnerService
 {
+    public function __construct(
+        private BrowserServiceClient $browserService,
+    ) {}
+
     public function shouldSkip(): bool
     {
         return config('scanner.audit_driver') === 'skip';
@@ -19,7 +22,7 @@ class AuditRunnerService
     public function run(string $url, string $screenshotDir): array
     {
         return match (config('scanner.audit_driver')) {
-            'http' => $this->runHttp($url),
+            'http' => $this->runHttp($url, $screenshotDir),
             default => $this->runPlaywright($url, $screenshotDir),
         };
     }
@@ -85,42 +88,10 @@ class AuditRunnerService
      *
      * @return array<string, mixed>
      */
-    private function runHttp(string $url): array
+    private function runHttp(string $url, string $screenshotDir): array
     {
-        $baseUrl = rtrim((string) config('scanner.audit_service_url'), '/');
+        $payload = $this->browserService->fetchAudit($url);
 
-        if ($baseUrl === '') {
-            throw new \RuntimeException('AUDIT_SERVICE_URL is required when audit driver is http');
-        }
-
-        $request = Http::timeout(config('scanner.audit_timeout'))
-            ->acceptJson()
-            ->asJson();
-
-        $token = config('scanner.audit_service_token');
-
-        if ($token) {
-            $request = $request->withToken($token);
-        }
-
-        $response = $request->post("{$baseUrl}/audit", ['url' => $url]);
-
-        if (!$response->successful()) {
-            throw new \RuntimeException(
-                'Audit service failed: '.trim($response->body())
-            );
-        }
-
-        $payload = $response->json();
-
-        if (!is_array($payload)) {
-            throw new \RuntimeException('Audit service returned invalid JSON');
-        }
-
-        if (!empty($payload['error'])) {
-            throw new \RuntimeException('Audit service error: '.$payload['error']);
-        }
-
-        return $payload;
+        return $this->browserService->materializeViolationScreenshots($payload, $screenshotDir);
     }
 }

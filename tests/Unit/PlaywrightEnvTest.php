@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Support\PlaywrightBrowsers;
 use App\Support\PlaywrightEnv;
 use Illuminate\Support\Facades\Config;
 use Tests\TestCase;
@@ -22,8 +23,8 @@ class PlaywrightEnvTest extends TestCase
     {
         Config::set('scanner.playwright_browsers_path', null);
 
-        if (is_dir(base_path('scripts/node_modules/.cache/ms-playwright'))) {
-            $this->markTestSkipped('Bundled Playwright browsers are present on disk');
+        if (PlaywrightBrowsers::resolve() !== null) {
+            $this->markTestSkipped('Playwright browsers are present on disk');
         }
 
         $env = PlaywrightEnv::forProcess();

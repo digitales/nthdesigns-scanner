@@ -1,6 +1,6 @@
 # Laravel Cloud deployment guide
 
-Deploy checklist and audit fallback plan for the nthdesigns prospect scanner.
+Deploy checklist for the nthdesigns prospect scanner, including browser automation options and costs on Laravel Cloud.
 
 ---
 
@@ -128,9 +128,10 @@ composer install --no-dev --optimize-autoloader
 npm ci
 npm run build
 
+mkdir -p storage/app/playwright-browsers
 cd scripts
 npm ci
-PLAYWRIGHT_BROWSERS_PATH=0 npx playwright install chromium
+PLAYWRIGHT_BROWSERS_PATH="$PWD/../storage/app/playwright-browsers" npx playwright install chromium
 cd ..
 
 php artisan optimize
@@ -138,7 +139,7 @@ php artisan optimize
 
 > **Do not use `--with-deps` on Laravel Cloud.** That flag runs `playwright install-deps`, which calls `su` to install apt packages. Build containers are non-root, so you get `su: Authentication failure` and the deploy fails.
 >
-> `PLAYWRIGHT_BROWSERS_PATH=0` installs Chromium under `scripts/node_modules` so browsers ship with the build artifact instead of `~/.cache` (which is not deployed).
+> Chromium is installed into `storage/app/playwright-browsers` (part of the deploy image), not `~/.cache` (which is not deployed). You do not need a worker env var when using this path — the app detects it at runtime.
 >
 > Build timeout is 15 minutes. Playwright browser install can take several minutes — that is normal.
 
@@ -147,7 +148,7 @@ If Cloud's default `npm ci && npm run build` is already present, merge rather th
 ```bash
 composer install --no-dev --optimize-autoloader
 npm ci && npm run build
-cd scripts && npm ci && PLAYWRIGHT_BROWSERS_PATH=0 npx playwright install chromium && cd ..
+mkdir -p storage/app/playwright-browsers && cd scripts && npm ci && PLAYWRIGHT_BROWSERS_PATH="$PWD/../storage/app/playwright-browsers" npx playwright install chromium && cd ..
 php artisan optimize
 ```
 
@@ -315,26 +316,28 @@ AUDIT_TIMEOUT=120
 NODE_BINARY=node
 AUDIT_SCRIPT_PATH=
 LIGHTHOUSE_BINARY=lighthouse
-PLAYWRIGHT_BROWSERS_PATH=0
 ```
 
-Set `PLAYWRIGHT_BROWSERS_PATH=0` on **worker** environments (not only at build time) so queue workers resolve the Chromium binary installed during build.
+When the build installs Chromium to `storage/app/playwright-browsers` (recommended below), leave `PLAYWRIGHT_BROWSERS_PATH` unset. Optional override: `PLAYWRIGHT_BROWSERS_PATH=0` if you install under `scripts/node_modules` instead.
 
 Leave `AUDIT_SCRIPT_PATH` empty to use `scripts/audit.js` from project root.
 
 Lighthouse is optional — audits still run without it; performance/SEO scores will be null.
 
-### Cloudflare Browser Rendering (fallback path)
+### Browser automation (production — Fly.io)
 
-Only needed if Playwright fails on Cloud or you skip local browser install:
+Laravel Cloud workers **cannot run Playwright**. Use a [Fly.io browser service](#10-deploy-the-flyio-browser-service) for audits and screenshots.
 
 ```env
-AUDIT_DRIVER=cloudflare
-CLOUDFLARE_API_TOKEN=
-CLOUDFLARE_ACCOUNT_ID=
+AUDIT_SERVICE_URL=https://nth-scanner-browser.fly.dev
+AUDIT_SERVICE_TOKEN=your-shared-secret
 ```
 
-See [Fallback: Cloudflare Browser Rendering](#fallback-cloudflare-browser-rendering) below.
+When `AUDIT_SERVICE_URL` is set, the app uses `AUDIT_DRIVER=http` and `SCREENSHOT_DRIVER=http` automatically (`BrowserServiceClient` → `/audit` and `/screenshot`).
+
+Remove Playwright install lines from Laravel Cloud **build commands** (see §3). You do not need `NODE_BINARY` on Cloud workers for audits.
+
+Settings → **API & storage health** should show **browser_service** green after deploy.
 
 ---
 
@@ -359,16 +362,33 @@ php artisan queue:failed
 
 ### Node availability
 
+In **Commands**, run **one line at a time** (do not paste multiple lines into a single `ls` — Cloud will treat every word as a path).
+
 ```bash
 which node && node --version
-ls -la scripts/node_modules/.cache/ms-playwright 2>/dev/null || ls scripts/node_modules/playwright
+```
+
+```bash
+test -d scripts/node_modules && echo "scripts/node_modules: yes" || echo "scripts/node_modules: MISSING"
+```
+
+```bash
+ls -la storage/app/playwright-browsers 2>/dev/null || echo "Chromium not installed — fix build commands and redeploy"
 ```
 
 ### Playwright smoke test
 
+Run each block separately:
+
 ```bash
 mkdir -p /tmp/audit-test
+```
+
+```bash
 node scripts/audit.js https://example.com /tmp/audit-test
+```
+
+```bash
 echo "exit: $?"
 ls -la /tmp/audit-test
 ```
@@ -396,56 +416,64 @@ ls -la /tmp/ss-test
 
 ---
 
-## 7. Playwright on Cloud — if smoke tests fail
+## 7. Playwright on Cloud — troubleshooting (local Node path)
+
+> **Production recommendation:** Do not rely on Playwright on Laravel Cloud workers. See [§9](#9-browser-automation--options-and-costs). The steps below are for diagnosing build issues or for local/Herd development only.
+
+### Host system is missing dependencies
+
+If smoke tests show Chromium under `storage/app/playwright-browsers` but launch fails with:
+
+```text
+Host system is missing dependencies to run browsers.
+Please install them with: sudo npx playwright install-deps
+```
+
+the browser binary is present but the **PHP worker image cannot run Chrome**. This is expected on Cloud — `install-deps` requires root/apt, which build and runtime containers do not allow.
+
+**Do not spend time trying to fix Playwright on Cloud.** Choose [Option 1 or 2 in §9](#9-browser-automation--options-and-costs).
 
 ### Build fails: `su: Authentication failure` / `Failed to install browsers`
 
 Your build command includes `playwright install … --with-deps`. Remove `--with-deps` and use:
 
 ```bash
-cd scripts && npm ci && PLAYWRIGHT_BROWSERS_PATH=0 npx playwright install chromium && cd ..
+mkdir -p storage/app/playwright-browsers && cd scripts && npm ci && PLAYWRIGHT_BROWSERS_PATH="$PWD/../storage/app/playwright-browsers" npx playwright install chromium && cd ..
 ```
 
-Redeploy. If audits later fail with “missing dependencies”, use the [Cloudflare fallback](#fallback-cloudflare-browser-rendering) or an external audit worker — Cloud build nodes cannot run `install-deps`.
-
-Try the steps below before switching to the Cloudflare fallback.
+Redeploy. If audits later fail with “missing dependencies” at **runtime**, that is a separate issue — see [Host system is missing dependencies](#host-system-is-missing-dependencies) and [§9](#9-browser-automation--options-and-costs).
 
 ### Executable doesn't exist at `/var/www/.cache/ms-playwright/…`
 
-Node is using Playwright's default cache under the `www` home directory, not the Chromium installed in your build artifact. That happens when `PLAYWRIGHT_BROWSERS_PATH` is not set for queue workers.
+Node is using Playwright's default cache under the `www` home directory, not the Chromium installed in your build artifact. Fix the **build commands** (not Commands) and redeploy:
 
-1. Confirm the build installs browsers into the app tree:
-
-   ```bash
-   cd scripts && npm ci && PLAYWRIGHT_BROWSERS_PATH=0 npx playwright install chromium && cd ..
-   ```
-
-2. On the **worker** environment, set `PLAYWRIGHT_BROWSERS_PATH=0` and redeploy (or restart background processes).
-
-3. Verify bundled Chromium exists:
+1. Build commands must include:
 
    ```bash
-   ls -la scripts/node_modules/.cache/ms-playwright
+   mkdir -p storage/app/playwright-browsers && cd scripts && npm ci && PLAYWRIGHT_BROWSERS_PATH="$PWD/../storage/app/playwright-browsers" npx playwright install chromium && cd ..
    ```
 
-4. Smoke test with the same env workers use:
+2. Redeploy and confirm the build log shows `playwright install` completing without errors.
+
+3. Verify Chromium exists on the running container (one command only):
 
    ```bash
-   PLAYWRIGHT_BROWSERS_PATH=0 node scripts/audit.js https://example.com /tmp/audit-test
+   ls -la storage/app/playwright-browsers
    ```
 
-### A. Add container-safe Chromium flags
+   If you see `cannot access 'PLAYWRIGHT_BROWSERS_PATH=0'` or similar, you accidentally ran `ls` on the smoke-test line — run commands **one per Commands invocation**.
 
-Update `scripts/audit.js` and `scripts/screenshot.js`:
+   If the directory is missing, the Playwright build step did not run or the deploy failed before it finished — open the latest **Deployments → Build log**, search for `playwright install`, fix build commands, and **redeploy**.
 
-```js
-const browser = await chromium.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-});
-```
+4. Smoke test (separate invocation from step 3):
 
-Redeploy and re-run the smoke test.
+   ```bash
+   mkdir -p /tmp/audit-test && node scripts/audit.js https://example.com /tmp/audit-test
+   ```
+
+### A. Container-safe Chromium flags
+
+`scripts/browser.js` already passes `--no-sandbox`, `--disable-setuid-sandbox`, and `--disable-dev-shm-usage`. These help on some containers but **do not** replace missing system libraries on Laravel Cloud.
 
 ### B. Confirm NODE_BINARY path
 
@@ -482,7 +510,7 @@ Do not install Lighthouse in build commands unless you need it — Playwright + 
 
 ### Failed audits
 
-Prospects with websites show `audit_status: failed` when Playwright fails. GBP scoring and reports for no-website prospects still work. Check `php artisan queue:failed`, the `failed_jobs` table, and Cloud worker logs.
+Prospects with websites show `audit_status: failed` when the audit driver errors (Playwright on Cloud, HTTP audit service down, etc.). With `AUDIT_DRIVER=cloudflare`, audits are **`skipped`** (not failed). GBP scoring and reports for no-website prospects still work. Check `php artisan queue:failed`, the `failed_jobs` table, and Cloud worker logs.
 
 ### Rate limiting
 
@@ -498,7 +526,7 @@ With the database driver there is no `/horizon` dashboard. Use:
 
 - `php artisan queue:failed` / `failed_jobs` in the database
 - Cloud worker logs for `AuditSiteJob failed` entries
-- Settings → health checks (Node, Playwright)
+- Settings → health checks (Node, Playwright path, Cloudflare when configured)
 
 ### Staging
 
@@ -510,156 +538,238 @@ If you later attach Valkey/Redis and set `QUEUE_CONNECTION=redis`, switch the wo
 
 ---
 
-## Fallback: Cloudflare Browser Rendering
+## 9. Browser automation — options and costs
 
-Use this if Playwright cannot run reliably on Laravel Cloud workers.
+Laravel Cloud workers are PHP-oriented. They do not ship with Chrome system libraries, and you cannot run `playwright install-deps` or `apt-get` on build or runtime containers. Even when Chromium is installed under `storage/app/playwright-browsers`, runtime launch usually fails with **“Host system is missing dependencies”**.
 
-Laravel Cloud's own docs recommend Cloudflare for browser tasks ([Generating PDFs](https://cloud.laravel.com/docs/knowledge-base/generating-pdfs)) because runtime instances are PHP-oriented and do not ship with Chrome.
+### Recommended: Fly.io for audits and screenshots
 
-### What Cloudflare can replace
+| Piece | Where |
+|-------|--------|
+| WCAG audits (axe, violation crops, optional Lighthouse) | Fly `POST /audit` |
+| Report desktop PNG | Fly `POST /screenshot` |
+| Laravel app + queues | Laravel Cloud |
 
-| Feature | Cloudflare API | Notes |
-|---------|----------------|-------|
-| Desktop report screenshot | `POST /browser-rendering/screenshot` | Direct replacement for `CaptureScreenshotJob` |
-| Full-page capture | Same endpoint + `screenshotOptions.fullPage` | Optional |
-| HTML snapshot | `POST /browser-rendering/snapshot` | Returns HTML + base64 screenshot |
+**Typical cost:** one Fly machine with **2 GB RAM**, always on → about **$11/month** ([Fly pricing](https://fly.io/docs/about/pricing/)). Billing is VM uptime, not per audit.
 
-### What Cloudflare cannot drop in easily
+**Laravel env:**
 
-| Feature | Challenge |
-|---------|-----------|
-| axe-core WCAG violation scan | No built-in a11y API — needs custom script injection + result extraction |
-| Per-violation element screenshots | Requires axe selectors + clipped screenshots; doable but non-trivial |
-| Lighthouse performance/SEO scores | Not available via Browser Rendering — keep optional or use PageSpeed Insights API |
+```env
+AUDIT_SERVICE_URL=https://nth-scanner-browser.fly.dev
+AUDIT_SERVICE_TOKEN=shared-secret-from-fly-secrets
+```
 
-### Recommended fallback tiers
+Deploy steps: [§10](#10-deploy-the-flyio-browser-service).
 
-#### Tier 1 — Screenshots only (fastest)
+### Other options (optional)
 
-**Scope:** ~1 day of work.
+| Option | What you get | Extra cost | Notes |
+|--------|----------------|------------|--------|
+| **Fly only** (recommended) | Full audits + screenshots | ~**$6–15/mo** | No Cloudflare account required |
+| **Cloudflare screenshots only** | Desktop PNG; audits skipped | **$0–few £** at low volume | Needs Cloudflare Workers + Browser Rendering |
+| **Fly audits + Cloudflare screenshots** | Hybrid | Fly VM + CF browser hours | Use if you prefer CF for PNGs only |
+| **Playwright on Cloud worker** | — | — | **Not viable** |
+| **Custom Cloudflare axe injection** | Partial a11y | CF browser hours | **Not recommended** (~3–5 days build) |
 
-- Add `CloudflareBrowserService` wrapping the screenshot endpoint.
-- Switch `CaptureScreenshotJob` to call Cloudflare when `AUDIT_DRIVER=cloudflare`.
-- Leave `AuditSiteJob` on Playwright if it works; otherwise mark audits as skipped/degraded.
+**Not included:** Laravel Cloud, Postgres, R2, Google Places, OpenRouter.
+
+### Option 1 — Cloudflare screenshots only
+
+**Best for:** Shipping reports quickly; GBP scoring and outreach matter more than WCAG detail.
+
+**Behaviour in this app:**
+
+- `AUDIT_DRIVER=cloudflare` sets the audit driver to `skip` — no axe, no violation crops, no Lighthouse.
+- `SCREENSHOT_DRIVER=cloudflare` uses `CloudflareBrowserService` → Browser Rendering screenshot API.
 
 **Env:**
 
 ```env
 AUDIT_DRIVER=cloudflare
-CLOUDFLARE_API_TOKEN=   # Account.Browser Rendering permission
-CLOUDFLARE_ACCOUNT_ID=
-```
-
-**Screenshot request shape:**
-
-```php
-Http::withToken(config('services.cloudflare.api_token'))
-    ->post(
-        'https://api.cloudflare.com/client/v4/accounts/'
-        .config('services.cloudflare.account_id')
-        .'/browser-rendering/screenshot',
-        [
-            'url' => $url,
-            'viewport' => ['width' => 1280, 'height' => 800],
-            'gotoOptions' => [
-                'waitUntil' => 'networkidle0',
-                'timeout' => 45000,
-            ],
-        ],
-    );
-```
-
-Response body is raw PNG bytes — write to temp file, upload via existing `ScreenshotStorageService`.
-
-#### Tier 2 — External Playwright worker (full parity)
-
-**Scope:** ~2–3 days.
-
-Run Playwright on a platform that supports browsers (Fly.io, Render, Railway):
-
-```
-Laravel Cloud worker                    Fly.io audit service
-─────────────────────                   ────────────────────
-AuditSiteJob ──HTTP POST /audit──►      node scripts/audit.js (always works)
-         ◄── JSON payload ──────        Playwright + axe + Lighthouse
-CaptureScreenshotJob ──HTTP──►         or separate /screenshot route
-```
-
-**Benefits:**
-
-- No change to audit logic — reuse `scripts/audit.js` as-is
-- Cloud workers stay lightweight PHP-only
-- Scale audit service independently
-
-**Implementation sketch:**
-
-1. Add `config('scanner.audit_service_url')` and `AUDIT_SERVICE_TOKEN`.
-2. Replace `Process::run([node, ...])` in `AuditSiteJob` with `Http::timeout(150)->post(...)`.
-3. Deploy `scripts/` as a minimal Node Docker image on Fly.io with 1–2 GB RAM.
-4. Authenticate with a shared bearer token.
-
-#### Tier 3 — Cloudflare for audits (partial)
-
-**Scope:** ~3–5 days; reduced fidelity.
-
-- Use `/snapshot` with `addScriptTag` to inject axe-core from CDN.
-- Run axe in-page; encode results into a hidden DOM node or `window.__auditResults`.
-- Fetch rendered HTML and parse results — fragile compared to Playwright.
-- Skip per-violation screenshots in v1.
-- Skip Lighthouse entirely or add Google PageSpeed Insights API separately.
-
-Only choose this if you want zero extra infrastructure and can accept a simpler a11y signal.
-
-### Suggested decision flow
-
-```mermaid
-flowchart TD
-    A[Deploy to Laravel Cloud] --> B{Playwright smoke test passes?}
-    B -->|Yes| C[Production ready — local Playwright path]
-    B -->|No| D{Need full axe + violation screenshots?}
-    D -->|Yes| E[Tier 2: Fly.io audit worker]
-    D -->|No| F[Tier 1: Cloudflare screenshots only]
-    F --> G[GBP + AI outreach still work; a11y scores degraded]
-```
-
-### Config additions for fallback (when implemented)
-
-Add to `config/services.php`:
-
-```php
-'cloudflare' => [
-    'api_token'  => env('CLOUDFLARE_API_TOKEN'),
-    'account_id' => env('CLOUDFLARE_ACCOUNT_ID'),
-],
-```
-
-Add to `config/scanner.php`:
-
-```php
-'audit_driver' => env('AUDIT_DRIVER', 'playwright'), // playwright | cloudflare | http
-'audit_service_url' => env('AUDIT_SERVICE_URL'),
-'audit_service_token' => env('AUDIT_SERVICE_TOKEN'),
-```
-
-Branch in `AuditSiteJob::handle()` and `ScreenshotCaptureService` on `audit_driver` / `screenshot_driver` — **implemented**.
-
-### Laravel Cloud quick start
-
-```env
-AUDIT_DRIVER=cloudflare
-CLOUDFLARE_API_TOKEN=
+SCREENSHOT_DRIVER=cloudflare
+CLOUDFLARE_API_TOKEN=          # Token with Account → Browser Rendering
 CLOUDFLARE_ACCOUNT_ID=
 REPORTS_DISK=s3
 ```
 
-Or for full audits via external worker:
+Equivalent: `AUDIT_DRIVER=skip` with `SCREENSHOT_DRIVER=cloudflare`.
+
+**What still works:** Search, GBP scoring, combined grades (without real a11y data for sites with URLs), AI outreach, report PDF-style pages with **desktop screenshot**.
+
+**What you lose:** WCAG violation list, per-violation screenshots, Lighthouse performance/SEO (optional locally anyway).
+
+#### Cloudflare pricing (Browser Rendering REST API) {#cloudflare-pricing-browser-rendering-rest-api}
+
+This app uses the **REST screenshot** endpoint (`/browser-rendering/screenshot`). Billing is **browser duration** (browser hours), not per HTTP call. REST Quick Actions are charged for duration only (not session concurrency surcharges).
+
+Source: [Cloudflare Browser Rendering pricing](https://developers.cloudflare.com/browser-rendering/pricing/).
+
+| Plan | Included browser time | Beyond included |
+|------|------------------------|-----------------|
+| Workers **Free** | 10 minutes per day | No paid overage on free plan |
+| Workers **Paid** | 10 hours per month | **$0.09 per browser hour** |
+
+Workers Paid has a base subscription (see [Workers plans](https://developers.cloudflare.com/workers/platform/pricing/)); include that if you are not already on a paid Cloudflare plan.
+
+**Estimating screenshot cost:** Each capture uses `waitUntil: networkidle0` and often takes roughly **15–45 seconds** of browser time per URL (site-dependent).
+
+| Screenshots / month | Approx. browser time | On Workers Paid (10 h included) |
+|---------------------|----------------------|----------------------------------|
+| 50 | ~0.5–1 h | $0 overage |
+| 200 | ~2–4 h | $0 overage |
+| 500 | ~5–8 h | $0 overage |
+| 1,500 | ~15–20 h | ~**$0.45–0.90** (5–10 h × $0.09) |
+
+Failed requests that time out before a browser session starts are not billed for browser hours (per Cloudflare FAQ).
+
+Monitor usage: Cloudflare dashboard → **Compute → Browser Run**. Responses may include an `X-Browser-Ms-Used` header for per-request timing.
+
+### How the Fly integration works (Laravel app)
+
+| Job | HTTP call | Notes |
+|-----|-----------|--------|
+| `AuditSiteJob` | `POST {AUDIT_SERVICE_URL}/audit` | JSON matches `audit.js`; violation PNGs returned as `content_base64` and written to temp storage before upload to R2 |
+| `CaptureScreenshotJob` | `POST {AUDIT_SERVICE_URL}/screenshot` | Returns desktop PNG as base64 |
+
+Implemented in `BrowserServiceClient`, `AuditRunnerService`, `ScreenshotCaptureService`. Health check: `GET /health` → Settings shows **browser_service**.
+
+```
+Laravel Cloud worker                 Fly.io (scripts/browser-service)
+────────────────────                 ────────────────────────────────
+AuditSiteJob ──POST /audit────────►  audit.js + axe
+CaptureScreenshotJob ──POST /screenshot►  screenshot.js
+```
+
+### Option 1 — Cloudflare screenshots only (no Fly, no full audits)
+
+Use only if you have Cloudflare and want to skip WCAG audits for now. See [Cloudflare pricing](#cloudflare-pricing-browser-rendering-rest-api) below.
+
+### Playwright on the Laravel Cloud worker
+
+**Not recommended.** You may install Chromium during build (see §3 and §7), but runtime launch fails without `libglib`, `libatk`, `libgbm`, `libxkbcommon`, `libasound`, etc. Cloud does not allow `sudo npx playwright install-deps`. Container flags in `scripts/browser.js` do not fix missing libraries.
+
+Remove Playwright from Laravel Cloud build commands when using Fly.
+
+### Cloudflare-only audits (custom axe injection)
+
+**Not recommended** for this project unless you refuse any extra server.
+
+| Aspect | Detail |
+|--------|--------|
+| Approach | `/snapshot` or similar + inject axe from CDN, parse results from DOM |
+| Build effort | ~3–5 days; fragile vs Playwright |
+| Fidelity | No reliable per-violation screenshots; no Lighthouse via Browser Rendering |
+| Ongoing cost | Similar browser-hour model; **longer** sessions than a single screenshot |
+
+### What Cloudflare can and cannot replace
+
+| Feature | Cloudflare REST API | Notes |
+|---------|---------------------|-------|
+| Desktop report screenshot | `POST …/browser-rendering/screenshot` | **Implemented** — `CloudflareBrowserService` |
+| Full-page capture | Same + `screenshotOptions.fullPage` | Optional future tweak |
+| axe-core WCAG scan | No first-class API | Use Option 2 or skip |
+| Per-violation screenshots | Not practical via REST alone | Use Option 2 |
+| Lighthouse scores | Not available | Optional [PageSpeed Insights API](https://developers.google.com/speed/docs/insights/v5/get-started) or run on external worker |
+
+### Decision flow
+
+```mermaid
+flowchart TD
+    A[Deploy Laravel Cloud] --> B[Deploy Fly browser service §10]
+    B --> C[Set AUDIT_SERVICE_URL + TOKEN on Cloud]
+    C --> D[Remove Playwright from Cloud build]
+    D --> E[Settings: browser_service green]
+    E --> F[Run test search / audit pipeline]
+```
+
+### Driver reference (`config/scanner.php`)
+
+| Env | Effect |
+|-----|--------|
+| `AUDIT_SERVICE_URL` set | `audit_driver` = `http`; default `screenshot_driver` = `http` |
+| `AUDIT_DRIVER=cloudflare` | Audits skipped; use with `SCREENSHOT_DRIVER=cloudflare` |
+| `SCREENSHOT_DRIVER=playwright` | Local Node only (Herd / dev) |
+
+`PlaywrightBrowsers` and `storage/app/playwright-browsers` apply to **local development** only.
+
+---
+
+## 10. Deploy the Fly.io browser service
+
+Files live in `scripts/browser-service/` (HTTP server, Dockerfile, `fly.toml`). Full notes: `scripts/browser-service/README.md`.
+
+### Prerequisites
+
+- [Fly CLI](https://fly.io/docs/hands-on/install-flyctl/) installed and logged in (`fly auth login`)
+- Fly account with a payment method (always-on VM)
+
+### 1. Create the app and set secrets
+
+From the **repository root**:
+
+```bash
+fly apps create nth-scanner-browser   # skip if already created
+fly secrets set BROWSER_SERVICE_TOKEN="$(openssl rand -hex 32)" \
+  --config scripts/browser-service/fly.toml
+```
+
+### 2. Deploy
+
+```bash
+fly deploy --config scripts/browser-service/fly.toml \
+  --dockerfile scripts/browser-service/Dockerfile .
+```
+
+The image uses `mcr.microsoft.com/playwright` (Chromium + system libraries preinstalled). Default VM: **2 GB RAM** in `fly.toml` — adjust if needed.
+
+### 3. Verify Fly
+
+```bash
+fly status --config scripts/browser-service/fly.toml
+curl -s https://nth-scanner-browser.fly.dev/health
+```
+
+Expect `{"ok":true}` (no auth on `/health`).
+
+### 4. Wire Laravel Cloud
+
+On **app** and **worker** environments:
 
 ```env
-AUDIT_DRIVER=http
-AUDIT_SERVICE_URL=https://your-audit-worker.fly.dev
-AUDIT_SERVICE_TOKEN=
-SCREENSHOT_DRIVER=cloudflare
+AUDIT_SERVICE_URL=https://nth-scanner-browser.fly.dev
+AUDIT_SERVICE_TOKEN=<same value as BROWSER_SERVICE_TOKEN on Fly>
 ```
+
+Redeploy Cloud (or restart background processes). Open **Settings** — **browser_service** should be green.
+
+### 5. Trim Laravel Cloud build commands
+
+Remove Playwright / `scripts` npm install from Cloud build commands. Example minimal build:
+
+```bash
+composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+npm ci --audit false
+npm run build
+php artisan optimize
+```
+
+### 6. End-to-end test
+
+Run a small search with one prospect that has a website. Confirm:
+
+- `audit_status` = `complete` (not `failed` or `skipped`)
+- Report shows WCAG violations and desktop screenshot
+- `php artisan queue:failed` is empty for audit jobs
+
+### Fly operations
+
+| Task | Command |
+|------|---------|
+| Logs | `fly logs --config scripts/browser-service/fly.toml` |
+| SSH console | `fly ssh console --config scripts/browser-service/fly.toml` |
+| Scale memory | Edit `[[vm]] memory` in `fly.toml`, redeploy |
+
+If audits time out, increase `AUDIT_TIMEOUT` on Laravel Cloud (default 120s) and ensure the Fly machine has 2 GB RAM.
 
 ---
 
@@ -690,8 +800,13 @@ AUDIT_TIMEOUT=120
 
 NODE_BINARY=node
 
-# Fallback (optional)
+# Production on Laravel Cloud — Fly.io browser service (§10)
+AUDIT_SERVICE_URL=https://nth-scanner-browser.fly.dev
+AUDIT_SERVICE_TOKEN=
+
+# Optional: Cloudflare instead of Fly for screenshots only (requires CF account)
 # AUDIT_DRIVER=cloudflare
+# SCREENSHOT_DRIVER=cloudflare
 # CLOUDFLARE_API_TOKEN=
 # CLOUDFLARE_ACCOUNT_ID=
 ```
@@ -702,5 +817,8 @@ NODE_BINARY=node
 
 - [Laravel Cloud environments](https://cloud.laravel.com/docs/environments) — build commands, Node version, ephemeral filesystem
 - [Laravel Cloud queues](https://cloud.laravel.com/docs/queues) — worker clusters, `queue:work`
+- [Laravel Cloud — Generating PDFs / browsers on Cloud](https://cloud.laravel.com/docs/knowledge-base/generating-pdfs) — Cloudflare recommendation
 - [Laravel Object Storage](https://cloud.laravel.com/docs/resources/object-storage) — R2 bucket setup
-- [Cloudflare Browser Rendering — screenshot](https://developers.cloudflare.com/browser-rendering/rest-api/screenshot-endpoint/)
+- [Cloudflare Browser Rendering — pricing](https://developers.cloudflare.com/browser-rendering/pricing/)
+- [Cloudflare Browser Rendering — screenshot endpoint](https://developers.cloudflare.com/browser-rendering/rest-api/screenshot-endpoint/)
+- [Fly.io pricing](https://fly.io/docs/about/pricing/) — external audit VM estimates
