@@ -1,7 +1,6 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import LighthousePanel from '@/Components/audit/LighthousePanel';
 import SiteAuditSection from '@/Components/audit/SiteAuditSection';
 import OutreachEmailCard from '@/Components/OutreachEmailCard';
 import {
@@ -12,6 +11,13 @@ import {
     ScoreCard,
     Status,
 } from '@/Components/ui';
+
+const LIGHTHOUSE_METRICS = [
+    { label: 'Performance', key: 'performance' },
+    { label: 'Lighthouse a11y', key: 'accessibility' },
+    { label: 'SEO', key: 'seo' },
+    { label: 'Best practices', key: 'best_practices' },
+];
 
 export default function ProspectShow({ prospect, search, report, outreachEmails, audit, lighthouse }) {
     const { flash } = usePage().props;
@@ -51,7 +57,12 @@ export default function ProspectShow({ prospect, search, report, outreachEmails,
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 32 }}>
                     <div>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 28 }}>
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))',
+                            gap: 16,
+                            marginBottom: 28,
+                        }}>
                             <ScoreCard
                                 label="Combined"
                                 value={prospect.combined_score}
@@ -59,9 +70,20 @@ export default function ProspectShow({ prospect, search, report, outreachEmails,
                             />
                             <ScoreCard label="GBP" value={prospect.gbp_score} />
                             <ScoreCard label="Accessibility" value={prospect.a11y_score} />
+                            {LIGHTHOUSE_METRICS.map(({ label, key }) => {
+                                const score = lighthouse?.[key];
+                                if (score == null) return null;
+                                return (
+                                    <ScoreCard
+                                        key={key}
+                                        label={label}
+                                        value={score}
+                                        healthScore
+                                        delta="/100"
+                                    />
+                                );
+                            })}
                         </div>
-
-                        <LighthousePanel lighthouse={lighthouse} style={{ marginBottom: 24 }} />
 
                         <Card title="Weakness flags" style={{ marginBottom: 24 }}>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
