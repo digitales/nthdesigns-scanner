@@ -1,4 +1,6 @@
 import { Head } from '@inertiajs/react';
+import ViolationCard from '@/Components/audit/ViolationCard';
+import LighthouseDial from '@/Components/audit/LighthouseDial';
 import { DataTable, LinkButton, SevChip } from '@/Components/ui';
 import { gradeColor } from '@/Components/ui/scoreBand';
 
@@ -117,7 +119,7 @@ export default function PublicReport({ report }) {
                             </p>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 36 }}>
                                 {(report.top_violations ?? []).map((v, i) => (
-                                    <ViolationCard key={i} violation={v} index={i + 1} screenshotUrl={v.screenshot_url} />
+                                    <ViolationCard key={i} violation={v} screenshotUrl={v.screenshot_url} />
                                 ))}
                             </div>
                         </section>
@@ -228,73 +230,6 @@ export default function PublicReport({ report }) {
     );
 }
 
-function ViolationCard({ violation: v, index, screenshotUrl }) {
-    const sevColor = {
-        critical: 'var(--color-sev-critical)',
-        serious: 'var(--color-sev-serious)',
-        moderate: 'var(--color-sev-moderate)',
-    }[v.impact] ?? 'var(--color-sev-moderate)';
-
-    return (
-        <article style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: 28 }}>
-            <div style={{
-                background: 'var(--color-stone-100)',
-                borderRadius: 4,
-                border: '1px solid var(--color-line)',
-                height: 160,
-                position: 'relative',
-                overflow: 'hidden',
-            }}>
-                {screenshotUrl ? (
-                    <img src={screenshotUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                ) : (
-                    <div style={{
-                        position: 'absolute',
-                        top: '30%',
-                        left: '20%',
-                        width: '60%',
-                        height: '40%',
-                        border: `2px solid ${sevColor}`,
-                        borderRadius: 2,
-                    }} />
-                )}
-            </div>
-            <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                    <SevChip level={v.impact === 'minor' ? 'moderate' : v.impact} />
-                    {v.wcag && <span className="micro">{v.wcag}</span>}
-                </div>
-                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 500, margin: '0 0 10px' }}>
-                    {v.description}
-                </h3>
-                {v.help && v.help !== v.description && (
-                    <p style={{ fontSize: 14, color: 'var(--color-stone-600)', lineHeight: 1.6, margin: '0 0 14px' }}>{v.help}</p>
-                )}
-                {v.user_impact && (
-                    <p style={{ fontSize: 14, color: 'var(--color-stone-600)', lineHeight: 1.6, margin: '8px 0 0' }}>{v.user_impact}</p>
-                )}
-                {v.fix_hint && (
-                    <p style={{ fontSize: 14, color: 'var(--color-accent-deep)', lineHeight: 1.6, margin: '4px 0 0' }}>
-                        <strong style={{ fontWeight: 500 }}>Fix:</strong> {v.fix_hint}
-                    </p>
-                )}
-                {v.fix && (
-                    <div style={{
-                        borderLeft: '3px solid var(--color-accent)',
-                        paddingLeft: 14,
-                        fontSize: 14,
-                        color: 'var(--color-stone-700)',
-                        lineHeight: 1.55,
-                    }}>
-                        <strong style={{ fontWeight: 500, color: 'var(--color-ink)' }}>Fix · </strong>
-                        {v.fix}
-                    </div>
-                )}
-            </div>
-        </article>
-    );
-}
-
 function ComparisonTable({ businessName, you, benchmark }) {
     const rows = [
         { label: 'Reviews', you: you.review_count ?? 0, them: benchmark.review_count },
@@ -326,30 +261,3 @@ function ComparisonTable({ businessName, you, benchmark }) {
     );
 }
 
-function LighthouseDial({ label, score }) {
-    const color = score < 50 ? 'var(--color-sev-critical)' : score < 70 ? 'var(--color-sev-serious)' : 'var(--color-positive)';
-    const circumference = 2 * Math.PI * 45;
-    const offset = circumference - (score / 100) * circumference;
-
-    return (
-        <div style={{ textAlign: 'center' }}>
-            <svg width="120" height="120" viewBox="0 0 120 120" style={{ display: 'block', margin: '0 auto' }}>
-                <circle cx="60" cy="60" r="45" fill="none" stroke="var(--color-stone-200)" strokeWidth="8" />
-                <circle
-                    cx="60"
-                    cy="60"
-                    r="45"
-                    fill="none"
-                    stroke={color}
-                    strokeWidth="8"
-                    strokeDasharray={circumference}
-                    strokeDashoffset={offset}
-                    strokeLinecap="round"
-                    transform="rotate(-90 60 60)"
-                />
-                <text x="60" y="58" textAnchor="middle" fontFamily="var(--font-serif)" fontSize="28" fill={color}>{score}</text>
-                <text x="60" y="78" textAnchor="middle" fontFamily="var(--font-mono)" fontSize="9" fill="var(--color-stone-500)">{label}</text>
-            </svg>
-        </div>
-    );
-}

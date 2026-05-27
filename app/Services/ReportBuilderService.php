@@ -78,6 +78,57 @@ class ReportBuilderService
         ];
     }
 
+    /**
+     * Shaped site audit for operator prospect detail. Null when section should be hidden.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function buildOperatorAudit(Prospect $prospect): ?array
+    {
+        if ($prospect->audit_status !== 'complete') {
+            return null;
+        }
+
+        $a11yPayload = $prospect->raw_a11y_payload;
+        $lighthousePayload = $prospect->raw_lighthouse_payload ?? [];
+
+        if ($a11yPayload === null || $a11yPayload === []) {
+            return null;
+        }
+
+        $lighthouse = $this->extractLighthouse($lighthousePayload, $a11yPayload);
+        $hasLighthouse = $lighthouse['performance'] !== null
+            || $lighthouse['accessibility'] !== null
+            || $lighthouse['seo'] !== null
+            || $lighthouse['best_practices'] !== null;
+
+        if (($a11yPayload['violations'] ?? []) === [] && ! $hasLighthouse && ! isset($a11yPayload['pass_count'])) {
+            return null;
+        }
+
+        $completedJob = $prospect->relationLoaded('auditJobs')
+            ? $prospect->auditJobs
+                ->where('job_type', 'accessibility')
+                ->where('status', 'complete')
+                ->sortByDesc('completed_at')
+                ->first()
+            : null;
+
+        $auditedAt = $completedJob?->completed_at ?? $prospect->updated_at;
+
+        return [
+            'audited_at'        => $auditedAt?->toIso8601String() ?? now()->toIso8601String(),
+            'url'               => $a11yPayload['url'] ?? $prospect->website_url ?? '',
+            'summary'           => $this->summarizeViolations($a11yPayload),
+            'pass_count'        => (int) ($a11yPayload['pass_count'] ?? 0),
+            'incomplete_count'  => (int) ($a11yPayload['incomplete_count'] ?? 0),
+            'top_violations'    => $this->extractTopViolations($a11yPayload, 5),
+            'all_violations'    => $this->extractAllViolations($a11yPayload),
+            'lighthouse'        => $lighthouse,
+            'performance_score' => (int) $prospect->performance_score,
+        ];
+    }
+
     /** @see resources/css/tokens.css — grade thresholds from combined score */
     public function combinedToGrade(int $combinedScore): string
     {
@@ -130,7 +181,25 @@ class ReportBuilderService
      * @param  array<string, mixed>  $payload
      * @return list<array<string, mixed>>
      */
+    public function extractAllViolations(array $payload): array
+    {
+        return $this->mapViolations($payload);
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return list<array<string, mixed>>
+     */
     public function extractTopViolations(array $payload, int $limit = 5): array
+    {
+        return array_slice($this->mapViolations($payload), 0, $limit);
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return list<array<string, mixed>>
+     */
+    private function mapViolations(array $payload): array
     {
         $violations = $payload['violations'] ?? [];
         $impactOrder = ['critical' => 0, 'serious' => 1, 'moderate' => 2, 'minor' => 3];
@@ -141,8 +210,6 @@ class ReportBuilderService
 
             return $ia <=> $ib;
         });
-
-        $top = array_slice($violations, 0, $limit);
 
         $screenshotMap = collect($payload['violation_screenshots'] ?? [])
             ->keyBy('violation_id');
@@ -164,7 +231,7 @@ class ReportBuilderService
                 'user_impact'    => $copy['user_impact'],
                 'fix_hint'       => $copy['fix_hint'],
             ];
-        }, $top);
+        }, $violations);
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Models\AuditJob;
 use App\Models\Prospect;
 use App\Models\Search;
 use App\Services\ReportBuilderService;
@@ -93,6 +94,93 @@ class ReportBuilderServiceTest extends TestCase
         $this->assertSame(1, $report['violation_summary']['critical']);
         $this->assertCount(1, $report['top_violations']);
         $this->assertSame(42, $report['lighthouse']['performance']);
+    }
+
+    public function test_extract_all_violations_sorted_by_impact(): void
+    {
+        $payload = [
+            'violations' => [
+                ['id' => 'minor-rule', 'impact' => 'minor', 'description' => 'Minor issue', 'nodes' => []],
+                ['id' => 'critical-rule', 'impact' => 'critical', 'description' => 'Critical issue', 'nodes' => []],
+                ['id' => 'serious-rule', 'impact' => 'serious', 'description' => 'Serious issue', 'nodes' => []],
+            ],
+        ];
+
+        $all = $this->service->extractAllViolations($payload);
+
+        $this->assertSame(['critical-rule', 'serious-rule', 'minor-rule'], array_column($all, 'id'));
+    }
+
+    public function test_extract_all_violations_returns_empty_for_no_violations(): void
+    {
+        $this->assertSame([], $this->service->extractAllViolations([]));
+        $this->assertSame([], $this->service->extractAllViolations(['violations' => []]));
+    }
+
+    public function test_build_operator_audit_returns_null_when_not_complete(): void
+    {
+        $prospect = new Prospect([
+            'audit_status' => 'pending',
+            'raw_a11y_payload' => ['violations' => [['id' => 'x', 'impact' => 'critical', 'nodes' => [1]]]],
+            'website_url' => 'https://example.com',
+        ]);
+
+        $this->assertNull($this->service->buildOperatorAudit($prospect));
+    }
+
+    public function test_build_operator_audit_returns_null_when_payload_missing(): void
+    {
+        $prospect = new Prospect([
+            'audit_status' => 'complete',
+            'raw_a11y_payload' => null,
+            'raw_lighthouse_payload' => null,
+            'website_url' => 'https://example.com',
+        ]);
+
+        $this->assertNull($this->service->buildOperatorAudit($prospect));
+    }
+
+    public function test_build_operator_audit_returns_full_shape_when_complete(): void
+    {
+        $completedAt = now()->subHour();
+        $prospect = new Prospect([
+            'audit_status' => 'complete',
+            'website_url' => 'https://example.com',
+            'performance_score' => 42,
+            'raw_a11y_payload' => [
+                'url' => 'https://example.com',
+                'violations' => [
+                    ['id' => 'color-contrast', 'impact' => 'critical', 'description' => 'Contrast', 'tags' => ['wcag2aa'], 'nodes' => [1]],
+                ],
+                'pass_count' => 40,
+                'incomplete_count' => 2,
+            ],
+            'raw_lighthouse_payload' => [
+                'performance' => 42,
+                'accessibility' => 55,
+                'seo' => 70,
+            ],
+        ]);
+        $prospect->setRelation('auditJobs', collect([
+            new AuditJob([
+                'job_type' => 'accessibility',
+                'status' => 'complete',
+                'completed_at' => $completedAt,
+            ]),
+        ]));
+
+        $audit = $this->service->buildOperatorAudit($prospect);
+
+        $this->assertNotNull($audit);
+        $this->assertSame('https://example.com', $audit['url']);
+        $this->assertSame(1, $audit['summary']['critical']);
+        $this->assertSame(40, $audit['pass_count']);
+        $this->assertSame(2, $audit['incomplete_count']);
+        $this->assertCount(1, $audit['top_violations']);
+        $this->assertCount(1, $audit['all_violations']);
+        $this->assertSame(42, $audit['lighthouse']['performance']);
+        $this->assertSame(42, $audit['performance_score']);
+        $this->assertSame($completedAt->toIso8601String(), $audit['audited_at']);
     }
 
     public function test_extract_top_violations_includes_screenshot_url(): void

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Jobs\GenerateOutreachEmailJob;
 use App\Jobs\GenerateProspectReportJob;
 use App\Models\Prospect;
+use App\Services\ReportBuilderService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -12,11 +13,16 @@ use Inertia\Response;
 
 class ProspectController extends Controller
 {
-    public function show(Prospect $prospect): Response
+    public function show(Prospect $prospect, ReportBuilderService $reportBuilder): Response
     {
         $this->authorize('view', $prospect);
 
-        $prospect->load(['search', 'report', 'outreachEmails' => fn ($q) => $q->latest()]);
+        $prospect->load([
+            'search',
+            'report',
+            'outreachEmails' => fn ($q) => $q->latest(),
+            'auditJobs',
+        ]);
 
         return Inertia::render('Prospect/Show', [
             'prospect' => [
@@ -62,6 +68,7 @@ class ProspectController extends Controller
                 'response_received'  => $e->response_received,
                 'created_at'         => $e->created_at->diffForHumans(),
             ]),
+            'audit' => $reportBuilder->buildOperatorAudit($prospect),
         ]);
     }
 

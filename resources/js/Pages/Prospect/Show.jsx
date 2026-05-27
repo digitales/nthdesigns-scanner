@@ -1,6 +1,7 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import SiteAuditSection from '@/Components/audit/SiteAuditSection';
 import OutreachEmailCard from '@/Components/OutreachEmailCard';
 import {
     AnglePill,
@@ -11,7 +12,7 @@ import {
     Status,
 } from '@/Components/ui';
 
-export default function ProspectShow({ prospect, search, report, outreachEmails }) {
+export default function ProspectShow({ prospect, search, report, outreachEmails, audit }) {
     const { flash } = usePage().props;
     const [copied, setCopied] = useState(false);
 
@@ -95,6 +96,8 @@ export default function ProspectShow({ prospect, search, report, outreachEmails 
                                 </div>
                             </div>
                         </Card>
+
+                        <SiteAuditSection audit={audit} />
 
                         {outreachEmails.length > 0 && (
                             <section>
