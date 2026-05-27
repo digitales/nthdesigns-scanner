@@ -22,8 +22,25 @@ class PlaywrightEnvTest extends TestCase
     {
         Config::set('scanner.playwright_browsers_path', null);
 
+        if (is_dir(base_path('scripts/node_modules/.cache/ms-playwright'))) {
+            $this->markTestSkipped('Bundled Playwright browsers are present on disk');
+        }
+
         $env = PlaywrightEnv::forProcess();
 
         $this->assertArrayNotHasKey('PLAYWRIGHT_BROWSERS_PATH', $env);
+    }
+
+    public function test_for_process_falls_back_to_bundled_browsers_when_config_null(): void
+    {
+        if (!is_dir(base_path('scripts/node_modules/.cache/ms-playwright'))) {
+            $this->markTestSkipped('Bundled Playwright browsers not installed');
+        }
+
+        Config::set('scanner.playwright_browsers_path', null);
+
+        $env = PlaywrightEnv::forProcess();
+
+        $this->assertSame('0', $env['PLAYWRIGHT_BROWSERS_PATH']);
     }
 }

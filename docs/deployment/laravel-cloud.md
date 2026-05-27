@@ -319,7 +319,7 @@ PLAYWRIGHT_BROWSERS_PATH=0
 ```
 
 Set `PLAYWRIGHT_BROWSERS_PATH=0` on **worker** environments (not only at build time) so queue workers resolve the Chromium binary installed during build.
-i
+
 Leave `AUDIT_SCRIPT_PATH` empty to use `scripts/audit.js` from project root.
 
 Lighthouse is optional — audits still run without it; performance/SEO scores will be null.
@@ -409,6 +409,30 @@ cd scripts && npm ci && PLAYWRIGHT_BROWSERS_PATH=0 npx playwright install chromi
 Redeploy. If audits later fail with “missing dependencies”, use the [Cloudflare fallback](#fallback-cloudflare-browser-rendering) or an external audit worker — Cloud build nodes cannot run `install-deps`.
 
 Try the steps below before switching to the Cloudflare fallback.
+
+### Executable doesn't exist at `/var/www/.cache/ms-playwright/…`
+
+Node is using Playwright's default cache under the `www` home directory, not the Chromium installed in your build artifact. That happens when `PLAYWRIGHT_BROWSERS_PATH` is not set for queue workers.
+
+1. Confirm the build installs browsers into the app tree:
+
+   ```bash
+   cd scripts && npm ci && PLAYWRIGHT_BROWSERS_PATH=0 npx playwright install chromium && cd ..
+   ```
+
+2. On the **worker** environment, set `PLAYWRIGHT_BROWSERS_PATH=0` and redeploy (or restart background processes).
+
+3. Verify bundled Chromium exists:
+
+   ```bash
+   ls -la scripts/node_modules/.cache/ms-playwright
+   ```
+
+4. Smoke test with the same env workers use:
+
+   ```bash
+   PLAYWRIGHT_BROWSERS_PATH=0 node scripts/audit.js https://example.com /tmp/audit-test
+   ```
 
 ### A. Add container-safe Chromium flags
 
