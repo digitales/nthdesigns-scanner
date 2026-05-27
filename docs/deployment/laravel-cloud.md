@@ -25,7 +25,7 @@ flowchart LR
     subgraph external [External APIs]
         Places[Google Places]
         Claude[OpenRouter / Anthropic]
-        CF[Cloudflare Browser Rendering]
+        FlyBrowser[Fly.io browser service]
     end
 
     Web --> PG
@@ -33,7 +33,7 @@ flowchart LR
     QueueWorker --> R2
     QueueWorker --> Places
     QueueWorker --> Claude
-    QueueWorker --> CF
+    QueueWorker --> FlyBrowser
     Scheduler --> PG
 ```
 
@@ -120,37 +120,21 @@ Configure in **Settings → Deployments**.
 
 ### Build commands
 
-Cloud runs npm for the Laravel frontend by default. Extend with audit script dependencies:
+**Production (Fly.io for browsers):** do **not** install Playwright on Laravel Cloud — use the minimal build in [§10 step 5](#5-trim-laravel-cloud-build-commands).
+
+**Local / Herd only** — optional Playwright in Cloud build (not recommended; runtime still fails with missing OS libraries):
 
 ```bash
 composer install --no-dev --optimize-autoloader
-
-npm ci
-npm run build
-
-mkdir -p storage/app/playwright-browsers
-cd scripts
-npm ci
-PLAYWRIGHT_BROWSERS_PATH="$PWD/../storage/app/playwright-browsers" npx playwright install chromium
-cd ..
-
+npm ci && npm run build
+# Skip the block below when using Fly.io (§10)
+mkdir -p storage/app/playwright-browsers && cd scripts && npm ci && PLAYWRIGHT_BROWSERS_PATH="$PWD/../storage/app/playwright-browsers" npx playwright install chromium && cd ..
 php artisan optimize
 ```
 
 > **Do not use `--with-deps` on Laravel Cloud.** That flag runs `playwright install-deps`, which calls `su` to install apt packages. Build containers are non-root, so you get `su: Authentication failure` and the deploy fails.
 >
-> Chromium is installed into `storage/app/playwright-browsers` (part of the deploy image), not `~/.cache` (which is not deployed). You do not need a worker env var when using this path — the app detects it at runtime.
->
-> Build timeout is 15 minutes. Playwright browser install can take several minutes — that is normal.
-
-If Cloud's default `npm ci && npm run build` is already present, merge rather than duplicate:
-
-```bash
-composer install --no-dev --optimize-autoloader
-npm ci && npm run build
-mkdir -p storage/app/playwright-browsers && cd scripts && npm ci && PLAYWRIGHT_BROWSERS_PATH="$PWD/../storage/app/playwright-browsers" npx playwright install chromium && cd ..
-php artisan optimize
-```
+> Build timeout is 15 minutes.
 
 ### Deploy commands
 
@@ -431,7 +415,7 @@ Please install them with: sudo npx playwright install-deps
 
 the browser binary is present but the **PHP worker image cannot run Chrome**. This is expected on Cloud — `install-deps` requires root/apt, which build and runtime containers do not allow.
 
-**Do not spend time trying to fix Playwright on Cloud.** Choose [Option 1 or 2 in §9](#9-browser-automation--options-and-costs).
+**Do not spend time trying to fix Playwright on Cloud.** Deploy the [Fly.io browser service (§10)](#10-deploy-the-flyio-browser-service) instead.
 
 ### Build fails: `su: Authentication failure` / `Failed to install browsers`
 
@@ -696,12 +680,66 @@ flowchart TD
 
 ## 10. Deploy the Fly.io browser service
 
-Files live in `scripts/browser-service/` (HTTP server, Dockerfile, `fly.toml`). Full notes: `scripts/browser-service/README.md`.
+Production uses a **separate Fly.io app** in the same git repository (not a second repo). Laravel Cloud runs PHP only; Fly runs Playwright for audits and screenshots.
+
+| Component | Location |
+|-----------|----------|
+| HTTP API | `scripts/browser-service/server.mjs` |
+| Startup wrapper | `scripts/browser-service/start.sh` |
+| Container build | `scripts/browser-service/Dockerfile` |
+| Fly config | `scripts/browser-service/fly.toml` |
+| Audit/screenshot scripts | `scripts/audit.js`, `scripts/screenshot.js` |
+
+Short reference: `scripts/browser-service/README.md`.
+
+### Architecture
+
+```text
+Laravel Cloud (worker)                    Fly app: nth-scanner-browser
+─────────────────────                     ─────────────────────────────
+AuditSiteJob ──POST /audit──────────────►  node audit.js (axe, violation PNGs)
+         ◄── JSON + base64 images ──────
+CaptureScreenshotJob ─POST /screenshot──►  node screenshot.js
+         ◄── JSON + desktop PNG base64 ──
+Settings health ──GET /health──────────►  { "ok": true }  (no auth)
+```
+
+Laravel env: `AUDIT_SERVICE_URL` + `AUDIT_SERVICE_TOKEN` (same secret as Fly `BROWSER_SERVICE_TOKEN`).
 
 ### Prerequisites
 
-- [Fly CLI](https://fly.io/docs/hands-on/install-flyctl/) installed and logged in (`fly auth login`)
-- Fly account with a payment method (always-on VM)
+- [Fly CLI](https://fly.io/docs/hands-on/install-flyctl/) — `fly auth login`
+- Fly account with a payment method (always-on VM, ~**$11/mo** for 2 GB in `fly.toml`)
+- **No Cloudflare account required** when using Fly for both audits and screenshots
+
+### Monorepo deploy (important)
+
+Fly config lives under `scripts/browser-service/`, but the Docker **build context must be the repository root** so `COPY scripts/` works.
+
+| Command | Correct | Wrong |
+|---------|---------|--------|
+| Deploy | `fly deploy . --config scripts/browser-service/fly.toml` | `fly deploy --config …` without `.` |
+| Dockerfile flag | *(omit — use `dockerfile = "Dockerfile"` in `fly.toml`)* | `--dockerfile scripts/browser-service/Dockerfile` |
+
+If you pass `--dockerfile scripts/browser-service/Dockerfile` **and** use `fly.toml` in that folder, Fly resolves the path twice and errors:
+
+```text
+dockerfile '…/scripts/browser-service/scripts/browser-service/Dockerfile' not found
+```
+
+### Container design
+
+The image is based on `mcr.microsoft.com/playwright:v1.52.0-noble` (Chromium + system libraries). Important settings:
+
+| Setting | Value | Why |
+|---------|--------|-----|
+| `USER root` | root in container | Reliable bind on port 8080 and temp dirs on Fly |
+| `PORT` | `8080` | Matches `internal_port` in `fly.toml` |
+| `PLAYWRIGHT_BROWSERS_PATH` | `/ms-playwright` | Browsers baked into the Playwright image |
+| `start.sh` | runs before Node | Logs startup to stdout for `fly logs` |
+| `GET /health` | no `Authorization` | Fly health probes do not send a Bearer token |
+
+`POST /audit` and `POST /screenshot` require `Authorization: Bearer <token>` when `BROWSER_SERVICE_TOKEN` is set on Fly.
 
 ### 1. Create the app and set secrets
 
@@ -719,18 +757,28 @@ fly secrets set BROWSER_SERVICE_TOKEN="$(openssl rand -hex 32)" \
 fly deploy . --config scripts/browser-service/fly.toml
 ```
 
-Use `.` as the build context (repository root) so the Dockerfile can `COPY scripts/`. Do not pass `--dockerfile scripts/browser-service/Dockerfile` — with this config file, Fly resolves that path twice and errors.
-
-The image uses `mcr.microsoft.com/playwright` (Chromium + system libraries preinstalled). Default VM: **2 GB RAM** in `fly.toml` — adjust if needed.
+- Image size is ~**800 MB** (normal for Playwright).
+- First deploy can take several minutes; health check `grace_period` is **60s** in `fly.toml`.
 
 ### 3. Verify Fly
 
 ```bash
-fly status --config scripts/browser-service/fly.toml
+fly status --app nth-scanner-browser
 curl -s https://nth-scanner-browser.fly.dev/health
 ```
 
-Expect `{"ok":true}` (no auth on `/health`).
+Expect `{"ok":true}` with **no** Bearer token.
+
+In the Fly dashboard, the machine check **servicecheck-00-http-8080** should show **passing (1/1)**. A machine can show **Started** while checks are still **0/1** — wait for the grace period or see [Troubleshooting](#fly-troubleshooting).
+
+Test an authenticated route (optional):
+
+```bash
+curl -s -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://example.com"}' \
+  https://nth-scanner-browser.fly.dev/screenshot | head -c 200
+```
 
 ### 4. Wire Laravel Cloud
 
@@ -741,11 +789,13 @@ AUDIT_SERVICE_URL=https://nth-scanner-browser.fly.dev
 AUDIT_SERVICE_TOKEN=<same value as BROWSER_SERVICE_TOKEN on Fly>
 ```
 
-Redeploy Cloud (or restart background processes). Open **Settings** — **browser_service** should be green.
+`AUDIT_DRIVER` and `SCREENSHOT_DRIVER` become `http` automatically when `AUDIT_SERVICE_URL` is set.
+
+Redeploy Cloud or restart auditing background processes. **Settings → API & storage health** should show **browser_service** green.
 
 ### 5. Trim Laravel Cloud build commands
 
-Remove Playwright / `scripts` npm install from Cloud build commands. Example minimal build:
+Remove Playwright / `scripts` npm install from Cloud build commands:
 
 ```bash
 composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
@@ -753,6 +803,8 @@ npm ci --audit false
 npm run build
 php artisan optimize
 ```
+
+You do not need `NODE_BINARY` or `PLAYWRIGHT_BROWSERS_PATH` on Cloud workers for production audits.
 
 ### 6. End-to-end test
 
@@ -766,22 +818,120 @@ Run a small search with one prospect that has a website. Confirm:
 
 | Task | Command |
 |------|---------|
-| Logs | `fly logs --config scripts/browser-service/fly.toml` |
-| SSH console | `fly ssh console --config scripts/browser-service/fly.toml` |
-| Scale memory | Edit `[[vm]] memory` in `fly.toml`, redeploy |
+| Live logs | `fly logs --app nth-scanner-browser` |
+| Status | `fly status --app nth-scanner-browser` |
+| SSH | `fly ssh console --app nth-scanner-browser` |
+| Secrets | `fly secrets list --app nth-scanner-browser` |
+| Scale RAM | Edit `[[vm]] memory` in `fly.toml`, then redeploy |
 
-If audits time out, increase `AUDIT_TIMEOUT` on Laravel Cloud (default 120s) and ensure the Fly machine has 2 GB RAM.
+If audits time out, increase `AUDIT_TIMEOUT` on Laravel Cloud (default 120s) and keep the Fly VM at **2 GB RAM**.
 
-#### Deploy fails: health checks timeout
+### Fly troubleshooting {#fly-troubleshooting}
 
-The image built, but the machine never passed `GET /health`. Common causes:
+#### Symptom: build error — Dockerfile path doubled
 
-1. **`connect: connection refused` on :8080** — Node is not listening (crashed on boot). Run `fly logs --app nth-scanner-browser` and look for `[browser-service]` or startup errors. Redeploy with latest `start.sh` + Dockerfile (`USER root`, `PORT=8080`, `PLAYWRIGHT_BROWSERS_PATH=/ms-playwright`).
-2. **`/health` returned 401** — Fly’s probe does not send `Authorization`; `/health` must stay public (fixed in `server.mjs`).
-3. **Slow first boot** — large image; `grace_period` is 60s in `fly.toml`.
-4. **Verify manually:** `curl -s https://nth-scanner-browser.fly.dev/health` → `{"ok":true}`.
+```text
+dockerfile '…/scripts/browser-service/scripts/browser-service/Dockerfile' not found
+```
+
+**Fix:** Deploy from repo root with only:
 
 ```bash
+fly deploy . --config scripts/browser-service/fly.toml
+```
+
+Do not pass `--dockerfile scripts/browser-service/Dockerfile`.
+
+---
+
+#### Symptom: deploy fails — health checks timeout / API canceled
+
+```text
+timeout reached waiting for health checks to pass
+failed to get VM … net/http: request canceled
+```
+
+The image often **built successfully**; the new machine did not pass `GET /health` in time. Check the specific check output in the dashboard (below).
+
+**Fix:** Follow the rows in the next table, then redeploy:
+
+```bash
+fly deploy . --config scripts/browser-service/fly.toml
+```
+
+---
+
+#### Symptom: dashboard check `critical` — `connect: connection refused`
+
+| Field | Example |
+|-------|---------|
+| Check | `servicecheck-00-http-8080` |
+| Status | `critical` |
+| Output | `connect: connection refused` |
+
+Nothing is listening on port **8080** inside the VM. The container may be **Started** while the Node process has **crashed on boot**.
+
+**Steps:**
+
+1. Stream logs immediately:
+
+   ```bash
+   fly logs --app nth-scanner-browser
+   ```
+
+2. Look for successful startup:
+
+   ```text
+   [browser-service] starting as 0:0 PORT=8080
+   [browser-service] node v24.x.x
+   [browser-service] listening on 0.0.0.0:8080
+   ```
+
+3. If logs show `server.mjs not found`, `EACCES`, or `uncaughtException`, fix the image and redeploy (ensure latest `start.sh`, Dockerfile with `USER root`, and `ENV PORT=8080`).
+
+4. Confirm from your machine:
+
+   ```bash
+   curl -s https://nth-scanner-browser.fly.dev/health
+   ```
+
+---
+
+#### Symptom: health check fails — HTTP 401 (less common)
+
+If `/health` were behind Bearer auth, Fly’s probe would get **401** and the deploy would fail. **`GET /health` must stay public** — only `POST /audit` and `POST /screenshot` require the token.
+
+---
+
+#### Symptom: Laravel audits still fail after Fly is healthy
+
+| Check | Action |
+|-------|--------|
+| `AUDIT_SERVICE_URL` | HTTPS URL with no trailing slash |
+| `AUDIT_SERVICE_TOKEN` | Matches `fly secrets list` / `BROWSER_SERVICE_TOKEN` |
+| Worker env | Same vars on **worker** cluster, not only app |
+| Workers restarted | Redeploy or restart `queue:work` after env change |
+| Settings | **browser_service** health row green |
+
+```bash
+php artisan queue:failed
+```
+
+---
+
+#### Quick diagnostic checklist
+
+```bash
+# 1. Fly app responds
+curl -s https://nth-scanner-browser.fly.dev/health
+
+# 2. Recent logs
+fly logs --app nth-scanner-browser
+
+# 3. Machine status
+fly status --app nth-scanner-browser
+
+# 4. Redeploy after code changes
 fly deploy . --config scripts/browser-service/fly.toml
 ```
 
@@ -835,4 +985,6 @@ AUDIT_SERVICE_TOKEN=
 - [Laravel Object Storage](https://cloud.laravel.com/docs/resources/object-storage) — R2 bucket setup
 - [Cloudflare Browser Rendering — pricing](https://developers.cloudflare.com/browser-rendering/pricing/)
 - [Cloudflare Browser Rendering — screenshot endpoint](https://developers.cloudflare.com/browser-rendering/rest-api/screenshot-endpoint/)
-- [Fly.io pricing](https://fly.io/docs/about/pricing/) — external audit VM estimates
+- [Fly.io pricing](https://fly.io/docs/about/pricing/) — browser VM cost estimates
+- [Playwright Docker](https://playwright.dev/docs/docker) — base image used by `scripts/browser-service/Dockerfile`
+- `scripts/browser-service/README.md` — endpoint reference and deploy one-liner

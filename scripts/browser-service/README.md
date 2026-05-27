@@ -2,6 +2,8 @@
 
 HTTP wrapper around `scripts/audit.js` and `scripts/screenshot.js` for Laravel Cloud workers that cannot run Playwright locally.
 
+**Full deployment guide and troubleshooting:** [docs/deployment/laravel-cloud.md §10](../../docs/deployment/laravel-cloud.md#10-deploy-the-flyio-browser-service) and [Fly troubleshooting](../../docs/deployment/laravel-cloud.md#fly-troubleshooting).
+
 ## Endpoints
 
 | Method | Path | Body | Response |
