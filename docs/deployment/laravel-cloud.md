@@ -110,7 +110,7 @@ Suggested size: 1 GB RAM minimum for a single-operator tool.
 - **Size:** 2 GB RAM minimum if running Playwright locally
 - **Background processes:** see section 4
 
-Keep auditing off the App cluster so 90–150s browser jobs do not compete with page loads. Use a single auditing worker process on smaller instances (one Playwright run at a time).
+Keep auditing off the App cluster so ~3-minute browser jobs do not compete with page loads. Use a single auditing worker process on smaller instances (one Playwright run at a time).
 
 ---
 
@@ -161,7 +161,7 @@ Use a **Managed queue** named `auditing` for Playwright audits (Cloud scales wor
 
 1. **New managed queue** → queue name: `auditing` (must match exactly).
 2. Do **not** mark it as the environment default queue.
-3. Instance size: **2 GiB** minimum for Playwright (Growth plan tiers); raise **visibility timeout** to **180s** and request a **shutdown timeout** above 150s if audits are cut off mid-run.
+3. Instance size: **2 GiB** minimum for Playwright (Growth plan tiers); raise **visibility timeout** to **240s** and request a **shutdown timeout** above 210s if audits are cut off mid-run.
 4. App cluster → **Background processes** → add:
 
 | Process | Command |
@@ -227,7 +227,7 @@ Healthy output:
 1. `AUDITING_QUEUE_CONNECTION=cloud` on app + worker.
 2. Canvas → managed queue named **`auditing`** (one name per queue; not comma-separated).
 3. **Save & deploy**.
-4. Managed queue **visibility timeout** ≥ **180s** (audit jobs timeout at 150s).
+4. Managed queue **visibility timeout** ≥ **240s** (audit jobs timeout at 210s).
 
 **Temporary workaround** (until `cloud` works): process auditing on the database queue:
 
@@ -236,7 +236,7 @@ AUDITING_QUEUE_CONNECTION=database
 ```
 
 ```bash
-php artisan queue:work database --queue=auditing --timeout=180 --tries=3 --stop-when-empty
+php artisan queue:work database --queue=auditing --timeout=240 --tries=3 --stop-when-empty
 ```
 
 Then switch back to `cloud`.
@@ -247,9 +247,9 @@ On the **app** or **worker** cluster, add:
 
 | Process | Command |
 |---------|---------|
-| Queue worker | `php artisan queue:work database --queue=scraping,auditing --timeout=180 --tries=3 --sleep=3 --max-jobs=50` |
+| Queue worker | `php artisan queue:work database --queue=scraping,auditing --timeout=240 --tries=3 --sleep=3 --max-jobs=50` |
 
-- **`--timeout=180`** — must exceed `AuditSiteJob` timeout (150s).
+- **`--timeout=240`** — must exceed `AuditSiteJob` timeout (210s).
 - **`--max-jobs=50`** — restarts the worker periodically to release memory after Playwright runs.
 
 ### Option C — Horizon (Redis)
@@ -320,7 +320,7 @@ AUDITING_QUEUE_CONNECTION=database
 DB_QUEUE_RETRY_AFTER=200
 ```
 
-- **`DB_QUEUE_RETRY_AFTER=200`** — must exceed audit job timeout (150s) when scraping/auditing use the database driver.
+- **`DB_QUEUE_RETRY_AFTER=250`** — must exceed audit job timeout (210s) when scraping/auditing use the database driver.
 - **`AUDITING_QUEUE_CONNECTION=cloud`** — sends `AuditSiteJob`, reports, screenshots, and outreach jobs to the managed queue named `auditing` via Laravel Cloud’s `cloud` driver (see [Managed queue troubleshooting](#managed-queue-invalidaddress--sqsus-east-1amazonawscom-is-not-valid)).
 
 - **Do not use `sqs`** for auditing on Laravel Cloud unless you supply your own AWS queue URLs and credentials. Managed queues use **`cloud`** only.
@@ -351,7 +351,7 @@ OPENROUTER_MODEL=anthropic/claude-sonnet-4
 REPORT_BOOKING_URL=https://tidycal.com/yourhandle
 REPORT_EXPIRY_DAYS=30
 SEARCH_RATE_LIMIT_SECONDS=30
-AUDIT_TIMEOUT=120
+AUDIT_TIMEOUT=180
 ```
 
 ### Node / audit scripts (Playwright path)
@@ -910,7 +910,7 @@ Run a small search with one prospect that has a website. Confirm:
 | Secrets | `fly secrets list --app nth-scanner-browser` |
 | Scale RAM | Edit `[[vm]] memory` in `fly.toml`, then redeploy |
 
-If audits time out, increase `AUDIT_TIMEOUT` on Laravel Cloud (default 120s) and keep the Fly VM at **2 GB RAM**.
+If audits time out, increase `AUDIT_TIMEOUT` on Laravel Cloud (default 180s; must stay below `AuditSiteJob` timeout 210s) and keep the Fly VM at **2 GB RAM**. Raise queue worker `--timeout` and SQS visibility above the job timeout.
 
 ### Fly troubleshooting {#fly-troubleshooting}
 
@@ -1069,7 +1069,7 @@ OPENROUTER_MODEL=anthropic/claude-sonnet-4
 REPORT_BOOKING_URL=
 REPORT_EXPIRY_DAYS=30
 SEARCH_RATE_LIMIT_SECONDS=30
-AUDIT_TIMEOUT=120
+AUDIT_TIMEOUT=180
 
 NODE_BINARY=node
 

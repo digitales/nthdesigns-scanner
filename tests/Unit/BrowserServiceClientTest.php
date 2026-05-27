@@ -3,6 +3,9 @@
 namespace Tests\Unit;
 
 use App\Services\BrowserServiceClient;
+use GuzzleHttp\Exception\ConnectException;
+use GuzzleHttp\Psr7\Request as PsrRequest;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -128,6 +131,27 @@ class BrowserServiceClientTest extends TestCase
         $payload = app(BrowserServiceClient::class)->fetchAudit('http://www.forkidsco.com/');
 
         $this->assertSame('page.goto: Timeout 45000ms exceeded.', $payload['error']);
+    }
+
+    public function test_fetch_audit_returns_payload_on_connection_timeout(): void
+    {
+        Config::set('scanner.audit_service_url', 'https://browser.example.com');
+        Config::set('scanner.audit_service_token', 'secret');
+
+        Http::fake(function () {
+            throw new ConnectionException(
+                new ConnectException(
+                    'cURL error 28: Operation timed out after 120001 milliseconds with 0 bytes received',
+                    new PsrRequest('POST', 'https://browser.example.com/audit'),
+                ),
+            );
+        });
+
+        $payload = app(BrowserServiceClient::class)->fetchAudit('https://www.hatchards.co.uk/');
+
+        $this->assertSame('https://www.hatchards.co.uk/', $payload['url']);
+        $this->assertStringContainsString('timed out', $payload['error']);
+        $this->assertSame([], $payload['violations']);
     }
 
     public function test_health_check_calls_health_endpoint(): void

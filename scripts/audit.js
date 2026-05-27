@@ -51,7 +51,7 @@ function runLighthouse(targetUrl) {
                 '--only-categories=performance,accessibility,seo',
                 '--output=json',
             ],
-            { encoding: 'utf8', timeout: 90000, maxBuffer: 10 * 1024 * 1024 },
+            { encoding: 'utf8', timeout: 60000, maxBuffer: 10 * 1024 * 1024 },
         );
 
         const report = JSON.parse(output);

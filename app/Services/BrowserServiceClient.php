@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 
@@ -12,9 +13,13 @@ class BrowserServiceClient
      */
     public function fetchAudit(string $url): array
     {
-        $response = $this->request()
-            ->timeout(config('scanner.audit_timeout'))
-            ->post($this->endpoint('/audit'), ['url' => $url]);
+        try {
+            $response = $this->request()
+                ->timeout(config('scanner.audit_timeout'))
+                ->post($this->endpoint('/audit'), ['url' => $url]);
+        } catch (ConnectionException $e) {
+            return $this->unreachableAuditPayload($url, $e->getMessage());
+        }
 
         if (!$response->successful()) {
             $payload = $this->parseAuditPayloadFromFailedResponse($response->body());
@@ -195,5 +200,21 @@ class BrowserServiceClient
         }
 
         return null;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function unreachableAuditPayload(string $url, string $message): array
+    {
+        return [
+            'url' => $url,
+            'error' => $message,
+            'violations' => [],
+            'pass_count' => 0,
+            'incomplete_count' => 0,
+            'violation_screenshots' => [],
+            'lighthouse' => null,
+        ];
     }
 }

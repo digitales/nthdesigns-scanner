@@ -39,7 +39,8 @@ return [
 
     'playwright_browsers_path' => env('PLAYWRIGHT_BROWSERS_PATH'),
 
-    'audit_timeout' => (int) env('AUDIT_TIMEOUT', 120),
+    // HTTP client timeout for Fly/browser-service /audit (page + axe + lighthouse can exceed 120s).
+    'audit_timeout' => (int) env('AUDIT_TIMEOUT', 180),
 
     'report_booking_url' => env('REPORT_BOOKING_URL'),
 

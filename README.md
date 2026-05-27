@@ -37,7 +37,7 @@ Configure `.env`:
 | `OPENROUTER_API_KEY` | Outreach email generation (Anthropic models via OpenRouter) |
 | `OPENROUTER_MODEL` | Model slug, e.g. `anthropic/claude-sonnet-4` |
 | `QUEUE_CONNECTION` | `database` (default) — jobs in Postgres; use `queue:work` locally and on Laravel Cloud |
-| `DB_QUEUE_RETRY_AFTER` | Set to `200` in production (must exceed audit job timeout) |
+| `DB_QUEUE_RETRY_AFTER` | Set to `250` in production (must exceed audit job timeout) |
 | `REDIS_CLIENT=predis` | Only if you switch cache/queue to Redis; not required for database queues |
 | `AUDIT_SCRIPT_PATH` | Path to `scripts/audit.js` |
 | `REPORT_BOOKING_URL` | CTA on public reports |
@@ -48,7 +48,7 @@ Configure `.env`:
 ```bash
 composer dev           # serve, queue worker, logs, Vite (uses QUEUE_CONNECTION from .env)
 # or manually:
-php artisan queue:work --queue=scraping,auditing --timeout=180
+php artisan queue:work --queue=scraping,auditing --timeout=240
 php artisan serve
 npm run dev
 ```
