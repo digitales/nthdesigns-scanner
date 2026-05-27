@@ -5,6 +5,7 @@ namespace Tests\Unit;
 use App\Services\ScreenshotCaptureService;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Process;
 use Tests\TestCase;
 
 class ScreenshotCaptureServiceTest extends TestCase
@@ -33,6 +34,32 @@ class ScreenshotCaptureServiceTest extends TestCase
             $this->assertSame('png-data', file_get_contents($path));
         } finally {
             @unlink($localDir.'/desktop.png');
+            @rmdir($localDir);
+        }
+    }
+
+    public function test_playwright_driver_surfaces_json_error_from_stdout(): void
+    {
+        Config::set('scanner.screenshot_driver', 'playwright');
+        Config::set('scanner.node_binary', 'node');
+        Config::set('scanner.screenshot_timeout', 30);
+
+        Process::fake([
+            '*' => Process::result(
+                output: json_encode(['error' => 'page.screenshot: Timeout 30000ms exceeded.']),
+                exitCode: 1,
+            ),
+        ]);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('page.screenshot: Timeout 30000ms exceeded.');
+
+        $localDir = storage_path('app/temp/screenshot-playwright-error-test');
+        @mkdir($localDir, 0755, true);
+
+        try {
+            app(ScreenshotCaptureService::class)->captureDesktop('https://example.com', $localDir);
+        } finally {
             @rmdir($localDir);
         }
     }

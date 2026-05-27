@@ -59,6 +59,31 @@ class BrowserServiceClientTest extends TestCase
         }
     }
 
+    public function test_capture_desktop_surfaces_page_error(): void
+    {
+        Config::set('scanner.audit_service_url', 'https://browser.example.com');
+        Config::set('scanner.audit_service_token', 'secret');
+        Config::set('scanner.screenshot_timeout', 120);
+
+        Http::fake([
+            'https://browser.example.com/screenshot' => Http::response([
+                'error' => 'page.screenshot: Timeout 30000ms exceeded.',
+            ]),
+        ]);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('page.screenshot: Timeout 30000ms exceeded.');
+
+        $dir = storage_path('app/temp/browser-screenshot-error-test');
+        @mkdir($dir, 0755, true);
+
+        try {
+            app(BrowserServiceClient::class)->captureDesktop('https://example.com', $dir);
+        } finally {
+            @rmdir($dir);
+        }
+    }
+
     public function test_capture_desktop_writes_png(): void
     {
         Config::set('scanner.audit_service_url', 'https://browser.example.com');

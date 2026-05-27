@@ -86,11 +86,21 @@ class BrowserServiceClient
 
     public function captureDesktop(string $url, string $localDir): string
     {
-        $response = $this->request()
-            ->timeout(90)
-            ->post($this->endpoint('/screenshot'), ['url' => $url]);
+        try {
+            $response = $this->request()
+                ->timeout(config('scanner.screenshot_timeout'))
+                ->post($this->endpoint('/screenshot'), ['url' => $url]);
+        } catch (ConnectionException $e) {
+            throw new \RuntimeException('Screenshot service unreachable: '.$e->getMessage(), 0, $e);
+        }
 
         if (!$response->successful()) {
+            $payload = $this->parseScreenshotPayloadFromFailedResponse($response->body());
+
+            if ($payload !== null && !empty($payload['error'])) {
+                throw new \RuntimeException((string) $payload['error']);
+            }
+
             throw new \RuntimeException(
                 'Screenshot service failed: '.trim($response->body())
             );
@@ -196,6 +206,34 @@ class BrowserServiceClient
         }
 
         if (isset($decoded['url']) || array_key_exists('error', $decoded)) {
+            return $decoded;
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function parseScreenshotPayloadFromFailedResponse(string $body): ?array
+    {
+        $decoded = json_decode($body, true);
+
+        if (!is_array($decoded)) {
+            return null;
+        }
+
+        $nested = $decoded['error'] ?? null;
+
+        if (is_string($nested)) {
+            $payload = json_decode($nested, true);
+
+            if (is_array($payload) && array_key_exists('error', $payload)) {
+                return $payload;
+            }
+        }
+
+        if (array_key_exists('error', $decoded)) {
             return $decoded;
         }
 

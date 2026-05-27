@@ -22,8 +22,15 @@ async function main() {
     const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
 
     try {
-        await page.goto(url, { waitUntil: 'networkidle', timeout: 45000 });
-        await page.screenshot({ path: desktopPath, fullPage: false });
+        // domcontentloaded — networkidle hangs on sites with analytics / long-polling.
+        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
+        await page.screenshot({
+            path: desktopPath,
+            fullPage: false,
+            timeout: 60000,
+            animations: 'disabled',
+            caret: 'hide',
+        });
 
         writeFileSync(
             join(outputDir, 'meta.json'),

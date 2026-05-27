@@ -29,7 +29,7 @@ class ScreenshotCaptureService
             return $this->browserService->captureDesktop($url, $localDir);
         }
 
-        $result = Process::timeout(90)
+        $result = Process::timeout(config('scanner.screenshot_timeout'))
             ->env(PlaywrightEnv::forProcess())
             ->run([
                 config('scanner.node_binary'),
@@ -38,14 +38,10 @@ class ScreenshotCaptureService
                 $localDir,
             ]);
 
-        if (!$result->successful()) {
-            throw new \RuntimeException(trim($result->errorOutput() ?: $result->output()));
-        }
-
-        $output = json_decode($result->output(), true);
+        $output = $this->parseScriptOutput($result->output(), $result->errorOutput());
 
         if (!is_array($output) || !empty($output['error'])) {
-            throw new \RuntimeException($output['error'] ?? 'Screenshot script returned invalid JSON');
+            throw new \RuntimeException($output['error'] ?? 'Screenshot script failed');
         }
 
         $filename = $output['desktop'] ?? 'desktop.png';
@@ -56,5 +52,29 @@ class ScreenshotCaptureService
         }
 
         return $absolutePath;
+    }
+
+    /**
+     * screenshot.js writes JSON errors to stdout before exiting non-zero.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function parseScriptOutput(string $stdout, string $stderr): ?array
+    {
+        foreach ([$stdout, $stderr] as $chunk) {
+            $trimmed = trim($chunk);
+
+            if ($trimmed === '') {
+                continue;
+            }
+
+            $decoded = json_decode($trimmed, true);
+
+            if (is_array($decoded)) {
+                return $decoded;
+            }
+        }
+
+        return null;
     }
 }
