@@ -1,0 +1,67 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\AuditJob;
+use App\Models\Prospect;
+use App\Models\Search;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class ProspectShowTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_show_includes_audit_when_complete_with_payload(): void
+    {
+        $user = User::factory()->create();
+        $prospect = Prospect::factory()->create([
+            'search_id' => Search::factory()->create(['user_id' => $user->id])->id,
+            'audit_status' => 'complete',
+            'website_url' => 'https://example.com',
+            'performance_score' => 50,
+            'raw_a11y_payload' => [
+                'url' => 'https://example.com',
+                'violations' => [
+                    ['id' => 'color-contrast', 'impact' => 'critical', 'description' => 'Contrast', 'nodes' => [1]],
+                ],
+                'pass_count' => 10,
+                'incomplete_count' => 1,
+            ],
+            'raw_lighthouse_payload' => ['performance' => 50, 'accessibility' => 60, 'seo' => 70],
+        ]);
+        AuditJob::create([
+            'prospect_id' => $prospect->id,
+            'job_type' => 'accessibility',
+            'status' => 'complete',
+            'completed_at' => now(),
+        ]);
+
+        $this->actingAs($user)
+            ->get("/prospects/{$prospect->id}")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Prospect/Show')
+                ->has('audit')
+                ->where('audit.summary.critical', 1)
+                ->where('audit.pass_count', 10));
+    }
+
+    public function test_show_omits_audit_when_pending(): void
+    {
+        $user = User::factory()->create();
+        $prospect = Prospect::factory()->create([
+            'search_id' => Search::factory()->create(['user_id' => $user->id])->id,
+            'audit_status' => 'pending',
+            'raw_a11y_payload' => null,
+        ]);
+
+        $this->actingAs($user)
+            ->get("/prospects/{$prospect->id}")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Prospect/Show')
+                ->where('audit', null));
+    }
+}
