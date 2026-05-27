@@ -57,10 +57,6 @@ class AuditRunnerService
             throw new \RuntimeException('Audit script returned invalid JSON');
         }
 
-        if (!empty($payload['error'])) {
-            throw new \RuntimeException('Audit script error: '.$payload['error']);
-        }
-
         return $payload;
     }
 

@@ -66,4 +66,31 @@ class AuditRunnerServiceTest extends TestCase
                 && $request->hasHeader('Authorization', 'Bearer secret');
         });
     }
+
+    public function test_http_driver_returns_page_load_error_payload(): void
+    {
+        Config::set('scanner.audit_driver', 'http');
+        Config::set('scanner.audit_service_url', 'https://audit.example.com');
+        Config::set('scanner.audit_service_token', 'secret');
+
+        Http::fake([
+            'https://audit.example.com/audit' => Http::response([
+                'url' => 'http://www.forkidsco.com/',
+                'error' => 'page.goto: Timeout 45000ms exceeded.',
+                'violations' => [],
+                'violation_screenshots' => [],
+            ]),
+        ]);
+
+        $dir = storage_path('app/temp/audit-runner-error-test');
+        @mkdir($dir, 0755, true);
+
+        try {
+            $payload = app(AuditRunnerService::class)->run('http://www.forkidsco.com/', $dir);
+        } finally {
+            @rmdir($dir);
+        }
+
+        $this->assertSame('page.goto: Timeout 45000ms exceeded.', $payload['error']);
+    }
 }

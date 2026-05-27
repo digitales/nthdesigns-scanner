@@ -17,6 +17,12 @@ class BrowserServiceClient
             ->post($this->endpoint('/audit'), ['url' => $url]);
 
         if (!$response->successful()) {
+            $payload = $this->parseAuditPayloadFromFailedResponse($response->body());
+
+            if ($payload !== null) {
+                return $payload;
+            }
+
             throw new \RuntimeException(
                 'Audit service failed: '.trim($response->body())
             );
@@ -26,10 +32,6 @@ class BrowserServiceClient
 
         if (!is_array($payload)) {
             throw new \RuntimeException('Audit service returned invalid JSON');
-        }
-
-        if (!empty($payload['error'])) {
-            throw new \RuntimeException('Audit service error: '.$payload['error']);
         }
 
         return $payload;
@@ -163,5 +165,35 @@ class BrowserServiceClient
     private function endpoint(string $path): string
     {
         return $this->baseUrl().$path;
+    }
+
+    /**
+     * Older browser-service builds returned HTTP 500 with audit.js stdout nested in error.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function parseAuditPayloadFromFailedResponse(string $body): ?array
+    {
+        $decoded = json_decode($body, true);
+
+        if (!is_array($decoded)) {
+            return null;
+        }
+
+        $nested = $decoded['error'] ?? null;
+
+        if (is_string($nested)) {
+            $payload = json_decode($nested, true);
+
+            if (is_array($payload) && (isset($payload['url']) || isset($payload['violations']))) {
+                return $payload;
+            }
+        }
+
+        if (isset($decoded['url']) || array_key_exists('error', $decoded)) {
+            return $decoded;
+        }
+
+        return null;
     }
 }

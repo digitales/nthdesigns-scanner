@@ -70,13 +70,30 @@ function runNodeScript(scriptName, args) {
         });
 
         child.on('close', (code) => {
-            if (code !== 0) {
-                reject(new Error(stderr.trim() || stdout.trim() || `${scriptName} exited with code ${code}`));
+            const trimmed = stdout.trim();
+
+            if (code === 0) {
+                resolve(trimmed);
 
                 return;
             }
 
-            resolve(stdout.trim());
+            // audit.js / screenshot.js write structured JSON to stdout before exiting 1.
+            if (trimmed !== '') {
+                try {
+                    const payload = JSON.parse(trimmed);
+
+                    if (payload && typeof payload === 'object' && ('error' in payload || 'url' in payload)) {
+                        resolve(trimmed);
+
+                        return;
+                    }
+                } catch {
+                    // fall through
+                }
+            }
+
+            reject(new Error(stderr.trim() || trimmed || `${scriptName} exited with code ${code}`));
         });
     });
 }

@@ -84,6 +84,52 @@ class BrowserServiceClientTest extends TestCase
         }
     }
 
+    public function test_fetch_audit_returns_page_load_error_payload(): void
+    {
+        Config::set('scanner.audit_service_url', 'https://browser.example.com');
+        Config::set('scanner.audit_service_token', 'secret');
+
+        Http::fake([
+            'https://browser.example.com/audit' => Http::response([
+                'url' => 'http://www.forkidsco.com/',
+                'error' => 'page.goto: Timeout 45000ms exceeded.',
+                'violations' => [],
+                'pass_count' => 0,
+                'incomplete_count' => 0,
+                'violation_screenshots' => [],
+                'lighthouse' => null,
+            ]),
+        ]);
+
+        $payload = app(BrowserServiceClient::class)->fetchAudit('http://www.forkidsco.com/');
+
+        $this->assertSame('page.goto: Timeout 45000ms exceeded.', $payload['error']);
+        $this->assertSame([], $payload['violations']);
+    }
+
+    public function test_fetch_audit_parses_legacy_500_error_wrapper(): void
+    {
+        Config::set('scanner.audit_service_url', 'https://browser.example.com');
+        Config::set('scanner.audit_service_token', 'secret');
+
+        $inner = json_encode([
+            'url' => 'http://www.forkidsco.com/',
+            'error' => 'page.goto: Timeout 45000ms exceeded.',
+            'violations' => [],
+        ]);
+
+        Http::fake([
+            'https://browser.example.com/audit' => Http::response(
+                ['error' => $inner],
+                500,
+            ),
+        ]);
+
+        $payload = app(BrowserServiceClient::class)->fetchAudit('http://www.forkidsco.com/');
+
+        $this->assertSame('page.goto: Timeout 45000ms exceeded.', $payload['error']);
+    }
+
     public function test_health_check_calls_health_endpoint(): void
     {
         Config::set('scanner.audit_service_url', 'https://browser.example.com');
