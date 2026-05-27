@@ -1005,6 +1005,29 @@ php artisan queue:failed
 
 ---
 
+#### Symptom: authenticated `/audit` or `/screenshot` — `Executable doesn't exist at /ms-playwright/chromium_headless_shell…`
+
+Token auth is working (you are past `401 Unauthorized`). The Node `playwright` npm package and the Fly Docker image must be the **same major.minor** — browsers are baked into `mcr.microsoft.com/playwright:v1.52.0-noble` at `/ms-playwright`, while a newer npm release (e.g. `1.60` from `^1.52.0`) looks for a different Chromium revision.
+
+**Fix:** Pin `scripts/package.json` to `"playwright": "1.52.0"` (exact, no caret), run `cd scripts && npm install`, commit `package-lock.json`, then redeploy:
+
+```bash
+fly deploy . --config scripts/browser-service/fly.toml
+```
+
+Re-test:
+
+```bash
+curl -s -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://example.com"}' \
+  https://nth-scanner-browser.fly.dev/screenshot | head -c 200
+```
+
+Expect JSON starting with `{"desktop":` — not `{"error":`.
+
+---
+
 #### Quick diagnostic checklist
 
 ```bash
