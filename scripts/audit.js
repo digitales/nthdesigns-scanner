@@ -114,7 +114,10 @@ async function captureViolationScreenshots(page, violations) {
 
 async function main() {
     const browser = await chromium.launch(chromiumLaunchOptions);
-    const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+    // axe-core's finishRun() opens a second page on page.context(); that fails on
+    // Playwright's default context from browser.newPage() — use newContext() instead.
+    const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    const page = await context.newPage();
 
     try {
         await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
@@ -144,6 +147,7 @@ async function main() {
         }));
         process.exit(1);
     } finally {
+        await context.close();
         await browser.close();
     }
 }
