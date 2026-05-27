@@ -147,6 +147,8 @@ Do **not** add:
 - `php artisan storage:link` — ephemeral filesystem; use object storage
 - `php artisan optimize:clear` — clears caches unexpectedly
 
+`php artisan optimize` caches config at **build** time. `AUDIT_SERVICE_URL` is applied again at **runtime** via `App\Support\ScannerConfig` so managed `auditing` workers use Fly HTTP even when the cached config still says `playwright`.
+
 ---
 
 ## 4. Background processes
@@ -173,15 +175,71 @@ Cloud runs managed workers for `auditing` — do **not** add a `queue:work` proc
 ```env
 QUEUE_CONNECTION=database
 SCRAPING_QUEUE_CONNECTION=database
-AUDITING_QUEUE_CONNECTION=sqs
+AUDITING_QUEUE_CONNECTION=cloud
 DB_QUEUE_RETRY_AFTER=200
 ```
 
-Cloud injects `SQS_*` / `LARAVEL_CLOUD_MANAGED_QUEUES` when the managed queue is provisioned. The app routes auditing jobs via `AUDITING_QUEUE_CONNECTION=sqs` (see `App\Support\AuditingQueue`).
+Laravel Cloud provisions a **`cloud` queue connection** at runtime (via `LARAVEL_CLOUD_MANAGED_QUEUES_CONFIG` on the server). Use **`cloud`**, not **`sqs`**. The stock `sqs` connection in `config/queue.php` is only for self-managed AWS credentials and will show placeholder `your-account-id` / `us-east-1` values if you point auditing at it on Cloud.
 
 **Requirements:** `aws/aws-sdk-php` in `composer.json` (deploy fails without it). Laravel **13.11.2+** for managed-queue support.
 
 **Verify:** run a search → Cloud **Queues** tab shows `auditing` jobs processing; Postgres `jobs` table only contains `scraping` rows.
+
+#### Managed queue: `InvalidAddress` / `sqs.us-east-1.amazonaws.com/` is not valid
+
+This error almost always means auditing jobs use the **`sqs` connection** instead of Laravel Cloud’s **`cloud` connection**. The app then posts to the placeholder URL from `config/queue.php` (`https://sqs.us-east-1.amazonaws.com/your-account-id`), not to your managed queue in `eu-west-2`.
+
+**Fix (most common)**
+
+```env
+AUDITING_QUEUE_CONNECTION=cloud
+```
+
+Set on **app and worker**, then **Save & deploy**. Do **not** use `sqs` for Laravel Cloud managed queues.
+
+**Diagnose** (Cloud Commands):
+
+```bash
+php artisan tinker --execute="
+echo 'managed flag: '.env('LARAVEL_CLOUD_MANAGED_QUEUES').PHP_EOL;
+echo 'auditing connection: '.config('scanner.auditing_queue_connection').PHP_EOL;
+echo 'has cloud config: '.(isset(\$_SERVER['LARAVEL_CLOUD_MANAGED_QUEUES_CONFIG']) ? 'yes' : 'no').PHP_EOL;
+print_r(config('queue.connections.cloud'));
+print_r(config('queue.connections.sqs'));
+"
+```
+
+Healthy output:
+
+- `auditing connection: cloud`
+- `has cloud config: yes`
+- `queue.connections.cloud` has `driver => cloud` and a nested `connection` array (region `eu-west-2`, credentials, queue URLs)
+- `queue.connections.sqs` may still show `your-account-id` — that is fine if auditing does not use it
+
+**Other causes**
+
+1. **Managed queue not provisioned** — canvas → **New managed queue** named exactly `auditing`, then **Save & deploy**.
+2. **`LARAVEL_CLOUD_MANAGED_QUEUES_CONFIG` missing** after deploy — redeploy; confirm Laravel **13.11.2+** and `aws/aws-sdk-php` in `composer.json`.
+3. **Manual `SQS_*` / `AWS_*` env vars** — remove them; they do not configure managed queues and can confuse debugging.
+
+**Fix checklist**
+
+1. `AUDITING_QUEUE_CONNECTION=cloud` on app + worker.
+2. Canvas → managed queue named **`auditing`** (one name per queue; not comma-separated).
+3. **Save & deploy**.
+4. Managed queue **visibility timeout** ≥ **180s** (audit jobs timeout at 150s).
+
+**Temporary workaround** (until `cloud` works): process auditing on the database queue:
+
+```env
+AUDITING_QUEUE_CONNECTION=database
+```
+
+```bash
+php artisan queue:work database --queue=auditing --timeout=180 --tries=3 --stop-when-empty
+```
+
+Then switch back to `cloud`.
 
 ### Option B — All jobs on database queue
 
@@ -246,7 +304,7 @@ DB_CONNECTION=pgsql
 ```env
 QUEUE_CONNECTION=database
 SCRAPING_QUEUE_CONNECTION=database
-AUDITING_QUEUE_CONNECTION=sqs
+AUDITING_QUEUE_CONNECTION=cloud
 DB_QUEUE_RETRY_AFTER=200
 
 CACHE_STORE=database
@@ -263,7 +321,9 @@ DB_QUEUE_RETRY_AFTER=200
 ```
 
 - **`DB_QUEUE_RETRY_AFTER=200`** — must exceed audit job timeout (150s) when scraping/auditing use the database driver.
-- **`AUDITING_QUEUE_CONNECTION=sqs`** — sends `AuditSiteJob`, reports, screenshots, and outreach jobs to the managed queue named `auditing`.
+- **`AUDITING_QUEUE_CONNECTION=cloud`** — sends `AuditSiteJob`, reports, screenshots, and outreach jobs to the managed queue named `auditing` via Laravel Cloud’s `cloud` driver (see [Managed queue troubleshooting](#managed-queue-invalidaddress--sqsus-east-1amazonawscom-is-not-valid)).
+
+- **Do not use `sqs`** for auditing on Laravel Cloud unless you supply your own AWS queue URLs and credentials. Managed queues use **`cloud`** only.
 
 Redis/Valkey is optional unless you use Horizon.
 
@@ -495,6 +555,16 @@ Do not install Lighthouse in build commands unless you need it — Playwright + 
 ### Failed audits
 
 Prospects with websites show `audit_status: failed` when the audit driver errors (Playwright on Cloud, HTTP audit service down, etc.). With `AUDIT_DRIVER=cloudflare`, audits are **`skipped`** (not failed). GBP scoring and reports for no-website prospects still work. Check `php artisan queue:failed`, the `failed_jobs` table, and Cloud worker logs.
+
+**`Executable doesn't exist at …/ms-playwright/chromium…` on Cloud with `AUDIT_SERVICE_URL` set**
+
+The managed `auditing` worker ran **local** `scripts/audit.js` instead of `POST`ing to Fly. Confirm runtime config (after deploy with `ScannerConfig`):
+
+```bash
+php artisan tinker --execute="echo config('scanner.audit_driver');"
+```
+
+Must print **`http`**, not `playwright`. Also verify Fly: `curl -s https://nth-scanner-browser.fly.dev/health`. Re-run failed prospects after fixing (new search or reset `audit_status` to `pending` and re-dispatch).
 
 ### Rate limiting
 
