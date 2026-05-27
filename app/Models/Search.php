@@ -13,7 +13,15 @@ class Search extends Model
 
     protected $fillable = [
         'user_id', 'niche', 'city', 'country', 'scan_type', 'status', 'total_found',
+        'benchmark_snapshot',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'benchmark_snapshot' => 'array',
+        ];
+    }
 
     public function user(): BelongsTo
     {
