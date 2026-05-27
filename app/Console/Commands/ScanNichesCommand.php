@@ -10,7 +10,7 @@ use Illuminate\Support\Str;
 class ScanNichesCommand extends Command
 {
     protected $signature = 'niches:scan
-        {--cities=Birmingham,Manchester,Leeds,Bristol,Edinburgh}
+        {--cities=}
         {--niches=}
         {--sample=5}';
 
@@ -18,7 +18,13 @@ class ScanNichesCommand extends Command
 
     public function handle(): int
     {
-        $cities = collect(explode(',', (string) $this->option('cities')))
+        $defaultCities = collect(config('niches.cities', []))->filter()->implode(',');
+        if ($defaultCities === '') {
+            $defaultCities = 'Birmingham,Manchester,Leeds,Bristol,Edinburgh';
+        }
+
+        $citiesOption = (string) $this->option('cities');
+        $cities = collect(explode(',', $citiesOption !== '' ? $citiesOption : $defaultCities))
             ->map(fn (string $c) => trim($c))
             ->filter()
             ->values();
@@ -28,7 +34,7 @@ class ScanNichesCommand extends Command
             ->filter()
             ->values();
 
-        $niches = collect(config('niches'))
+        $niches = collect(config('niches.niches', []))
             ->when($nicheFilter->isNotEmpty(), fn ($c) => $c->filter(
                 fn (array $n) => $nicheFilter->contains(Str::lower($n['label']))
             ));

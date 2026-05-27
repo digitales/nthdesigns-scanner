@@ -34,4 +34,24 @@ class ScanNichesCommandTest extends TestCase
                 && $job->queue === ScrapingQueue::NAME;
         });
     }
+
+    public function test_uses_nested_config_niches_and_default_cities(): void
+    {
+        Queue::fake();
+
+        config([
+            'niches' => [
+                'niches' => [
+                    ['label' => 'Plumber', 'query' => 'plumber', 'primary_type' => 'plumber'],
+                ],
+                'cities' => ['Leeds', 'Bristol'],
+            ],
+        ]);
+
+        $this->artisan('niches:scan', ['--sample' => 1])
+            ->expectsOutputToContain('Dispatched 2')
+            ->assertExitCode(0);
+
+        Queue::assertPushed(ScanNicheJob::class, 2);
+    }
 }
