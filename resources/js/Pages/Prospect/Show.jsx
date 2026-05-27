@@ -159,6 +159,24 @@ export default function ProspectShow({ prospect, search, report, outreachEmails 
                             )}
                         </Card>
 
+                        {prospect.place_id && (
+                            <Card title="Location">
+                                {prospect.address && (
+                                    <p style={{ fontSize: 13, marginBottom: 8, lineHeight: 1.45 }}>
+                                        {prospect.address}
+                                    </p>
+                                )}
+                                <a
+                                    href={`https://www.google.com/maps/place/?q=place_id:${prospect.place_id}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="micro"
+                                >
+                                    View on Maps
+                                </a>
+                            </Card>
+                        )}
+
                         <Card title="Profile">
                             <dl style={{ fontSize: 13, display: 'flex', flexDirection: 'column', gap: 8 }}>
                                 <div><span className="micro">Angle </span><AnglePill angle={prospect.dominant_angle} /></div>

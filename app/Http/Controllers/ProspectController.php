@@ -21,6 +21,7 @@ class ProspectController extends Controller
         return Inertia::render('Prospect/Show', [
             'prospect' => [
                 'id'               => $prospect->id,
+                'place_id'         => $prospect->place_id,
                 'business_name'    => $prospect->business_name,
                 'address'          => $prospect->address,
                 'phone'            => $prospect->phone,
