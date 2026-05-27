@@ -138,7 +138,7 @@ class OutreachController extends Controller
                 $selection->prospect,
                 $request->user(),
                 $options,
-            )->onQueue('auditing');
+            );
 
             $dispatched++;
         }

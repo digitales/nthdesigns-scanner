@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Prospect;
+use App\Support\AuditingQueue;
 use App\Models\ProspectReport;
 use App\Services\GooglePlacesService;
 use App\Services\ReportBuilderService;
@@ -22,7 +23,7 @@ class GenerateProspectReportJob implements ShouldQueue
 
     public function __construct(public Prospect $prospect)
     {
-        $this->onQueue('auditing');
+        AuditingQueue::apply($this);
     }
 
     public function handle(
@@ -59,7 +60,7 @@ class GenerateProspectReportJob implements ShouldQueue
         );
 
         if ($prospect->website_url) {
-            CaptureScreenshotJob::dispatch($report)->onQueue('auditing');
+            CaptureScreenshotJob::dispatch($report);
         }
     }
 

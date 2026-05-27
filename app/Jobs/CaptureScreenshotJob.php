@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\AuditJob;
 use App\Models\ProspectReport;
+use App\Support\AuditingQueue;
 use App\Services\ScreenshotCaptureService;
 use App\Services\ScreenshotStorageService;
 use Illuminate\Bus\Queueable;
@@ -23,7 +24,7 @@ class CaptureScreenshotJob implements ShouldQueue
 
     public function __construct(public ProspectReport $report)
     {
-        $this->onQueue('auditing');
+        AuditingQueue::apply($this);
     }
 
     public function handle(

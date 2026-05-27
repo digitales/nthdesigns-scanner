@@ -66,7 +66,7 @@ class SearchController extends Controller
 
         $search = $user->searches()->create($validated);
 
-        ScrapeProspectsJob::dispatch($search)->onQueue('scraping');
+        ScrapeProspectsJob::dispatch($search);
 
         return redirect()->route('searches.show', $search);
     }

@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\AuditJob;
 use App\Models\Prospect;
+use App\Support\AuditingQueue;
 use App\Services\A11yScoringService;
 use App\Services\AuditRunnerService;
 use App\Services\ScreenshotStorageService;
@@ -26,7 +27,7 @@ class AuditSiteJob implements ShouldQueue
 
     public function __construct(public Prospect $prospect)
     {
-        $this->onQueue('auditing');
+        AuditingQueue::apply($this);
     }
 
     public function handle(
@@ -46,7 +47,7 @@ class AuditSiteJob implements ShouldQueue
         }
 
         if ($auditRunner->shouldSkip()) {
-            CombineScoresJob::dispatch($prospect)->onQueue('auditing');
+            CombineScoresJob::dispatch($prospect);
             $searchStatus->refresh($prospect->search);
 
             return;
@@ -87,7 +88,7 @@ class AuditSiteJob implements ShouldQueue
                 'completed_at' => now(),
             ]);
 
-            CombineScoresJob::dispatch($prospect->fresh())->onQueue('auditing');
+            CombineScoresJob::dispatch($prospect->fresh());
         } catch (\Throwable $e) {
             Log::error('AuditSiteJob failed', [
                 'prospect_id' => $prospect->id,

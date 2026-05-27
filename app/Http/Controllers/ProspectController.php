@@ -68,7 +68,7 @@ class ProspectController extends Controller
     {
         $this->authorize('view', $prospect);
 
-        GenerateProspectReportJob::dispatch($prospect)->onQueue('auditing');
+        GenerateProspectReportJob::dispatch($prospect);
 
         return back()->with('success', 'Report generation started. Refresh in a few seconds.');
     }
@@ -77,7 +77,7 @@ class ProspectController extends Controller
     {
         $this->authorize('view', $prospect);
 
-        GenerateOutreachEmailJob::dispatch($prospect, $request->user())->onQueue('auditing');
+        GenerateOutreachEmailJob::dispatch($prospect, $request->user());
 
         return back()->with('success', 'Outreach email generation started. Refresh in a few seconds.');
     }

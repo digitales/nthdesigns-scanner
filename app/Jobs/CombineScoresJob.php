@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Prospect;
+use App\Support\AuditingQueue;
 use App\Services\CombineScoresService;
 use App\Services\SearchStatusService;
 use Illuminate\Bus\Queueable;
@@ -19,7 +20,7 @@ class CombineScoresJob implements ShouldQueue
 
     public function __construct(public Prospect $prospect)
     {
-        $this->onQueue('auditing');
+        AuditingQueue::apply($this);
     }
 
     public function handle(
@@ -53,7 +54,7 @@ class CombineScoresJob implements ShouldQueue
         $prospect = $prospect->fresh();
 
         if ($prospect && in_array($prospect->audit_status, ['complete', 'skipped'], true)) {
-            GenerateProspectReportJob::dispatch($prospect)->onQueue('auditing');
+            GenerateProspectReportJob::dispatch($prospect);
         }
 
         $searchStatus->refresh($search);

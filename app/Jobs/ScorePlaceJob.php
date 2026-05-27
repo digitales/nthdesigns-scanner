@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Prospect;
 use App\Models\Search;
+use App\Support\ScrapingQueue;
 use App\Services\GooglePlacesService;
 use App\Services\GbpScoringService;
 use App\Services\SearchStatusService;
@@ -25,7 +26,7 @@ class ScorePlaceJob implements ShouldQueue
         public Search $search,
         public string $placeId,
     ) {
-        $this->onQueue('scraping');
+        ScrapingQueue::apply($this);
     }
 
     public function handle(
@@ -81,12 +82,12 @@ class ScorePlaceJob implements ShouldQueue
             && !empty($prospect->website_url);
 
         if ($needsA11yAudit) {
-            AuditSiteJob::dispatch($prospect)->onQueue('auditing');
+            AuditSiteJob::dispatch($prospect);
 
             return;
         }
 
-        CombineScoresJob::dispatch($prospect->fresh())->onQueue('auditing');
+        CombineScoresJob::dispatch($prospect->fresh());
     }
 
 }

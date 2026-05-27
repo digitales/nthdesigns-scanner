@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Models\OutreachEmail;
 use App\Models\Prospect;
 use App\Models\User;
+use App\Support\AuditingQueue;
 use App\Services\OutreachEmailGeneratorService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -25,7 +26,7 @@ class GenerateOutreachEmailJob implements ShouldQueue
         public User $user,
         public array $options = [],
     ) {
-        $this->onQueue('auditing');
+        AuditingQueue::apply($this);
     }
 
     public function handle(OutreachEmailGeneratorService $generator): void

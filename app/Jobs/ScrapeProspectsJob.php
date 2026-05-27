@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Search;
+use App\Support\ScrapingQueue;
 use App\Services\GooglePlacesService;
 use App\Services\SearchStatusService;
 use Illuminate\Bus\Queueable;
@@ -21,7 +22,7 @@ class ScrapeProspectsJob implements ShouldQueue
 
     public function __construct(public Search $search)
     {
-        $this->onQueue('scraping');
+        ScrapingQueue::apply($this);
     }
 
     public function handle(GooglePlacesService $places, SearchStatusService $searchStatus): void
@@ -44,8 +45,7 @@ class ScrapeProspectsJob implements ShouldQueue
             }
 
             foreach ($placeIds as $placeId) {
-                ScorePlaceJob::dispatch($this->search, $placeId)
-                    ->onQueue('scraping');
+                ScorePlaceJob::dispatch($this->search, $placeId);
             }
 
         } catch (\Throwable $e) {

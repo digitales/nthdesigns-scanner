@@ -166,24 +166,54 @@ Do **not** add:
 
 ## 4. Background processes
 
-On the **Worker cluster**, add a queue worker (database driver):
+### Option A — Hybrid (recommended on Starter): managed `auditing` + database `scraping`
+
+Use a **Managed queue** named `auditing` for Playwright audits (Cloud scales workers). Keep **scraping** on the Postgres `jobs` table with an app-cluster background worker.
+
+**Canvas**
+
+1. **New managed queue** → queue name: `auditing` (must match exactly).
+2. Do **not** mark it as the environment default queue.
+3. Instance size: **2 GiB** minimum for Playwright (Growth plan tiers); raise **visibility timeout** to **180s** and request a **shutdown timeout** above 150s if audits are cut off mid-run.
+4. App cluster → **Background processes** → add:
 
 | Process | Command |
 |---------|---------|
-| Queue worker | `php artisan queue:work --queue=scraping,auditing --timeout=180 --tries=3 --sleep=3 --max-jobs=50` |
+| Scraping worker | `php artisan queue:work database --queue=scraping --timeout=90 --tries=3 --sleep=3` |
+
+Cloud runs managed workers for `auditing` — do **not** add a `queue:work` process for `auditing`.
+
+**Env**
+
+```env
+QUEUE_CONNECTION=database
+SCRAPING_QUEUE_CONNECTION=database
+AUDITING_QUEUE_CONNECTION=sqs
+DB_QUEUE_RETRY_AFTER=200
+```
+
+Cloud injects `SQS_*` / `LARAVEL_CLOUD_MANAGED_QUEUES` when the managed queue is provisioned. The app routes auditing jobs via `AUDITING_QUEUE_CONNECTION=sqs` (see `App\Support\AuditingQueue`).
+
+**Requirements:** `aws/aws-sdk-php` in `composer.json` (deploy fails without it). Laravel **13.11.2+** for managed-queue support.
+
+**Verify:** run a search → Cloud **Queues** tab shows `auditing` jobs processing; Postgres `jobs` table only contains `scraping` rows.
+
+### Option B — All jobs on database queue
+
+On the **app** or **worker** cluster, add:
+
+| Process | Command |
+|---------|---------|
+| Queue worker | `php artisan queue:work database --queue=scraping,auditing --timeout=180 --tries=3 --sleep=3 --max-jobs=50` |
 
 - **`--timeout=180`** — must exceed `AuditSiteJob` timeout (150s).
-- **`--queue=scraping,auditing`** — scraping jobs are processed first when both are pending.
-- **`--max-jobs=50`** — restarts the worker periodically to release memory after Playwright runs (adjust down on small instances).
+- **`--max-jobs=50`** — restarts the worker periodically to release memory after Playwright runs.
 
-**Optional — two processes** on a 2 GB+ worker (isolates long audits from fast scraping jobs):
+### Option C — Horizon (Redis)
 
-| Process | Command |
-|---------|---------|
-| Scraping | `php artisan queue:work --queue=scraping --timeout=90 --tries=3 --sleep=3` |
-| Auditing | `php artisan queue:work --queue=auditing --timeout=180 --tries=3 --sleep=3 --max-jobs=10` |
+Attach **Cache** (Valkey), set `QUEUE_CONNECTION=redis`, run `php artisan horizon` as a custom background process. See [Optional: Redis + Horizon](#optional-redis--horizon) below.
 
-Do **not** run `php artisan horizon` unless you also set `QUEUE_CONNECTION=redis` and attach Valkey/Redis.
+Do **not** run Horizon unless `QUEUE_CONNECTION=redis`.
 
 On **App cluster** or **Worker cluster** (one only):
 
@@ -226,18 +256,31 @@ DB_CONNECTION=pgsql
 
 ### Queue, cache, session
 
+**Hybrid (managed auditing + database scraping):**
+
 ```env
 QUEUE_CONNECTION=database
+SCRAPING_QUEUE_CONNECTION=database
+AUDITING_QUEUE_CONNECTION=sqs
 DB_QUEUE_RETRY_AFTER=200
 
 CACHE_STORE=database
 SESSION_DRIVER=database
 ```
 
-- **`QUEUE_CONNECTION=database`** — jobs live in the Postgres `jobs` table; workers use `queue:work`, not Horizon.
-- **`DB_QUEUE_RETRY_AFTER=200`** — must be greater than the longest job timeout (audits use 150s). Default `90` will re-queue jobs while Playwright is still running.
+**All database queues:**
 
-Redis/Valkey is optional. Only attach it if you prefer `CACHE_STORE=redis` or `SESSION_DRIVER=redis` instead of the database drivers above.
+```env
+QUEUE_CONNECTION=database
+SCRAPING_QUEUE_CONNECTION=database
+AUDITING_QUEUE_CONNECTION=database
+DB_QUEUE_RETRY_AFTER=200
+```
+
+- **`DB_QUEUE_RETRY_AFTER=200`** — must exceed audit job timeout (150s) when scraping/auditing use the database driver.
+- **`AUDITING_QUEUE_CONNECTION=sqs`** — sends `AuditSiteJob`, reports, screenshots, and outreach jobs to the managed queue named `auditing`.
+
+Redis/Valkey is optional unless you use Horizon.
 
 ### Storage
 
@@ -276,7 +319,7 @@ PLAYWRIGHT_BROWSERS_PATH=0
 ```
 
 Set `PLAYWRIGHT_BROWSERS_PATH=0` on **worker** environments (not only at build time) so queue workers resolve the Chromium binary installed during build.
-
+i
 Leave `AUDIT_SCRIPT_PATH` empty to use `scripts/audit.js` from project root.
 
 Lighthouse is optional — audits still run without it; performance/SEO scores will be null.
