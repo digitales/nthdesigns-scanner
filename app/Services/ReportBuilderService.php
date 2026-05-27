@@ -22,15 +22,7 @@ class ReportBuilderService
         $benchmark = null;
 
         if ($benchmarkPlace) {
-            $benchmark = [
-                'place_id'        => $benchmarkPlace['id'] ?? null,
-                'name'            => $benchmarkPlace['displayName']['text'] ?? 'Top local competitor',
-                'rating'          => $benchmarkPlace['rating'] ?? null,
-                'review_count'    => $benchmarkPlace['userRatingCount'] ?? 0,
-                'photo_count'     => count($benchmarkPlace['photos'] ?? []),
-                'has_description' => ! empty($benchmarkPlace['editorialSummary']['text'] ?? null),
-                'hours_complete'  => ! empty($benchmarkPlace['regularOpeningHours']['periods'] ?? null),
-            ];
+            $benchmark = (new BenchmarkNormalizer())->fromPlace($benchmarkPlace);
         }
 
         $comparison = [];
