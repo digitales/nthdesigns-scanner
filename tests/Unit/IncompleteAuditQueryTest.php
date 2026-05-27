@@ -95,4 +95,16 @@ class IncompleteAuditQueryTest extends TestCase
         $this->assertContains($prospect->id, IncompleteAuditQuery::ids());
         $this->assertSame('missing raw_a11y_payload', IncompleteAuditQuery::reasonFor($prospect));
     }
+
+    public function test_excludes_skipped_audit_status(): void
+    {
+        Config::set('scanner.audit_driver', 'skip');
+
+        $prospect = $this->prospectForSearch([], [
+            'audit_status'           => 'skipped',
+            'raw_lighthouse_payload' => null,
+        ]);
+
+        $this->assertNotContains($prospect->id, IncompleteAuditQuery::ids());
+    }
 }
