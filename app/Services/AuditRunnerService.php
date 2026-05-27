@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\PlaywrightEnv;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Process;
 
@@ -31,9 +32,9 @@ class AuditRunnerService
         $this->assertNodeBinaryAvailable();
 
         $result = Process::timeout(config('scanner.audit_timeout'))
-            ->env([
+            ->env(PlaywrightEnv::forProcess([
                 'LIGHTHOUSE_BINARY' => config('scanner.lighthouse_binary'),
-            ])
+            ]))
             ->run([
                 config('scanner.node_binary'),
                 config('scanner.audit_script_path'),

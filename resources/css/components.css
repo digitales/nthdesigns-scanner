@@ -293,6 +293,15 @@
     align-items: center;
   }
 
+  .page-header .back-link {
+    display: inline-flex;
+    margin-bottom: 10px;
+  }
+
+  .page-header .page-header-eyebrow {
+    margin-bottom: 6px;
+  }
+
   .eyebrow {
     font-family: var(--font-mono);
     font-size: 10.5px;

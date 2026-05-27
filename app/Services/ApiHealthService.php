@@ -29,6 +29,7 @@ class ApiHealthService
 
         if ($this->usesLocalNode()) {
             $checks['node'] = $this->checkNode();
+            $checks['playwright'] = $this->checkPlaywright();
         }
 
         return $checks;
@@ -160,6 +161,43 @@ class ApiHealthService
             'message' => 'NODE_BINARY ('.$binary.') is missing or not executable'.
                 ($which !== '' ? " — try NODE_BINARY={$which}" : ' — set NODE_BINARY=node in .env'),
         ];
+    }
+
+    /**
+     * @return array{ok: bool, message: string}
+     */
+    public function checkPlaywright(): array
+    {
+        $browsersPath = config('scanner.playwright_browsers_path');
+
+        if ($browsersPath === null || $browsersPath === '') {
+            return [
+                'ok'      => true,
+                'message' => 'Using default Playwright browser cache',
+            ];
+        }
+
+        if ($browsersPath !== '0') {
+            if (!is_dir($browsersPath)) {
+                return [
+                    'ok'      => false,
+                    'message' => 'PLAYWRIGHT_BROWSERS_PATH directory not found: '.$browsersPath,
+                ];
+            }
+
+            return ['ok' => true, 'message' => 'Chromium at '.$browsersPath];
+        }
+
+        $bundled = base_path('scripts/node_modules/.cache/ms-playwright');
+
+        if (!is_dir($bundled)) {
+            return [
+                'ok'      => false,
+                'message' => 'Bundled Chromium missing — run `PLAYWRIGHT_BROWSERS_PATH=0 npx playwright install chromium` in scripts/ during build',
+            ];
+        }
+
+        return ['ok' => true, 'message' => 'Bundled Chromium (PLAYWRIGHT_BROWSERS_PATH=0)'];
     }
 
     private function usesLocalNode(): bool

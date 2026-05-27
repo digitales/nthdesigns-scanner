@@ -10,7 +10,7 @@ export default function PageHeader({ eyebrow, title, sub, actions, back, onBack 
                         {back}
                     </button>
                 )}
-                {eyebrow && <div className="eyebrow" style={{ marginBottom: 6 }}>{eyebrow}</div>}
+                {eyebrow && <div className="eyebrow page-header-eyebrow">{eyebrow}</div>}
                 <h1>{title}</h1>
                 {sub && <p>{sub}</p>}
             </div>

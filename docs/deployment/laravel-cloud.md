@@ -13,13 +13,12 @@ flowchart LR
     end
 
     subgraph worker [Worker cluster]
-        Horizon[php artisan horizon]
+        QueueWorker["php artisan queue:work"]
         Scheduler[schedule:run]
     end
 
     subgraph data [Managed resources]
         PG[(Serverless Postgres)]
-        Redis[(Valkey / Redis)]
         R2[(Object Storage)]
     end
 
@@ -30,23 +29,23 @@ flowchart LR
     end
 
     Web --> PG
-    Web --> Redis
-    Horizon --> Redis
-    Horizon --> PG
-    Horizon --> R2
-    Horizon --> Places
-    Horizon --> Claude
-    Horizon --> CF
+    QueueWorker --> PG
+    QueueWorker --> R2
+    QueueWorker --> Places
+    QueueWorker --> Claude
+    QueueWorker --> CF
     Scheduler --> PG
 ```
 
 | Workload | Where it runs |
 |----------|---------------|
 | Web UI, auth, settings | App cluster |
-| `scraping` queue (Places, scoring) | Worker cluster via Horizon |
-| `auditing` queue (audit, screenshots, reports) | Worker cluster via Horizon |
+| `scraping` queue (Places, scoring) | Worker cluster via `queue:work` (jobs in Postgres `jobs` table) |
+| `auditing` queue (audit, screenshots, reports) | Worker cluster via `queue:work` |
 | Daily `scanner:purge-expired` | Scheduler on App or Worker cluster |
 | Report / violation images | Laravel Object Storage (R2) |
+
+**Queue driver:** production uses `QUEUE_CONNECTION=database` (not Redis). Horizon is not used — it only supports the Redis driver. Run `php artisan queue:work` on the worker cluster instead.
 
 ---
 
@@ -61,7 +60,7 @@ Before connecting the repo to Laravel Cloud:
 - [ ] OpenRouter API key (Anthropic models)
 - [ ] Cloudflare account (optional now, needed for Browser Rendering fallback)
 - [ ] First admin user seeder or registration flow ready
-- [ ] Horizon gate: add your email in `app/Providers/HorizonServiceProvider.php` before production deploy
+- [ ] `jobs` and `failed_jobs` tables migrated (`php artisan migrate` includes them)
 
 ---
 
@@ -71,9 +70,10 @@ Attach these to your production environment:
 
 | Resource | Purpose |
 |----------|---------|
-| **Serverless Postgres** | Primary database |
-| **Laravel Valkey** (or Redis by Upstash) | Queue + cache + sessions |
+| **Serverless Postgres** | Primary database **and** queue (`jobs` table) |
 | **Laravel Object Storage** | Report and violation screenshots |
+
+**Optional:** Laravel Valkey / Redis — only if you switch cache or sessions off the database driver. Not required for queues with `QUEUE_CONNECTION=database`.
 
 ### Object storage
 
@@ -106,11 +106,11 @@ Suggested size: 1 GB RAM minimum for a single-operator tool.
 
 ### Worker cluster (recommended)
 
-- **Purpose:** Horizon + heavy audit jobs
-- **Size:** 2 GB RAM minimum if running Playwright locally; 4 GB if running multiple auditing workers
+- **Purpose:** `queue:work` + heavy audit jobs
+- **Size:** 2 GB RAM minimum if running Playwright locally
 - **Background processes:** see section 4
 
-Keep auditing off the App cluster so 90–150s browser jobs do not compete with page loads.
+Keep auditing off the App cluster so 90–150s browser jobs do not compete with page loads. Use a single auditing worker process on smaller instances (one Playwright run at a time).
 
 ---
 
@@ -130,12 +130,16 @@ npm run build
 
 cd scripts
 npm ci
-npx playwright install chromium --with-deps
+PLAYWRIGHT_BROWSERS_PATH=0 npx playwright install chromium
 cd ..
 
 php artisan optimize
 ```
 
+> **Do not use `--with-deps` on Laravel Cloud.** That flag runs `playwright install-deps`, which calls `su` to install apt packages. Build containers are non-root, so you get `su: Authentication failure` and the deploy fails.
+>
+> `PLAYWRIGHT_BROWSERS_PATH=0` installs Chromium under `scripts/node_modules` so browsers ship with the build artifact instead of `~/.cache` (which is not deployed).
+>
 > Build timeout is 15 minutes. Playwright browser install can take several minutes — that is normal.
 
 If Cloud's default `npm ci && npm run build` is already present, merge rather than duplicate:
@@ -143,7 +147,7 @@ If Cloud's default `npm ci && npm run build` is already present, merge rather th
 ```bash
 composer install --no-dev --optimize-autoloader
 npm ci && npm run build
-cd scripts && npm ci && npx playwright install chromium --with-deps && cd ..
+cd scripts && npm ci && PLAYWRIGHT_BROWSERS_PATH=0 npx playwright install chromium && cd ..
 php artisan optimize
 ```
 
@@ -156,18 +160,30 @@ php artisan migrate --force
 Do **not** add:
 
 - `php artisan storage:link` — ephemeral filesystem; use object storage
-- `php artisan queue:restart` / `horizon:terminate` — Cloud handles this
 - `php artisan optimize:clear` — clears caches unexpectedly
 
 ---
 
 ## 4. Background processes
 
-On the **Worker cluster**, add:
+On the **Worker cluster**, add a queue worker (database driver):
 
 | Process | Command |
 |---------|---------|
-| Horizon | `php artisan horizon` |
+| Queue worker | `php artisan queue:work --queue=scraping,auditing --timeout=180 --tries=3 --sleep=3 --max-jobs=50` |
+
+- **`--timeout=180`** — must exceed `AuditSiteJob` timeout (150s).
+- **`--queue=scraping,auditing`** — scraping jobs are processed first when both are pending.
+- **`--max-jobs=50`** — restarts the worker periodically to release memory after Playwright runs (adjust down on small instances).
+
+**Optional — two processes** on a 2 GB+ worker (isolates long audits from fast scraping jobs):
+
+| Process | Command |
+|---------|---------|
+| Scraping | `php artisan queue:work --queue=scraping --timeout=90 --tries=3 --sleep=3` |
+| Auditing | `php artisan queue:work --queue=auditing --timeout=180 --tries=3 --sleep=3 --max-jobs=10` |
+
+Do **not** run `php artisan horizon` unless you also set `QUEUE_CONNECTION=redis` and attach Valkey/Redis.
 
 On **App cluster** or **Worker cluster** (one only):
 
@@ -211,12 +227,17 @@ DB_CONNECTION=pgsql
 ### Queue, cache, session
 
 ```env
-QUEUE_CONNECTION=redis
-CACHE_STORE=redis
-SESSION_DRIVER=redis
+QUEUE_CONNECTION=database
+DB_QUEUE_RETRY_AFTER=200
+
+CACHE_STORE=database
+SESSION_DRIVER=database
 ```
 
-Cloud injects Redis/Valkey host, password, and port when cache is attached.
+- **`QUEUE_CONNECTION=database`** — jobs live in the Postgres `jobs` table; workers use `queue:work`, not Horizon.
+- **`DB_QUEUE_RETRY_AFTER=200`** — must be greater than the longest job timeout (audits use 150s). Default `90` will re-queue jobs while Playwright is still running.
+
+Redis/Valkey is optional. Only attach it if you prefer `CACHE_STORE=redis` or `SESSION_DRIVER=redis` instead of the database drivers above.
 
 ### Storage
 
@@ -239,7 +260,6 @@ OPENROUTER_MODEL=anthropic/claude-sonnet-4
 ### Scanner behaviour
 
 ```env
-HORIZON_PREFIX=nth-scanner
 REPORT_BOOKING_URL=https://tidycal.com/yourhandle
 REPORT_EXPIRY_DAYS=30
 SEARCH_RATE_LIMIT_SECONDS=30
@@ -252,7 +272,10 @@ AUDIT_TIMEOUT=120
 NODE_BINARY=node
 AUDIT_SCRIPT_PATH=
 LIGHTHOUSE_BINARY=lighthouse
+PLAYWRIGHT_BROWSERS_PATH=0
 ```
+
+Set `PLAYWRIGHT_BROWSERS_PATH=0` on **worker** environments (not only at build time) so queue workers resolve the Chromium binary installed during build.
 
 Leave `AUDIT_SCRIPT_PATH` empty to use `scripts/audit.js` from project root.
 
@@ -280,8 +303,15 @@ Run these from the Cloud **Commands** tab after the first successful deploy.
 
 ```bash
 php artisan migrate:status
-php artisan horizon:status
 php artisan schedule:list
+php artisan queue:monitor scraping auditing
+```
+
+Check pending work:
+
+```bash
+php artisan tinker --execute="echo 'pending jobs: '.DB::table('jobs')->count().PHP_EOL;"
+php artisan queue:failed
 ```
 
 ### Node availability
@@ -318,13 +348,24 @@ ls -la /tmp/ss-test
 2. Run a small search (1–2 results).
 3. Wait for pipeline: scoring → audit → combine → report → screenshot.
 4. Open prospect detail and public report link — verify grade, violations, desktop screenshot.
-5. Open `/horizon` while logged in — confirm `scraping` and `auditing` supervisors processing jobs.
+5. Confirm the worker process is running (Cloud **Background processes** tab) and `jobs` table count drops after a search.
+6. If jobs stall, run `php artisan queue:failed` and inspect `failed_jobs.payload` / `exception`.
 
 ---
 
 ## 7. Playwright on Cloud — if smoke tests fail
 
-Try these before switching to the Cloudflare fallback.
+### Build fails: `su: Authentication failure` / `Failed to install browsers`
+
+Your build command includes `playwright install … --with-deps`. Remove `--with-deps` and use:
+
+```bash
+cd scripts && npm ci && PLAYWRIGHT_BROWSERS_PATH=0 npx playwright install chromium && cd ..
+```
+
+Redeploy. If audits later fail with “missing dependencies”, use the [Cloudflare fallback](#fallback-cloudflare-browser-rendering) or an external audit worker — Cloud build nodes cannot run `install-deps`.
+
+Try the steps below before switching to the Cloudflare fallback.
 
 ### A. Add container-safe Chromium flags
 
@@ -349,19 +390,15 @@ Set `NODE_BINARY` to the full path if `node` is not on the default PATH for queu
 
 ### C. Increase worker memory
 
-Horizon auditing supervisor is configured for 512 MB per process. Playwright often needs more:
+Playwright often needs more than the default PHP worker limit:
 
-- Worker cluster: 2–4 GB RAM
-- In `config/horizon.php` production `auditing-supervisor`: consider `memory => 768` and `maxProcesses => 1` on smaller instances
+- Worker cluster: **2 GB RAM** minimum
+- Use a **single** `queue:work` process for `auditing` on small instances
+- Lower `--max-jobs` (e.g. `10`) so the worker restarts after each audit batch and frees memory
 
 ### D. Reduce parallelism
 
-On a 2 GB worker, run one auditing process at a time:
-
-```php
-'maxProcesses' => 1,
-'minProcesses' => 1,
-```
+On a 2 GB worker, run **one** auditing queue worker (separate background process with `--queue=auditing` only, or a single combined worker with `--max-jobs=10`).
 
 ### E. Skip Lighthouse
 
@@ -378,7 +415,7 @@ Do not install Lighthouse in build commands unless you need it — Playwright + 
 
 ### Failed audits
 
-Prospects with websites show `audit_status: failed` when Playwright fails. GBP scoring and reports for no-website prospects still work. Check Horizon failed jobs and Cloud logs.
+Prospects with websites show `audit_status: failed` when Playwright fails. GBP scoring and reports for no-website prospects still work. Check `php artisan queue:failed`, the `failed_jobs` table, and Cloud worker logs.
 
 ### Rate limiting
 
@@ -388,13 +425,21 @@ Search is limited to one search per user every 30 seconds (`SEARCH_RATE_LIMIT_SE
 
 `scanner:purge-expired` runs daily. Requires scheduler enabled. Purges expired report payloads per `REPORT_EXPIRY_DAYS`.
 
-### Horizon access
+### Queue monitoring
 
-`/horizon` requires an authenticated user. Restrict further by adding your email to the `viewHorizon` gate in `HorizonServiceProvider`.
+With the database driver there is no `/horizon` dashboard. Use:
+
+- `php artisan queue:failed` / `failed_jobs` in the database
+- Cloud worker logs for `AuditSiteJob failed` entries
+- Settings → health checks (Node, Playwright)
 
 ### Staging
 
 Replicate production environment in Cloud, attach separate logical DB schema, enable HTTP basic auth, use a smaller worker or `QUEUE_CONNECTION=sync` only for UI testing without audits.
+
+### Optional: Redis + Horizon
+
+If you later attach Valkey/Redis and set `QUEUE_CONNECTION=redis`, switch the worker background process to `php artisan horizon` and add your email to the `viewHorizon` gate in `HorizonServiceProvider`.
 
 ---
 
@@ -560,9 +605,10 @@ APP_URL=https://scanner.example.com
 
 DB_CONNECTION=pgsql
 
-QUEUE_CONNECTION=redis
-CACHE_STORE=redis
-SESSION_DRIVER=redis
+QUEUE_CONNECTION=database
+DB_QUEUE_RETRY_AFTER=200
+CACHE_STORE=database
+SESSION_DRIVER=database
 
 REPORTS_DISK=s3
 
@@ -570,7 +616,6 @@ GOOGLE_PLACES_API_KEY=
 OPENROUTER_API_KEY=
 OPENROUTER_MODEL=anthropic/claude-sonnet-4
 
-HORIZON_PREFIX=nth-scanner
 REPORT_BOOKING_URL=
 REPORT_EXPIRY_DAYS=30
 SEARCH_RATE_LIMIT_SECONDS=30
@@ -589,6 +634,6 @@ NODE_BINARY=node
 ## Related docs
 
 - [Laravel Cloud environments](https://cloud.laravel.com/docs/environments) — build commands, Node version, ephemeral filesystem
-- [Laravel Cloud queues](https://cloud.laravel.com/docs/queues) — worker clusters, Horizon
+- [Laravel Cloud queues](https://cloud.laravel.com/docs/queues) — worker clusters, `queue:work`
 - [Laravel Object Storage](https://cloud.laravel.com/docs/resources/object-storage) — R2 bucket setup
 - [Cloudflare Browser Rendering — screenshot](https://developers.cloudflare.com/browser-rendering/rest-api/screenshot-endpoint/)

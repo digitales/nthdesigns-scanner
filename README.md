@@ -4,7 +4,7 @@ Internal tool to discover local businesses via Google Places, score GBP and webs
 
 ## Stack
 
-- Laravel 13, Breeze (Inertia + React), Horizon, Redis, PostgreSQL
+- Laravel 13, Breeze (Inertia + React), PostgreSQL (database queue in production on Laravel Cloud)
 - Google Places API (New), Playwright + axe-core, Lighthouse (optional), OpenRouter (Anthropic models)
 
 ## Setup
@@ -36,8 +36,9 @@ Configure `.env`:
 | `GOOGLE_PLACES_API_KEY` | Business discovery + benchmarks |
 | `OPENROUTER_API_KEY` | Outreach email generation (Anthropic models via OpenRouter) |
 | `OPENROUTER_MODEL` | Model slug, e.g. `anthropic/claude-sonnet-4` |
-| `QUEUE_CONNECTION` | `database` for local dev (no Redis); `redis` in production with Horizon |
-| `REDIS_CLIENT=predis` | Redis client when using `QUEUE_CONNECTION=redis` (Predis is bundled; use `phpredis` only if the PHP extension is installed) |
+| `QUEUE_CONNECTION` | `database` (default) — jobs in Postgres; use `queue:work` locally and on Laravel Cloud |
+| `DB_QUEUE_RETRY_AFTER` | Set to `200` in production (must exceed audit job timeout) |
+| `REDIS_CLIENT=predis` | Only if you switch cache/queue to Redis; not required for database queues |
 | `AUDIT_SCRIPT_PATH` | Path to `scripts/audit.js` |
 | `REPORT_BOOKING_URL` | CTA on public reports |
 | `REPORT_EXPIRY_DAYS` | Report link expiry (default 30) |
@@ -52,7 +53,7 @@ php artisan serve
 npm run dev
 ```
 
-With `QUEUE_CONNECTION=redis`, run `php artisan horizon` instead of `queue:work` for multi-process workers and the `/horizon` dashboard. Horizon does not process `database` queues.
+Production on [Laravel Cloud](docs/deployment/laravel-cloud.md) uses `QUEUE_CONNECTION=database` and `php artisan queue:work` on a worker cluster (not Horizon). See the deployment guide for background process commands.
 
 ## Workflow
 

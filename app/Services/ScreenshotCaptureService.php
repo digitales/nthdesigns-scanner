@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\PlaywrightEnv;
 use Illuminate\Support\Facades\Process;
 
 class ScreenshotCaptureService
@@ -23,12 +24,14 @@ class ScreenshotCaptureService
             return $outputPath;
         }
 
-        $result = Process::timeout(90)->run([
-            config('scanner.node_binary'),
-            base_path('scripts/screenshot.js'),
-            $url,
-            $localDir,
-        ]);
+        $result = Process::timeout(90)
+            ->env(PlaywrightEnv::forProcess())
+            ->run([
+                config('scanner.node_binary'),
+                base_path('scripts/screenshot.js'),
+                $url,
+                $localDir,
+            ]);
 
         if (!$result->successful()) {
             throw new \RuntimeException(trim($result->errorOutput() ?: $result->output()));

@@ -15,6 +15,14 @@ if (!$screenshotDriver) {
     $screenshotDriver = env('AUDIT_DRIVER') === 'cloudflare' ? 'cloudflare' : 'playwright';
 }
 
+$playwrightBrowsersPath = env('PLAYWRIGHT_BROWSERS_PATH');
+
+if ($playwrightBrowsersPath === null || $playwrightBrowsersPath === '') {
+    if (is_dir(base_path('scripts/node_modules/.cache/ms-playwright'))) {
+        $playwrightBrowsersPath = '0';
+    }
+}
+
 return [
 
     'audit_driver' => $auditDriver,
@@ -30,6 +38,8 @@ return [
     'audit_script_path' => env('AUDIT_SCRIPT_PATH') ?: base_path('scripts/audit.js'),
 
     'lighthouse_binary' => env('LIGHTHOUSE_BINARY', 'lighthouse'),
+
+    'playwright_browsers_path' => $playwrightBrowsersPath,
 
     'audit_timeout' => (int) env('AUDIT_TIMEOUT', 120),
 
