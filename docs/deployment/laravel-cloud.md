@@ -772,6 +772,19 @@ Run a small search with one prospect that has a website. Confirm:
 
 If audits time out, increase `AUDIT_TIMEOUT` on Laravel Cloud (default 120s) and ensure the Fly machine has 2 GB RAM.
 
+#### Deploy fails: health checks timeout
+
+The image built, but the machine never passed `GET /health`. Common causes:
+
+1. **`connect: connection refused` on :8080** — Node is not listening (crashed on boot). Run `fly logs --app nth-scanner-browser` and look for `[browser-service]` or startup errors. Redeploy with latest `start.sh` + Dockerfile (`USER root`, `PORT=8080`, `PLAYWRIGHT_BROWSERS_PATH=/ms-playwright`).
+2. **`/health` returned 401** — Fly’s probe does not send `Authorization`; `/health` must stay public (fixed in `server.mjs`).
+3. **Slow first boot** — large image; `grace_period` is 60s in `fly.toml`.
+4. **Verify manually:** `curl -s https://nth-scanner-browser.fly.dev/health` → `{"ok":true}`.
+
+```bash
+fly deploy . --config scripts/browser-service/fly.toml
+```
+
 ---
 
 ## Quick reference — production env template

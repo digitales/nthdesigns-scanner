@@ -10,7 +10,7 @@ HTTP wrapper around `scripts/audit.js` and `scripts/screenshot.js` for Laravel C
 | `POST` | `/audit` | `{ "url": "https://…" }` | audit.js JSON; violation PNGs include `content_base64` |
 | `POST` | `/screenshot` | `{ "url": "https://…" }` | `{ "desktop": "desktop.png", "content_base64": "…" }` |
 
-Send `Authorization: Bearer <token>` when `BROWSER_SERVICE_TOKEN` or `AUDIT_SERVICE_TOKEN` is set on the Fly app.
+Send `Authorization: Bearer <token>` on `POST /audit` and `POST /screenshot` when `BROWSER_SERVICE_TOKEN` or `AUDIT_SERVICE_TOKEN` is set. `GET /health` is always public (required for Fly health checks).
 
 ## Deploy (from repository root)
 

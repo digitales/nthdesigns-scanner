@@ -13,6 +13,16 @@ const APP_ROOT = path.resolve(SCRIPTS_ROOT, '..');
 const PORT = Number(process.env.PORT || 8080);
 const TOKEN = process.env.BROWSER_SERVICE_TOKEN || process.env.AUDIT_SERVICE_TOKEN || '';
 
+process.on('uncaughtException', (error) => {
+    console.error('[browser-service] uncaughtException', error);
+    process.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+    console.error('[browser-service] unhandledRejection', reason);
+    process.exit(1);
+});
+
 function authorize(req) {
     if (TOKEN === '') {
         return true;
@@ -143,16 +153,27 @@ function sendJson(res, status, body) {
     res.end(data);
 }
 
+function requestPathname(req) {
+    try {
+        return new URL(req.url ?? '/', 'http://localhost').pathname;
+    } catch {
+        return req.url ?? '/';
+    }
+}
+
 const server = createServer(async (req, res) => {
     try {
-        if (!authorize(req)) {
-            sendJson(res, 401, { error: 'Unauthorized' });
+        const pathname = requestPathname(req);
+
+        // Fly health checks do not send Authorization — must stay public.
+        if (req.method === 'GET' && pathname === '/health') {
+            sendJson(res, 200, { ok: true });
 
             return;
         }
 
-        if (req.method === 'GET' && req.url === '/health') {
-            sendJson(res, 200, { ok: true });
+        if (!authorize(req)) {
+            sendJson(res, 401, { error: 'Unauthorized' });
 
             return;
         }
@@ -172,13 +193,13 @@ const server = createServer(async (req, res) => {
             return;
         }
 
-        if (req.url === '/audit') {
+        if (pathname === '/audit') {
             sendJson(res, 200, await handleAudit(url));
 
             return;
         }
 
-        if (req.url === '/screenshot') {
+        if (pathname === '/screenshot') {
             sendJson(res, 200, await handleScreenshot(url));
 
             return;
@@ -190,6 +211,16 @@ const server = createServer(async (req, res) => {
     }
 });
 
-server.listen(PORT, () => {
-    console.log(`browser-service listening on ${PORT}`);
+if (!Number.isFinite(PORT) || PORT <= 0) {
+    console.error(`[browser-service] invalid PORT: ${process.env.PORT}`);
+    process.exit(1);
+}
+
+server.on('error', (error) => {
+    console.error('[browser-service] server error', error);
+    process.exit(1);
+});
+
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`[browser-service] listening on 0.0.0.0:${PORT}`);
 });
