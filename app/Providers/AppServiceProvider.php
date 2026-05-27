@@ -6,6 +6,7 @@ use App\Models\Prospect;
 use App\Models\Search;
 use App\Policies\ProspectPolicy;
 use App\Policies\SearchPolicy;
+use App\Support\ReportsDiskConfig;
 use App\Support\ScannerConfig;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Vite;
@@ -27,6 +28,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         ScannerConfig::applyRuntimeOverrides();
+        ReportsDiskConfig::applyRuntimeOverrides();
 
         Gate::policy(Search::class, SearchPolicy::class);
         Gate::policy(Prospect::class, ProspectPolicy::class);

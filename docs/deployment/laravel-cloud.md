@@ -78,8 +78,8 @@ Attach these to your production environment:
 ### Object storage
 
 1. Create a bucket (type: Laravel Object Storage).
-2. Attach it to the environment.
-3. Cloud injects `AWS_*` vars automatically — do not override unless you know why.
+2. Attach it to the environment and **re-deploy** (required for disk injection to apply).
+3. Cloud registers the bucket as a **named disk** via `LARAVEL_CLOUD_DISK_CONFIG` (see environment **General → Injected variables**). The disk name is whatever you chose when adding the bucket (e.g. `reports`, `r2`) — not necessarily `s3`.
 
 Set in environment variables:
 
@@ -87,7 +87,28 @@ Set in environment variables:
 REPORTS_DISK=s3
 ```
 
-The settings page storage health check writes a temp file to this disk on save.
+`App\Support\ReportsDiskConfig` rewrites `scanner.reports_disk` at runtime to the Cloud default disk when `s3` has no bucket (common on Cloud). You can also set `REPORTS_DISK` to your bucket’s disk name explicitly.
+
+**Do not expect `env('AWS_BUCKET')` on the stock `s3` disk** — Cloud often injects credentials only onto the custom disk from `LARAVEL_CLOUD_DISK_CONFIG`. Verify storage with:
+
+```bash
+php artisan tinker --execute="
+echo isset(\$_SERVER['LARAVEL_CLOUD_DISK_CONFIG']) ? 'cloud disks: yes'.PHP_EOL : 'cloud disks: NO — attach bucket and redeploy'.PHP_EOL;
+echo 'reports_disk: '.config('scanner.reports_disk').PHP_EOL;
+echo 'bucket: '.config('filesystems.disks.'.config('scanner.reports_disk').'.bucket').PHP_EOL;
+"
+```
+
+The settings page storage health check writes a temp file to the resolved reports disk on save.
+
+#### Object storage not injecting
+
+| Symptom | Fix |
+|---------|-----|
+| `LARAVEL_CLOUD_DISK_CONFIG` missing | Attach bucket on infrastructure canvas → **re-deploy** |
+| `AWS_BUCKET` null but cloud disks present | Normal — use Cloud disk name or rely on `ReportsDiskConfig` |
+| Empty `AWS_*` in your env panel | Remove them; they override injected credentials |
+| Bucket on wrong environment | Attach to production, not only staging |
 
 ---
 
