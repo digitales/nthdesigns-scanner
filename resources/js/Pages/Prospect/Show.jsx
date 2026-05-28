@@ -19,9 +19,17 @@ const LIGHTHOUSE_METRICS = [
     { label: 'Best practices', key: 'best_practices' },
 ];
 
-export default function ProspectShow({ prospect, search, report, outreachEmails, audit, lighthouse }) {
+export default function ProspectShow({ prospect, search, report, outreachEmails, audit, lighthouse, notes = [] }) {
     const { flash } = usePage().props;
     const [copied, setCopied] = useState(false);
+    const [editing, setEditing] = useState(false);
+    const [form, setForm] = useState({
+        business_name: prospect.business_name ?? '',
+        phone: prospect.phone ?? '',
+        website_url: prospect.website_url ?? '',
+        address: prospect.address ?? '',
+    });
+    const [noteBody, setNoteBody] = useState('');
 
     const generateReport = () => router.post(`/prospects/${prospect.id}/report`);
     const generateOutreach = () => router.post(`/prospects/${prospect.id}/outreach`);
@@ -34,6 +42,24 @@ export default function ProspectShow({ prospect, search, report, outreachEmails,
         setTimeout(() => setCopied(false), 2000);
     };
 
+    const saveDetails = (e) => {
+        e.preventDefault();
+        router.patch(`/prospects/${prospect.id}`, form, {
+            preserveScroll: true,
+            onSuccess: () => setEditing(false),
+        });
+    };
+
+    const addNote = (e) => {
+        e.preventDefault();
+        if (!noteBody.trim()) return;
+        router.post(`/prospects/${prospect.id}/notes`, { body: noteBody }, {
+            preserveScroll: true,
+            onSuccess: () => setNoteBody(''),
+        });
+    };
+
+    const auditPending = prospect.audit_status === 'pending';
     const latestOutreach = outreachEmails[0] ?? null;
 
     return (
@@ -142,6 +168,11 @@ export default function ProspectShow({ prospect, search, report, outreachEmails,
 
                     <aside style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                         <Card title="Public report">
+                            {auditPending && (
+                                <p className="micro" style={{ marginBottom: 8, color: 'var(--color-stone-500)' }}>
+                                    Site audit in progress…
+                                </p>
+                            )}
                             {report ? (
                                 <>
                                     <div className="micro" style={{ marginBottom: 8, wordBreak: 'break-all' }}>/r/{report.token}</div>
@@ -159,15 +190,33 @@ export default function ProspectShow({ prospect, search, report, outreachEmails,
                                             : `${report.view_count} view${report.view_count !== 1 ? 's' : ''}`}
                                     </div>
                                     <ViewSparkline viewCount={report.view_count} />
-                                    <Button kind="secondary" size="sm" onClick={generateReport} className="mt-4">
+                                    <Button
+                                        kind="secondary"
+                                        size="sm"
+                                        onClick={generateReport}
+                                        className="mt-4"
+                                        disabled={auditPending}
+                                    >
                                         Regenerate report
                                     </Button>
+                                    {prospect.audit_status === 'complete' && (
+                                        <p className="micro" style={{ marginTop: 8 }}>
+                                            Regenerate after editing the website to refresh audit results in the report.
+                                        </p>
+                                    )}
                                 </>
                             ) : (
                                 <>
                                     <p className="micro" style={{ marginBottom: 12 }}>No report yet.</p>
-                                    <Button kind="primary" size="sm" onClick={generateReport}>Generate report</Button>
+                                    <Button kind="primary" size="sm" onClick={generateReport} disabled={auditPending}>
+                                        Generate report
+                                    </Button>
                                 </>
+                            )}
+                            {prospect.audit_status === 'failed' && (
+                                <p className="micro" style={{ marginTop: 8, color: 'var(--color-sev-serious)' }}>
+                                    Site audit failed. Fix the website URL and save again to retry.
+                                </p>
                             )}
                         </Card>
 
@@ -206,18 +255,96 @@ export default function ProspectShow({ prospect, search, report, outreachEmails,
                         )}
 
                         <Card title="Profile">
-                            <dl style={{ fontSize: 13, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                <div><span className="micro">Angle </span><AnglePill angle={prospect.dominant_angle} /></div>
-                                {prospect.phone && <div><span className="micro">Phone </span>{prospect.phone}</div>}
-                                {prospect.website_url && (
-                                    <div>
-                                        <span className="micro">Website </span>
-                                        <a href={prospect.website_url} target="_blank" rel="noopener noreferrer" className="micro">
-                                            {prospect.website_url.replace(/^https?:\/\//, '')}
-                                        </a>
+                            {editing ? (
+                                <form onSubmit={saveDetails} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                    <label className="micro">Business name</label>
+                                    <input
+                                        className="input"
+                                        value={form.business_name}
+                                        onChange={(e) => setForm({ ...form, business_name: e.target.value })}
+                                        required
+                                    />
+                                    <label className="micro">Phone</label>
+                                    <input
+                                        className="input"
+                                        value={form.phone}
+                                        onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                                    />
+                                    <label className="micro">Website</label>
+                                    <input
+                                        className="input"
+                                        type="url"
+                                        value={form.website_url}
+                                        onChange={(e) => setForm({ ...form, website_url: e.target.value })}
+                                        placeholder="https://..."
+                                    />
+                                    <label className="micro">Address</label>
+                                    <input
+                                        className="input"
+                                        value={form.address}
+                                        onChange={(e) => setForm({ ...form, address: e.target.value })}
+                                    />
+                                    <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                                        <Button kind="primary" size="sm" type="submit">Save</Button>
+                                        <Button kind="ghost" size="sm" type="button" onClick={() => setEditing(false)}>Cancel</Button>
                                     </div>
-                                )}
-                            </dl>
+                                </form>
+                            ) : (
+                                <>
+                                    <dl style={{ fontSize: 13, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                        <div><span className="micro">Angle </span><AnglePill angle={prospect.dominant_angle} /></div>
+                                        <div>
+                                            <span className="micro">Phone </span>
+                                            {prospect.phone || '—'}
+                                        </div>
+                                        <div>
+                                            <span className="micro">Website </span>
+                                            {prospect.website_url ? (
+                                                <a href={prospect.website_url} target="_blank" rel="noopener noreferrer" className="micro">
+                                                    {prospect.website_url.replace(/^https?:\/\//, '')}
+                                                </a>
+                                            ) : (
+                                                '—'
+                                            )}
+                                        </div>
+                                        {prospect.address && (
+                                            <div><span className="micro">Address </span>{prospect.address}</div>
+                                        )}
+                                    </dl>
+                                    <Button kind="secondary" size="sm" onClick={() => setEditing(true)} className="mt-4">
+                                        Edit details
+                                    </Button>
+                                </>
+                            )}
+                        </Card>
+
+                        <Card title="Private notes">
+                            <p className="micro" style={{ marginBottom: 12 }}>Not included on public reports.</p>
+                            {notes.length === 0 ? (
+                                <p className="micro" style={{ marginBottom: 12 }}>No notes yet.</p>
+                            ) : (
+                                <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                    {notes.map((n) => (
+                                        <li key={n.id} style={{ borderBottom: '1px solid var(--color-stone-200)', paddingBottom: 12 }}>
+                                            <p style={{ fontSize: 13, margin: '0 0 4px', whiteSpace: 'pre-wrap' }}>{n.body}</p>
+                                            <span className="micro">{n.author} · {n.created_at}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                            <form onSubmit={addNote}>
+                                <textarea
+                                    className="textarea"
+                                    rows={3}
+                                    value={noteBody}
+                                    onChange={(e) => setNoteBody(e.target.value)}
+                                    placeholder="Add a note…"
+                                    style={{ width: '100%', marginBottom: 8 }}
+                                />
+                                <Button kind="secondary" size="sm" type="submit" disabled={!noteBody.trim()}>
+                                    Add note
+                                </Button>
+                            </form>
                         </Card>
                     </aside>
                 </div>
