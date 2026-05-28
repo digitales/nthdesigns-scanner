@@ -12,4 +12,12 @@ if [ ! -f scripts/browser-service/server.mjs ]; then
     exit 1
 fi
 
+if [ -z "${CHROME_PATH:-}" ]; then
+    CHROME_PATH="$(find /ms-playwright -name chrome -type f 2>/dev/null | head -1)"
+    if [ -n "$CHROME_PATH" ]; then
+        export CHROME_PATH
+        echo "[browser-service] CHROME_PATH=$CHROME_PATH"
+    fi
+fi
+
 exec node scripts/browser-service/server.mjs

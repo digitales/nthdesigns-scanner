@@ -41,17 +41,29 @@ function runLighthouse(targetUrl) {
         }
     }
 
+    const chromeFlags = [
+        '--headless',
+        '--no-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+    ].join(' ');
+
     try {
         const output = execFileSync(
             lighthouseBinary,
             [
                 targetUrl,
                 '--quiet',
-                '--chrome-flags=--headless',
+                `--chrome-flags=${chromeFlags}`,
                 '--only-categories=performance,accessibility,seo',
                 '--output=json',
             ],
-            { encoding: 'utf8', timeout: 60000, maxBuffer: 10 * 1024 * 1024 },
+            {
+                encoding: 'utf8',
+                timeout: 90000,
+                maxBuffer: 10 * 1024 * 1024,
+                env: process.env,
+            },
         );
 
         const report = JSON.parse(output);
