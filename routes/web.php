@@ -6,6 +6,7 @@ use App\Http\Controllers\OutreachController;
 use App\Http\Controllers\OutreachEmailController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProspectController;
+use App\Http\Controllers\ProspectNoteController;
 use App\Http\Controllers\PublicReportController;
 use App\Http\Controllers\ReportDashboardController;
 use App\Http\Controllers\SavedProspectController;
@@ -60,6 +61,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/outreach/generate', [OutreachController::class, 'generate'])->name('outreach.generate');
 
     Route::get('/prospects/{prospect}', [ProspectController::class, 'show'])->name('prospects.show');
+    Route::patch('/prospects/{prospect}', [ProspectController::class, 'update'])->name('prospects.update');
+    Route::post('/prospects/{prospect}/notes', [ProspectNoteController::class, 'store'])->name('prospects.notes.store');
     Route::post('/prospects/{prospect}/report', [ProspectController::class, 'generateReport'])->name('prospects.report');
     Route::post('/prospects/{prospect}/outreach', [ProspectController::class, 'generateOutreach'])->name('prospects.outreach');
 

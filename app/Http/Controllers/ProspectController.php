@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\UpdateProspectRequest;
 use App\Jobs\GenerateOutreachEmailJob;
 use App\Jobs\GenerateProspectReportJob;
 use App\Models\Prospect;
+use App\Services\ProspectEnrichmentService;
 use App\Services\ReportBuilderService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,6 +24,7 @@ class ProspectController extends Controller
             'report',
             'outreachEmails' => fn ($q) => $q->latest(),
             'auditJobs',
+            'notes.user',
         ]);
 
         return Inertia::render('Prospect/Show', [
@@ -70,7 +73,24 @@ class ProspectController extends Controller
             ]),
             'audit' => $reportBuilder->buildOperatorAudit($prospect),
             'lighthouse' => $reportBuilder->lighthouseForProspect($prospect),
+            'notes' => $prospect->notes->map(fn ($n) => [
+                'id'         => $n->id,
+                'body'       => $n->body,
+                'author'     => $n->user?->name ?? 'You',
+                'created_at' => $n->created_at->diffForHumans(),
+            ]),
         ]);
+    }
+
+    public function update(UpdateProspectRequest $request, Prospect $prospect, ProspectEnrichmentService $enrichment): RedirectResponse
+    {
+        $result = $enrichment->update($prospect, $request->validated());
+
+        $message = $result['audit_queued']
+            ? 'Details saved. Site audit queued.'
+            : 'Details saved.';
+
+        return back()->with('success', $message);
     }
 
     public function generateReport(Prospect $prospect): RedirectResponse
