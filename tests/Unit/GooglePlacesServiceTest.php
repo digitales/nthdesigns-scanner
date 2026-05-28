@@ -8,6 +8,36 @@ use Tests\TestCase;
 
 class GooglePlacesServiceTest extends TestCase
 {
+    public function test_get_top_ranked_excludes_prospect_place_id(): void
+    {
+        config(['services.google_places.key' => 'test-key']);
+
+        Http::fake([
+            'https://places.googleapis.com/v1/places:searchText' => Http::response([
+                'places' => [
+                    [
+                        'id'          => 'places/self',
+                        'displayName' => ['text' => 'Good Fabric'],
+                    ],
+                    [
+                        'id'          => 'places/competitor',
+                        'displayName' => ['text' => 'Wimbledon Fabrics'],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $result = app(GooglePlacesService::class)->getTopRankedInNiche(
+            'fabric shop',
+            'Wimbledon',
+            'GB',
+            'places/self',
+        );
+
+        $this->assertSame('places/competitor', $result['id']);
+        $this->assertSame('Wimbledon Fabrics', $result['displayName']['text']);
+    }
+
     public function test_find_by_website_url_returns_details_on_host_match(): void
     {
         config(['services.google_places.key' => 'test-key']);

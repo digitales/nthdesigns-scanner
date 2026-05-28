@@ -115,12 +115,18 @@ class GooglePlacesService
     /**
      * Fetch the top-ranked result for a niche+city query.
      * Used as the benchmark competitor in prospect reports.
+     *
+     * @param  string|null  $excludePlaceId  Skip this place (e.g. the prospect being reported on).
      */
-    public function getTopRankedInNiche(string $niche, string $city, string $country = 'GB'): ?array
-    {
+    public function getTopRankedInNiche(
+        string $niche,
+        string $city,
+        string $country = 'GB',
+        ?string $excludePlaceId = null,
+    ): ?array {
         $payload = [
             'textQuery'      => "{$niche} in {$city}, {$country}",
-            'maxResultCount' => 1,
+            'maxResultCount' => 10,
             'regionCode'     => strtolower($country),
         ];
 
@@ -144,7 +150,15 @@ class GooglePlacesService
             return null;
         }
 
-        return $response->json('places.0');
+        foreach ($response->json('places') ?? [] as $place) {
+            if ($excludePlaceId !== null && ($place['id'] ?? null) === $excludePlaceId) {
+                continue;
+            }
+
+            return $place;
+        }
+
+        return null;
     }
 
     public function findByWebsiteUrl(string $url): ?array

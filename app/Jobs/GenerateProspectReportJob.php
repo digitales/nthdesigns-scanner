@@ -3,8 +3,10 @@
 namespace App\Jobs;
 
 use App\Models\Prospect;
+use App\Models\Search;
 use App\Support\AuditingQueue;
 use App\Models\ProspectReport;
+use App\Services\BenchmarkNormalizer;
 use App\Services\GooglePlacesService;
 use App\Services\ReportBuilderService;
 use Illuminate\Bus\Queueable;
@@ -37,12 +39,7 @@ class GenerateProspectReportJob implements ShouldQueue
         }
 
         $search = $prospect->search;
-
-        $benchmark = $places->getTopRankedInNiche(
-            $search->niche,
-            $search->city,
-            $search->country,
-        );
+        $benchmark = $this->resolveBenchmark($places, $search, $prospect);
 
         $reportData = $builder->build($prospect, $benchmark);
         $expiryDays = config('scanner.report_expiry_days', 30);
@@ -53,7 +50,7 @@ class GenerateProspectReportJob implements ShouldQueue
             ['prospect_id' => $prospect->id],
             [
                 'token'              => $existing?->token ?? (string) Str::uuid(),
-                'benchmark_place_id' => $benchmark['id'] ?? null,
+                'benchmark_place_id' => $benchmark['place_id'] ?? null,
                 'report_data'        => $reportData,
                 'expires_at'         => now()->addDays($expiryDays),
             ]
@@ -62,6 +59,32 @@ class GenerateProspectReportJob implements ShouldQueue
         if ($prospect->website_url) {
             CaptureScreenshotJob::dispatch($report);
         }
+    }
+
+    /**
+     * Prefer the search benchmark captured at scrape time; never compare a prospect to itself.
+     *
+     * @return array<string, mixed>|null Normalized benchmark or null when none is available
+     */
+    private function resolveBenchmark(
+        GooglePlacesService $places,
+        Search $search,
+        Prospect $prospect,
+    ): ?array {
+        $snapshot = $search->benchmark_snapshot;
+
+        if ($snapshot && ($snapshot['place_id'] ?? null) !== $prospect->place_id) {
+            return $snapshot;
+        }
+
+        $place = $places->getTopRankedInNiche(
+            $search->niche,
+            $search->city,
+            $search->country,
+            $prospect->place_id,
+        );
+
+        return $place ? (new BenchmarkNormalizer())->fromPlace($place) : null;
     }
 
 }

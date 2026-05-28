@@ -10,20 +10,16 @@ class ReportBuilderService
     /**
      * Build structured report payload for storage and public display.
      *
-     * @param  array<string, mixed>|null  $benchmarkPlace  Raw Places API place object
+     * @param  array<string, mixed>|null  $benchmarkSource  Raw Places API place or normalized benchmark snapshot
      * @return array<string, mixed>
      */
-    public function build(Prospect $prospect, ?array $benchmarkPlace = null): array
+    public function build(Prospect $prospect, ?array $benchmarkSource = null): array
     {
         $search = $prospect->search;
         $a11yPayload = $prospect->raw_a11y_payload ?? [];
         $lighthousePayload = $prospect->raw_lighthouse_payload ?? [];
 
-        $benchmark = null;
-
-        if ($benchmarkPlace) {
-            $benchmark = (new BenchmarkNormalizer())->fromPlace($benchmarkPlace);
-        }
+        $benchmark = $this->normalizeBenchmark($benchmarkSource);
 
         $comparison = [];
 
@@ -262,6 +258,23 @@ class ReportBuilderService
                 'fix_hint'       => $copy['fix_hint'],
             ];
         }, $violations);
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $source
+     * @return array<string, mixed>|null
+     */
+    private function normalizeBenchmark(?array $source): ?array
+    {
+        if ($source === null) {
+            return null;
+        }
+
+        if (array_key_exists('review_count', $source)) {
+            return $source;
+        }
+
+        return (new BenchmarkNormalizer())->fromPlace($source);
     }
 
     /**
