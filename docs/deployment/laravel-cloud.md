@@ -13,8 +13,13 @@ flowchart LR
     end
 
     subgraph worker [Worker cluster]
-        QueueWorker["php artisan queue:work"]
+        SearchWorker["queue:work --queue=searches"]
+        NicheWorker["queue:work --queue=niches"]
         Scheduler[schedule:run]
+    end
+
+    subgraph managed [Laravel Cloud managed queue]
+        AuditingQ[auditing]
     end
 
     subgraph data [Managed resources]
@@ -29,24 +34,32 @@ flowchart LR
     end
 
     Web --> PG
-    QueueWorker --> PG
-    QueueWorker --> R2
-    QueueWorker --> Places
-    QueueWorker --> Claude
-    QueueWorker --> FlyBrowser
+    Web -->|dispatch searches| PG
+    Web -->|dispatch niches| PG
+    SearchWorker --> PG
+    NicheWorker --> PG
+    SearchWorker --> Places
+    NicheWorker --> Places
+    SearchWorker -->|dispatch audits| AuditingQ
+    AuditingQ --> FlyBrowser
+    AuditingQ --> R2
+    AuditingQ --> Claude
     Scheduler --> PG
 ```
 
-| Workload | Where it runs |
-|----------|---------------|
-| Web UI, auth, settings | App cluster |
-| `searches` queue (Places discovery + scoring) | Worker cluster via `queue:work database --queue=searches` |
-| `niches` queue (batch niche scans) | Worker cluster via `queue:work database --queue=niches` |
-| `auditing` queue (audit, screenshots, reports) | Worker cluster via `queue:work` |
-| Daily `scanner:purge-expired` | Scheduler on App or Worker cluster |
-| Report / violation images | Laravel Object Storage (R2) |
+| Workload | Queue name | Where it runs |
+|----------|------------|---------------|
+| Web UI, auth, settings | — | App cluster |
+| Operator searches (Places discovery + scoring) | `searches` | Worker: `queue:work database --queue=searches` |
+| Batch niche scans (`niches:scan`, sample backfill) | `niches` | Worker: `queue:work database --queue=niches` |
+| Audits, combine scores, reports, screenshots, outreach | `auditing` | Laravel Cloud **managed queue** (hybrid) or database worker |
+| Daily `scanner:purge-expired` | — | Scheduler on App or Worker cluster |
+| Weekly `niches:scan` (Monday 06:00 London) | dispatches to `niches` | Scheduler |
+| Report / violation images | — | Laravel Object Storage (R2) |
 
 **Queue driver:** production uses `QUEUE_CONNECTION=database` (not Redis). Horizon is not used — it only supports the Redis driver. Run `php artisan queue:work` on the worker cluster instead.
+
+See [§4 Queue architecture](#4-background-processes) for job routing, worker commands, env vars, and troubleshooting stuck searches.
 
 ---
 
@@ -107,11 +120,11 @@ Suggested size: 1 GB RAM minimum for a single-operator tool.
 
 ### Worker cluster (recommended)
 
-- **Purpose:** `queue:work` + heavy audit jobs
-- **Size:** 2 GB RAM minimum if running Playwright locally
-- **Background processes:** see section 4
+- **Purpose:** `queue:work` for `searches` and `niches` (Places API jobs); scheduler optional
+- **Size:** 1 GB RAM sufficient when audits run on Fly.io / managed `auditing` queue (no Playwright on Cloud workers)
+- **Background processes:** two workers recommended — `--queue=searches` and `--queue=niches` (see [§4 Queue overview](#queue-overview))
 
-Keep auditing off the App cluster so ~3-minute browser jobs do not compete with page loads. Use a single auditing worker process on smaller instances (one Playwright run at a time).
+Keep auditing off the App cluster so long browser jobs do not compete with page loads. With hybrid setup, Cloud managed workers handle `auditing`; your worker cluster only drains `searches` and `niches`.
 
 ---
 
@@ -154,6 +167,132 @@ Do **not** add:
 
 ## 4. Background processes
 
+### Queue overview
+
+The app uses **three named queues** so operator searches are not blocked by batch niche scanning. All three can share the same Postgres `jobs` table (`QUEUE_CONNECTION=database`); queue **names** (`searches`, `niches`, `auditing`) route work to the correct workers.
+
+#### Why separate `searches` and `niches`?
+
+| Path | Trigger | Volume | Latency expectation |
+|------|---------|--------|---------------------|
+| **Operator search** (`/search`) | User submits niche + city | 1 job → N `ScorePlaceJob`s | Seconds — UI shows **Queued** until `ScrapeProspectsJob` starts |
+| **Niche scan** (`/niches` → Scan, or weekly schedule) | Manual or cron | ~53 niches × ~119 cities ≈ **6,000+** `ScanNicheJob`s | Hours — batch throughput is fine |
+
+Previously both paths used a single `scraping` queue. A full niche scan could backlog hundreds of jobs and leave recent searches stuck in **Queued** for hours even though the queue worker was healthy.
+
+#### Job routing
+
+| Queue | Jobs | PHP helper | Connection config |
+|-------|------|------------|-------------------|
+| `searches` | `ScrapeProspectsJob`, `ScorePlaceJob` | `App\Support\SearchQueue` | `config('scanner.search_queue_connection')` ← `SEARCH_QUEUE_CONNECTION` |
+| `niches` | `ScanNicheJob` | `App\Support\NicheQueue` | `config('scanner.niche_queue_connection')` ← `NICHE_QUEUE_CONNECTION` |
+| `auditing` | `AuditSiteJob`, `CombineScoresJob`, `GenerateProspectReportJob`, `CaptureScreenshotJob`, `GenerateOutreachEmailJob` | `App\Support\AuditingQueue` | `config('scanner.auditing_queue_connection')` ← `AUDITING_QUEUE_CONNECTION` |
+
+**Search pipeline (simplified):**
+
+```text
+POST /searches
+  → ScrapeProspectsJob          [searches]
+  → ScorePlaceJob × N           [searches]
+  → AuditSiteJob                [auditing]   (when scan type needs a11y audit)
+  → CombineScoresJob            [auditing]
+  → GenerateProspectReportJob   [auditing]
+  → CaptureScreenshotJob        [auditing]
+```
+
+**Niche pipeline:**
+
+```text
+niches:scan / POST /niches/scan / sample panel backfill
+  → ScanNicheJob × (niches × cities)   [niches]
+  → writes niche_scans aggregates (no Search record)
+```
+
+#### Environment variables (queue routing)
+
+| Variable | Typical production value | Purpose |
+|----------|-------------------------|---------|
+| `QUEUE_CONNECTION` | `database` | Default connection; Postgres `jobs` table |
+| `SEARCH_QUEUE_CONNECTION` | `database` | Where operator search jobs are stored |
+| `NICHE_QUEUE_CONNECTION` | `database` | Where batch niche scan jobs are stored |
+| `AUDITING_QUEUE_CONNECTION` | `cloud` (hybrid) or `database` | Audit/report pipeline |
+| `DB_QUEUE_RETRY_AFTER` | `200`–`250` | Must exceed longest database-queue job timeout (audit: 210s) |
+| `SCRAPING_QUEUE_CONNECTION` | *(deprecated)* | Fallback for `NICHE_QUEUE_CONNECTION` on older envs |
+
+#### Worker commands (summary)
+
+| Deployment | Search worker | Niche worker | Auditing |
+|------------|---------------|--------------|----------|
+| **Hybrid (recommended)** | `--queue=searches` on worker cluster | `--queue=niches` on worker cluster | Managed queue `auditing` — no `queue:work` |
+| **All database** | Single worker: `--queue=searches,niches,auditing` (`searches` listed first) | *(same process)* | *(same process)* |
+
+Niche worker uses `--sleep=5` (vs `3` for searches) so a busy niche batch yields slightly more often; with **separate processes**, search jobs are not delayed by niche backlog regardless.
+
+#### Monitoring
+
+```bash
+php artisan queue:monitor searches niches auditing
+```
+
+Inspect Postgres backlog by queue name:
+
+```bash
+php artisan tinker --execute="
+foreach (['searches','niches','scraping','auditing'] as \$q) {
+    echo \$q.': '.DB::table('jobs')->where('queue', \$q)->count().PHP_EOL;
+}
+"
+```
+
+Healthy hybrid production: `searches` near 0 after a test search; `niches` may be large during a full scan; `scraping` should be **0** (legacy queue name); `auditing` visible in Cloud **Queues** tab, not necessarily in Postgres.
+
+Job mix in pending work:
+
+```bash
+php artisan tinker --execute="
+\$rows = DB::table('jobs')->select('queue', DB::raw('count(*) as c'))->groupBy('queue')->get();
+print_r(\$rows->toArray());
+"
+```
+
+#### Troubleshooting: recent searches stuck in **Queued**
+
+In the UI, **Queued** = `searches.status = pending` — `ScrapeProspectsJob` has not started yet.
+
+| Symptom | Likely cause | Fix |
+|---------|--------------|-----|
+| `queue:monitor` shows large `niches` backlog, `searches` also pending | Old single `scraping` worker, or only one worker draining `niches` first | Deploy separate search + niche workers (Option A below) |
+| Pending jobs on queue `scraping` | Pre-migration jobs; no worker listens to `scraping` anymore | `php artisan queue:clear database --queue=scraping` then re-submit stuck searches |
+| `searches` pending, **no** search worker process | Background process missing or wrong `--queue` | Add `queue:work database --queue=searches …` on worker cluster |
+| Jobs in `failed_jobs` | Places API, config, or timeout | `php artisan queue:failed` → inspect exception |
+| Search stuck **Discovering** / **Auditing** | Different issue — search job started; check `auditing` queue and Fly browser service | See [§6 Post-deploy verification](#6-post-deploy-verification) |
+
+Re-submit a stuck search after clearing legacy jobs: open `/search` and run again, or from Commands:
+
+```bash
+php artisan tinker --execute="
+\$s = App\Models\Search::where('status','pending')->latest()->first();
+if (\$s) { App\Jobs\ScrapeProspectsJob::dispatch(\$s); echo 'dispatched search '.\$s->id.PHP_EOL; }
+"
+```
+
+#### Migrating from the old `scraping` queue
+
+If you deployed before the `searches` / `niches` split:
+
+1. Deploy current code.
+2. **Replace** background process `--queue=scraping` with the search + niche workers in [Option A](#option-a--hybrid-recommended-on-starter-managed-auditing--database-searches--niches) (or the combined command in [Option B](#option-b--all-jobs-on-database-queue)).
+3. Clear stale jobs (they will never run — no worker listens to `scraping`):
+
+   ```bash
+   php artisan queue:clear database --queue=scraping
+   ```
+
+4. Re-submit searches stuck in **Queued** (`searches.status = pending`).
+5. Confirm: `php artisan queue:monitor searches niches auditing` — `scraping` size should stay 0.
+
+---
+
 ### Option A — Hybrid (recommended on Starter): managed `auditing` + database `searches` / `niches`
 
 Use a **Managed queue** named `auditing` for Playwright audits (Cloud scales workers). Keep **searches** and **niches** on the Postgres `jobs` table with separate background workers so operator searches are not blocked by batch niche scans.
@@ -190,25 +329,7 @@ Laravel Cloud provisions a **`cloud` queue connection** at runtime (via `LARAVEL
 
 **Verify:** run a search → it leaves **Queued** within seconds even when the `niches` queue is backlogged; Cloud **Queues** tab shows `auditing` jobs processing; Postgres `jobs` table contains `searches` and/or `niches` rows (not `scraping`).
 
-#### Migrating from the old `scraping` queue
-
-After deploy, update background processes from `--queue=scraping` to the **search** and **niche** workers above. Pending jobs on the old `scraping` queue are **not** picked up automatically.
-
-1. Deploy the code change.
-2. Replace the scraping worker command with search + niche workers (or `--queue=searches,niches,auditing` for a single worker in dev).
-3. Clear or drain stale `scraping` jobs (they will never run):
-
-```bash
-php artisan queue:clear database --queue=scraping
-```
-
-4. Re-submit any user searches that were stuck in **Queued** (`status = pending` on `searches`).
-
-Monitor with:
-
-```bash
-php artisan queue:monitor searches niches auditing
-```
+See also [Queue overview](#queue-overview) and [Troubleshooting: recent searches stuck in Queued](#troubleshooting-recent-searches-stuck-in-queued).
 
 #### Managed queue: `InvalidAddress` / `sqs.us-east-1.amazonaws.com/` is not valid
 
@@ -268,14 +389,28 @@ Then switch back to `cloud`.
 
 ### Option B — All jobs on database queue
 
-On the **app** or **worker** cluster, add:
+On the **app** or **worker** cluster, add one background process:
 
 | Process | Command |
 |---------|---------|
 | Queue worker | `php artisan queue:work database --queue=searches,niches,auditing --timeout=240 --tries=3 --sleep=3 --max-jobs=50` |
 
+List **`searches` first** so a single worker prefers operator searches when multiple queues have pending jobs.
+
+**Env:**
+
+```env
+QUEUE_CONNECTION=database
+SEARCH_QUEUE_CONNECTION=database
+NICHE_QUEUE_CONNECTION=database
+AUDITING_QUEUE_CONNECTION=database
+DB_QUEUE_RETRY_AFTER=250
+```
+
 - **`--timeout=240`** — must exceed `AuditSiteJob` timeout (210s).
 - **`--max-jobs=50`** — restarts the worker periodically to release memory after Playwright runs.
+
+For production with Fly.io audits, **Option A (hybrid)** is still preferred so long-running audit work does not share a database worker with Places API jobs.
 
 ### Option C — Horizon (Redis)
 
@@ -324,6 +459,8 @@ DB_CONNECTION=pgsql
 
 ### Queue, cache, session
 
+See [§4 Queue overview](#queue-overview) for job routing, worker commands, and troubleshooting.
+
 **Hybrid (managed auditing + database searches/niches):**
 
 ```env
@@ -341,11 +478,17 @@ SESSION_DRIVER=database
 
 ```env
 QUEUE_CONNECTION=database
-SCRAPING_QUEUE_CONNECTION=database
+SEARCH_QUEUE_CONNECTION=database
+NICHE_QUEUE_CONNECTION=database
 AUDITING_QUEUE_CONNECTION=database
-DB_QUEUE_RETRY_AFTER=200
+DB_QUEUE_RETRY_AFTER=250
+
+CACHE_STORE=database
+SESSION_DRIVER=database
 ```
 
+- **`SEARCH_QUEUE_CONNECTION`** — Postgres table for `ScrapeProspectsJob` and `ScorePlaceJob` (`searches` queue).
+- **`NICHE_QUEUE_CONNECTION`** — Postgres table for `ScanNicheJob` (`niches` queue). `SCRAPING_QUEUE_CONNECTION` is a deprecated alias.
 - **`DB_QUEUE_RETRY_AFTER=250`** — must exceed audit job timeout (210s) when searches/niches/auditing use the database driver.
 - **`AUDITING_QUEUE_CONNECTION=cloud`** — sends `AuditSiteJob`, reports, screenshots, and outreach jobs to the managed queue named `auditing` via Laravel Cloud’s `cloud` driver (see [Managed queue troubleshooting](#managed-queue-invalidaddress--sqsus-east-1amazonawscom-is-not-valid)).
 
@@ -480,10 +623,11 @@ ls -la /tmp/ss-test
 
 1. Log in, open **Settings** — all three health checks green (Places, OpenRouter/Anthropic, storage).
 2. Run a small search (1–2 results).
-3. Wait for pipeline: scoring → audit → combine → report → screenshot.
-4. Open prospect detail and public report link — verify grade, violations, desktop screenshot.
-5. Confirm the worker process is running (Cloud **Background processes** tab) and `jobs` table count drops after a search.
-6. If jobs stall, run `php artisan queue:failed` and inspect `failed_jobs.payload` / `exception`.
+3. Confirm the search leaves **Queued** within seconds (`queue:monitor searches` should show brief activity, not hours of backlog).
+4. Wait for pipeline: scoring → audit → combine → report → screenshot.
+5. Open prospect detail and public report link — verify grade, violations, desktop screenshot.
+6. Confirm background processes: **search worker** (`--queue=searches`), **niche worker** (`--queue=niches`), and managed **auditing** (hybrid) are running; `jobs` table count drops after a search.
+7. If jobs stall, see [Troubleshooting: recent searches stuck in Queued](#troubleshooting-recent-searches-stuck-in-queued) and run `php artisan queue:failed`.
 
 ---
 
@@ -632,6 +776,8 @@ Replicate production environment in Cloud, attach separate logical DB schema, en
 ### Optional: Redis + Horizon
 
 If you later attach Valkey/Redis and set `QUEUE_CONNECTION=redis`, switch the worker background process to `php artisan horizon` and add your email to the `viewHorizon` gate in `HorizonServiceProvider`.
+
+`config/horizon.php` defines separate supervisors for `searches`, `niches`, and `auditing` (same split as database workers). Set `SEARCH_QUEUE_CONNECTION`, `NICHE_QUEUE_CONNECTION`, and `AUDITING_QUEUE_CONNECTION` to `redis` when using Horizon.
 
 ---
 
