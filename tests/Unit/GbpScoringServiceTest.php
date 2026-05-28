@@ -161,4 +161,44 @@ class GbpScoringServiceTest extends TestCase
         $result = $this->service->score([], $this->benchmarkFixture(), 'Birmingham');
         $this->assertLessThanOrEqual(100, $result['score']);
     }
+
+    public function test_overlay_adds_website_and_phone_to_payload(): void
+    {
+        $prospect = new \App\Models\Prospect([
+            'website_url' => 'https://custom.example',
+            'phone' => '+441234567890',
+        ]);
+
+        $overlaid = $this->service->overlayProspectFields([], $prospect);
+
+        $this->assertSame('https://custom.example', $overlaid['websiteUri']);
+        $this->assertSame('+441234567890', $overlaid['nationalPhoneNumber']);
+    }
+
+    public function test_overlay_clears_website_when_operator_cleared(): void
+    {
+        $prospect = new \App\Models\Prospect([
+            'website_url' => '',
+            'phone' => null,
+        ]);
+
+        $overlaid = $this->service->overlayProspectFields(['websiteUri' => 'https://old.com'], $prospect);
+
+        $this->assertArrayNotHasKey('websiteUri', $overlaid);
+    }
+
+    public function test_overlay_removes_no_website_flag_when_website_set(): void
+    {
+        $prospect = new \App\Models\Prospect([
+            'website_url' => 'https://example.com',
+            'phone' => '+441234',
+            'raw_gbp_payload' => [],
+        ]);
+        $prospect->setRelation('search', new \App\Models\Search(['city' => 'London', 'benchmark_snapshot' => null]));
+
+        $result = $this->service->scoreProspect($prospect);
+
+        $this->assertNotContains('No website listed', $result['flags']);
+        $this->assertNotContains('No phone number listed', $result['flags']);
+    }
 }

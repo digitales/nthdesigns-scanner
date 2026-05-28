@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Models\Prospect;
+
 class GbpScoringService
 {
     /**
@@ -244,5 +246,47 @@ class GbpScoringService
         }
 
         return false;
+    }
+
+    /**
+     * Apply operator-edited phone/website onto a Places payload for rescoring.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    public function overlayProspectFields(array $payload, Prospect $prospect): array
+    {
+        if ($prospect->website_url !== null) {
+            if ($prospect->website_url === '') {
+                unset($payload['websiteUri']);
+            } else {
+                $payload['websiteUri'] = $prospect->website_url;
+            }
+        }
+
+        if ($prospect->phone !== null) {
+            if ($prospect->phone === '') {
+                unset($payload['nationalPhoneNumber']);
+            } else {
+                $payload['nationalPhoneNumber'] = $prospect->phone;
+            }
+        }
+
+        return $payload;
+    }
+
+    /**
+     * @return array{score: int, flags: string[]}
+     */
+    public function scoreProspect(Prospect $prospect): array
+    {
+        $search = $prospect->search;
+        $payload = $this->overlayProspectFields($prospect->raw_gbp_payload ?? [], $prospect);
+
+        return $this->score(
+            $payload,
+            $search?->benchmark_snapshot,
+            $search?->city ?? '',
+        );
     }
 }
