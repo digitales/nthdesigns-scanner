@@ -536,7 +536,7 @@ When the build installs Chromium to `storage/app/playwright-browsers` (recommend
 
 Leave `AUDIT_SCRIPT_PATH` empty to use `scripts/audit.js` from project root.
 
-Lighthouse is optional — audits still run without it; performance/SEO scores will be null.
+Lighthouse is optional for **local** Playwright audits — install the npm package and set `LIGHTHOUSE_BINARY` if you want performance scores in dev. On **production Fly**, Lighthouse is installed by default (see §10).
 
 ### Browser automation (production — Fly.io)
 
@@ -710,9 +710,31 @@ Playwright often needs more than the default PHP worker limit:
 
 On a 2 GB worker, run **one** auditing queue worker (separate background process with `--queue=auditing` only, or a single combined worker with `--max-jobs=10`).
 
-### E. Skip Lighthouse
+### E. Lighthouse on Fly (production)
 
-Do not install Lighthouse in build commands unless you need it — Playwright + axe is the critical path.
+The Fly browser service installs `lighthouse` via `scripts/package.json` and sets `LIGHTHOUSE_BINARY` in `fly.toml`. `start.sh` auto-exports `CHROME_PATH` from the Playwright image.
+
+After deploy, verify:
+
+```bash
+curl -s -H "Authorization: Bearer $AUDIT_SERVICE_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://example.com"}' \
+  "$AUDIT_SERVICE_URL/audit" | jq '.lighthouse'
+```
+
+Expected: `{ "performance": <1-100>, "accessibility": <n>, "seo": <n> }` — not `null`.
+
+If `lighthouse` is null, check `fly logs --app nth-scanner-browser` for `[browser-service] CHROME_PATH=…` and see [Fly troubleshooting](#fly-troubleshooting).
+
+**Backfill** prospects audited before Lighthouse was enabled:
+
+```bash
+php artisan scanner:backfill-audits              # dry-run
+php artisan scanner:backfill-audits --execute --delay=5
+```
+
+See `docs/superpowers/specs/2026-05-28-production-lighthouse-performance-design.md`.
 
 ---
 
@@ -996,6 +1018,7 @@ The image is based on `mcr.microsoft.com/playwright:v1.52.0-noble` (Chromium + s
 | `PORT` | `8080` | Matches `internal_port` in `fly.toml` |
 | `PLAYWRIGHT_BROWSERS_PATH` | `/ms-playwright` | Browsers baked into the Playwright image |
 | `start.sh` | runs before Node | Logs startup to stdout for `fly logs` |
+| `LIGHTHOUSE_BINARY` | `/app/scripts/node_modules/.bin/lighthouse` | Lighthouse CLI for performance/SEO scores |
 | `GET /health` | no `Authorization` | Fly health probes do not send a Bearer token |
 
 `POST /audit` and `POST /screenshot` require `Authorization: Bearer <token>` when `BROWSER_SERVICE_TOKEN` is set on Fly.
@@ -1038,6 +1061,17 @@ curl -s -H "Authorization: Bearer YOUR_TOKEN" \
   -d '{"url":"https://example.com"}' \
   https://nth-scanner-browser.fly.dev/screenshot | head -c 200
 ```
+
+Audit smoke test (Lighthouse scores):
+
+```bash
+curl -s -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://example.com"}' \
+  https://nth-scanner-browser.fly.dev/audit | jq '.lighthouse'
+```
+
+Expected: non-null object with numeric `performance`.
 
 ### 4. Wire Laravel Cloud
 
@@ -1198,6 +1232,26 @@ curl -s -H "Authorization: Bearer YOUR_TOKEN" \
 ```
 
 Expect JSON starting with `{"desktop":` — not `{"error":`.
+
+---
+
+#### Symptom: audit completes but `lighthouse` is null
+
+**Cause:** Lighthouse could not launch Chrome, or the URL timed out.
+
+**Fix:**
+
+1. `fly logs --app nth-scanner-browser` — confirm `[browser-service] CHROME_PATH=…` at startup.
+2. `fly ssh console --app nth-scanner-browser` — run:
+   ```bash
+   /app/scripts/node_modules/.bin/lighthouse https://example.com --quiet --output=json --chrome-flags="--headless --no-sandbox" | head -c 200
+   ```
+3. If that fails, set an explicit secret:
+   ```bash
+   fly secrets set CHROME_PATH="$(find /ms-playwright -name chrome -type f | head -1)" \
+     --config scripts/browser-service/fly.toml
+   ```
+4. Redeploy and re-test `/audit`.
 
 ---
 
