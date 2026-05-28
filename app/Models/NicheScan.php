@@ -14,6 +14,7 @@ class NicheScan extends Model
         'scan_date',
         'result_count',
         'sampled_count',
+        'sample_preview',
         'avg_gbp_score',
         'pct_no_website',
         'pct_low_reviews',
@@ -26,6 +27,7 @@ class NicheScan extends Model
     {
         return [
             'scan_date' => 'date',
+            'sample_preview' => 'array',
             'ran_at' => 'datetime',
             'avg_gbp_score' => 'float',
             'pct_no_website' => 'float',
