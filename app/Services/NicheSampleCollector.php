@@ -102,7 +102,7 @@ final class NicheSampleCollector
             'avg_gbp_score' => round($avg, 2),
             'pct_no_website' => round($pctNoWebsite, 2),
             'pct_low_reviews' => round($pctLowReviews, 2),
-            'opportunity_score' => ScanNicheJob::opportunityScore($avg, $pctNoWebsite, $pctLowReviews),
+            'opportunity_score' => ScanNicheJob::opportunityScore($avg, $pctNoWebsite, $pctLowReviews, $resultCount),
             'sample_preview' => $preview,
         ];
     }

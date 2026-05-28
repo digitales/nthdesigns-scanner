@@ -1,7 +1,7 @@
 # Niche Opportunity Score — Low Result Count Confidence — Design Spec
 
 **Date:** 2026-05-28  
-**Status:** Approved (brainstorming)  
+**Status:** Approved — plan at `docs/superpowers/plans/2026-05-28-niche-opportunity-confidence.md`  
 **Scope:** Penalise `opportunity_score` when Google Places returns too few results for a niche × city pair, so single-business samples no longer rank as top opportunities. Includes one-off backfill of existing `niche_scans` rows.
 
 **Parent spec:** `docs/superpowers/specs/2026-05-27-niche-opportunity-scanner-design.md`

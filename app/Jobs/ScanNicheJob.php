@@ -80,9 +80,23 @@ class ScanNicheJob implements ShouldQueue
             ->update(['status' => 'failed']);
     }
 
-    public static function opportunityScore(float $avgGbp, float $pctNoWebsite, float $pctLowReviews): float
-    {
-        return round(($avgGbp * 0.4) + ($pctNoWebsite * 0.35) + ($pctLowReviews * 0.25), 2);
+    public static function opportunityScore(
+        float $avgGbp,
+        float $pctNoWebsite,
+        float $pctLowReviews,
+        int $resultCount,
+    ): float {
+        if ($resultCount <= 1) {
+            return 0.0;
+        }
+
+        $raw = ($avgGbp * 0.4) + ($pctNoWebsite * 0.35) + ($pctLowReviews * 0.25);
+
+        if ($resultCount === 2) {
+            $raw *= 0.5;
+        }
+
+        return round($raw, 2);
     }
 
     /**

@@ -62,7 +62,13 @@ class ScanNicheJobTest extends TestCase
         $this->assertGreaterThan(0, $row->avg_gbp_score);
         $this->assertSame(50.0, $row->pct_no_website);
         $this->assertSame(50.0, $row->pct_low_reviews);
-        $this->assertNotNull($row->opportunity_score);
+        $expected = ScanNicheJob::opportunityScore(
+            $row->avg_gbp_score,
+            $row->pct_no_website,
+            $row->pct_low_reviews,
+            $row->result_count,
+        );
+        $this->assertSame($expected, $row->opportunity_score);
         $this->assertNotNull($row->ran_at);
         $this->assertIsArray($row->sample_preview);
         $this->assertCount(2, $row->sample_preview);
@@ -95,5 +101,38 @@ class ScanNicheJobTest extends TestCase
         $this->assertSame(0, $row->sampled_count);
         $this->assertSame(0.0, $row->opportunity_score);
         $this->assertSame([], $row->sample_preview);
+    }
+
+    public function test_single_result_completes_with_opportunity_score_zero(): void
+    {
+        config(['services.google_places.key' => 'test-key']);
+
+        Http::fake([
+            'https://places.googleapis.com/v1/places:searchText' => Http::response([
+                'places' => [['id' => 'places/a']],
+            ], 200),
+            'https://places.googleapis.com/v1/places/places/*' => Http::response([
+                'id' => 'places/a',
+                'displayName' => ['text' => 'A'],
+                'userRatingCount' => 5,
+                'photos' => [],
+            ], 200),
+        ]);
+
+        (new ScanNicheJob(
+            niche: 'Spark',
+            nicheQuery: 'spark',
+            city: 'Gloucester',
+            country: 'GB',
+            sample: 5,
+            scanDate: '2026-05-28',
+        ))->handle(app(NicheSampleCollector::class));
+
+        $row = NicheScan::query()->first();
+
+        $this->assertSame('complete', $row->status);
+        $this->assertSame(1, $row->result_count);
+        $this->assertSame(1, $row->sampled_count);
+        $this->assertSame(0.0, $row->opportunity_score);
     }
 }
