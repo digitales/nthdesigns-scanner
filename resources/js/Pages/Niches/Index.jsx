@@ -76,6 +76,7 @@ export default function NichesIndex({ scans: initialScans, pagination, cities, f
     const hydratingRef = useRef(false);
     const deepLinkDoneRef = useRef(false);
     const scrollRafRef = useRef(null);
+    const filterKey = `${filters?.city ?? ''}|${filters?.sort ?? 'opportunity_score'}`;
 
     const total = meta?.total ?? 0;
     const lastPage = meta?.last_page ?? 1;
@@ -87,13 +88,17 @@ export default function NichesIndex({ scans: initialScans, pagination, cities, f
     }, [flash?.success]);
 
     useEffect(() => {
-        setRows(initialScans);
         setMeta(pagination);
+    }, [pagination]);
+
+    // Reset list only when filters change — not on infinite-scroll partial reloads (those merge in loadPage).
+    useEffect(() => {
+        setRows(initialScans);
         setSelected(null);
         deepLinkDoneRef.current = false;
         const initialTo = Math.min(PER_PAGE, pagination?.total ?? initialScans.length);
         setViewRange({ from: initialScans.length ? 1 : 0, to: initialTo || 0, page: 1 });
-    }, [initialScans, pagination]);
+    }, [filterKey]);
 
     useEffect(() => {
         const el = metaBarRef.current;
