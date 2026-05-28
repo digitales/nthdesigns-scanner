@@ -10,6 +10,7 @@ use App\Http\Controllers\PublicReportController;
 use App\Http\Controllers\ReportDashboardController;
 use App\Http\Controllers\SavedProspectController;
 use App\Http\Controllers\NicheScanController;
+use App\Http\Controllers\NicheScanSampleController;
 use App\Http\Controllers\SearchController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -41,6 +42,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     Route::get('/niches', [NicheScanController::class, 'index'])->name('niches.index');
+    Route::get('/niches/{nicheScan}/sample', [NicheScanSampleController::class, 'show'])->name('niches.sample');
     Route::post('/niches/scan', [NicheScanController::class, 'trigger'])->name('niches.scan');
 
     Route::get('/search', [SearchController::class, 'index'])->name('search.index');

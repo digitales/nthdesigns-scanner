@@ -5,7 +5,8 @@
 // Re-run niches:bootstrap only if you need to expand from scratch.
 
 return [
-    "niches" => [
+    'sample_size' => 5,
+    'niches' => [
         0 => [
             "primary_type" => "span",
             "label" => "Span",
