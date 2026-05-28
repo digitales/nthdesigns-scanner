@@ -284,7 +284,7 @@ function ProspectRow({
                         <button type="button" className="btn-icon" title="Expand weaknesses" onClick={onToggleExpand}>
                             <Icon d={isExpanded ? Icons.ChevronU : Icons.ChevronD} />
                         </button>
-                        {p.place_id && (
+                        {p.place_id && !p.place_id.startsWith('direct:') && (
                             <a
                                 className="btn-icon"
                                 title="View on Maps"

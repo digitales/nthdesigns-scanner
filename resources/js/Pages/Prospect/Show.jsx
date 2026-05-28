@@ -243,6 +243,7 @@ export default function ProspectShow({ prospect, search, report, outreachEmails,
                                         {prospect.address}
                                     </p>
                                 )}
+                                {prospect.place_id && !prospect.place_id.startsWith('direct:') && (
                                 <a
                                     href={`https://www.google.com/maps/place/?q=place_id:${prospect.place_id}`}
                                     target="_blank"
@@ -251,6 +252,7 @@ export default function ProspectShow({ prospect, search, report, outreachEmails,
                                 >
                                     View on Maps
                                 </a>
+                                )}
                             </Card>
                         )}
 

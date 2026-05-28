@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\GenerateProspectReportJob;
 use App\Jobs\AuditSiteJob;
 use App\Jobs\DirectUrlScanJob;
 use App\Models\Prospect;
@@ -10,6 +11,7 @@ use App\Models\User;
 use App\Services\GooglePlacesService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Config;
 use Tests\TestCase;
 
 class DirectUrlScanJobTest extends TestCase
@@ -87,5 +89,28 @@ class DirectUrlScanJobTest extends TestCase
         $this->assertSame(['No GBP match found'], $prospect->gbp_flags);
         $this->assertSame('https://unknown.example', $prospect->website_url);
         Bus::assertDispatched(AuditSiteJob::class);
+    }
+
+    public function test_direct_url_pipeline_completes_and_dispatches_report(): void
+    {
+        Bus::fake([GenerateProspectReportJob::class]);
+        Config::set('scanner.audit_driver', 'skip');
+
+        $user = User::factory()->create();
+        $search = Search::factory()->directUrl('https://example.com')->create([
+            'user_id' => $user->id,
+            'status'  => 'pending',
+        ]);
+
+        $this->mock(GooglePlacesService::class, function ($mock) {
+            $mock->shouldReceive('findByWebsiteUrl')
+                ->once()
+                ->andReturn(null);
+        });
+
+        DirectUrlScanJob::dispatchSync($search);
+
+        Bus::assertDispatched(GenerateProspectReportJob::class);
+        $this->assertSame('complete', $search->fresh()->status);
     }
 }
