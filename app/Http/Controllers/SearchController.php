@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreDirectUrlSearchRequest;
+use App\Jobs\DirectUrlScanJob;
 use App\Jobs\ScrapeProspectsJob;
 use App\Models\Search;
 use App\Services\UserSettingsService;
+use App\Support\WebsiteUrlNormalizer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -31,12 +34,14 @@ class SearchController extends Controller
                 ->take(5)
                 ->get()
                 ->map(fn ($s) => [
-                    'id'          => $s->id,
-                    'niche'       => $s->niche,
-                    'city'        => $s->city,
-                    'status'      => $s->status,
-                    'total_found' => $s->total_found,
-                    'created_at'  => $s->created_at->diffForHumans(),
+                    'id'             => $s->id,
+                    'source'         => $s->source,
+                    'submitted_url'  => $s->submitted_url,
+                    'niche'          => $s->niche,
+                    'city'           => $s->city,
+                    'status'         => $s->status,
+                    'total_found'    => $s->total_found,
+                    'created_at'     => $s->created_at->diffForHumans(),
                 ]),
         ]);
     }
@@ -67,6 +72,38 @@ class SearchController extends Controller
         $search = $user->searches()->create($validated);
 
         ScrapeProspectsJob::dispatch($search);
+
+        return redirect()->route('searches.show', $search);
+    }
+
+    public function storeDirectUrl(StoreDirectUrlSearchRequest $request, WebsiteUrlNormalizer $normalizer): RedirectResponse
+    {
+        $user = $request->user();
+        $rateKey = 'search-submit:'.$user->id;
+        $decay = config('scanner.search_rate_limit_seconds', 30);
+
+        if (RateLimiter::tooManyAttempts($rateKey, 1)) {
+            $seconds = RateLimiter::availableIn($rateKey);
+
+            throw ValidationException::withMessages([
+                'website_url' => "Please wait {$seconds} seconds before starting another search.",
+            ]);
+        }
+
+        $url = $normalizer->normalize($request->validated('website_url'));
+
+        RateLimiter::hit($rateKey, $decay);
+
+        $search = $user->searches()->create([
+            'source'        => 'direct_url',
+            'submitted_url' => $url,
+            'country'       => $this->settings->defaultCountry($user),
+            'scan_type'     => 'combined',
+            'status'        => 'pending',
+            'total_found'   => 1,
+        ]);
+
+        DirectUrlScanJob::dispatch($search);
 
         return redirect()->route('searches.show', $search);
     }
@@ -123,14 +160,16 @@ class SearchController extends Controller
                 ->pluck('prospect_id')
                 ->values(),
             'search' => [
-                'id'          => $search->id,
-                'niche'       => $search->niche,
-                'city'        => $search->city,
-                'country'     => $search->country,
-                'scan_type'   => $search->scan_type,
-                'status'      => $search->status,
-                'total_found' => $search->total_found,
-                'created_at'  => $search->created_at->toISOString(),
+                'id'             => $search->id,
+                'source'         => $search->source,
+                'submitted_url'  => $search->submitted_url,
+                'niche'          => $search->niche,
+                'city'           => $search->city,
+                'country'        => $search->country,
+                'scan_type'      => $search->scan_type,
+                'status'         => $search->status,
+                'total_found'    => $search->total_found,
+                'created_at'     => $search->created_at->toISOString(),
             ],
             'prospects' => $prospects,
         ]);
