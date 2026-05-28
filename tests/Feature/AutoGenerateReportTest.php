@@ -41,4 +41,32 @@ class AutoGenerateReportTest extends TestCase
         $this->assertSame('complete', $prospect->audit_status);
         $this->assertSame(70, $prospect->combined_score);
     }
+
+    public function test_combine_scores_skips_report_when_suppress_auto_report_set(): void
+    {
+        Bus::fake();
+
+        $user = User::factory()->create();
+        $search = Search::factory()->create(['user_id' => $user->id, 'scan_type' => 'gbp_only']);
+        $prospect = Prospect::factory()->create([
+            'search_id'            => $search->id,
+            'gbp_score'            => 70,
+            'a11y_score'           => 0,
+            'combined_score'       => 0,
+            'audit_status'         => 'pending',
+            'suppress_auto_report' => true,
+        ]);
+
+        $job = new CombineScoresJob($prospect);
+        $job->handle(
+            app(\App\Services\CombineScoresService::class),
+            app(\App\Services\SearchStatusService::class),
+        );
+
+        Bus::assertNotDispatched(GenerateProspectReportJob::class);
+
+        $prospect->refresh();
+        $this->assertFalse($prospect->suppress_auto_report);
+        $this->assertSame('complete', $prospect->audit_status);
+    }
 }
