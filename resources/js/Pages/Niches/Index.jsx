@@ -49,6 +49,20 @@ function buildParams(filters, page) {
     return params;
 }
 
+function readUrlPage() {
+    const p = Number(new URLSearchParams(window.location.search).get('page'));
+    return Number.isFinite(p) && p > 0 ? p : 1;
+}
+
+function pageRange(page, total, lastPage) {
+    const p = Math.min(lastPage, Math.max(1, page));
+    return {
+        page: p,
+        from: (p - 1) * PER_PAGE + 1,
+        to: Math.min(p * PER_PAGE, total),
+    };
+}
+
 function syncUrlPage(filters, page) {
     const params = new URLSearchParams(buildParams(filters, page));
     const qs = params.toString();
@@ -76,6 +90,7 @@ export default function NichesIndex({ scans: initialScans, pagination, cities, f
     const hydratingRef = useRef(false);
     const deepLinkDoneRef = useRef(false);
     const scrollRafRef = useRef(null);
+    const [urlRevision, setUrlRevision] = useState(0);
     const filterKey = `${filters?.city ?? ''}|${filters?.sort ?? 'opportunity_score'}`;
 
     const total = meta?.total ?? 0;
@@ -125,6 +140,20 @@ export default function NichesIndex({ scans: initialScans, pagination, cities, f
         return metaBottom;
     }, []);
 
+    const applyPageRange = useCallback(
+        (page) => {
+            const next = pageRange(page, total, lastPage);
+            setViewRange((prev) => {
+                if (prev.page === next.page && prev.from === next.from && prev.to === next.to) {
+                    return prev;
+                }
+                return next;
+            });
+            syncUrlPage(filters, next.page);
+        },
+        [filters, lastPage, total],
+    );
+
     const updateViewRangeFromScroll = useCallback(() => {
         const rowEls = tableWrapRef.current?.querySelectorAll('tbody tr[data-niche-row-index]');
         if (!rowEls?.length || total === 0) {
@@ -143,39 +172,55 @@ export default function NichesIndex({ scans: initialScans, pagination, cities, f
             topIndex = i;
         }
 
-        const page = Math.min(lastPage, Math.floor(topIndex / PER_PAGE) + 1);
-        const from = (page - 1) * PER_PAGE + 1;
-        const to = Math.min(page * PER_PAGE, total);
+        const page = Math.floor(topIndex / PER_PAGE) + 1;
+        applyPageRange(page);
+    }, [applyPageRange, getScrollAnchor, total]);
 
-        setViewRange((prev) => {
-            if (prev.page === page && prev.from === from && prev.to === to) {
-                return prev;
-            }
-            syncUrlPage(filters, page);
-            return { page, from, to };
-        });
-    }, [filters, getScrollAnchor, lastPage, total]);
+    const scheduleScrollUpdate = useCallback(() => {
+        if (scrollRafRef.current) {
+            cancelAnimationFrame(scrollRafRef.current);
+        }
+        scrollRafRef.current = requestAnimationFrame(updateViewRangeFromScroll);
+    }, [updateViewRangeFromScroll]);
 
     useEffect(() => {
-        const onScroll = () => {
-            if (scrollRafRef.current) {
-                cancelAnimationFrame(scrollRafRef.current);
-            }
-            scrollRafRef.current = requestAnimationFrame(updateViewRangeFromScroll);
-        };
+        scheduleScrollUpdate();
 
-        window.addEventListener('scroll', onScroll, { passive: true });
-        window.addEventListener('resize', onScroll);
-        onScroll();
+        // Capture phase catches scroll on any element (not only window).
+        document.addEventListener('scroll', scheduleScrollUpdate, { passive: true, capture: true });
+        window.addEventListener('resize', scheduleScrollUpdate);
+        window.visualViewport?.addEventListener('resize', scheduleScrollUpdate);
+        window.visualViewport?.addEventListener('scroll', scheduleScrollUpdate);
+
+        const rowEls = tableWrapRef.current?.querySelectorAll('tbody tr[data-niche-row-index]');
+        const rowObserver =
+            rowEls?.length &&
+            new IntersectionObserver(() => scheduleScrollUpdate(), {
+                root: null,
+                threshold: [0, 0.01, 0.25, 0.5, 1],
+            });
+
+        if (rowObserver) {
+            rowEls.forEach((row) => rowObserver.observe(row));
+        }
+
+        const removeRouterFinish = router.on('finish', () => {
+            setUrlRevision((r) => r + 1);
+            scheduleScrollUpdate();
+        });
 
         return () => {
-            window.removeEventListener('scroll', onScroll);
-            window.removeEventListener('resize', onScroll);
+            document.removeEventListener('scroll', scheduleScrollUpdate, { capture: true });
+            window.removeEventListener('resize', scheduleScrollUpdate);
+            window.visualViewport?.removeEventListener('resize', scheduleScrollUpdate);
+            window.visualViewport?.removeEventListener('scroll', scheduleScrollUpdate);
+            rowObserver?.disconnect();
+            removeRouterFinish();
             if (scrollRafRef.current) {
                 cancelAnimationFrame(scrollRafRef.current);
             }
         };
-    }, [updateViewRangeFromScroll, rows.length]);
+    }, [rows.length, scheduleScrollUpdate]);
 
     const applyFilters = (overrides = {}) => {
         setSelected(null);
@@ -211,11 +256,11 @@ export default function NichesIndex({ scans: initialScans, pagination, cities, f
                 onFinish: () => {
                     setLoadingMore(false);
                     onDone?.();
-                    requestAnimationFrame(updateViewRangeFromScroll);
+                    scheduleScrollUpdate();
                 },
             });
         },
-        [filters, loadingMore, meta.last_page, updateViewRangeFromScroll],
+        [filters, loadingMore, meta.last_page, scheduleScrollUpdate],
     );
 
     useEffect(() => {
@@ -233,7 +278,7 @@ export default function NichesIndex({ scans: initialScans, pagination, cities, f
             deepLinkDoneRef.current = true;
             const target = document.querySelector(`[data-niche-row-index="${(urlPage - 1) * PER_PAGE}"]`);
             target?.scrollIntoView({ block: 'start' });
-            requestAnimationFrame(updateViewRangeFromScroll);
+            scheduleScrollUpdate();
             return;
         }
 
@@ -246,7 +291,7 @@ export default function NichesIndex({ scans: initialScans, pagination, cities, f
                 deepLinkDoneRef.current = true;
                 const target = document.querySelector(`[data-niche-row-index="${(urlPage - 1) * PER_PAGE}"]`);
                 target?.scrollIntoView({ block: 'start' });
-                requestAnimationFrame(updateViewRangeFromScroll);
+                scheduleScrollUpdate();
                 return;
             }
 
@@ -261,7 +306,7 @@ export default function NichesIndex({ scans: initialScans, pagination, cities, f
         };
 
         loadNext();
-    }, [filters.page, loadPage, meta.current_page, meta.last_page, updateViewRangeFromScroll]);
+    }, [filters.page, loadPage, meta.current_page, meta.last_page, scheduleScrollUpdate]);
 
     useEffect(() => {
         const el = sentinelRef.current;
@@ -282,7 +327,11 @@ export default function NichesIndex({ scans: initialScans, pagination, cities, f
         return () => observer.disconnect();
     }, [loadPage, loadingMore, meta.current_page, meta.last_page]);
 
-    const { from, to, page: visiblePage } = viewRange;
+    // Re-read URL after Inertia partial reloads (nav updates ?page= before scroll handlers run on some hosts).
+    void urlRevision;
+    const urlPage = readUrlPage();
+    const visiblePage = viewRange.page === 1 && urlPage > viewRange.page ? urlPage : viewRange.page;
+    const { from, to } = pageRange(visiblePage, total, lastPage);
 
     const pageHeader = (
         <PageHeader
