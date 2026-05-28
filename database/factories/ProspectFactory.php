@@ -21,7 +21,8 @@ class ProspectFactory extends Factory
             'gbp_score'      => 60,
             'a11y_score'     => 80,
             'dominant_angle' => 'accessibility',
-            'audit_status'   => 'complete',
+            'audit_status'         => 'complete',
+            'suppress_auto_report' => false,
             'review_count'   => 5,
             'photo_count'    => 2,
         ];

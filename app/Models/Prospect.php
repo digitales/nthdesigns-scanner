@@ -16,7 +16,7 @@ class Prospect extends Model
         'search_id', 'place_id', 'business_name', 'phone', 'website_url', 'address',
         'rating', 'review_count', 'photo_count', 'has_description', 'hours_complete',
         'gbp_score', 'gbp_flags', 'a11y_score', 'a11y_flags', 'performance_score',
-        'combined_score', 'dominant_angle', 'audit_status',
+        'combined_score', 'dominant_angle', 'audit_status', 'suppress_auto_report',
         'raw_gbp_payload', 'raw_a11y_payload', 'raw_lighthouse_payload', 'expires_at',
     ];
 
@@ -30,6 +30,7 @@ class Prospect extends Model
         'hours_complete'        => 'boolean',
         'rating'                => 'decimal:1',
         'expires_at'            => 'datetime',
+        'suppress_auto_report'  => 'boolean',
     ];
 
     public function search(): BelongsTo
@@ -55,5 +56,10 @@ class Prospect extends Model
     public function outreachSelections(): HasMany
     {
         return $this->hasMany(OutreachSelection::class);
+    }
+
+    public function notes(): HasMany
+    {
+        return $this->hasMany(ProspectNote::class)->latest();
     }
 }
