@@ -49,6 +49,16 @@ export default function SearchShow({ search, prospects, outreachProspectIds = []
     const selectedIds = Object.keys(selected).filter((id) => selected[id]);
     const total = search.total_found ?? prospects.length;
     const scanned = prospects.length;
+    const isDirectUrl = search.source === 'direct_url';
+    const directHost = search.submitted_url?.replace(/^https?:\/\//, '') ?? 'Single site';
+    const pageTitle = isDirectUrl ? directHost : `${search.niche} in ${search.city}`;
+    const eyebrow = isDirectUrl ? `B · Single site · ${directHost}` : `B · ${search.niche} · ${search.city}`;
+    const runningSub = isDirectUrl
+        ? 'Looking up Google Business Profile and running the WCAG 2.2 audit. Results appear when complete.'
+        : 'Discovering businesses on Google, then running audits in parallel. Rows appear as their audits complete.';
+    const completeTitle = isDirectUrl
+        ? (prospects.length > 0 ? 'Audit complete.' : 'Waiting for audit…')
+        : `${scanned} prospects scanned.`;
     const pct = total > 0 ? Math.round((scanned / total) * 100) : 0;
     const remainingMin = Math.max(1, Math.round((total - scanned) * 0.7));
 
@@ -68,15 +78,15 @@ export default function SearchShow({ search, prospects, outreachProspectIds = []
 
     return (
         <AuthenticatedLayout>
-            <Head title={`${search.niche} in ${search.city}`} />
+            <Head title={pageTitle} />
 
             <main className="page page-wide" style={{ maxWidth: 1440 }}>
                 <PageHeader
-                    eyebrow={`B · ${search.niche} · ${search.city}`}
-                    title={isRunning ? 'Auditing…' : `${scanned} prospects scanned.`}
+                    eyebrow={eyebrow}
+                    title={isRunning ? (isDirectUrl ? 'Auditing website…' : 'Auditing…') : completeTitle}
                     sub={
                         isRunning
-                            ? 'Discovering businesses on Google, then running audits in parallel. Rows appear as their audits complete.'
+                            ? runningSub
                             : 'Sort by combined score for the warmest leads — top decile is auto-tinted ochre. Expand any row to see weakness flags.'
                     }
                     back="Back to search"
@@ -94,7 +104,7 @@ export default function SearchShow({ search, prospects, outreachProspectIds = []
                     <div className="progress-bar">
                         <div className="progress-text">
                             <span className="spinner" />
-                            <strong>Auditing websites</strong>
+                            <strong>{isDirectUrl ? 'Auditing website' : 'Auditing websites'}</strong>
                             <span className="progress-meta">
                                 scanned {scanned} of {total} · ~{remainingMin} min remaining
                             </span>
@@ -274,7 +284,7 @@ function ProspectRow({
                         <button type="button" className="btn-icon" title="Expand weaknesses" onClick={onToggleExpand}>
                             <Icon d={isExpanded ? Icons.ChevronU : Icons.ChevronD} />
                         </button>
-                        {p.place_id && (
+                        {p.place_id && !p.place_id.startsWith('direct:') && (
                             <a
                                 className="btn-icon"
                                 title="View on Maps"

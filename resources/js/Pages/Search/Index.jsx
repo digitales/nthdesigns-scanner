@@ -36,6 +36,13 @@ export default function SearchIndex({ recentSearches, defaults = { country: 'GB'
         post('/searches');
     };
 
+    const directForm = useForm({ website_url: '' });
+
+    const submitDirect = (e) => {
+        e.preventDefault();
+        directForm.post('/searches/direct');
+    };
+
     return (
         <AuthenticatedLayout>
             <Head title="New search" />
@@ -48,6 +55,7 @@ export default function SearchIndex({ recentSearches, defaults = { country: 'GB'
                 />
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 40 }}>
+                    <div>
                     <Card title="Parameters">
                         <form onSubmit={submit}>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 18 }}>
@@ -123,6 +131,29 @@ export default function SearchIndex({ recentSearches, defaults = { country: 'GB'
                         </form>
                     </Card>
 
+                    <Card title="Single site audit" style={{ marginTop: 24 }}>
+                        <p className="micro" style={{ marginBottom: 16, lineHeight: 1.55 }}>
+                            Paste a website URL to look up its Google Business Profile and run a WCAG 2.2 audit. Takes about 90 seconds.
+                        </p>
+                        <form onSubmit={submitDirect}>
+                            <Field label="Website URL">
+                                <Input
+                                    value={directForm.data.website_url}
+                                    onChange={(e) => directForm.setData('website_url', e.target.value)}
+                                    placeholder="https://example.co.uk"
+                                    required
+                                />
+                                <FormError message={directForm.errors.website_url} />
+                            </Field>
+                            <div style={{ marginTop: 16 }}>
+                                <Button kind="secondary" size="lg" type="submit" disabled={directForm.processing} className="w-full justify-center">
+                                    {directForm.processing ? 'Starting audit…' : 'Run single-site audit'}
+                                </Button>
+                            </div>
+                        </form>
+                    </Card>
+                    </div>
+
                     <aside>
                         <div className="card-title" style={{ marginBottom: 12 }}>Recent searches</div>
                         {recentSearches.length === 0 ? (
@@ -140,10 +171,17 @@ export default function SearchIndex({ recentSearches, defaults = { country: 'GB'
                                             }}
                                         >
                                             <Card pad style={{ padding: '12px 14px' }}>
-                                                <div style={{ fontWeight: 500, fontSize: 13 }}>{s.niche}</div>
-                                                <div className="micro" style={{ marginTop: 4 }}>
-                                                    {s.city} · {s.created_at}
-                                                </div>
+                                                {s.source === 'direct_url' ? (
+                                                    <>
+                                                        <div style={{ fontWeight: 500, fontSize: 13 }}>{s.submitted_url?.replace(/^https?:\/\//, '') ?? 'Single site'}</div>
+                                                        <div className="micro" style={{ marginTop: 4 }}>Single site · {s.created_at}</div>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <div style={{ fontWeight: 500, fontSize: 13 }}>{s.niche}</div>
+                                                        <div className="micro" style={{ marginTop: 4 }}>{s.city} · {s.created_at}</div>
+                                                    </>
+                                                )}
                                                 <div style={{ marginTop: 8 }}>
                                                     <SearchStatus status={s.status} />
                                                 </div>
