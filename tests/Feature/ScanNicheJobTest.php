@@ -4,8 +4,7 @@ namespace Tests\Feature;
 
 use App\Jobs\ScanNicheJob;
 use App\Models\NicheScan;
-use App\Services\GbpScoringService;
-use App\Services\GooglePlacesService;
+use App\Services\NicheSampleCollector;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -52,10 +51,7 @@ class ScanNicheJobTest extends TestCase
             country: 'GB',
             sample: 2,
             scanDate: '2026-05-27',
-        ))->handle(
-            app(GooglePlacesService::class),
-            app(GbpScoringService::class),
-        );
+        ))->handle(app(NicheSampleCollector::class));
 
         $row = NicheScan::query()->first();
 
@@ -68,6 +64,11 @@ class ScanNicheJobTest extends TestCase
         $this->assertSame(50.0, $row->pct_low_reviews);
         $this->assertNotNull($row->opportunity_score);
         $this->assertNotNull($row->ran_at);
+        $this->assertIsArray($row->sample_preview);
+        $this->assertCount(2, $row->sample_preview);
+        $this->assertSame('A', $row->sample_preview[0]['name']);
+        $this->assertArrayHasKey('gbp_score', $row->sample_preview[0]);
+        $this->assertTrue($row->sample_preview[0]['no_website']);
     }
 
     public function test_zero_results_completes_with_opportunity_score_zero(): void
@@ -85,10 +86,7 @@ class ScanNicheJobTest extends TestCase
             country: 'GB',
             sample: 5,
             scanDate: '2026-05-27',
-        ))->handle(
-            app(GooglePlacesService::class),
-            app(GbpScoringService::class),
-        );
+        ))->handle(app(NicheSampleCollector::class));
 
         $row = NicheScan::query()->first();
 
@@ -96,5 +94,6 @@ class ScanNicheJobTest extends TestCase
         $this->assertSame(0, $row->result_count);
         $this->assertSame(0, $row->sampled_count);
         $this->assertSame(0.0, $row->opportunity_score);
+        $this->assertSame([], $row->sample_preview);
     }
 }
