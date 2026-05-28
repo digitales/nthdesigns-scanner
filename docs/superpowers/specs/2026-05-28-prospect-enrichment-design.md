@@ -1,7 +1,7 @@
 # Prospect enrichment — Design Spec
 
 **Date:** 2026-05-28  
-**Status:** Approved (brainstorming)  
+**Status:** Implemented  
 **Scope:** Operator manual edits to prospect contact/profile fields, private note log, GBP rescore on save, automatic site audit when `website_url` changes, manual public report regeneration.
 
 **Approach:** Focused `ProspectEnrichmentService` + `prospect_notes` table + prospect detail UI. Reuse existing audit pipeline (`AuditSiteJob` → `CombineScoresJob`). Suppress auto-report only for operator-triggered audits via `suppress_auto_report` flag.
