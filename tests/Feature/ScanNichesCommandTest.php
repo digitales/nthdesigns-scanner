@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Jobs\ScanNicheJob;
-use App\Support\ScrapingQueue;
+use App\Support\NicheQueue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
@@ -31,7 +31,7 @@ class ScanNichesCommandTest extends TestCase
             return $job->niche === 'Dental Practice'
                 && $job->city === 'Birmingham'
                 && $job->sample === 3
-                && $job->queue === ScrapingQueue::NAME;
+                && $job->queue === NicheQueue::NAME;
         });
     }
 

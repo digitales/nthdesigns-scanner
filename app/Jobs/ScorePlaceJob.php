@@ -4,7 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Prospect;
 use App\Models\Search;
-use App\Support\ScrapingQueue;
+use App\Support\SearchQueue;
 use App\Services\GooglePlacesService;
 use App\Services\GbpScoringService;
 use App\Services\SearchStatusService;
@@ -26,7 +26,7 @@ class ScorePlaceJob implements ShouldQueue
         public Search $search,
         public string $placeId,
     ) {
-        ScrapingQueue::apply($this);
+        SearchQueue::apply($this);
     }
 
     public function handle(

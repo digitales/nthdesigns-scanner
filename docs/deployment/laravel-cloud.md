@@ -40,7 +40,8 @@ flowchart LR
 | Workload | Where it runs |
 |----------|---------------|
 | Web UI, auth, settings | App cluster |
-| `scraping` queue (Places, scoring) | Worker cluster via `queue:work` (jobs in Postgres `jobs` table) |
+| `searches` queue (Places discovery + scoring) | Worker cluster via `queue:work database --queue=searches` |
+| `niches` queue (batch niche scans) | Worker cluster via `queue:work database --queue=niches` |
 | `auditing` queue (audit, screenshots, reports) | Worker cluster via `queue:work` |
 | Daily `scanner:purge-expired` | Scheduler on App or Worker cluster |
 | Report / violation images | Laravel Object Storage (R2) |
@@ -153,20 +154,21 @@ Do **not** add:
 
 ## 4. Background processes
 
-### Option A — Hybrid (recommended on Starter): managed `auditing` + database `scraping`
+### Option A — Hybrid (recommended on Starter): managed `auditing` + database `searches` / `niches`
 
-Use a **Managed queue** named `auditing` for Playwright audits (Cloud scales workers). Keep **scraping** on the Postgres `jobs` table with an app-cluster background worker.
+Use a **Managed queue** named `auditing` for Playwright audits (Cloud scales workers). Keep **searches** and **niches** on the Postgres `jobs` table with separate background workers so operator searches are not blocked by batch niche scans.
 
 **Canvas**
 
 1. **New managed queue** → queue name: `auditing` (must match exactly).
 2. Do **not** mark it as the environment default queue.
 3. Instance size: **2 GiB** minimum for Playwright (Growth plan tiers); raise **visibility timeout** to **240s** and request a **shutdown timeout** above 210s if audits are cut off mid-run.
-4. App cluster → **Background processes** → add:
+4. App or worker cluster → **Background processes** → add:
 
 | Process | Command |
 |---------|---------|
-| Scraping worker | `php artisan queue:work database --queue=scraping --timeout=90 --tries=3 --sleep=3` |
+| Search worker | `php artisan queue:work database --queue=searches --timeout=90 --tries=3 --sleep=3` |
+| Niche worker | `php artisan queue:work database --queue=niches --timeout=90 --tries=3 --sleep=5` |
 
 Cloud runs managed workers for `auditing` — do **not** add a `queue:work` process for `auditing`.
 
@@ -174,16 +176,39 @@ Cloud runs managed workers for `auditing` — do **not** add a `queue:work` proc
 
 ```env
 QUEUE_CONNECTION=database
-SCRAPING_QUEUE_CONNECTION=database
+SEARCH_QUEUE_CONNECTION=database
+NICHE_QUEUE_CONNECTION=database
 AUDITING_QUEUE_CONNECTION=cloud
 DB_QUEUE_RETRY_AFTER=200
 ```
+
+`SCRAPING_QUEUE_CONNECTION` is a deprecated alias for `NICHE_QUEUE_CONNECTION` on existing deployments.
 
 Laravel Cloud provisions a **`cloud` queue connection** at runtime (via `LARAVEL_CLOUD_MANAGED_QUEUES_CONFIG` on the server). Use **`cloud`**, not **`sqs`**. The stock `sqs` connection in `config/queue.php` is only for self-managed AWS credentials and will show placeholder `your-account-id` / `us-east-1` values if you point auditing at it on Cloud.
 
 **Requirements:** `aws/aws-sdk-php` in `composer.json` (deploy fails without it). Laravel **13.11.2+** for managed-queue support.
 
-**Verify:** run a search → Cloud **Queues** tab shows `auditing` jobs processing; Postgres `jobs` table only contains `scraping` rows.
+**Verify:** run a search → it leaves **Queued** within seconds even when the `niches` queue is backlogged; Cloud **Queues** tab shows `auditing` jobs processing; Postgres `jobs` table contains `searches` and/or `niches` rows (not `scraping`).
+
+#### Migrating from the old `scraping` queue
+
+After deploy, update background processes from `--queue=scraping` to the **search** and **niche** workers above. Pending jobs on the old `scraping` queue are **not** picked up automatically.
+
+1. Deploy the code change.
+2. Replace the scraping worker command with search + niche workers (or `--queue=searches,niches,auditing` for a single worker in dev).
+3. Clear or drain stale `scraping` jobs (they will never run):
+
+```bash
+php artisan queue:clear database --queue=scraping
+```
+
+4. Re-submit any user searches that were stuck in **Queued** (`status = pending` on `searches`).
+
+Monitor with:
+
+```bash
+php artisan queue:monitor searches niches auditing
+```
 
 #### Managed queue: `InvalidAddress` / `sqs.us-east-1.amazonaws.com/` is not valid
 
@@ -247,7 +272,7 @@ On the **app** or **worker** cluster, add:
 
 | Process | Command |
 |---------|---------|
-| Queue worker | `php artisan queue:work database --queue=scraping,auditing --timeout=240 --tries=3 --sleep=3 --max-jobs=50` |
+| Queue worker | `php artisan queue:work database --queue=searches,niches,auditing --timeout=240 --tries=3 --sleep=3 --max-jobs=50` |
 
 - **`--timeout=240`** — must exceed `AuditSiteJob` timeout (210s).
 - **`--max-jobs=50`** — restarts the worker periodically to release memory after Playwright runs.
@@ -299,11 +324,12 @@ DB_CONNECTION=pgsql
 
 ### Queue, cache, session
 
-**Hybrid (managed auditing + database scraping):**
+**Hybrid (managed auditing + database searches/niches):**
 
 ```env
 QUEUE_CONNECTION=database
-SCRAPING_QUEUE_CONNECTION=database
+SEARCH_QUEUE_CONNECTION=database
+NICHE_QUEUE_CONNECTION=database
 AUDITING_QUEUE_CONNECTION=cloud
 DB_QUEUE_RETRY_AFTER=200
 
@@ -320,7 +346,7 @@ AUDITING_QUEUE_CONNECTION=database
 DB_QUEUE_RETRY_AFTER=200
 ```
 
-- **`DB_QUEUE_RETRY_AFTER=250`** — must exceed audit job timeout (210s) when scraping/auditing use the database driver.
+- **`DB_QUEUE_RETRY_AFTER=250`** — must exceed audit job timeout (210s) when searches/niches/auditing use the database driver.
 - **`AUDITING_QUEUE_CONNECTION=cloud`** — sends `AuditSiteJob`, reports, screenshots, and outreach jobs to the managed queue named `auditing` via Laravel Cloud’s `cloud` driver (see [Managed queue troubleshooting](#managed-queue-invalidaddress--sqsus-east-1amazonawscom-is-not-valid)).
 
 - **Do not use `sqs`** for auditing on Laravel Cloud unless you supply your own AWS queue URLs and credentials. Managed queues use **`cloud`** only.
@@ -395,7 +421,7 @@ Run these from the Cloud **Commands** tab after the first successful deploy.
 ```bash
 php artisan migrate:status
 php artisan schedule:list
-php artisan queue:monitor scraping auditing
+php artisan queue:monitor searches niches auditing
 ```
 
 Check pending work:

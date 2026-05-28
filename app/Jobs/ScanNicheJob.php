@@ -4,7 +4,7 @@ namespace App\Jobs;
 
 use App\Models\NicheScan;
 use App\Services\NicheSampleCollector;
-use App\Support\ScrapingQueue;
+use App\Support\NicheQueue;
 use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -31,7 +31,7 @@ class ScanNicheJob implements ShouldQueue
         public int $sample,
         public string $scanDate,
     ) {
-        ScrapingQueue::apply($this);
+        NicheQueue::apply($this);
     }
 
     public function handle(NicheSampleCollector $collector): void

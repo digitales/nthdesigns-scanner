@@ -4,13 +4,13 @@ namespace App\Support;
 
 use Illuminate\Foundation\Bus\PendingDispatch;
 
-final class ScrapingQueue
+final class SearchQueue
 {
-    public const NAME = 'scraping';
+    public const NAME = 'searches';
 
     public static function connection(): string
     {
-        return (string) config('scanner.scraping_queue_connection', config('queue.default'));
+        return (string) config('scanner.search_queue_connection', config('queue.default'));
     }
 
     public static function apply(object $job): object

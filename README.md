@@ -48,7 +48,7 @@ Configure `.env`:
 ```bash
 composer dev           # serve, queue worker, logs, Vite (uses QUEUE_CONNECTION from .env)
 # or manually:
-php artisan queue:work --queue=scraping,auditing --timeout=240
+php artisan queue:work --queue=searches,niches,auditing --timeout=240
 php artisan serve
 npm run dev
 ```

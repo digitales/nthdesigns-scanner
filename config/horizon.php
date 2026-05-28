@@ -214,11 +214,21 @@ return [
 
     'environments' => [
         'production' => [
-            'scraping-supervisor' => [
+            'searches-supervisor' => [
                 'connection'   => 'redis',
-                'queue'        => ['scraping'],
+                'queue'        => ['searches'],
                 'balance'      => 'auto',
                 'maxProcesses' => 5,
+                'minProcesses' => 1,
+                'memory'       => 128,
+                'timeout'      => 90,
+                'nice'         => 0,
+            ],
+            'niches-supervisor' => [
+                'connection'   => 'redis',
+                'queue'        => ['niches'],
+                'balance'      => 'auto',
+                'maxProcesses' => 2,
                 'minProcesses' => 1,
                 'memory'       => 128,
                 'timeout'      => 90,
@@ -236,11 +246,19 @@ return [
             ],
         ],
         'local' => [
-            'scraping-supervisor' => [
+            'searches-supervisor' => [
                 'connection'   => 'redis',
-                'queue'        => ['scraping'],
+                'queue'        => ['searches'],
                 'balance'      => 'simple',
                 'maxProcesses' => 3,
+                'memory'       => 128,
+                'timeout'      => 90,
+            ],
+            'niches-supervisor' => [
+                'connection'   => 'redis',
+                'queue'        => ['niches'],
+                'balance'      => 'simple',
+                'maxProcesses' => 1,
                 'memory'       => 128,
                 'timeout'      => 90,
             ],

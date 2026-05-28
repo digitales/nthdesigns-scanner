@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Jobs\ScanNicheJob;
-use App\Support\ScrapingQueue;
+use App\Support\NicheQueue;
 use Illuminate\Console\Command;
 use Illuminate\Support\Str;
 
@@ -14,7 +14,7 @@ class ScanNichesCommand extends Command
         {--niches=}
         {--sample=5}';
 
-    protected $description = 'Dispatch niche×city GBP sample scans to the scraping queue';
+    protected $description = 'Dispatch niche×city GBP sample scans to the niches queue';
 
     public function handle(): int
     {
@@ -45,7 +45,7 @@ class ScanNichesCommand extends Command
 
         foreach ($niches as $niche) {
             foreach ($cities as $city) {
-                ScrapingQueue::dispatch(new ScanNicheJob(
+                NicheQueue::dispatch(new ScanNicheJob(
                     niche: $niche['label'],
                     nicheQuery: $niche['query'],
                     city: $city,

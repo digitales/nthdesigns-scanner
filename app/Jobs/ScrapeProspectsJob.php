@@ -3,7 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Search;
-use App\Support\ScrapingQueue;
+use App\Support\SearchQueue;
 use App\Services\BenchmarkNormalizer;
 use App\Services\GooglePlacesService;
 use App\Services\SearchStatusService;
@@ -23,7 +23,7 @@ class ScrapeProspectsJob implements ShouldQueue
 
     public function __construct(public Search $search)
     {
-        ScrapingQueue::apply($this);
+        SearchQueue::apply($this);
     }
 
     public function handle(GooglePlacesService $places, SearchStatusService $searchStatus): void

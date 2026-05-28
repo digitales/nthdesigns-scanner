@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Jobs\ScanNicheJob;
 use App\Models\NicheScan;
-use App\Support\ScrapingQueue;
+use App\Support\NicheQueue;
 use Illuminate\Http\JsonResponse;
 
 class NicheScanSampleController extends Controller
@@ -34,7 +34,7 @@ class NicheScanSampleController extends Controller
         }
 
         if ($nicheScan->status !== 'pending') {
-            ScrapingQueue::dispatch(new ScanNicheJob(
+            NicheQueue::dispatch(new ScanNicheJob(
                 niche: $nicheScan->niche,
                 nicheQuery: $nicheScan->niche_query,
                 city: $nicheScan->city,

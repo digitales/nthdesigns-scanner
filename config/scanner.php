@@ -53,6 +53,11 @@ return [
 
     'search_rate_limit_seconds' => (int) env('SEARCH_RATE_LIMIT_SECONDS', 30),
 
+    'search_queue_connection' => env('SEARCH_QUEUE_CONNECTION', env('QUEUE_CONNECTION', 'database')),
+
+    'niche_queue_connection' => env('NICHE_QUEUE_CONNECTION', env('SCRAPING_QUEUE_CONNECTION', env('QUEUE_CONNECTION', 'database'))),
+
+    /** @deprecated Use niche_queue_connection. Kept for existing SCRAPING_QUEUE_CONNECTION env. */
     'scraping_queue_connection' => env('SCRAPING_QUEUE_CONNECTION', env('QUEUE_CONNECTION', 'database')),
 
     'auditing_queue_connection' => env('AUDITING_QUEUE_CONNECTION', env('QUEUE_CONNECTION', 'database')),
