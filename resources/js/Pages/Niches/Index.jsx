@@ -86,6 +86,7 @@ export default function NichesIndex({ scans: initialScans, pagination, cities, f
     });
     const sentinelRef = useRef(null);
     const metaBarRef = useRef(null);
+    const tableScrollRef = useRef(null);
     const tableWrapRef = useRef(null);
     const hydratingRef = useRef(false);
     const deepLinkDoneRef = useRef(false);
@@ -116,20 +117,27 @@ export default function NichesIndex({ scans: initialScans, pagination, cities, f
     }, [filterKey]);
 
     useEffect(() => {
-        const el = metaBarRef.current;
+        const el = tableScrollRef.current;
         if (!el) {
             return undefined;
         }
 
-        const setMetaHeight = () => {
-            document.documentElement.style.setProperty('--niches-meta-height', `${el.offsetHeight}px`);
+        const setTableOffset = () => {
+            const top = el.getBoundingClientRect().top;
+            document.documentElement.style.setProperty('--niches-table-offset', `${Math.ceil(top)}px`);
         };
 
-        setMetaHeight();
-        const ro = new ResizeObserver(setMetaHeight);
+        setTableOffset();
+        const ro = new ResizeObserver(setTableOffset);
         ro.observe(el);
-        return () => ro.disconnect();
-    }, [rows.length]);
+        window.addEventListener('resize', setTableOffset);
+        document.addEventListener('scroll', setTableOffset, { passive: true, capture: true });
+        return () => {
+            ro.disconnect();
+            window.removeEventListener('resize', setTableOffset);
+            document.removeEventListener('scroll', setTableOffset, { capture: true });
+        };
+    }, [rows.length, selected]);
 
     const getScrollAnchor = useCallback(() => {
         const thead = tableWrapRef.current?.querySelector('thead');
@@ -314,13 +322,14 @@ export default function NichesIndex({ scans: initialScans, pagination, cities, f
             return undefined;
         }
 
+        const scrollRoot = tableScrollRef.current;
         const observer = new IntersectionObserver(
             (entries) => {
                 if (entries[0]?.isIntersecting && !loadingMore && meta.current_page < meta.last_page) {
                     loadPage(meta.current_page + 1);
                 }
             },
-            { rootMargin: '400px 0px' },
+            { root: scrollRoot, rootMargin: '400px 0px' },
         );
 
         observer.observe(el);
@@ -396,8 +405,12 @@ export default function NichesIndex({ scans: initialScans, pagination, cities, f
                                 Showing {from}–{to} of {total} · Page {visiblePage} of {lastPage}
                             </div>
 
-                            <div ref={tableWrapRef}>
-                                <DataTable className="niches-table" style={{ borderTop: 0, borderRadius: '0 0 6px 6px' }}>
+                            <div ref={tableScrollRef} className="niches-table-scroll">
+                                <div ref={tableWrapRef}>
+                                <DataTable
+                                    className="niches-table"
+                                    style={{ borderTop: 0, borderRadius: '0 0 6px 6px', overflow: 'visible' }}
+                                >
                                         <thead>
                                             <tr>
                                                 <th>Niche</th>
@@ -478,6 +491,7 @@ export default function NichesIndex({ scans: initialScans, pagination, cities, f
                                             </tr>
                                         </tbody>
                                 </DataTable>
+                                </div>
                             </div>
                         </div>
 

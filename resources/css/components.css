@@ -756,9 +756,14 @@
     border-bottom: 0;
     border-radius: 6px 6px 0 0;
   }
+  .niches-table-scroll {
+    overflow-y: auto;
+    max-height: calc(100dvh - var(--niches-table-offset, 300px));
+    -webkit-overflow-scrolling: touch;
+  }
   .niches-table .ptable thead th {
     position: sticky;
-    top: calc(52px + var(--niches-meta-height, 37px));
+    top: 0;
     z-index: 42;
     background: var(--color-paper-2);
   }
