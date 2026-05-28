@@ -12,7 +12,7 @@ class Search extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id', 'niche', 'city', 'country', 'scan_type', 'status', 'total_found',
+        'user_id', 'source', 'submitted_url', 'niche', 'city', 'country', 'scan_type', 'status', 'total_found',
         'benchmark_snapshot',
     ];
 
@@ -31,5 +31,10 @@ class Search extends Model
     public function prospects(): HasMany
     {
         return $this->hasMany(Prospect::class);
+    }
+
+    public function isDirectUrl(): bool
+    {
+        return $this->source === 'direct_url';
     }
 }

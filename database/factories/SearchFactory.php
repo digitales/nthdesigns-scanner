@@ -15,6 +15,7 @@ class SearchFactory extends Factory
     {
         return [
             'user_id'     => User::factory(),
+            'source'      => 'discovery',
             'niche'       => 'dental practice',
             'city'        => 'Birmingham',
             'country'     => 'GB',
@@ -22,5 +23,17 @@ class SearchFactory extends Factory
             'status'      => 'complete',
             'total_found' => 1,
         ];
+    }
+
+    public function directUrl(string $url = 'https://example.com'): static
+    {
+        return $this->state(fn () => [
+            'source'        => 'direct_url',
+            'submitted_url' => $url,
+            'niche'         => null,
+            'city'          => null,
+            'scan_type'     => 'combined',
+            'total_found'   => 1,
+        ]);
     }
 }
