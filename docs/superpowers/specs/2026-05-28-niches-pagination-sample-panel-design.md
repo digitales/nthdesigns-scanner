@@ -1,7 +1,7 @@
 # Niches Index — Pagination, Infinite Scroll & Sample Panel
 
 **Date:** 2026-05-28  
-**Status:** Approved (brainstorming) — pending implementation plan  
+**Status:** Approved — plan at `docs/superpowers/plans/2026-05-28-niches-pagination-sample-panel.md`  
 **Scope:** Improve `/niches` at scale (~6k niche×city rows) with paginated infinite loading, URL-backed page state, sticky chrome, and a side panel showing sampled business names. Extends the niche opportunity scanner (`2026-05-27-niche-opportunity-scanner-design.md`); supersedes that spec’s “no pagination” constraint for the index page only.
 
 **Approach:** Laravel paginator on the existing latest-per-(niche, city) query; Inertia for initial load and filter changes; client-side row merge for infinite scroll; JSON sample endpoint with on-demand backfill via the scraping queue.
