@@ -48,8 +48,19 @@ export default function SearchShow({ search, prospects, outreachProspectIds = []
 
     const selectedIds = Object.keys(selected).filter((id) => selected[id]);
     const total = search.total_found ?? prospects.length;
-    const scanned = prospects.length;
+    const discovered = prospects.length;
+    const audited = prospects.filter((p) => p.audit_status !== 'pending').length;
     const isDirectUrl = search.source === 'direct_url';
+    const phase = isDirectUrl
+        ? search.status === 'pending'
+            ? 'queued'
+            : 'auditing'
+        : search.status === 'pending'
+          ? 'queued'
+          : search.status === 'auditing' || (total > 0 && discovered >= total)
+            ? 'auditing'
+            : 'discovering';
+    const progressCurrent = phase === 'auditing' ? audited : discovered;
     const directHost = search.submitted_url?.replace(/^https?:\/\//, '') ?? 'Single site';
     const pageTitle = isDirectUrl ? directHost : `${search.niche} in ${search.city}`;
     const eyebrow = isDirectUrl ? `B · Single site · ${directHost}` : `B · ${search.niche} · ${search.city}`;
@@ -58,9 +69,28 @@ export default function SearchShow({ search, prospects, outreachProspectIds = []
         : 'Discovering businesses on Google, then running audits in parallel. Rows appear as their audits complete.';
     const completeTitle = isDirectUrl
         ? (prospects.length > 0 ? 'Audit complete.' : 'Waiting for audit…')
-        : `${scanned} prospects scanned.`;
-    const pct = total > 0 ? Math.round((scanned / total) * 100) : 0;
-    const remainingMin = Math.max(1, Math.round((total - scanned) * 0.7));
+        : `${discovered} prospects scanned.`;
+    const phaseTitle = {
+        queued: 'Queued…',
+        discovering: 'Discovering…',
+        auditing: 'Auditing…',
+    }[phase];
+    const phaseLabel = isDirectUrl
+        ? 'Auditing website'
+        : {
+              queued: 'Waiting for worker',
+              discovering: 'Discovering businesses',
+              auditing: 'Auditing websites',
+          }[phase];
+    const pct = total > 0 ? Math.round((progressCurrent / total) * 100) : 0;
+    const remainingMin = Math.max(
+        1,
+        Math.round((total - progressCurrent) * (phase === 'auditing' ? 0.7 : phase === 'discovering' ? 0.15 : 0.1)),
+    );
+    const progressMeta =
+        phase === 'queued'
+            ? 'starting soon'
+            : `${phase === 'auditing' ? 'audited' : 'found'} ${progressCurrent} of ${total} · ~${remainingMin} min remaining`;
 
     const toggleRow = (id) => setSelected((prev) => ({ ...prev, [id]: !prev[id] }));
     const toggleAll = (checked) => {
@@ -83,7 +113,7 @@ export default function SearchShow({ search, prospects, outreachProspectIds = []
             <main className="page page-wide" style={{ maxWidth: 1440 }}>
                 <PageHeader
                     eyebrow={eyebrow}
-                    title={isRunning ? (isDirectUrl ? 'Auditing website…' : 'Auditing…') : completeTitle}
+                    title={isRunning ? (isDirectUrl ? 'Auditing website…' : phaseTitle) : completeTitle}
                     sub={
                         isRunning
                             ? runningSub
@@ -104,10 +134,8 @@ export default function SearchShow({ search, prospects, outreachProspectIds = []
                     <div className="progress-bar">
                         <div className="progress-text">
                             <span className="spinner" />
-                            <strong>{isDirectUrl ? 'Auditing website' : 'Auditing websites'}</strong>
-                            <span className="progress-meta">
-                                scanned {scanned} of {total} · ~{remainingMin} min remaining
-                            </span>
+                            <strong>{phaseLabel}</strong>
+                            <span className="progress-meta">{progressMeta}</span>
                         </div>
                         <div className="progress-track">
                             <div className="progress-fill" style={{ width: `${pct}%` }} />
