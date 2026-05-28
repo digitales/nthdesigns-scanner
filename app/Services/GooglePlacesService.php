@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\WebsiteUrlNormalizer;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -144,5 +145,51 @@ class GooglePlacesService
         }
 
         return $response->json('places.0');
+    }
+
+    public function findByWebsiteUrl(string $url): ?array
+    {
+        $normalizer = app(WebsiteUrlNormalizer::class);
+        $targetHost = $normalizer->host($url);
+
+        $response = Http::withHeaders([
+            'Content-Type'     => 'application/json',
+            'X-Goog-Api-Key'   => $this->apiKey,
+            'X-Goog-FieldMask' => 'places.id,places.websiteUri,places.displayName',
+        ])->post("{$this->baseUrl}:searchText", [
+            'textQuery'      => $targetHost,
+            'maxResultCount' => 20,
+        ]);
+
+        if ($response->failed()) {
+            Log::warning('GooglePlaces findByWebsiteUrl searchText failed', [
+                'status' => $response->status(),
+                'body'   => $response->body(),
+                'host'   => $targetHost,
+            ]);
+
+            return null;
+        }
+
+        foreach ($response->json('places') ?? [] as $place) {
+            $websiteUri = $place['websiteUri'] ?? null;
+            $placeId = $place['id'] ?? null;
+
+            if (! $websiteUri || ! $placeId) {
+                continue;
+            }
+
+            try {
+                $placeHost = $normalizer->host($websiteUri);
+            } catch (\InvalidArgumentException) {
+                continue;
+            }
+
+            if ($placeHost === $targetHost) {
+                return $this->getPlaceDetails($placeId);
+            }
+        }
+
+        return null;
     }
 }
