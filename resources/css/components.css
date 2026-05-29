@@ -647,11 +647,22 @@
     font-weight: 500;
   }
 
-  .score-card-row {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  .score-card-stack {
+    display: flex;
+    flex-direction: column;
     gap: 16;
     margin-bottom: 28;
+  }
+
+  .score-card-row {
+    display: grid;
+    gap: 16;
+  }
+  .score-card-row--primary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .score-card-row--speed {
+    grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
   }
 
   .score-card {

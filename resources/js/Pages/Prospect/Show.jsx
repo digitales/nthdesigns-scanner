@@ -87,36 +87,40 @@ export default function ProspectShow({ prospect, search, navigation, report, out
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 32 }}>
                     <div>
-                        <div className="score-card-row">
-                            <ScoreCard
-                                label="Combined"
-                                value={prospect.combined_score}
-                                unit="/100"
-                                highlight={(prospect.combined_score ?? 0) >= 71}
-                            />
-                            <ScoreCard label="GBP" value={prospect.gbp_score} unit="/100" />
-                            <ScoreCard label="Accessibility" value={prospect.a11y_score} unit="/100" />
-                            {search.scan_type !== 'gbp_only' && (
+                        <div className="score-card-stack">
+                            <div className="score-card-row score-card-row--primary">
                                 <ScoreCard
-                                    label="Page speed"
-                                    value={prospect.performance_score > 0 ? prospect.performance_score : null}
-                                    healthScore
+                                    label="Combined"
+                                    value={prospect.combined_score}
                                     unit="/100"
+                                    highlight={(prospect.combined_score ?? 0) >= 71}
                                 />
-                            )}
-                            {LIGHTHOUSE_METRICS.map(({ label, key }) => {
-                                const score = lighthouse?.[key];
-                                if (score == null) return null;
-                                return (
+                                <ScoreCard label="GBP" value={prospect.gbp_score} unit="/100" />
+                                <ScoreCard label="Accessibility" value={prospect.a11y_score} unit="/100" />
+                            </div>
+                            {search.scan_type !== 'gbp_only' && (
+                                <div className="score-card-row score-card-row--speed">
                                     <ScoreCard
-                                        key={key}
-                                        label={label}
-                                        value={score}
+                                        label="Page speed"
+                                        value={prospect.performance_score > 0 ? prospect.performance_score : null}
                                         healthScore
                                         unit="/100"
                                     />
-                                );
-                            })}
+                                    {LIGHTHOUSE_METRICS.map(({ label, key }) => {
+                                        const score = lighthouse?.[key];
+                                        if (score == null) return null;
+                                        return (
+                                            <ScoreCard
+                                                key={key}
+                                                label={label}
+                                                value={score}
+                                                healthScore
+                                                unit="/100"
+                                            />
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
 
                         {search.scan_type !== 'gbp_only'
