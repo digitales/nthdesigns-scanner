@@ -54,7 +54,6 @@ flowchart LR
 | Batch niche scans (`niches:scan`, sample backfill) | `niches` | Worker: `queue:work database --queue=niches` |
 | Audits, combine scores, reports, screenshots, outreach | `auditing` | Laravel Cloud **managed queue** (hybrid) or database worker |
 | Daily `scanner:purge-expired` | — | Scheduler on App or Worker cluster |
-| Weekly `niches:scan` (Monday 06:00 London) | dispatches to `niches` | Scheduler |
 | Report / violation images | — | Laravel Object Storage (R2) |
 
 **Queue driver:** production uses `QUEUE_CONNECTION=database` (not Redis). Horizon is not used — it only supports the Redis driver. Run `php artisan queue:work` on the worker cluster instead.
@@ -176,7 +175,7 @@ The app uses **three named queues** so operator searches are not blocked by batc
 | Path | Trigger | Volume | Latency expectation |
 |------|---------|--------|---------------------|
 | **Operator search** (`/search`) | User submits niche + city | 1 job → N `ScorePlaceJob`s | Seconds — UI shows **Queued** until `ScrapeProspectsJob` starts |
-| **Niche scan** (`/niches` → Scan, or weekly schedule) | Manual or cron | ~53 niches × ~119 cities ≈ **6,000+** `ScanNicheJob`s | Hours — batch throughput is fine |
+| **Niche scan** (Settings → Run market scan) | Manual from `/settings` | ~53 niches × ~119 cities ≈ **6,000+** `ScanNicheJob`s | Hours — batch throughput is fine |
 
 Previously both paths used a single `scraping` queue. A full niche scan could backlog hundreds of jobs and leave recent searches stuck in **Queued** for hours even though the queue worker was healthy.
 
@@ -203,7 +202,7 @@ POST /searches
 **Niche pipeline:**
 
 ```text
-niches:scan / POST /niches/scan / sample panel backfill
+POST /settings/niches/scan / niches:scan CLI / sample panel backfill
   → ScanNicheJob × (niches × cities)   [niches]
   → writes niche_scans aggregates (no Search record)
 ```

@@ -3,6 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import {
     Button,
     Card,
+    Checkbox,
     Field,
     FormError,
     Input,
@@ -10,13 +11,15 @@ import {
     Select,
 } from '@/Components/ui';
 
-export default function SettingsIndex({ settings, health, env }) {
+export default function SettingsIndex({ settings, nicheMaintenance, health, env }) {
     const { flash } = usePage().props;
     const { data, setData, patch, processing, errors, recentlySuccessful } = useForm({
         default_country: settings.default_country,
         agency_name: settings.agency_name,
         booking_url: settings.booking_url,
     });
+    const scanForm = useForm({ force: false });
+    const bootstrapForm = useForm({ confirm: '' });
 
     const submit = (e) => {
         e.preventDefault();
@@ -120,6 +123,85 @@ export default function SettingsIndex({ settings, health, env }) {
                                         </p>
                                     )}
                                 </div>
+                            </div>
+                        </form>
+                    </Card>
+
+                    <Card title="Niche maintenance">
+                        <ul style={{ display: 'flex', flexDirection: 'column', gap: 12, margin: '0 0 24px', padding: 0, listStyle: 'none' }}>
+                            <li style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}>
+                                <span className="micro" style={{ fontWeight: 500 }}>Niches configured</span>
+                                <span className="micro">{nicheMaintenance.niche_count}</span>
+                            </li>
+                            <li style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}>
+                                <span className="micro" style={{ fontWeight: 500 }}>Cities configured</span>
+                                <span className="micro">{nicheMaintenance.city_count}</span>
+                            </li>
+                            <li style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}>
+                                <span className="micro" style={{ fontWeight: 500 }}>Last market scan</span>
+                                <span className="micro">{nicheMaintenance.last_scan_human}</span>
+                            </li>
+                            <li style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}>
+                                <span className="micro" style={{ fontWeight: 500 }}>Config generated</span>
+                                <span className="micro">{nicheMaintenance.config_generated ?? 'Unknown'}</span>
+                            </li>
+                        </ul>
+
+                        <form
+                            onSubmit={(e) => {
+                                e.preventDefault();
+                                scanForm.post('/settings/niches/scan');
+                            }}
+                            style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 32 }}
+                        >
+                            <p className="micro" style={{ margin: 0 }}>
+                                Dispatches sample scans for all configured niche×city pairs (respects ignored niches).
+                                A full catalog is ~6,000 queue jobs.
+                            </p>
+                            <label className="micro" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <Checkbox
+                                    checked={scanForm.data.force}
+                                    onChange={(checked) => scanForm.setData('force', checked)}
+                                />
+                                Force re-scan (include rows already complete today)
+                            </label>
+                            <div>
+                                <Button kind="secondary" type="submit" disabled={scanForm.processing}>
+                                    {scanForm.processing ? 'Queuing…' : 'Run market scan'}
+                                </Button>
+                            </div>
+                        </form>
+
+                        <form
+                            onSubmit={(e) => {
+                                e.preventDefault();
+                                bootstrapForm.post('/settings/niches/bootstrap');
+                            }}
+                            style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
+                        >
+                            <p className="micro" style={{ margin: 0, color: 'var(--color-sev-critical)' }}>
+                                Re-fetches UK cities and Google Places types, validates in Birmingham, and overwrites{' '}
+                                <code>config/niches.php</code>. On Laravel Cloud, commit and redeploy the updated config
+                                for changes to persist.
+                            </p>
+                            <Field label="Type REFRESH to confirm">
+                                <Input
+                                    type="text"
+                                    value={bootstrapForm.data.confirm}
+                                    onChange={(e) => bootstrapForm.setData('confirm', e.target.value)}
+                                    placeholder="REFRESH"
+                                    autoComplete="off"
+                                />
+                                <FormError message={bootstrapForm.errors.confirm} />
+                            </Field>
+                            <div>
+                                <Button
+                                    kind="destructive"
+                                    type="submit"
+                                    disabled={bootstrapForm.processing || bootstrapForm.data.confirm !== 'REFRESH'}
+                                >
+                                    {bootstrapForm.processing ? 'Queuing…' : 'Refresh catalog'}
+                                </Button>
                             </div>
                         </form>
                     </Card>

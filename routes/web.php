@@ -45,7 +45,6 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/niches', [NicheScanController::class, 'index'])->name('niches.index');
     Route::get('/niches/{nicheScan}/sample', [NicheScanSampleController::class, 'show'])->name('niches.sample');
-    Route::post('/niches/scan', [NicheScanController::class, 'trigger'])->name('niches.scan');
     Route::post('/niches/ignore', [NicheIgnoreController::class, 'store'])->name('niches.ignore.store');
     Route::post('/niches/ignore/remove', [NicheIgnoreController::class, 'destroy'])->name('niches.ignore.destroy');
 
@@ -76,6 +75,8 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::patch('/settings', [SettingsController::class, 'update'])->name('settings.update');
+    Route::post('/settings/niches/scan', [SettingsController::class, 'scanNiches'])->name('settings.niches.scan');
+    Route::post('/settings/niches/bootstrap', [SettingsController::class, 'bootstrapNiches'])->name('settings.niches.bootstrap');
 });
 
 require __DIR__.'/auth.php';
