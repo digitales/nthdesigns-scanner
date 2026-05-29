@@ -24,9 +24,10 @@ It does **not** create `prospects`, `searches` (except when the operator clicks 
 
 | Trigger | What happens |
 |---------|----------------|
-| **Scheduler** | `niches:scan` every **Monday 06:00** `Europe/London` (`routes/console.php`) |
-| **UI** | `POST /niches/scan` → `Artisan::queue('niches:scan')` |
-| **CLI** | `php artisan niches:scan {--cities=} {--niches=} {--sample=5}` |
+| **Settings UI** | `POST /settings/niches/scan` → `Artisan::queue('niches:scan', [--force]?)` |
+| **Settings UI** | `POST /settings/niches/bootstrap` → `Artisan::queue('niches:bootstrap', --no-interaction --force)` |
+| **CLI** | `php artisan niches:scan {--cities=} {--niches=} {--sample=5} {--force}` |
+| **CLI** | `php artisan niches:bootstrap {--min-results=5} {--dry-run} {--force}` |
 | **Sample panel backfill** | `GET /niches/{id}/sample` may dispatch a **single** `ScanNicheJob` if `sample_preview` is null (see below) |
 
 ### Fan-out
@@ -193,8 +194,10 @@ Populated in `NicheSampleCollector`; shown in the UI sample panel (`GET /niches/
 ### UI (`/niches`)
 
 - Lists **latest** row per `(niche, city)` by `ran_at` (window function), paginated, sortable by `opportunity_score` or `result_count`.
-- **Run Now** queues full `niches:scan`.
+- **Manage niches** toggles ignored/included niches.
 - **Run Full Scan** creates a normal `gbp_only` search via `POST /searches` (separate pipeline — additional Places usage per prospect).
+
+Catalog refresh and market scan are on **Settings** only (`/settings` → Niche maintenance).
 
 ---
 
@@ -257,7 +260,7 @@ Ordered by impact vs effort for **Places spend**:
 
 ### 6. Avoid accidental duplicate runs
 
-- UI **Run Now** + Monday schedule on the same day doubles cost.
+- Running **Run market scan** from Settings twice on the same day (without `--force` / L0 skip) doubles cost.
 - Sample panel dispatches a **new** job when `sample_preview` is null but status is not `pending` — can re-hit the API for legacy rows.
 
 ### 7. Bootstrap discipline
