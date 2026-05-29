@@ -363,9 +363,6 @@ export default function NichesIndex({
     const filterBar = (
         <FilterBar onSubmit={(e) => e.preventDefault()}>
             <div className="filter-action">
-                <Button type="button" onClick={() => router.post('/niches/scan')}>
-                    Run Now
-                </Button>
                 <Button type="button" kind="secondary" onClick={() => setManageOpen(true)}>
                     Manage niches{ignoredCount > 0 ? ` (${ignoredCount})` : ''}
                 </Button>
