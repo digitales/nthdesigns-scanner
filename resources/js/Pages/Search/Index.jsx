@@ -1,5 +1,6 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import SearchHistoryCard from '@/Components/Search/SearchHistoryCard';
 import {
     Button,
     Card,
@@ -8,7 +9,6 @@ import {
     Input,
     PageHeader,
     Select,
-    Status,
 } from '@/Components/ui';
 
 const SCAN_TYPES = [
@@ -155,38 +155,26 @@ export default function SearchIndex({ recentSearches, defaults = { country: 'GB'
                     </div>
 
                     <aside>
-                        <div className="card-title" style={{ marginBottom: 12 }}>Recent searches</div>
+                        <div
+                            style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'baseline',
+                                marginBottom: 12,
+                            }}
+                        >
+                            <div className="card-title">Recent searches</div>
+                            <Link href="/searches" className="micro">
+                                View all
+                            </Link>
+                        </div>
                         {recentSearches.length === 0 ? (
                             <p className="micro">No searches yet.</p>
                         ) : (
                             <ul style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                {recentSearches.slice(0, 4).map((s) => (
+                                {recentSearches.map((s) => (
                                     <li key={s.id}>
-                                        <Link
-                                            href={`/searches/${s.id}`}
-                                            style={{
-                                                display: 'block',
-                                                textDecoration: 'none',
-                                                color: 'inherit',
-                                            }}
-                                        >
-                                            <Card pad style={{ padding: '12px 14px' }}>
-                                                {s.source === 'direct_url' ? (
-                                                    <>
-                                                        <div style={{ fontWeight: 500, fontSize: 13 }}>{s.submitted_url?.replace(/^https?:\/\//, '') ?? 'Single site'}</div>
-                                                        <div className="micro" style={{ marginTop: 4 }}>Single site · {s.created_at}</div>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <div style={{ fontWeight: 500, fontSize: 13 }}>{s.niche}</div>
-                                                        <div className="micro" style={{ marginTop: 4 }}>{s.city} · {s.created_at}</div>
-                                                    </>
-                                                )}
-                                                <div style={{ marginTop: 8 }}>
-                                                    <SearchStatus status={s.status} />
-                                                </div>
-                                            </Card>
-                                        </Link>
+                                        <SearchHistoryCard search={s} />
                                     </li>
                                 ))}
                             </ul>
@@ -196,16 +184,4 @@ export default function SearchIndex({ recentSearches, defaults = { country: 'GB'
             </main>
         </AuthenticatedLayout>
     );
-}
-
-function SearchStatus({ status }) {
-    const map = {
-        pending: ['pending', 'Queued'],
-        discovering: ['pending', 'Discovering'],
-        auditing: ['pending', 'Auditing'],
-        complete: ['ready', 'Complete'],
-        failed: ['failed', 'Failed'],
-    };
-    const [kind, label] = map[status] ?? map.pending;
-    return <Status kind={kind}>{label}</Status>;
 }

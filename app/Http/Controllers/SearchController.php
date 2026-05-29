@@ -29,20 +29,31 @@ class SearchController extends Controller
             ],
             'recentSearches' => $user
                 ->searches()
-                ->with('prospects')
                 ->latest()
-                ->take(5)
+                ->take(4)
                 ->get()
-                ->map(fn ($s) => [
-                    'id'             => $s->id,
-                    'source'         => $s->source,
-                    'submitted_url'  => $s->submitted_url,
-                    'niche'          => $s->niche,
-                    'city'           => $s->city,
-                    'status'         => $s->status,
-                    'total_found'    => $s->total_found,
-                    'created_at'     => $s->created_at->diffForHumans(),
-                ]),
+                ->map(fn ($s) => $this->mapSearchSummary($s)),
+        ]);
+    }
+
+    public function history(): Response
+    {
+        $paginator = auth()->user()
+            ->searches()
+            ->latest()
+            ->paginate(20)
+            ->withQueryString();
+
+        return Inertia::render('Search/History', [
+            'searches' => $paginator->getCollection()
+                ->map(fn ($s) => $this->mapSearchSummary($s))
+                ->values(),
+            'pagination' => [
+                'total'        => $paginator->total(),
+                'current_page' => $paginator->currentPage(),
+                'per_page'     => $paginator->perPage(),
+                'last_page'    => $paginator->lastPage(),
+            ],
         ]);
     }
 
@@ -173,5 +184,22 @@ class SearchController extends Controller
             ],
             'prospects' => $prospects,
         ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function mapSearchSummary(Search $search): array
+    {
+        return [
+            'id'            => $search->id,
+            'source'        => $search->source,
+            'submitted_url' => $search->submitted_url,
+            'niche'         => $search->niche,
+            'city'          => $search->city,
+            'status'        => $search->status,
+            'total_found'   => $search->total_found,
+            'created_at'    => $search->created_at->diffForHumans(),
+        ];
     }
 }

@@ -15,6 +15,7 @@ export { default as Icon, Icons } from './Icons';
 export { default as Input } from './Input';
 export { default as LinkButton } from './LinkButton';
 export { default as PageHeader } from './PageHeader';
+export { default as Pagination } from './Pagination';
 export { default as RowActions } from './RowActions';
 export { default as ScoreBadge } from './ScoreBadge';
 export { default as ScoreCard } from './ScoreCard';
