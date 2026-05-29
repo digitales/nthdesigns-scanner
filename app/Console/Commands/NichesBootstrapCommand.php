@@ -76,7 +76,8 @@ class NichesBootstrapCommand extends Command
 
     protected $signature = 'niches:bootstrap
         {--min-results=5}
-        {--dry-run}';
+        {--dry-run}
+        {--force : Overwrite config/niches.php without confirmation}';
 
     protected $description = 'Bootstrap config/niches.php from ONS cities and Places taxonomy';
 
@@ -305,7 +306,7 @@ class NichesBootstrapCommand extends Command
             return 'dry-run';
         }
 
-        if (file_exists($path) && ! $this->option('no-interaction')) {
+        if (file_exists($path) && ! $this->option('force') && ! $this->option('no-interaction')) {
             if (! $this->confirm('config/niches.php already exists. Overwrite?', false)) {
                 $this->warn('Config write skipped (declined overwrite).');
 
