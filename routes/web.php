@@ -76,6 +76,8 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::patch('/settings', [SettingsController::class, 'update'])->name('settings.update');
+    Route::post('/settings/niches/scan', [SettingsController::class, 'scanNiches'])->name('settings.niches.scan');
+    Route::post('/settings/niches/bootstrap', [SettingsController::class, 'bootstrapNiches'])->name('settings.niches.bootstrap');
 });
 
 require __DIR__.'/auth.php';
