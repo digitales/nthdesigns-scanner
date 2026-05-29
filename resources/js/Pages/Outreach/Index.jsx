@@ -93,7 +93,10 @@ export default function OutreachIndex({ selection, emailsByProspect, defaults, f
                             <ul style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                                 {selection.map((item) => (
                                     <li key={item.id} className="queue-chip">
-                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                        <Link
+                                            href={`/prospects/${item.prospect_id}?from=outreach`}
+                                            style={{ textDecoration: 'none', color: 'inherit', flex: 1, minWidth: 0 }}
+                                        >
                                             <div style={{ fontWeight: 500, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.business_name}</div>
                                             <div style={{ display: 'flex', gap: 8, marginTop: 6, alignItems: 'center' }}>
                                                 <ScoreBadge value={item.combined_score} withBar={false} />
@@ -102,7 +105,7 @@ export default function OutreachIndex({ selection, emailsByProspect, defaults, f
                                             <div className="micro" style={{ marginTop: 4 }}>
                                                 {item.report_ready ? 'Report ready' : 'No report'}
                                             </div>
-                                        </div>
+                                        </Link>
                                         <button type="button" className="remove" onClick={() => removeFromQueue(item.prospect_id)} aria-label="Remove">
                                             ×
                                         </button>

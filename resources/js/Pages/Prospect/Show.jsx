@@ -19,7 +19,7 @@ const LIGHTHOUSE_METRICS = [
     { label: 'Best practices', key: 'best_practices' },
 ];
 
-export default function ProspectShow({ prospect, search, report, outreachEmails, audit, lighthouse, notes = [] }) {
+export default function ProspectShow({ prospect, search, navigation, report, outreachEmails, audit, lighthouse, notes = [] }) {
     const { flash } = usePage().props;
     const [copied, setCopied] = useState(false);
     const [editing, setEditing] = useState(false);
@@ -71,8 +71,8 @@ export default function ProspectShow({ prospect, search, report, outreachEmails,
                     eyebrow={`C · ${search.niche} · ${search.city}`}
                     title={prospect.business_name}
                     sub={prospect.address ?? prospect.website_url?.replace(/^https?:\/\//, '')}
-                    back={`Back to ${search.niche}`}
-                    onBack={() => router.visit(`/searches/${search.id}`)}
+                    back={navigation.back_label}
+                    onBack={() => router.visit(navigation.back_href)}
                 />
 
                 {flash?.success && (

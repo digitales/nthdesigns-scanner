@@ -15,7 +15,7 @@ use Inertia\Response;
 
 class ProspectController extends Controller
 {
-    public function show(Prospect $prospect, ReportBuilderService $reportBuilder): Response
+    public function show(Request $request, Prospect $prospect, ReportBuilderService $reportBuilder): Response
     {
         $this->authorize('view', $prospect);
 
@@ -27,7 +27,15 @@ class ProspectController extends Controller
             'notes.user',
         ]);
 
+        $navigation = $request->query('from') === 'outreach'
+            ? ['back_href' => '/outreach', 'back_label' => 'Back to outreach']
+            : [
+                'back_href'  => '/searches/'.$prospect->search->id,
+                'back_label' => 'Back to '.$prospect->search->niche,
+            ];
+
         return Inertia::render('Prospect/Show', [
+            'navigation' => $navigation,
             'prospect' => [
                 'id'               => $prospect->id,
                 'place_id'         => $prospect->place_id,

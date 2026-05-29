@@ -1,7 +1,7 @@
 # Outreach Queue — Clickable Prospects — Design Spec
 
 **Date:** 2026-05-29  
-**Status:** Approved  
+**Status:** Implemented  
 **Screens:** D — `/outreach` (`Outreach/Index.jsx`), C — `/prospects/{id}` (`Prospect/Show.jsx`)
 
 ---

@@ -68,6 +68,37 @@ class ProspectShowTest extends TestCase
                 ->where('lighthouse', null));
     }
 
+    public function test_show_navigation_defaults_to_search(): void
+    {
+        $user = User::factory()->create();
+        $search = Search::factory()->create(['user_id' => $user->id, 'niche' => 'plumbers']);
+        $prospect = Prospect::factory()->create(['search_id' => $search->id]);
+
+        $this->actingAs($user)
+            ->get("/prospects/{$prospect->id}")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Prospect/Show')
+                ->where('navigation.back_href', "/searches/{$search->id}")
+                ->where('navigation.back_label', 'Back to plumbers'));
+    }
+
+    public function test_show_navigation_from_outreach_queue(): void
+    {
+        $user = User::factory()->create();
+        $prospect = Prospect::factory()->create([
+            'search_id' => Search::factory()->create(['user_id' => $user->id])->id,
+        ]);
+
+        $this->actingAs($user)
+            ->get("/prospects/{$prospect->id}?from=outreach")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Prospect/Show')
+                ->where('navigation.back_href', '/outreach')
+                ->where('navigation.back_label', 'Back to outreach'));
+    }
+
     public function test_show_includes_lighthouse_from_performance_score_when_payload_missing(): void
     {
         $user = User::factory()->create();
