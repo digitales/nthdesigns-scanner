@@ -1,0 +1,61 @@
+{
+  "categories": {
+    "performance": { "score": 0.28 },
+    "accessibility": { "score": 0.6 },
+    "seo": { "score": 0.7 }
+  },
+  "audits": {
+    "largest-contentful-paint": {
+      "score": 0.2,
+      "displayValue": "3.2 s",
+      "numericValue": 3200
+    },
+    "total-blocking-time": {
+      "score": 0.9,
+      "displayValue": "180 ms",
+      "numericValue": 180
+    },
+    "cumulative-layout-shift": {
+      "score": 0.75,
+      "displayValue": "0.14",
+      "numericValue": 0.14
+    },
+    "first-contentful-paint": {
+      "score": 0.6,
+      "displayValue": "1.8 s",
+      "numericValue": 1800
+    },
+    "unused-javascript": {
+      "id": "unused-javascript",
+      "score": 0,
+      "title": "Reduce unused JavaScript",
+      "description": "Remove unused JavaScript to reduce bytes consumed by network activity.",
+      "scoreDisplayMode": "metricSavings",
+      "displayValue": "Est. savings 1.2 s",
+      "details": {
+        "type": "opportunity",
+        "overallSavingsMs": 1200
+      }
+    },
+    "render-blocking-resources": {
+      "id": "render-blocking-resources",
+      "score": 0.5,
+      "title": "Eliminate render-blocking resources",
+      "description": "Resources are blocking the first paint of your page.",
+      "scoreDisplayMode": "metricSavings",
+      "displayValue": "Est. savings 450 ms",
+      "details": {
+        "type": "opportunity",
+        "overallSavingsMs": 450
+      }
+    },
+    "uses-optimized-images": {
+      "id": "uses-optimized-images",
+      "score": 1,
+      "title": "Efficiently encode images",
+      "description": "Optimized images load faster.",
+      "scoreDisplayMode": "metricSavings",
+      "details": { "type": "opportunity", "overallSavingsMs": 0 }
+    }
+  }
+}

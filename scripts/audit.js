@@ -6,6 +6,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { buildLighthousePayload } from './lighthouse-detail.js';
 
 const url = process.argv[2];
 const outputDir = process.argv[3] || null;
@@ -67,13 +68,7 @@ function runLighthouse(targetUrl) {
         );
 
         const report = JSON.parse(output);
-        const categories = report.categories ?? {};
-
-        return {
-            performance: Math.round((categories.performance?.score ?? 0) * 100),
-            accessibility: Math.round((categories.accessibility?.score ?? 0) * 100),
-            seo: Math.round((categories.seo?.score ?? 0) * 100),
-        };
+        return buildLighthousePayload(report);
     } catch {
         return null;
     }

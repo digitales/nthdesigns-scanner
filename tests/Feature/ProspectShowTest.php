@@ -118,4 +118,58 @@ class ProspectShowTest extends TestCase
                 ->where('lighthouse.performance', 20)
                 ->where('lighthouse.accessibility', null));
     }
+
+    public function test_show_includes_page_speed_when_lighthouse_detail_present(): void
+    {
+        $user = User::factory()->create();
+        $prospect = Prospect::factory()->create([
+            'search_id' => Search::factory()->create(['user_id' => $user->id, 'scan_type' => 'combined'])->id,
+            'audit_status' => 'complete',
+            'website_url' => 'https://example.com',
+            'performance_score' => 28,
+            'raw_a11y_payload' => ['url' => 'https://example.com', 'violations' => []],
+            'raw_lighthouse_payload' => [
+                'performance' => 28,
+                'metrics' => [
+                    'lcp' => ['display' => '3.2 s', 'rating' => 'poor'],
+                ],
+                'opportunities' => [
+                    [
+                        'id' => 'unused-javascript',
+                        'title' => 'Reduce unused JavaScript',
+                        'description' => 'Remove unused JavaScript.',
+                        'savings_ms' => 1200,
+                        'savings_display' => 'Est. savings 1.2 s',
+                    ],
+                ],
+            ],
+        ]);
+
+        $this->actingAs($user)
+            ->get("/prospects/{$prospect->id}")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Prospect/Show')
+                ->has('pageSpeed')
+                ->where('pageSpeed.metrics.lcp.display', '3.2 s')
+                ->where('pageSpeed.opportunities.0.highlight', true));
+    }
+
+    public function test_show_omits_page_speed_for_legacy_lighthouse_payload(): void
+    {
+        $user = User::factory()->create();
+        $prospect = Prospect::factory()->create([
+            'search_id' => Search::factory()->create(['user_id' => $user->id, 'scan_type' => 'combined'])->id,
+            'audit_status' => 'complete',
+            'performance_score' => 28,
+            'raw_lighthouse_payload' => ['performance' => 28, 'accessibility' => 60],
+        ]);
+
+        $this->actingAs($user)
+            ->get("/prospects/{$prospect->id}")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Prospect/Show')
+                ->where('pageSpeed', null));
+    }
 }

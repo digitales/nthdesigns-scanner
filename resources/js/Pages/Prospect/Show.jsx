@@ -2,6 +2,7 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import SiteAuditSection from '@/Components/audit/SiteAuditSection';
+import PageSpeedSection from '@/Components/audit/PageSpeedSection';
 import OutreachEmailCard from '@/Components/OutreachEmailCard';
 import {
     AnglePill,
@@ -13,13 +14,12 @@ import {
 } from '@/Components/ui';
 
 const LIGHTHOUSE_METRICS = [
-    { label: 'Performance', key: 'performance' },
     { label: 'Lighthouse a11y', key: 'accessibility' },
     { label: 'SEO', key: 'seo' },
     { label: 'Best practices', key: 'best_practices' },
 ];
 
-export default function ProspectShow({ prospect, search, navigation, report, outreachEmails, audit, lighthouse, notes = [] }) {
+export default function ProspectShow({ prospect, search, navigation, report, outreachEmails, audit, lighthouse, pageSpeed, notes = [] }) {
     const { flash } = usePage().props;
     const [copied, setCopied] = useState(false);
     const [editing, setEditing] = useState(false);
@@ -100,6 +100,14 @@ export default function ProspectShow({ prospect, search, navigation, report, out
                             />
                             <ScoreCard label="GBP" value={prospect.gbp_score} />
                             <ScoreCard label="Accessibility" value={prospect.a11y_score} />
+                            {search.scan_type !== 'gbp_only' && (
+                                <ScoreCard
+                                    label="Page speed"
+                                    value={prospect.performance_score > 0 ? prospect.performance_score : null}
+                                    healthScore
+                                    delta="/100"
+                                />
+                            )}
                             {LIGHTHOUSE_METRICS.map(({ label, key }) => {
                                 const score = lighthouse?.[key];
                                 if (score == null) return null;
@@ -114,6 +122,15 @@ export default function ProspectShow({ prospect, search, navigation, report, out
                                 );
                             })}
                         </div>
+
+                        {search.scan_type !== 'gbp_only'
+                            && prospect.audit_status === 'complete'
+                            && prospect.performance_score > 0
+                            && !pageSpeed && (
+                            <p className="micro" style={{ marginTop: -16, marginBottom: 28, color: 'var(--color-stone-500)' }}>
+                                Re-run site audit for Core Web Vitals breakdown
+                            </p>
+                        )}
 
                         <Card title="Weakness flags" style={{ marginBottom: 24 }}>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
@@ -151,6 +168,8 @@ export default function ProspectShow({ prospect, search, navigation, report, out
                                 </div>
                             </div>
                         </Card>
+
+                        <PageSpeedSection pageSpeed={pageSpeed} />
 
                         {canReauditSite && (
                             <div style={{ marginBottom: 24 }}>

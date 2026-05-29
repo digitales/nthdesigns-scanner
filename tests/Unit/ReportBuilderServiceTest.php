@@ -311,6 +311,102 @@ class ReportBuilderServiceTest extends TestCase
         $this->assertSame(88, $report['lighthouse']['best_practices']);
     }
 
+    public function test_build_operator_page_speed_returns_null_when_not_complete(): void
+    {
+        $prospect = new Prospect([
+            'audit_status' => 'pending',
+            'performance_score' => 50,
+            'raw_lighthouse_payload' => ['performance' => 50, 'metrics' => []],
+        ]);
+        $prospect->setRelation('search', new Search(['scan_type' => 'combined']));
+
+        $this->assertNull($this->service->buildOperatorPageSpeed($prospect));
+    }
+
+    public function test_build_operator_page_speed_returns_null_for_gbp_only(): void
+    {
+        $prospect = new Prospect([
+            'audit_status' => 'complete',
+            'performance_score' => 50,
+            'raw_lighthouse_payload' => [
+                'performance' => 50,
+                'metrics' => ['lcp' => ['display' => '3.2 s', 'rating' => 'poor']],
+                'opportunities' => [],
+            ],
+        ]);
+        $prospect->setRelation('search', new Search(['scan_type' => 'gbp_only']));
+
+        $this->assertNull($this->service->buildOperatorPageSpeed($prospect));
+    }
+
+    public function test_build_operator_page_speed_returns_null_for_legacy_score_only_payload(): void
+    {
+        $prospect = new Prospect([
+            'audit_status' => 'complete',
+            'performance_score' => 28,
+            'website_url' => 'https://example.com',
+            'raw_lighthouse_payload' => ['performance' => 28, 'accessibility' => 60, 'seo' => 70],
+            'raw_a11y_payload' => ['url' => 'https://example.com'],
+        ]);
+        $prospect->setRelation('search', new Search(['scan_type' => 'combined']));
+
+        $this->assertNull($this->service->buildOperatorPageSpeed($prospect));
+    }
+
+    public function test_build_operator_page_speed_returns_full_shape_with_highlights(): void
+    {
+        $completedAt = now()->subHour();
+        $prospect = new Prospect([
+            'audit_status' => 'complete',
+            'website_url' => 'https://example.com',
+            'performance_score' => 28,
+            'raw_a11y_payload' => ['url' => 'https://example.com'],
+            'raw_lighthouse_payload' => [
+                'performance' => 28,
+                'metrics' => [
+                    'lcp' => ['display' => '3.2 s', 'rating' => 'poor'],
+                    'inp' => ['display' => '180 ms', 'rating' => 'good'],
+                    'cls' => ['display' => '0.14', 'rating' => 'needs_improvement'],
+                    'fcp' => ['display' => '1.8 s', 'rating' => 'needs_improvement'],
+                ],
+                'opportunities' => [
+                    [
+                        'id' => 'unused-javascript',
+                        'title' => 'Reduce unused JavaScript',
+                        'description' => 'Remove unused JavaScript.',
+                        'savings_ms' => 1200,
+                        'savings_display' => 'Est. savings 1.2 s',
+                    ],
+                    [
+                        'id' => 'render-blocking-resources',
+                        'title' => 'Eliminate render-blocking resources',
+                        'description' => 'Resources are blocking the first paint.',
+                        'savings_ms' => 450,
+                        'savings_display' => 'Est. savings 450 ms',
+                    ],
+                ],
+            ],
+        ]);
+        $prospect->setRelation('search', new Search(['scan_type' => 'combined']));
+        $prospect->setRelation('auditJobs', collect([
+            new AuditJob([
+                'job_type' => 'accessibility',
+                'status' => 'complete',
+                'completed_at' => $completedAt,
+            ]),
+        ]));
+
+        $pageSpeed = $this->service->buildOperatorPageSpeed($prospect);
+
+        $this->assertNotNull($pageSpeed);
+        $this->assertTrue($pageSpeed['has_detail']);
+        $this->assertSame('3.2 s', $pageSpeed['metrics']['lcp']['display']);
+        $this->assertCount(2, $pageSpeed['opportunities']);
+        $this->assertTrue($pageSpeed['opportunities'][0]['highlight']);
+        $this->assertFalse($pageSpeed['opportunities'][1]['highlight']);
+        $this->assertSame($completedAt->toIso8601String(), $pageSpeed['audited_at']);
+    }
+
     public function test_benchmark_includes_description_and_hours(): void
     {
         $search = new Search(['niche' => 'dental', 'city' => 'Birmingham', 'country' => 'GB', 'scan_type' => 'combined']);
