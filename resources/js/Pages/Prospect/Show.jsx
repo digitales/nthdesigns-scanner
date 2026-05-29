@@ -32,6 +32,7 @@ export default function ProspectShow({ prospect, search, navigation, report, out
     const [noteBody, setNoteBody] = useState('');
 
     const generateReport = () => router.post(`/prospects/${prospect.id}/report`);
+    const reauditSite = () => router.post(`/prospects/${prospect.id}/audit`, {}, { preserveScroll: true });
     const generateOutreach = () => router.post(`/prospects/${prospect.id}/outreach`);
     const addToOutreach = () => router.post('/outreach/selections', { prospect_ids: [prospect.id] });
 
@@ -60,6 +61,9 @@ export default function ProspectShow({ prospect, search, navigation, report, out
     };
 
     const auditPending = prospect.audit_status === 'pending';
+    const canReauditSite = Boolean(prospect.website_url)
+        && !auditPending
+        && ['accessibility_only', 'combined'].includes(search.scan_type);
     const latestOutreach = outreachEmails[0] ?? null;
 
     return (
@@ -148,6 +152,17 @@ export default function ProspectShow({ prospect, search, navigation, report, out
                             </div>
                         </Card>
 
+                        {canReauditSite && (
+                            <div style={{ marginBottom: 24 }}>
+                                <Button kind="secondary" size="sm" onClick={reauditSite}>
+                                    Re-run site audit
+                                </Button>
+                                <p className="micro" style={{ marginTop: 8, color: 'var(--color-stone-500)' }}>
+                                    Re-audits the website only. GBP scores are unchanged and no Google Places API calls are made.
+                                </p>
+                            </div>
+                        )}
+
                         <SiteAuditSection audit={audit} />
 
                         {outreachEmails.length > 0 && (
@@ -215,7 +230,7 @@ export default function ProspectShow({ prospect, search, navigation, report, out
                             )}
                             {prospect.audit_status === 'failed' && (
                                 <p className="micro" style={{ marginTop: 8, color: 'var(--color-sev-serious)' }}>
-                                    Site audit failed. Fix the website URL and save again to retry.
+                                    Site audit failed. Use Re-run site audit above, or fix the website URL and save.
                                 </p>
                             )}
                         </Card>

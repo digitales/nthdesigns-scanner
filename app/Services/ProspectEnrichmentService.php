@@ -12,6 +12,7 @@ class ProspectEnrichmentService
     public function __construct(
         private GbpScoringService $gbpScorer,
         private CombineScoresService $combiner,
+        private ProspectAuditService $audits,
     ) {}
 
     /**
@@ -51,7 +52,7 @@ class ProspectEnrichmentService
         $auditQueued = false;
 
         if ($websiteChanged && $this->shouldAudit($prospect)) {
-            $updates = array_merge($updates, $this->auditResetFields(), [
+            $updates = array_merge($updates, $this->audits->auditResetFields(), [
                 'suppress_auto_report' => true,
             ]);
             $auditQueued = true;
@@ -71,21 +72,6 @@ class ProspectEnrichmentService
     {
         return in_array($prospect->search->scan_type, ['accessibility_only', 'combined'], true)
             && ! empty($prospect->website_url);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function auditResetFields(): array
-    {
-        return [
-            'audit_status'           => 'pending',
-            'raw_a11y_payload'       => null,
-            'raw_lighthouse_payload' => null,
-            'a11y_score'             => 0,
-            'a11y_flags'             => null,
-            'performance_score'      => 0,
-        ];
     }
 
     private function normalizeWebsiteUrl(?string $url): ?string

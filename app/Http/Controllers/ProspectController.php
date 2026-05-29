@@ -6,6 +6,7 @@ use App\Http\Requests\UpdateProspectRequest;
 use App\Jobs\GenerateOutreachEmailJob;
 use App\Jobs\GenerateProspectReportJob;
 use App\Models\Prospect;
+use App\Services\ProspectAuditService;
 use App\Services\ProspectEnrichmentService;
 use App\Services\ReportBuilderService;
 use Illuminate\Http\RedirectResponse;
@@ -99,6 +100,15 @@ class ProspectController extends Controller
             : 'Details saved.';
 
         return back()->with('success', $message);
+    }
+
+    public function reauditSite(Prospect $prospect, ProspectAuditService $audits): RedirectResponse
+    {
+        $this->authorize('view', $prospect);
+
+        $audits->queueSiteAudit($prospect);
+
+        return back()->with('success', 'Site audit queued. GBP scores unchanged.');
     }
 
     public function generateReport(Prospect $prospect): RedirectResponse

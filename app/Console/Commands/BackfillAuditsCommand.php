@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands;
 
-use App\Jobs\AuditSiteJob;
 use App\Models\Prospect;
+use App\Services\ProspectAuditService;
 use App\Support\IncompleteAuditQuery;
 use Illuminate\Console\Command;
 
@@ -18,7 +18,7 @@ class BackfillAuditsCommand extends Command
 
     protected $description = 'Find prospects with incomplete audit payloads and re-queue audits';
 
-    public function handle(): int
+    public function handle(ProspectAuditService $audits): int
     {
         $searchId = $this->option('search') !== null ? (int) $this->option('search') : null;
         $prospectId = $this->option('prospect') !== null ? (int) $this->option('prospect') : null;
@@ -67,17 +67,11 @@ class BackfillAuditsCommand extends Command
         $dispatched = 0;
 
         foreach ($prospects as $index => $prospect) {
-            $prospect->update([
-                'audit_status'           => 'pending',
-                'raw_a11y_payload'       => null,
-                'raw_lighthouse_payload' => null,
-                'a11y_score'             => 0,
-                'a11y_flags'             => null,
-                'performance_score'      => 0,
-            ]);
-
-            AuditSiteJob::dispatch($prospect->fresh())
-                ->delay(now()->addSeconds($index * $delay));
+            $audits->queueSiteAudit(
+                $prospect->fresh(),
+                suppressAutoReport: true,
+                delaySeconds: $index * $delay,
+            );
 
             $dispatched++;
         }

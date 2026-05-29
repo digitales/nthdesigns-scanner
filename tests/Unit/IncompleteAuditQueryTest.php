@@ -85,6 +85,19 @@ class IncompleteAuditQueryTest extends TestCase
         $this->assertNotContains($prospect->id, IncompleteAuditQuery::ids());
     }
 
+    public function test_matches_complete_prospect_with_site_load_error_in_payload(): void
+    {
+        $prospect = $this->prospectForSearch([], [
+            'audit_status'           => 'complete',
+            'raw_a11y_payload'       => ['error' => 'page.goto: Timeout', 'violations' => []],
+            'raw_lighthouse_payload' => ['performance' => 50],
+            'performance_score'      => 50,
+        ]);
+
+        $this->assertContains($prospect->id, IncompleteAuditQuery::ids());
+        $this->assertStringStartsWith('site load error:', IncompleteAuditQuery::reasonFor($prospect));
+    }
+
     public function test_matches_failed_with_missing_a11y_payload(): void
     {
         $prospect = $this->prospectForSearch([], [

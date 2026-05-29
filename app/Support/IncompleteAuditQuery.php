@@ -20,6 +20,7 @@ final class IncompleteAuditQuery
             ->where(function (Builder $q) {
                 $q->whereNull('raw_a11y_payload')
                     ->orWhereNull('raw_lighthouse_payload')
+                    ->orWhereNotNull('raw_a11y_payload->error')
                     ->orWhere(function (Builder $q) {
                         $q->where('performance_score', 0)
                             ->whereNull('raw_lighthouse_payload');
@@ -56,6 +57,10 @@ final class IncompleteAuditQuery
     {
         if ($prospect->raw_a11y_payload === null) {
             return 'missing raw_a11y_payload';
+        }
+
+        if (! empty($prospect->raw_a11y_payload['error'])) {
+            return 'site load error: '.$prospect->raw_a11y_payload['error'];
         }
 
         if ($prospect->raw_lighthouse_payload === null) {

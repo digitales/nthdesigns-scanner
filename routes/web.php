@@ -67,6 +67,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/prospects/{prospect}', [ProspectController::class, 'show'])->name('prospects.show');
     Route::patch('/prospects/{prospect}', [ProspectController::class, 'update'])->name('prospects.update');
     Route::post('/prospects/{prospect}/notes', [ProspectNoteController::class, 'store'])->name('prospects.notes.store');
+    Route::post('/prospects/{prospect}/audit', [ProspectController::class, 'reauditSite'])->name('prospects.audit');
     Route::post('/prospects/{prospect}/report', [ProspectController::class, 'generateReport'])->name('prospects.report');
     Route::post('/prospects/{prospect}/outreach', [ProspectController::class, 'generateOutreach'])->name('prospects.outreach');
 
