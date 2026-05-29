@@ -49,6 +49,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/niches/ignore/remove', [NicheIgnoreController::class, 'destroy'])->name('niches.ignore.destroy');
 
     Route::get('/search', [SearchController::class, 'index'])->name('search.index');
+    Route::get('/searches', [SearchController::class, 'history'])->name('searches.index');
     Route::post('/searches', [SearchController::class, 'store'])->name('searches.store');
     Route::post('/searches/direct', [SearchController::class, 'storeDirectUrl'])->name('searches.store-direct');
     Route::get('/searches/{search}', [SearchController::class, 'show'])->name('searches.show');
