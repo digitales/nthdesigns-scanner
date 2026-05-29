@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\NicheScan;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Artisan;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -140,19 +139,5 @@ class NicheScanControllerTest extends TestCase
                 ->where('pagination.total', 1)
                 ->where('scans.0.city', 'Leeds')
             );
-    }
-
-    public function test_trigger_queues_niches_scan_command(): void
-    {
-        $user = User::factory()->create();
-
-        Artisan::shouldReceive('queue')
-            ->once()
-            ->with('niches:scan');
-
-        $this->actingAs($user)
-            ->post('/niches/scan')
-            ->assertRedirect()
-            ->assertSessionHas('success', 'Scan queued');
     }
 }

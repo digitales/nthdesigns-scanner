@@ -4,9 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\NicheScan;
 use App\Services\NicheExclusionService;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Artisan;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -55,13 +53,6 @@ class NicheScanController extends Controller
                 'hide_ignored' => $hideIgnored,
             ],
         ]);
-    }
-
-    public function trigger(): RedirectResponse
-    {
-        Artisan::queue('niches:scan');
-
-        return back()->with('success', 'Scan queued');
     }
 
     /**

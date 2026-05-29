@@ -9,9 +9,3 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('scanner:purge-expired')->daily();
-
-Schedule::command('niches:scan')
-    ->weekly()
-    ->mondays()
-    ->at('06:00')
-    ->timezone('Europe/London');
