@@ -67,4 +67,10 @@ return [
         explode(',', (string) env('HORIZON_ALLOWED_EMAILS', ''))
     ))),
 
+    'places_cache_enabled' => filter_var(env('PLACES_CACHE_ENABLED', true), FILTER_VALIDATE_BOOL),
+
+    'places_cache_force' => filter_var(env('PLACES_CACHE_FORCE', false), FILTER_VALIDATE_BOOL),
+
+    'places_details_ttl_days' => (int) env('PLACES_DETAILS_TTL_DAYS', 14),
+
 ];

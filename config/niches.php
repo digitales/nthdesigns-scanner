@@ -6,6 +6,7 @@
 
 return [
     'sample_size' => 5,
+    'min_result_count' => 3,
     'niches' => [
         0 => [
             "primary_type" => "span",

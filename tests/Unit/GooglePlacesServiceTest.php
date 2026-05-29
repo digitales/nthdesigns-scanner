@@ -99,4 +99,32 @@ class GooglePlacesServiceTest extends TestCase
 
         $this->assertNull($result);
     }
+
+    public function test_get_place_details_uses_cache_on_second_request(): void
+    {
+        config([
+            'services.google_places.key' => 'test-key',
+            'scanner.places_cache_enabled' => true,
+            'scanner.places_cache_force' => false,
+        ]);
+
+        Http::fake([
+            'https://places.googleapis.com/v1/places/places/abc' => Http::response([
+                'id'              => 'places/abc',
+                'displayName'     => ['text' => 'Example Ltd'],
+                'websiteUri'      => 'https://example.com',
+                'userRatingCount' => 10,
+                'photos'          => [],
+            ], 200),
+        ]);
+
+        $service = app(GooglePlacesService::class);
+
+        $first = $service->getPlaceDetails('places/abc');
+        $second = $service->getPlaceDetails('places/abc');
+
+        $this->assertSame('places/abc', $first['id']);
+        $this->assertSame($first, $second);
+        Http::assertSentCount(1);
+    }
 }

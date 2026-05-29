@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\NicheScan;
+use App\Services\NicheExclusionService;
 use App\Services\NicheSampleCollector;
 use App\Support\NicheQueue;
 use Carbon\Carbon;
@@ -34,7 +35,7 @@ class ScanNicheJob implements ShouldQueue
         NicheQueue::apply($this);
     }
 
-    public function handle(NicheSampleCollector $collector): void
+    public function handle(NicheSampleCollector $collector, NicheExclusionService $exclusions): void
     {
         $scan = $this->pendingScan();
 
@@ -46,6 +47,8 @@ class ScanNicheJob implements ShouldQueue
         );
 
         $this->markComplete($scan, $result);
+
+        $exclusions->refreshForNiche($this->niche);
     }
 
     private function pendingScan(): NicheScan

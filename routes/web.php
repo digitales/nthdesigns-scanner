@@ -10,6 +10,7 @@ use App\Http\Controllers\ProspectNoteController;
 use App\Http\Controllers\PublicReportController;
 use App\Http\Controllers\ReportDashboardController;
 use App\Http\Controllers\SavedProspectController;
+use App\Http\Controllers\NicheIgnoreController;
 use App\Http\Controllers\NicheScanController;
 use App\Http\Controllers\NicheScanSampleController;
 use App\Http\Controllers\SearchController;
@@ -45,6 +46,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/niches', [NicheScanController::class, 'index'])->name('niches.index');
     Route::get('/niches/{nicheScan}/sample', [NicheScanSampleController::class, 'show'])->name('niches.sample');
     Route::post('/niches/scan', [NicheScanController::class, 'trigger'])->name('niches.scan');
+    Route::post('/niches/ignore', [NicheIgnoreController::class, 'store'])->name('niches.ignore.store');
+    Route::post('/niches/ignore/remove', [NicheIgnoreController::class, 'destroy'])->name('niches.ignore.destroy');
 
     Route::get('/search', [SearchController::class, 'index'])->name('search.index');
     Route::post('/searches', [SearchController::class, 'store'])->name('searches.store');

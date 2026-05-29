@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Jobs\ScanNicheJob;
+use App\Models\IgnoredNiche;
+use App\Models\NicheScan;
 use App\Support\NicheQueue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
@@ -53,5 +55,63 @@ class ScanNichesCommandTest extends TestCase
             ->assertExitCode(0);
 
         Queue::assertPushed(ScanNicheJob::class, 2);
+    }
+
+    public function test_skips_already_complete_scans_without_force(): void
+    {
+        Queue::fake();
+
+        $this->travelTo(now('Europe/London')->startOfDay());
+
+        NicheScan::query()->create([
+            'niche' => 'Dental Practice',
+            'niche_query' => 'dental practice',
+            'city' => 'Birmingham',
+            'country' => 'GB',
+            'scan_date' => '2026-05-29',
+            'result_count' => 10,
+            'sampled_count' => 5,
+            'status' => 'complete',
+            'ran_at' => now(),
+        ]);
+
+        $this->artisan('niches:scan', [
+            '--cities' => 'Birmingham',
+            '--niches' => 'Dental Practice',
+        ])->expectsOutputToContain('Skipped 1')
+            ->assertExitCode(0);
+
+        Queue::assertNothingPushed();
+    }
+
+    public function test_excludes_ignored_niches_from_dispatch(): void
+    {
+        Queue::fake();
+
+        $this->travelTo(now('Europe/London')->startOfDay());
+
+        config([
+            'niches' => [
+                'niches' => [
+                    ['label' => 'Plumber', 'query' => 'plumber', 'primary_type' => 'plumber'],
+                    ['label' => 'Span', 'query' => 'span', 'primary_type' => 'span'],
+                ],
+                'cities' => ['Leeds'],
+                'sample_size' => 5,
+                'min_result_count' => 3,
+            ],
+        ]);
+
+        IgnoredNiche::query()->create([
+            'niche' => 'Span',
+            'reason' => IgnoredNiche::REASON_MANUAL,
+        ]);
+
+        $this->artisan('niches:scan')
+            ->assertExitCode(0);
+
+        Queue::assertPushed(ScanNicheJob::class, 1);
+        Queue::assertPushed(ScanNicheJob::class, fn (ScanNicheJob $job) => $job->niche === 'Plumber');
+        Queue::assertNotPushed(ScanNicheJob::class, fn (ScanNicheJob $job) => $job->niche === 'Span');
     }
 }

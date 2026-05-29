@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Jobs\ScanNicheJob;
+use App\Models\IgnoredNiche;
 use App\Models\NicheScan;
+use App\Services\NicheExclusionService;
 use App\Services\NicheSampleCollector;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -51,7 +53,10 @@ class ScanNicheJobTest extends TestCase
             country: 'GB',
             sample: 2,
             scanDate: '2026-05-27',
-        ))->handle(app(NicheSampleCollector::class));
+        ))->handle(
+            app(NicheSampleCollector::class),
+            app(NicheExclusionService::class),
+        );
 
         $row = NicheScan::query()->first();
 
@@ -92,7 +97,10 @@ class ScanNicheJobTest extends TestCase
             country: 'GB',
             sample: 5,
             scanDate: '2026-05-27',
-        ))->handle(app(NicheSampleCollector::class));
+        ))->handle(
+            app(NicheSampleCollector::class),
+            app(NicheExclusionService::class),
+        );
 
         $row = NicheScan::query()->first();
 
@@ -126,7 +134,10 @@ class ScanNicheJobTest extends TestCase
             country: 'GB',
             sample: 5,
             scanDate: '2026-05-28',
-        ))->handle(app(NicheSampleCollector::class));
+        ))->handle(
+            app(NicheSampleCollector::class),
+            app(NicheExclusionService::class),
+        );
 
         $row = NicheScan::query()->first();
 
@@ -134,5 +145,10 @@ class ScanNicheJobTest extends TestCase
         $this->assertSame(1, $row->result_count);
         $this->assertSame(1, $row->sampled_count);
         $this->assertSame(0.0, $row->opportunity_score);
+
+        $this->assertDatabaseHas('ignored_niches', [
+            'niche' => 'Spark',
+            'reason' => IgnoredNiche::REASON_LOW_RESULTS,
+        ]);
     }
 }

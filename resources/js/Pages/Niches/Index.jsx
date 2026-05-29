@@ -2,6 +2,7 @@ import { Head, router, usePage } from '@inertiajs/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import NicheSamplePanel from '@/Components/Niches/NicheSamplePanel';
+import ManageNichesPanel from '@/Components/Niches/ManageNichesPanel';
 import {
     Button,
     DataTable,
@@ -41,6 +42,7 @@ function buildParams(filters, page) {
     const params = {
         city: filters.city ?? '',
         sort: filters.sort ?? 'opportunity_score',
+        hide_ignored: filters.hide_ignored === false ? '0' : '1',
         page,
     };
     Object.keys(params).forEach((k) => {
@@ -72,13 +74,21 @@ function syncUrlPage(filters, page) {
     }
 }
 
-export default function NichesIndex({ scans: initialScans, pagination, cities, filters }) {
+export default function NichesIndex({
+    scans: initialScans,
+    pagination,
+    cities,
+    filters,
+    nicheCatalog = [],
+    ignoredCount = 0,
+}) {
     const { flash } = usePage().props;
     const [toast, setToast] = useState(null);
     const [rows, setRows] = useState(initialScans);
     const [meta, setMeta] = useState(pagination);
     const [loadingMore, setLoadingMore] = useState(false);
     const [selected, setSelected] = useState(null);
+    const [manageOpen, setManageOpen] = useState(false);
     const [viewRange, setViewRange] = useState({
         from: 1,
         to: Math.min(PER_PAGE, pagination?.total ?? PER_PAGE),
@@ -92,7 +102,7 @@ export default function NichesIndex({ scans: initialScans, pagination, cities, f
     const deepLinkDoneRef = useRef(false);
     const scrollRafRef = useRef(null);
     const [urlRevision, setUrlRevision] = useState(0);
-    const filterKey = `${filters?.city ?? ''}|${filters?.sort ?? 'opportunity_score'}`;
+    const filterKey = `${filters?.city ?? ''}|${filters?.sort ?? 'opportunity_score'}|${filters?.hide_ignored === false ? '0' : '1'}`;
 
     const total = meta?.total ?? 0;
     const lastPage = meta?.last_page ?? 1;
@@ -356,6 +366,9 @@ export default function NichesIndex({ scans: initialScans, pagination, cities, f
                 <Button type="button" onClick={() => router.post('/niches/scan')}>
                     Run Now
                 </Button>
+                <Button type="button" kind="secondary" onClick={() => setManageOpen(true)}>
+                    Manage niches{ignoredCount > 0 ? ` (${ignoredCount})` : ''}
+                </Button>
             </div>
             <Field label="City">
                 <Select value={filters.city ?? ''} onChange={(e) => applyFilters({ city: e.target.value })}>
@@ -374,6 +387,16 @@ export default function NichesIndex({ scans: initialScans, pagination, cities, f
                     options={[
                         { value: 'opportunity_score', label: 'Opportunity' },
                         { value: 'result_count', label: 'Result count' },
+                    ]}
+                />
+            </Field>
+            <Field label="Ignored">
+                <Segmented
+                    value={filters.hide_ignored === false ? 'show' : 'hide'}
+                    onChange={(v) => applyFilters({ hide_ignored: v === 'hide' })}
+                    options={[
+                        { value: 'hide', label: 'Hidden' },
+                        { value: 'show', label: 'Shown' },
                     ]}
                 />
             </Field>
@@ -434,6 +457,11 @@ export default function NichesIndex({ scans: initialScans, pagination, cities, f
                                                 >
                                                     <td className="biz">
                                                         {row.niche}
+                                                        {row.is_ignored && (
+                                                            <div style={{ marginTop: 4 }}>
+                                                                <Status kind="pending">Ignored</Status>
+                                                            </div>
+                                                        )}
                                                         {row.status !== 'complete' && (
                                                             <div style={{ marginTop: 4 }}>
                                                                 <Status kind={row.status === 'failed' ? 'failed' : 'pending'}>
@@ -495,11 +523,19 @@ export default function NichesIndex({ scans: initialScans, pagination, cities, f
                             </div>
                         </div>
 
-                        {selected && (
+                        {selected && !manageOpen && (
                             <NicheSamplePanel
                                 scan={selected}
                                 onClose={() => setSelected(null)}
                                 onRunFullScan={runFullScan}
+                            />
+                        )}
+
+                        {manageOpen && (
+                            <ManageNichesPanel
+                                catalog={nicheCatalog}
+                                ignoredCount={ignoredCount}
+                                onClose={() => setManageOpen(false)}
                             />
                         )}
                     </div>

@@ -822,6 +822,43 @@
     padding: 16px 20px;
     border-top: 1px solid var(--color-line);
   }
+  .niches-manage-panel .niches-panel-sub {
+    border-bottom: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  .niches-manage-toolbar {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 0 20px 12px;
+    border-bottom: 1px solid var(--color-line);
+  }
+  .niches-manage-list {
+    padding-top: 0;
+  }
+  .niches-manage-item {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--color-line);
+  }
+  .niches-manage-item:last-child {
+    border-bottom: 0;
+  }
+  .niches-manage-main {
+    min-width: 0;
+    flex: 1;
+  }
+  .niches-manage-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+  }
   @media (max-width: 1023px) {
     .niches-layout {
       flex-direction: column;

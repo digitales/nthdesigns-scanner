@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\NicheScan;
+use App\Services\NicheExclusionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
@@ -11,10 +12,12 @@ use Inertia\Response;
 
 class NicheScanController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request, NicheExclusionService $exclusions): Response
     {
         $sort = $request->string('sort', 'opportunity_score')->toString();
         $sortColumn = $sort === 'result_count' ? 'result_count' : 'opportunity_score';
+        $hideIgnored = $request->string('hide_ignored', '1') !== '0';
+        $ignoredLabels = collect($exclusions->ignoredLabels());
 
         $latestIds = NicheScan::query()
             ->fromSub(
@@ -29,12 +32,13 @@ class NicheScanController extends Controller
         $paginator = NicheScan::query()
             ->when($latestIds->isNotEmpty(), fn ($q) => $q->whereIn('id', $latestIds), fn ($q) => $q->whereRaw('0 = 1'))
             ->when($request->filled('city'), fn ($q) => $q->where('city', $request->string('city')))
+            ->when($hideIgnored && $ignoredLabels->isNotEmpty(), fn ($q) => $q->whereNotIn('niche', $ignoredLabels))
             ->orderByDesc($sortColumn)
             ->paginate(50)
             ->withQueryString();
 
         return Inertia::render('Niches/Index', [
-            'scans' => $paginator->getCollection()->map(fn (NicheScan $s) => $this->mapScan($s))->values(),
+            'scans' => $paginator->getCollection()->map(fn (NicheScan $s) => $this->mapScan($s, $ignoredLabels))->values(),
             'pagination' => [
                 'total' => $paginator->total(),
                 'current_page' => $paginator->currentPage(),
@@ -42,10 +46,13 @@ class NicheScanController extends Controller
                 'last_page' => $paginator->lastPage(),
             ],
             'cities' => NicheScan::query()->distinct()->orderBy('city')->pluck('city')->values(),
+            'nicheCatalog' => $exclusions->catalog(),
+            'ignoredCount' => $ignoredLabels->count(),
             'filters' => [
                 'city' => $request->string('city')->toString() ?: null,
                 'sort' => $sortColumn,
                 'page' => $paginator->currentPage(),
+                'hide_ignored' => $hideIgnored,
             ],
         ]);
     }
@@ -60,7 +67,7 @@ class NicheScanController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function mapScan(NicheScan $s): array
+    private function mapScan(NicheScan $s, \Illuminate\Support\Collection $ignoredLabels): array
     {
         return [
             'id' => $s->id,
@@ -75,6 +82,7 @@ class NicheScanController extends Controller
             'pct_low_reviews' => $s->pct_low_reviews,
             'opportunity_score' => $s->opportunity_score,
             'status' => $s->status,
+            'is_ignored' => $ignoredLabels->contains($s->niche),
             'ran_at' => $s->ran_at?->toISOString(),
             'ran_at_human' => $s->ran_at?->diffForHumans() ?? '—',
         ];

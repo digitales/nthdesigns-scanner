@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Support\WebsiteUrlNormalizer;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -10,6 +11,8 @@ class GooglePlacesService
 {
     private string $apiKey;
     private string $baseUrl = 'https://places.googleapis.com/v1/places';
+
+    private const DETAILS_FIELD_MASK_VERSION = 'v1';
 
     public function __construct()
     {
@@ -79,20 +82,16 @@ class GooglePlacesService
      */
     public function getPlaceDetails(string $placeId): ?array
     {
-        $fieldMask = implode(',', [
-            'id',
-            'displayName',
-            'formattedAddress',
-            'nationalPhoneNumber',
-            'websiteUri',
-            'rating',
-            'userRatingCount',
-            'photos',
-            'regularOpeningHours',
-            'editorialSummary',
-            'primaryType',
-            'businessStatus',
-        ]);
+        $fieldMask = $this->detailsFieldMask();
+        $cacheKey = $this->detailsCacheKey($placeId, $fieldMask);
+
+        if ($this->placesCacheEnabled() && ! $this->placesCacheForce()) {
+            $cached = Cache::get($cacheKey);
+
+            if (is_array($cached)) {
+                return $cached;
+            }
+        }
 
         $response = Http::withHeaders([
             'Content-Type'     => 'application/json',
@@ -109,7 +108,17 @@ class GooglePlacesService
             return null;
         }
 
-        return $response->json();
+        $payload = $response->json();
+
+        if ($this->placesCacheEnabled() && is_array($payload)) {
+            Cache::put(
+                $cacheKey,
+                $payload,
+                now()->addDays(max(1, (int) config('scanner.places_details_ttl_days', 14))),
+            );
+        }
+
+        return $payload;
     }
 
     /**
@@ -205,5 +214,43 @@ class GooglePlacesService
         }
 
         return null;
+    }
+
+    private function detailsFieldMask(): string
+    {
+        return implode(',', [
+            'id',
+            'displayName',
+            'formattedAddress',
+            'nationalPhoneNumber',
+            'websiteUri',
+            'rating',
+            'userRatingCount',
+            'photos',
+            'regularOpeningHours',
+            'editorialSummary',
+            'primaryType',
+            'businessStatus',
+        ]);
+    }
+
+    private function detailsCacheKey(string $placeId, string $fieldMask): string
+    {
+        return sprintf(
+            'places:details:%s:%s:%s',
+            self::DETAILS_FIELD_MASK_VERSION,
+            $placeId,
+            hash('sha256', $fieldMask),
+        );
+    }
+
+    private function placesCacheEnabled(): bool
+    {
+        return (bool) config('scanner.places_cache_enabled', true);
+    }
+
+    private function placesCacheForce(): bool
+    {
+        return (bool) config('scanner.places_cache_force', false);
     }
 }
