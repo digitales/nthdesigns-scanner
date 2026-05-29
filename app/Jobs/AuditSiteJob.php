@@ -23,7 +23,7 @@ class AuditSiteJob implements ShouldQueue
 
     public int $tries = 2;
     public int $backoff = 60;
-    public int $timeout = 210;
+    public int $timeout = 240;
 
     public function __construct(public Prospect $prospect)
     {

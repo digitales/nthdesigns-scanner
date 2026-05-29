@@ -3,7 +3,10 @@
 import { chromium } from 'playwright';
 import { chromiumLaunchOptions } from './browser.js';
 import AxeBuilder from '@axe-core/playwright';
-import { execFileSync } from 'node:child_process';
+import { execFile, execFileSync } from 'node:child_process';
+import { promisify } from 'node:util';
+
+const execFileAsync = promisify(execFile);
 import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { buildLighthousePayload } from './lighthouse-detail.js';
@@ -34,13 +37,23 @@ async function runAxe(page) {
     };
 }
 
-function runLighthouse(targetUrl) {
-    if (!existsSync(lighthouseBinary) && lighthouseBinary === 'lighthouse') {
-        try {
-            execFileSync('which', ['lighthouse'], { stdio: 'pipe' });
-        } catch {
-            return null;
-        }
+function lighthouseAvailable() {
+    if (existsSync(lighthouseBinary) || lighthouseBinary !== 'lighthouse') {
+        return true;
+    }
+
+    try {
+        execFileSync('which', ['lighthouse'], { stdio: 'pipe' });
+
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+async function runLighthouse(targetUrl) {
+    if (!lighthouseAvailable()) {
+        return null;
     }
 
     const chromeFlags = [
@@ -51,7 +64,7 @@ function runLighthouse(targetUrl) {
     ].join(' ');
 
     try {
-        const output = execFileSync(
+        const { stdout: output } = await execFileAsync(
             lighthouseBinary,
             [
                 targetUrl,
@@ -69,14 +82,17 @@ function runLighthouse(targetUrl) {
         );
 
         const report = JSON.parse(output);
+
         return buildLighthousePayload(report);
-    } catch {
+    } catch (error) {
+        console.error('[audit.js] lighthouse failed:', error?.message ?? error);
+
         return null;
     }
 }
 
 async function resolveLighthouse(targetUrl) {
-    const local = runLighthouse(targetUrl);
+    const local = await runLighthouse(targetUrl);
 
     if (local !== null) {
         return local;
@@ -138,10 +154,12 @@ async function main() {
     const page = await context.newPage();
 
     try {
+        const lighthousePromise = resolveLighthouse(url);
+
         await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
         const axe = await runAxe(page);
         const violationScreenshots = await captureViolationScreenshots(page, axe.violations);
-        const lighthouse = await resolveLighthouse(url);
+        const lighthouse = await lighthousePromise;
 
         const payload = {
             url,
