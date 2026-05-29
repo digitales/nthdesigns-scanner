@@ -382,7 +382,7 @@ AUDITING_QUEUE_CONNECTION=database
 ```
 
 ```bash
-php artisan queue:work database --queue=auditing --timeout=240 --tries=3 --stop-when-empty
+php artisan queue:work database --queue=auditing --timeout=270 --tries=3 --stop-when-empty
 ```
 
 Then switch back to `cloud`.
@@ -393,7 +393,7 @@ On the **app** or **worker** cluster, add one background process:
 
 | Process | Command |
 |---------|---------|
-| Queue worker | `php artisan queue:work database --queue=searches,niches,auditing --timeout=240 --tries=3 --sleep=3 --max-jobs=50` |
+| Queue worker | `php artisan queue:work database --queue=searches,niches,auditing --timeout=270 --tries=3 --sleep=3 --max-jobs=50` |
 
 List **`searches` first** so a single worker prefers operator searches when multiple queues have pending jobs.
 
@@ -407,7 +407,7 @@ AUDITING_QUEUE_CONNECTION=database
 DB_QUEUE_RETRY_AFTER=250
 ```
 
-- **`--timeout=240`** — must exceed `AuditSiteJob` timeout (210s).
+- **`--timeout=270`** — must exceed `AuditSiteJob` timeout (240s).
 - **`--max-jobs=50`** — restarts the worker periodically to release memory after Playwright runs.
 
 For production with Fly.io audits, **Option A (hybrid)** is still preferred so long-running audit work does not share a database worker with Places API jobs.
@@ -489,7 +489,7 @@ SESSION_DRIVER=database
 
 - **`SEARCH_QUEUE_CONNECTION`** — Postgres table for `ScrapeProspectsJob` and `ScorePlaceJob` (`searches` queue).
 - **`NICHE_QUEUE_CONNECTION`** — Postgres table for `ScanNicheJob` (`niches` queue). `SCRAPING_QUEUE_CONNECTION` is a deprecated alias.
-- **`DB_QUEUE_RETRY_AFTER=250`** — must exceed audit job timeout (210s) when searches/niches/auditing use the database driver.
+- **`DB_QUEUE_RETRY_AFTER=250`** — must exceed audit job timeout (240s) when searches/niches/auditing use the database driver.
 - **`AUDITING_QUEUE_CONNECTION=cloud`** — sends `AuditSiteJob`, reports, screenshots, and outreach jobs to the managed queue named `auditing` via Laravel Cloud’s `cloud` driver (see [Managed queue troubleshooting](#managed-queue-invalidaddress--sqsus-east-1amazonawscom-is-not-valid)).
 
 - **Do not use `sqs`** for auditing on Laravel Cloud unless you supply your own AWS queue URLs and credentials. Managed queues use **`cloud`** only.
@@ -520,9 +520,11 @@ OPENROUTER_MODEL=anthropic/claude-sonnet-4
 REPORT_BOOKING_URL=https://tidycal.com/yourhandle
 REPORT_EXPIRY_DAYS=30
 SEARCH_RATE_LIMIT_SECONDS=30
-AUDIT_TIMEOUT=180
+AUDIT_TIMEOUT=210
 SCREENSHOT_TIMEOUT=120
 ```
+
+`AUDIT_TIMEOUT` is the Laravel HTTP client timeout for `POST {AUDIT_SERVICE_URL}/audit`. A full Fly audit (axe + Lighthouse + optional PageSpeed fallback) typically takes **90–180s**; keep this at **210s** unless smoke tests on slow URLs prove insufficient. Must stay below `AuditSiteJob` timeout (240s).
 
 ### Node / audit scripts (Playwright path)
 
@@ -714,6 +716,14 @@ On a 2 GB worker, run **one** auditing queue worker (separate background process
 
 The Fly browser service installs `lighthouse` via `scripts/package.json` and sets `LIGHTHOUSE_BINARY` in `fly.toml`. `start.sh` auto-exports `CHROME_PATH` from the Playwright image.
 
+**Audit pipeline (`scripts/audit.js`):**
+
+1. **Lighthouse starts in parallel** with Playwright page load + axe (Lighthouse only needs the URL).
+2. Violation screenshots are captured after axe completes.
+3. If local Lighthouse returns null, **PageSpeed Insights** is called automatically when `PAGESPEED_API_KEY` is set as a Fly secret (mobile strategy, same payload shape).
+
+Prospects that completed audits **before** Lighthouse or the PSI fallback were working will have `performance_score = 0` and show **—** in the UI. Re-queue them after fixing Fly (backfill commands below, or **Re-run site audit** on the prospect page).
+
 After deploy, verify:
 
 ```bash
@@ -725,9 +735,9 @@ curl -s -H "Authorization: Bearer $AUDIT_SERVICE_TOKEN" \
 
 Expected: `{ "performance": <1-100>, "accessibility": <n>, "seo": <n> }` — not `null`.
 
-If `lighthouse` is null, check `fly logs --app nth-scanner-browser` for `[browser-service] CHROME_PATH=…` and see [Fly troubleshooting](#fly-troubleshooting). If local Lighthouse cannot be fixed, set optional `PAGESPEED_API_KEY` on Fly for automatic PageSpeed Insights fallback.
+If `lighthouse` is null, check `fly logs --app nth-scanner-browser` for `[browser-service] CHROME_PATH=…` or `[audit.js] lighthouse failed:` and see [Fly troubleshooting](#fly-troubleshooting). If local Lighthouse cannot be fixed, set optional `PAGESPEED_API_KEY` on Fly for automatic PageSpeed Insights fallback.
 
-**Backfill** prospects audited before Lighthouse was enabled:
+**Backfill** prospects audited before Lighthouse or PSI fallback was enabled, or any row still missing page speed:
 
 ```bash
 php artisan scanner:backfill-audits              # dry-run
@@ -1020,6 +1030,7 @@ The image is based on `mcr.microsoft.com/playwright:v1.52.0-noble` (Chromium + s
 | `start.sh` | runs before Node | Logs startup to stdout for `fly logs` |
 | `LIGHTHOUSE_BINARY` | `/app/scripts/node_modules/.bin/lighthouse` | Lighthouse CLI for performance/SEO scores |
 | `PAGESPEED_API_KEY` | optional Fly secret | PageSpeed Insights fallback when local Lighthouse returns null |
+| Audit duration | ~90–180s typical | axe + Lighthouse run in parallel; PSI fallback adds ~15–30s |
 | `GET /health` | no `Authorization` | Fly health probes do not send a Bearer token |
 
 `POST /audit` and `POST /screenshot` require `Authorization: Bearer <token>` when `BROWSER_SERVICE_TOKEN` is set on Fly.
@@ -1108,6 +1119,7 @@ Run a small search with one prospect that has a website. Confirm:
 
 - `audit_status` = `complete` (not `failed` or `skipped`)
 - Report shows WCAG violations and desktop screenshot
+- For `combined` scans: `performance_score > 0` and prospect detail shows a numeric **Page speed** score (not **—**)
 - `php artisan queue:failed` is empty for audit jobs
 
 ### Fly operations
@@ -1120,7 +1132,7 @@ Run a small search with one prospect that has a website. Confirm:
 | Secrets | `fly secrets list --app nth-scanner-browser` |
 | Scale RAM | Edit `[[vm]] memory` in `fly.toml`, then redeploy |
 
-If audits time out, increase `AUDIT_TIMEOUT` on Laravel Cloud (default 180s; must stay below `AuditSiteJob` timeout 210s) and keep the Fly VM at **2 GB RAM**. Raise queue worker `--timeout` and SQS visibility above the job timeout.
+If audits time out, increase `AUDIT_TIMEOUT` on Laravel Cloud (default **210s**; must stay below `AuditSiteJob` timeout **240s**) and keep the Fly VM at **2 GB RAM**. Raise queue worker `--timeout` (default **270s**) and SQS/`DB_QUEUE_RETRY_AFTER` above the job timeout.
 
 ### Fly troubleshooting {#fly-troubleshooting}
 
@@ -1240,7 +1252,7 @@ Expect JSON starting with `{"desktop":` — not `{"error":`.
 
 #### Symptom: audit completes but `lighthouse` is null
 
-**Cause:** Lighthouse could not launch Chrome, or the URL timed out.
+**Cause:** Lighthouse could not launch Chrome, the URL timed out, or the prospect was audited before Lighthouse/PSI fallback was deployed on Fly. Axe data is still saved; `performance_score` stays `0` and the UI shows **—**.
 
 **Fix:**
 
@@ -1261,6 +1273,19 @@ Expect JSON starting with `{"desktop":` — not `{"error":`.
      --config scripts/browser-service/fly.toml
    ```
    Redeploy. Audits may take ~15–30s longer on fallback. Quota: 25,000 requests/day per Google Cloud project.
+6. Re-queue affected prospects on Laravel Cloud:
+   ```bash
+   php artisan scanner:backfill-audits --execute --prospect=ID --delay=0
+   ```
+   Or click **Re-run site audit** on the prospect detail page.
+
+---
+
+#### Symptom: page speed shows **—** but accessibility audit looks complete
+
+**Cause:** Same as above — the stored audit predates working Lighthouse/PSI on Fly, or the HTTP audit timed out before Lighthouse finished (increase `AUDIT_TIMEOUT` to 210).
+
+**Fix:** Confirm `/audit` smoke test returns non-null `lighthouse.performance`, then re-run the site audit or execute backfill for that prospect.
 
 ---
 
@@ -1305,7 +1330,7 @@ OPENROUTER_MODEL=anthropic/claude-sonnet-4
 REPORT_BOOKING_URL=
 REPORT_EXPIRY_DAYS=30
 SEARCH_RATE_LIMIT_SECONDS=30
-AUDIT_TIMEOUT=180
+AUDIT_TIMEOUT=210
 SCREENSHOT_TIMEOUT=120
 
 NODE_BINARY=node

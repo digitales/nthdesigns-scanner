@@ -14,7 +14,7 @@ import {
 } from '@/Components/ui';
 
 const LIGHTHOUSE_METRICS = [
-    { label: 'Lighthouse a11y', key: 'accessibility' },
+    { label: 'LH a11y', key: 'accessibility' },
     { label: 'SEO', key: 'seo' },
     { label: 'Best practices', key: 'best_practices' },
 ];
@@ -87,25 +87,21 @@ export default function ProspectShow({ prospect, search, navigation, report, out
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 32 }}>
                     <div>
-                        <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))',
-                            gap: 16,
-                            marginBottom: 28,
-                        }}>
+                        <div className="score-card-row">
                             <ScoreCard
                                 label="Combined"
                                 value={prospect.combined_score}
+                                unit="/100"
                                 highlight={(prospect.combined_score ?? 0) >= 71}
                             />
-                            <ScoreCard label="GBP" value={prospect.gbp_score} />
-                            <ScoreCard label="Accessibility" value={prospect.a11y_score} />
+                            <ScoreCard label="GBP" value={prospect.gbp_score} unit="/100" />
+                            <ScoreCard label="Accessibility" value={prospect.a11y_score} unit="/100" />
                             {search.scan_type !== 'gbp_only' && (
                                 <ScoreCard
                                     label="Page speed"
                                     value={prospect.performance_score > 0 ? prospect.performance_score : null}
                                     healthScore
-                                    delta="/100"
+                                    unit="/100"
                                 />
                             )}
                             {LIGHTHOUSE_METRICS.map(({ label, key }) => {
@@ -117,7 +113,7 @@ export default function ProspectShow({ prospect, search, navigation, report, out
                                         label={label}
                                         value={score}
                                         healthScore
-                                        delta="/100"
+                                        unit="/100"
                                     />
                                 );
                             })}

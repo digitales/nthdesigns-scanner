@@ -41,7 +41,7 @@ Production prospects complete site audits (axe violations, reports) but show **�
 | UI changes | None |
 | Backfill | Existing `scanner:backfill-audits --execute` after Fly redeploy |
 | Chrome binary | Set `CHROME_PATH` on Fly only if smoke test returns `lighthouse: null` |
-| Fallback (PSI API) | Out of scope |
+| Fallback (PSI API) | Implemented — set `PAGESPEED_API_KEY` on Fly; `audit.js` calls PSI when local Lighthouse returns null |
 
 ---
 
@@ -99,8 +99,8 @@ Update Fly / Lighthouse sections:
 
 ```
 AuditSiteJob
-  → BrowserServiceClient::fetchAudit()  POST /audit
-    → Fly: audit.js (axe + lighthouse)
+  → BrowserServiceClient::fetchAudit()  POST /audit  (AUDIT_TIMEOUT=210)
+    → Fly: audit.js (lighthouse ∥ axe; PSI fallback if local LH null)
   → A11yScoringService::score() + extractPerformanceScore()
   → prospect update:
       a11y_score, a11y_flags, performance_score,
@@ -151,7 +151,8 @@ php artisan scanner:backfill-audits --execute --prospect=ID --delay=0
 | Lighthouse fails for one URL | `audit.js` catches error, returns `lighthouse: null`; audit still completes with axe data; performance stays **—** for that row |
 | Fly OOM / timeout | Check Fly metrics during backfill; increase VM memory or `--delay` if needed |
 | Large backfill volume | Run in batches with `--limit`; monitor auditing queue on Laravel Cloud |
-| Audit HTTP timeout | Default `AUDIT_TIMEOUT=180` should cover axe (~45s) + Lighthouse (~60s); increase only if smoke tests prove insufficient |
+| Audit HTTP timeout | Default `AUDIT_TIMEOUT=210` on Laravel Cloud; typical Fly `/audit` takes 90–180s. `AuditSiteJob` timeout is 240s; queue worker `--timeout` should be 270s. Increase only if smoke tests on slow URLs prove insufficient |
+| PageSpeed fallback | `PAGESPEED_API_KEY` Fly secret; `audit.js` calls PSI when local Lighthouse returns null |
 | `audit_driver = skip` | Prospects intentionally skipped — excluded from backfill selection |
 
 ---
@@ -190,11 +191,12 @@ php artisan scanner:backfill-audits --execute --prospect=ID --delay=0
 
 ## Out of scope
 
-- PageSpeed Insights API integration
 - UI changes to distinguish "score 0" vs "not measured"
 - Changing combined-score weighting
 - Local dev Lighthouse setup (already works when binary is installed)
 - Cloudflare-only audit path (no Lighthouse available)
+
+PageSpeed Insights fallback was added later — see `scripts/pagespeed-fetch.js` and `PAGESPEED_API_KEY` on Fly.
 
 ---
 

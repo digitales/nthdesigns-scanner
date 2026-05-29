@@ -647,12 +647,26 @@
     font-weight: 500;
   }
 
+  .score-card-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+    gap: 16;
+    margin-bottom: 28;
+  }
+
   .score-card {
     background: var(--color-paper);
     border: 1px solid var(--color-line);
     border-radius: var(--radius-card);
-    padding: 18px 20px 20px;
+    padding: 18px 24px 20px;
     position: relative;
+    display: grid;
+    grid-template-rows: minmax(2.8em, auto) auto;
+    row-gap: 10px;
+    align-content: start;
+  }
+  .score-card.has-footer {
+    grid-template-rows: minmax(2.8em, auto) auto minmax(1.25em, auto);
   }
   .score-card.highlight {
     border-color: oklch(0.85 0.08 65);
@@ -661,10 +675,12 @@
   .score-card .label {
     font-family: var(--font-mono);
     font-size: 10px;
+    line-height: 1.35;
     color: var(--color-stone-600);
     text-transform: uppercase;
     letter-spacing: 0.12em;
-    margin-bottom: 10px;
+    margin: 0;
+    min-height: 2.8em;
   }
   .score-card .value {
     font-family: var(--font-serif);
@@ -674,13 +690,24 @@
     letter-spacing: -0.02em;
     color: var(--color-ink);
     font-variant-numeric: tabular-nums;
+    align-self: start;
   }
   .score-card.highlight .value { color: var(--color-accent-ink); }
+  .score-card .value .unit {
+    font-size: 14px;
+    color: var(--color-stone-500);
+    margin-left: 3px;
+    font-family: var(--font-mono);
+    letter-spacing: 0.02em;
+    vertical-align: 0.35em;
+  }
+  .score-card .footer,
   .score-card .delta {
     font-family: var(--font-mono);
     font-size: 10.5px;
+    line-height: 1.35;
     color: var(--color-stone-500);
-    margin-top: 8px;
+    margin: 0;
     letter-spacing: 0.02em;
   }
 

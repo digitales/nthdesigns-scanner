@@ -4,6 +4,19 @@ HTTP wrapper around `scripts/audit.js` and `scripts/screenshot.js` for Laravel C
 
 **Full deployment guide and troubleshooting:** [docs/deployment/laravel-cloud.md §10](../../docs/deployment/laravel-cloud.md#10-deploy-the-flyio-browser-service) and [Fly troubleshooting](../../docs/deployment/laravel-cloud.md#fly-troubleshooting).
 
+## Audit pipeline
+
+`POST /audit` runs `scripts/audit.js`:
+
+1. **Lighthouse** starts immediately (async) — runs in parallel with Playwright.
+2. Playwright loads the page and runs **axe** accessibility checks.
+3. Top violation screenshots are captured.
+4. If local Lighthouse returns null, **PageSpeed Insights** is called when `PAGESPEED_API_KEY` is set (mobile strategy).
+
+Typical duration: **90–180s**. Laravel Cloud should set `AUDIT_TIMEOUT=210` (HTTP client) and queue workers `--timeout=270` (above `AuditSiteJob` at 240s).
+
+Prospects audited before Lighthouse/PSI worked on Fly keep `performance_score = 0` until re-audited — see [backfill](../../docs/deployment/laravel-cloud.md#e-lighthouse-on-fly-production) in the deployment guide.
+
 ## Endpoints
 
 | Method | Path | Body | Response |
@@ -46,5 +59,7 @@ BROWSER_SERVICE_TOKEN=test node browser-service/server.mjs
 
 ```bash
 curl -s -H "Authorization: Bearer test" -H "Content-Type: application/json" \
-  -d '{"url":"https://example.com"}' http://127.0.0.1:8080/health
+  -d '{"url":"https://example.com"}' http://127.0.0.1:8080/audit | jq '.lighthouse'
 ```
+
+Expect non-null `lighthouse.performance` (1–100).
