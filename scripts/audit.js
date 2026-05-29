@@ -7,6 +7,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { buildLighthousePayload } from './lighthouse-detail.js';
+import { fetchPageSpeedLighthouse } from './pagespeed-fetch.js';
 
 const url = process.argv[2];
 const outputDir = process.argv[3] || null;
@@ -74,6 +75,16 @@ function runLighthouse(targetUrl) {
     }
 }
 
+async function resolveLighthouse(targetUrl) {
+    const local = runLighthouse(targetUrl);
+
+    if (local !== null) {
+        return local;
+    }
+
+    return fetchPageSpeedLighthouse(targetUrl);
+}
+
 async function captureViolationScreenshots(page, violations) {
     if (!outputDir) {
         return [];
@@ -130,7 +141,7 @@ async function main() {
         await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
         const axe = await runAxe(page);
         const violationScreenshots = await captureViolationScreenshots(page, axe.violations);
-        const lighthouse = runLighthouse(url);
+        const lighthouse = await resolveLighthouse(url);
 
         const payload = {
             url,

@@ -21,6 +21,8 @@ Build context must be the **repository root** so the Dockerfile can copy `script
 ```bash
 fly apps create nth-scanner-browser   # once
 fly secrets set BROWSER_SERVICE_TOKEN="$(openssl rand -hex 32)" --config scripts/browser-service/fly.toml
+# Optional: PSI fallback when local Lighthouse fails on Fly
+fly secrets set PAGESPEED_API_KEY="your-google-api-key" --config scripts/browser-service/fly.toml
 fly deploy . --config scripts/browser-service/fly.toml
 ```
 

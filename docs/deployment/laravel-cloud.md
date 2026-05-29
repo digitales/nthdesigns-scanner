@@ -725,7 +725,7 @@ curl -s -H "Authorization: Bearer $AUDIT_SERVICE_TOKEN" \
 
 Expected: `{ "performance": <1-100>, "accessibility": <n>, "seo": <n> }` — not `null`.
 
-If `lighthouse` is null, check `fly logs --app nth-scanner-browser` for `[browser-service] CHROME_PATH=…` and see [Fly troubleshooting](#fly-troubleshooting).
+If `lighthouse` is null, check `fly logs --app nth-scanner-browser` for `[browser-service] CHROME_PATH=…` and see [Fly troubleshooting](#fly-troubleshooting). If local Lighthouse cannot be fixed, set optional `PAGESPEED_API_KEY` on Fly for automatic PageSpeed Insights fallback.
 
 **Backfill** prospects audited before Lighthouse was enabled:
 
@@ -1019,6 +1019,7 @@ The image is based on `mcr.microsoft.com/playwright:v1.52.0-noble` (Chromium + s
 | `PLAYWRIGHT_BROWSERS_PATH` | `/ms-playwright` | Browsers baked into the Playwright image |
 | `start.sh` | runs before Node | Logs startup to stdout for `fly logs` |
 | `LIGHTHOUSE_BINARY` | `/app/scripts/node_modules/.bin/lighthouse` | Lighthouse CLI for performance/SEO scores |
+| `PAGESPEED_API_KEY` | optional Fly secret | PageSpeed Insights fallback when local Lighthouse returns null |
 | `GET /health` | no `Authorization` | Fly health probes do not send a Bearer token |
 
 `POST /audit` and `POST /screenshot` require `Authorization: Bearer <token>` when `BROWSER_SERVICE_TOKEN` is set on Fly.
@@ -1031,6 +1032,8 @@ From the **repository root**:
 fly apps create nth-scanner-browser   # skip if already created
 fly secrets set BROWSER_SERVICE_TOKEN="$(openssl rand -hex 32)" \
   --config scripts/browser-service/fly.toml
+# Optional: PageSpeed Insights fallback when local Lighthouse fails
+# fly secrets set PAGESPEED_API_KEY="your-google-api-key" --config scripts/browser-service/fly.toml
 ```
 
 ### 2. Deploy
@@ -1252,6 +1255,12 @@ Expect JSON starting with `{"desktop":` — not `{"error":`.
      --config scripts/browser-service/fly.toml
    ```
 4. Redeploy and re-test `/audit`.
+5. Optional fallback — set a [PageSpeed Insights API key](https://developers.google.com/speed/docs/insights/v5/get-started) on Fly. When local Lighthouse returns null, `audit.js` calls PSI automatically (mobile strategy, same payload shape):
+   ```bash
+   fly secrets set PAGESPEED_API_KEY="your-google-api-key" \
+     --config scripts/browser-service/fly.toml
+   ```
+   Redeploy. Audits may take ~15–30s longer on fallback. Quota: 25,000 requests/day per Google Cloud project.
 
 ---
 
