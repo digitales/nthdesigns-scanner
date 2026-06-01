@@ -103,7 +103,7 @@ export default function SettingsIndex({ settings, nicheMaintenance, health, env 
                                     />
                                 </Field>
 
-                                <Field label="Booking URL" hint="public report CTA; overrides REPORT_BOOKING_URL">
+                                <Field label="Booking URL" hint="public report CTA; TidyCal URLs open on /book with your branding; overrides REPORT_BOOKING_URL">
                                     <Input
                                         type="url"
                                         value={data.booking_url}

@@ -7,6 +7,7 @@ use App\Http\Controllers\OutreachEmailController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProspectController;
 use App\Http\Controllers\ProspectNoteController;
+use App\Http\Controllers\PublicBookingController;
 use App\Http\Controllers\PublicReportController;
 use App\Http\Controllers\ReportDashboardController;
 use App\Http\Controllers\SavedProspectController;
@@ -33,6 +34,7 @@ Route::get('/dashboard', function () {
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::get('/r/{token}', [PublicReportController::class, 'show'])->name('reports.public');
+Route::get('/book', [PublicBookingController::class, 'show'])->name('book.index');
 
 Route::get('/admin/horizon', function () {
     return redirect('/horizon');

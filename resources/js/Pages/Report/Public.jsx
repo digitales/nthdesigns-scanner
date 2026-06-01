@@ -200,16 +200,20 @@ export default function PublicReport({ report }) {
                                 No obligation. We'll go through the audit findings and outline what fixing them would involve.
                             </p>
                             <LinkButton
-                                href={report.booking_url}
+                                href={report.book_cta_url ?? report.booking_url}
                                 kind="accent"
                                 size="lg"
-                                target="_blank"
-                                rel="noopener noreferrer"
+                                {...(report.book_cta_external
+                                    ? { target: '_blank', rel: 'noopener noreferrer' }
+                                    : {})}
                             >
                                 Book a free 30-minute review
                             </LinkButton>
                             <div className="micro" style={{ marginTop: 20 }}>
-                                {report.booking_url.replace(/^https?:\/\//, '')} · Typical reply within one working day
+                                {report.book_cta_external
+                                    ? `${report.booking_url.replace(/^https?:\/\//, '')} · `
+                                    : ''}
+                                Typical reply within one working day
                             </div>
                         </section>
                     )}

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ProspectReport;
+use App\Support\TidyCalEmbed;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -34,6 +35,8 @@ class PublicReportController extends Controller
         }
 
         $data = $report->report_data ?? [];
+        $bookingUrl = $data['booking_url'] ?? config('scanner.report_booking_url');
+        $bookCtaUrl = TidyCalEmbed::bookPageUrl($bookingUrl, ['report' => $report->token]) ?? $bookingUrl;
 
         return Inertia::render('Report/Public', [
             'report' => [
@@ -52,7 +55,9 @@ class PublicReportController extends Controller
                 'violation_summary'   => $data['violation_summary'] ?? ['critical' => 0, 'serious' => 0, 'moderate' => 0, 'minor' => 0, 'total' => 0],
                 'top_violations'      => $data['top_violations'] ?? [],
                 'lighthouse'          => $data['lighthouse'] ?? [],
-                'booking_url'         => $data['booking_url'] ?? config('scanner.report_booking_url'),
+                'booking_url'         => $bookingUrl,
+                'book_cta_url'        => $bookCtaUrl,
+                'book_cta_external'   => ! TidyCalEmbed::isEmbeddable($bookingUrl),
                 'generated_at'        => $data['generated_at'] ?? $report->created_at->toISOString(),
                 'expires_at'          => $report->expires_at?->toISOString(),
                 'token'               => $report->token,

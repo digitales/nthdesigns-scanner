@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Prospect;
+use App\Support\TidyCalEmbed;
 use App\Models\ProspectReport;
 
 class OutreachEmailGeneratorService
@@ -86,8 +87,8 @@ PROMPT;
             $lines[] = "Include this audit report link naturally: {$reportUrl}";
         }
 
-        if (config('scanner.report_booking_url')) {
-            $lines[] = 'Booking link for a call: '.config('scanner.report_booking_url');
+        if ($bookingUrl = config('scanner.report_booking_url')) {
+            $lines[] = 'Booking link for a call: '.(TidyCalEmbed::bookPageUrl($bookingUrl) ?? $bookingUrl);
         }
 
         if ($instruction = $this->performancePromptInstruction($prospect)) {

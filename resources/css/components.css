@@ -1238,8 +1238,20 @@
     min-height: 100vh;
     box-shadow: 0 0 0 1px var(--color-line);
   }
+  .public-report.book-page {
+    max-width: 720px;
+  }
+  .book-embed-section .tidycal-embed {
+    min-height: 500px;
+  }
   @media (max-width: 640px) {
     .public-report { max-width: 100%; }
+    .public-report.book-page header,
+    .public-report.book-page .book-embed-section,
+    .public-report.book-page footer {
+      padding-left: 24px;
+      padding-right: 24px;
+    }
     .page { padding: 24px 16px 48px; }
     .page-header h1 { font-size: 28px; }
     .stats-strip { grid-template-columns: 1fr 1fr; }
