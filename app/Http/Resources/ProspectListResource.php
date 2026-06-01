@@ -3,12 +3,14 @@
 namespace App\Http\Resources;
 
 use App\Models\Prospect;
+use App\Services\ReportBuilderService;
 
 class ProspectListResource
 {
     public static function format(Prospect $prospect): array
     {
         $latest = $prospect->outreachEmails->first();
+        $cms = app(ReportBuilderService::class)->cmsForProspect($prospect);
 
         return [
             'id'                  => $prospect->id,
@@ -35,6 +37,8 @@ class ProspectListResource
             'is_warm'             => $prospect->report?->viewed_at !== null
                 && $latest?->sent_at !== null
                 && !($latest?->response_received ?? false),
+            'cms_badge'           => $cms['badge'] ?? null,
+            'cms_pending'         => $cms['pending'] ?? false,
         ];
     }
 }

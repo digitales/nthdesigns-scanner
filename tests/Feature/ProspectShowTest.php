@@ -50,6 +50,32 @@ class ProspectShowTest extends TestCase
                 ->where('lighthouse.accessibility', 60));
     }
 
+    public function test_show_includes_cms_when_detection_present(): void
+    {
+        $user = User::factory()->create();
+        $prospect = Prospect::factory()->create([
+            'search_id' => Search::factory()->create(['user_id' => $user->id])->id,
+            'website_url' => 'https://example.com',
+            'cms_detection' => [
+                'platform' => 'wordpress',
+                'version' => '6.4.2',
+                'confidence' => 'high',
+                'signals' => [['id' => 'meta_generator', 'matched' => true, 'detail' => 'WordPress 6.4.2']],
+                'detected_at' => now()->toIso8601String(),
+                'url' => 'https://example.com',
+            ],
+        ]);
+
+        $this->actingAs($user)
+            ->get("/prospects/{$prospect->id}")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('cms')
+                ->where('cms.label', 'WordPress 6.4')
+                ->where('cms.badge', 'WP')
+                ->where('cms.pending', false));
+    }
+
     public function test_show_omits_audit_when_pending(): void
     {
         $user = User::factory()->create();

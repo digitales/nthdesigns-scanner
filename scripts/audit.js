@@ -11,6 +11,7 @@ import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { buildLighthousePayload } from './lighthouse-detail.js';
 import { fetchPageSpeedLighthouse } from './pagespeed-fetch.js';
+import { detectCms } from './cms-detect.js';
 
 const url = process.argv[2];
 const outputDir = process.argv[3] || null;
@@ -156,7 +157,8 @@ async function main() {
     try {
         const lighthousePromise = resolveLighthouse(url);
 
-        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
+        const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
+        const cms = await detectCms(page, response);
         const axe = await runAxe(page);
         const violationScreenshots = await captureViolationScreenshots(page, axe.violations);
         const lighthouse = await lighthousePromise;
@@ -168,6 +170,7 @@ async function main() {
             incomplete_count: axe.incomplete,
             violation_screenshots: violationScreenshots,
             lighthouse,
+            cms,
         };
 
         process.stdout.write(JSON.stringify(payload));

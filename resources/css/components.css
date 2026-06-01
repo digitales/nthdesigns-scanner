@@ -501,6 +501,30 @@
   }
   .badge .dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: 0.55; }
 
+  .cms-badge {
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+  .cms-badge--pending {
+    opacity: 0.6;
+  }
+  .cms-confidence--high { background: var(--color-stone-200); }
+  .cms-confidence--medium { background: var(--color-stone-100); }
+  .cms-confidence--low { background: var(--color-stone-100); opacity: 0.85; }
+  .cms-signals-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .cms-signals-list code {
+    font-size: 11px;
+  }
+
   .score-badge {
     display: inline-flex;
     align-items: center;

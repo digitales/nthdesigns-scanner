@@ -6,6 +6,7 @@ use App\Http\Requests\StoreDirectUrlSearchRequest;
 use App\Jobs\DirectUrlScanJob;
 use App\Jobs\ScrapeProspectsJob;
 use App\Models\Search;
+use App\Services\ReportBuilderService;
 use App\Services\UserSettingsService;
 use App\Support\WebsiteUrlNormalizer;
 use Illuminate\Http\RedirectResponse;
@@ -119,7 +120,7 @@ class SearchController extends Controller
         return redirect()->route('searches.show', $search);
     }
 
-    public function show(Search $search): Response
+    public function show(Search $search, ReportBuilderService $reportBuilder): Response
     {
         $this->authorize('view', $search);
 
@@ -131,11 +132,12 @@ class SearchController extends Controller
             ])
             ->orderByDesc('combined_score')
             ->get()
-            ->map(function ($p) {
+            ->map(function ($p) use ($reportBuilder) {
                 $latestOutreach = $p->outreachEmails->first();
                 $isWarm = $p->report?->viewed_at !== null
                     && $latestOutreach?->sent_at !== null
                     && !($latestOutreach?->response_received ?? false);
+                $cms = $reportBuilder->cmsForProspect($p);
 
                 return [
                     'id'                => $p->id,
@@ -162,6 +164,8 @@ class SearchController extends Controller
                     'report_url'        => $p->report ? url('/r/'.$p->report->token) : null,
                     'is_warm'           => $isWarm,
                     'last_viewed'       => $p->report?->viewed_at?->diffForHumans(),
+                    'cms_badge'         => $cms['badge'] ?? null,
+                    'cms_pending'       => $cms['pending'] ?? false,
                 ];
             });
 

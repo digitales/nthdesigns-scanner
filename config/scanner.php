@@ -35,6 +35,10 @@ return [
 
     'audit_script_path' => env('AUDIT_SCRIPT_PATH') ?: base_path('scripts/audit.js'),
 
+    'cms_detect_script_path' => env('CMS_DETECT_SCRIPT_PATH') ?: base_path('scripts/detect-cms.js'),
+
+    'cms_detect_timeout' => (int) env('CMS_DETECT_TIMEOUT', 90),
+
     'lighthouse_binary' => env('LIGHTHOUSE_BINARY', 'lighthouse'),
 
     'playwright_browsers_path' => env('PLAYWRIGHT_BROWSERS_PATH'),

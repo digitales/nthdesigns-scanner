@@ -81,6 +81,7 @@ class ProspectController extends Controller
                 'created_at'         => $e->created_at->diffForHumans(),
             ]),
             'audit' => $reportBuilder->buildOperatorAudit($prospect),
+            'cms' => $reportBuilder->cmsForProspect($prospect),
             'pageSpeed' => $reportBuilder->buildOperatorPageSpeed($prospect),
             'lighthouse' => $reportBuilder->lighthouseForProspect($prospect),
             'notes' => $prospect->notes->map(fn ($n) => [

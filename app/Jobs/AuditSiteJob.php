@@ -75,13 +75,19 @@ class AuditSiteJob implements ShouldQueue
 
             $scored = $scorer->score($payload);
 
-            $prospect->update([
+            $updates = [
                 'a11y_score'              => $scored['score'],
                 'a11y_flags'              => $scored['flags'],
                 'performance_score'       => $scorer->extractPerformanceScore($payload),
                 'raw_a11y_payload'        => $payload,
                 'raw_lighthouse_payload'  => $payload['lighthouse'] ?? null,
-            ]);
+            ];
+
+            if (isset($payload['cms']) && is_array($payload['cms'])) {
+                $updates['cms_detection'] = $payload['cms'];
+            }
+
+            $prospect->update($updates);
 
             $auditJob->update([
                 'status'       => 'complete',

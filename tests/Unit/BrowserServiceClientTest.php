@@ -12,6 +12,27 @@ use Tests\TestCase;
 
 class BrowserServiceClientTest extends TestCase
 {
+    public function test_fetch_cms_detection_returns_payload(): void
+    {
+        Config::set('scanner.audit_service_url', 'https://browser.example.com');
+        Config::set('scanner.audit_service_token', 'secret');
+
+        Http::fake([
+            'https://browser.example.com/detect-cms' => Http::response([
+                'platform' => 'wordpress',
+                'version' => '6.4.2',
+                'confidence' => 'high',
+                'signals' => [],
+                'detected_at' => now()->toIso8601String(),
+                'url' => 'https://example.com',
+            ]),
+        ]);
+
+        $payload = app(BrowserServiceClient::class)->fetchCmsDetection('https://example.com');
+
+        $this->assertSame('wordpress', $payload['platform']);
+    }
+
     public function test_fetch_audit_returns_payload(): void
     {
         Config::set('scanner.audit_service_url', 'https://browser.example.com');

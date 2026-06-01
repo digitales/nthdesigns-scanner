@@ -1,7 +1,7 @@
 # CMS detection for audited sites — Design Spec
 
 **Date:** 2026-06-01  
-**Status:** Approved (brainstorming)  
+**Status:** Implemented  
 **Scope:** Detect CMS/platform (WordPress priority + common SMB builders) for every prospect with a `website_url`; store detailed results with version, confidence, and signal trace; surface on operator UI only.
 
 **Approach:** Shared Node detection module invoked from `audit.js` during full site audits, plus `DetectCmsJob` + `scripts/detect-cms.js` when no accessibility audit runs (`gbp_only`, etc.). Persist on `prospects.cms_detection` JSON; shape via `ReportBuilderService` for prospect detail and search results table.

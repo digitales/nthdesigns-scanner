@@ -138,6 +138,12 @@ async function handleAudit(url) {
     });
 }
 
+async function handleDetectCms(url) {
+    const stdout = await runNodeScript('detect-cms.js', [url]);
+
+    return JSON.parse(stdout);
+}
+
 async function handleScreenshot(url) {
     return withTempDir(async (tmpDir) => {
         const stdout = await runNodeScript('screenshot.js', [url, tmpDir]);
@@ -212,6 +218,12 @@ const server = createServer(async (req, res) => {
 
         if (pathname === '/audit') {
             sendJson(res, 200, await handleAudit(url));
+
+            return;
+        }
+
+        if (pathname === '/detect-cms') {
+            sendJson(res, 200, await handleDetectCms(url));
 
             return;
         }

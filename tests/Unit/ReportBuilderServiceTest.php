@@ -437,4 +437,67 @@ class ReportBuilderServiceTest extends TestCase
         $this->assertTrue($report['benchmark']['has_description']);
         $this->assertTrue($report['benchmark']['hours_complete']);
     }
+
+    public function test_cms_for_prospect_returns_null_without_website(): void
+    {
+        $prospect = new Prospect(['website_url' => null]);
+
+        $this->assertNull($this->service->cmsForProspect($prospect));
+    }
+
+    public function test_cms_for_prospect_pending_when_url_but_no_detection(): void
+    {
+        $prospect = new Prospect([
+            'website_url' => 'https://example.com',
+            'cms_detection' => null,
+        ]);
+
+        $cms = $this->service->cmsForProspect($prospect);
+
+        $this->assertTrue($cms['pending']);
+        $this->assertNull($cms['badge']);
+    }
+
+    public function test_cms_for_prospect_labels_wordpress_with_version(): void
+    {
+        $prospect = new Prospect([
+            'website_url' => 'https://example.com',
+            'cms_detection' => [
+                'platform' => 'wordpress',
+                'version' => '6.4.2',
+                'confidence' => 'high',
+                'signals' => [],
+                'detected_at' => '2026-06-01T00:00:00+00:00',
+                'url' => 'https://example.com',
+            ],
+        ]);
+
+        $cms = $this->service->cmsForProspect($prospect);
+
+        $this->assertSame('WordPress 6.4', $cms['label']);
+        $this->assertSame('WP', $cms['badge']);
+        $this->assertFalse($cms['pending']);
+    }
+
+    public function test_build_omits_cms_from_public_report(): void
+    {
+        $search = new Search([
+            'niche' => 'plumber',
+            'city' => 'London',
+            'country' => 'GB',
+            'scan_type' => 'combined',
+        ]);
+        $prospect = new Prospect([
+            'website_url' => 'https://example.com',
+            'cms_detection' => ['platform' => 'wordpress', 'confidence' => 'high'],
+            'combined_score' => 50,
+            'review_count' => 0,
+            'photo_count' => 0,
+        ]);
+        $prospect->setRelation('search', $search);
+
+        $report = $this->service->build($prospect, null);
+
+        $this->assertArrayNotHasKey('cms', $report);
+    }
 }

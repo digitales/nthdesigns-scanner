@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Jobs\AuditSiteJob;
+use App\Jobs\DetectCmsJob;
 use App\Models\Prospect;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -51,11 +52,15 @@ class ProspectEnrichmentService
 
         $auditQueued = false;
 
-        if ($websiteChanged && $this->shouldAudit($prospect)) {
-            $updates = array_merge($updates, $this->audits->auditResetFields(), [
-                'suppress_auto_report' => true,
-            ]);
-            $auditQueued = true;
+        if ($websiteChanged) {
+            $updates['cms_detection'] = null;
+
+            if ($this->shouldAudit($prospect)) {
+                $updates = array_merge($updates, $this->audits->auditResetFields(), [
+                    'suppress_auto_report' => true,
+                ]);
+                $auditQueued = true;
+            }
         }
 
         $prospect->update($updates);
@@ -63,6 +68,8 @@ class ProspectEnrichmentService
 
         if ($auditQueued) {
             AuditSiteJob::dispatch($prospect);
+        } elseif ($websiteChanged && ! empty($prospect->website_url)) {
+            DetectCmsJob::dispatch($prospect);
         }
 
         return ['audit_queued' => $auditQueued];

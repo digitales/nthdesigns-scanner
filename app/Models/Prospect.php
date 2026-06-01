@@ -17,7 +17,7 @@ class Prospect extends Model
         'rating', 'review_count', 'photo_count', 'has_description', 'hours_complete',
         'gbp_score', 'gbp_flags', 'a11y_score', 'a11y_flags', 'performance_score',
         'combined_score', 'dominant_angle', 'audit_status', 'suppress_auto_report',
-        'raw_gbp_payload', 'raw_a11y_payload', 'raw_lighthouse_payload', 'expires_at',
+        'raw_gbp_payload', 'raw_a11y_payload', 'raw_lighthouse_payload', 'cms_detection', 'expires_at',
     ];
 
     protected $casts = [
@@ -26,6 +26,7 @@ class Prospect extends Model
         'raw_gbp_payload'       => 'array',
         'raw_a11y_payload'      => 'array',
         'raw_lighthouse_payload'=> 'array',
+        'cms_detection'         => 'array',
         'has_description'       => 'boolean',
         'hours_complete'        => 'boolean',
         'rating'                => 'decimal:1',

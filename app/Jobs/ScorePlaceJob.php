@@ -88,7 +88,15 @@ class ScorePlaceJob implements ShouldQueue
         if ($needsA11yAudit) {
             AuditSiteJob::dispatch($prospect);
 
+            if (config('scanner.audit_driver') === 'skip') {
+                DetectCmsJob::dispatch($prospect);
+            }
+
             return;
+        }
+
+        if (! empty($prospect->website_url)) {
+            DetectCmsJob::dispatch($prospect);
         }
 
         CombineScoresJob::dispatch($prospect->fresh());

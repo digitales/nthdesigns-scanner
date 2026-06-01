@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import CmsBadge from '@/Components/cms/CmsBadge';
 import {
     AnglePill,
     Badge,
@@ -202,6 +203,7 @@ export default function SearchShow({ search, prospects, outreachProspectIds = []
                                             <th style={{ width: '6%' }}>Perf</th>
                                         </>
                                     )}
+                                    <th style={{ width: '8%' }}>CMS</th>
                                     <th style={{ width: '11%' }}>Angle</th>
                                     <th style={{ width: '14%' }}>Report status</th>
                                     <th style={{ width: '14%', textAlign: 'right' }}>Actions</th>
@@ -223,7 +225,7 @@ export default function SearchShow({ search, prospects, outreachProspectIds = []
                                 {isRunning &&
                                     Array.from({ length: Math.max(0, 3) }).map((_, i) => (
                                         <tr key={`skel-${i}`}>
-                                            <td colSpan={showA11y ? 9 : 6} style={{ padding: '14px 20px' }}>
+                                            <td colSpan={showA11y ? 10 : 7} style={{ padding: '14px 20px' }}>
                                                 <span className="skel" style={{ width: '60%', display: 'block' }} />
                                             </td>
                                         </tr>
@@ -293,6 +295,9 @@ function ProspectRow({
                         </td>
                     </>
                 )}
+                <td>
+                    <CmsBadge badge={p.cms_badge} pending={p.cms_pending} />
+                </td>
                 <td>
                     <AnglePill angle={p.dominant_angle} />
                 </td>

@@ -57,6 +57,7 @@ class ProspectAuditService
             'a11y_score'             => 0,
             'a11y_flags'             => null,
             'performance_score'      => 0,
+            'cms_detection'          => null,
         ];
     }
 }
