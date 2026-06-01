@@ -14,9 +14,23 @@ use App\Http\Controllers\SavedProspectController;
 use App\Http\Controllers\NicheIgnoreController;
 use App\Http\Controllers\NicheScanController;
 use App\Http\Controllers\NicheScanSampleController;
+use App\Http\Controllers\OAuthServerController;
+use App\Http\Controllers\OAuthWellKnownController;
 use App\Http\Controllers\SearchController;
+use App\Http\Controllers\Settings\ConnectedAppsController;
+use App\Http\Controllers\Settings\McpKeyController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+
+if (config('oauth-mcp.enabled', true)) {
+    Route::get('.well-known/oauth-protected-resource', [OAuthWellKnownController::class, 'protectedResource']);
+    Route::get('.well-known/oauth-authorization-server', [OAuthWellKnownController::class, 'authorizationServer']);
+    Route::get('.well-known/jwks.json', [OAuthWellKnownController::class, 'jwks']);
+    Route::post('oauth/register', [OAuthServerController::class, 'register']);
+    Route::get('oauth/authorize', [OAuthServerController::class, 'showConsent'])->name('oauth.authorize');
+    Route::post('oauth/token', [OAuthServerController::class, 'token']);
+    Route::post('oauth/revoke', [OAuthServerController::class, 'revoke']);
+}
 
 Route::get('/', function () {
     if (auth()->check()) {
@@ -77,6 +91,13 @@ Route::middleware('auth')->group(function () {
     Route::patch('/outreach-emails/{outreachEmail}/response', [OutreachEmailController::class, 'markResponse'])->name('outreach.response');
 
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+    Route::get('/settings/connected-apps', [ConnectedAppsController::class, 'index'])->name('settings.connected-apps.index');
+    Route::delete('/settings/connected-apps/{family}', [ConnectedAppsController::class, 'destroy'])->name('settings.connected-apps.destroy');
+    Route::delete('/settings/connected-apps', [ConnectedAppsController::class, 'destroyAll'])->name('settings.connected-apps.destroy-all');
+    Route::get('/settings/mcp-keys', [McpKeyController::class, 'index'])->name('settings.mcp-keys.index');
+    Route::post('/settings/mcp-keys', [McpKeyController::class, 'store'])->name('settings.mcp-keys.store');
+    Route::patch('/settings/mcp-keys/{mcpKey}', [McpKeyController::class, 'update'])->name('settings.mcp-keys.update');
+    Route::delete('/settings/mcp-keys/{mcpKey}', [McpKeyController::class, 'destroy'])->name('settings.mcp-keys.destroy');
     Route::patch('/settings', [SettingsController::class, 'update'])->name('settings.update');
     Route::post('/settings/niches/scan', [SettingsController::class, 'scanNiches'])->name('settings.niches.scan');
     Route::post('/settings/niches/bootstrap', [SettingsController::class, 'bootstrapNiches'])->name('settings.niches.bootstrap');

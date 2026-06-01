@@ -1,0 +1,50 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\OauthMcpClient;
+use App\Models\OauthMcpRefreshTokenFamily;
+use App\Models\User;
+use App\Services\OAuthMcpRefreshTokenService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
+use Tests\TestCase;
+
+class ConnectedAppsControllerTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private function makeFamily(User $user): OauthMcpRefreshTokenFamily
+    {
+        $client = OauthMcpClient::create([
+            'redirect_uris' => ['https://claude.ai/api/mcp/auth_callback'],
+        ]);
+
+        return app(OAuthMcpRefreshTokenService::class)
+            ->issueForCodeExchange(
+                $user,
+                $client,
+                config('oauth-mcp.resource'),
+                config('oauth-mcp.scope'),
+                Request::create('/oauth/token', 'POST'),
+            )['family'];
+    }
+
+    public function test_index_requires_authentication(): void
+    {
+        $this->get('/settings/connected-apps')->assertRedirect('/login');
+    }
+
+    public function test_destroy_revokes_own_family(): void
+    {
+        $user = User::factory()->create();
+        $family = $this->makeFamily($user);
+
+        $response = $this->actingAs($user)
+            ->delete('/settings/connected-apps/'.$family->id);
+
+        $response->assertRedirect('/settings/connected-apps');
+        $family->refresh();
+        $this->assertNotNull($family->revoked_at);
+    }
+}

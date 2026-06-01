@@ -4,8 +4,10 @@ namespace App\Providers;
 
 use App\Models\Prospect;
 use App\Models\Search;
+use App\Models\UserMcpKey;
 use App\Policies\ProspectPolicy;
 use App\Policies\SearchPolicy;
+use App\Policies\UserMcpKeyPolicy;
 use App\Support\ScannerConfig;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Vite;
@@ -30,6 +32,7 @@ class AppServiceProvider extends ServiceProvider
 
         Gate::policy(Search::class, SearchPolicy::class);
         Gate::policy(Prospect::class, ProspectPolicy::class);
+        Gate::policy(UserMcpKey::class, UserMcpKeyPolicy::class);
 
         Vite::prefetch(concurrency: 3);
     }

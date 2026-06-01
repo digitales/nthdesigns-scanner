@@ -1,4 +1,4 @@
-import { Head, useForm, usePage } from '@inertiajs/react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import {
     Button,
@@ -46,6 +46,20 @@ export default function SettingsIndex({ settings, nicheMaintenance, health, env 
                 )}
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                    <Card title="AI client access">
+                        <p className="micro" style={{ margin: '0 0 8px' }}>
+                            Connect Cursor, Claude, or ChatGPT to monitor scans and start single-site audits from chat.
+                        </p>
+                        <p className="micro" style={{ margin: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                            <Link href="/settings/connected-apps" className="micro" style={{ fontWeight: 500 }}>
+                                Connected apps (OAuth) →
+                            </Link>
+                            <Link href="/settings/mcp-keys" className="micro" style={{ fontWeight: 500 }}>
+                                MCP keys (header auth) →
+                            </Link>
+                        </p>
+                    </Card>
+
                     <Card title="API & storage health">
                         <ul style={{ display: 'flex', flexDirection: 'column', gap: 12, margin: 0, padding: 0, listStyle: 'none' }}>
                             {Object.entries(health).map(([key, status]) => (

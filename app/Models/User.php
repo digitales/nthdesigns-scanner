@@ -51,4 +51,9 @@ class User extends Authenticatable
     {
         return $this->hasOne(UserSetting::class);
     }
+
+    public function userMcpKeys(): HasMany
+    {
+        return $this->hasMany(UserMcpKey::class);
+    }
 }
