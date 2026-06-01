@@ -821,6 +821,7 @@ Laravel Cloud workers are PHP-oriented. They do not ship with Chrome system libr
 | Piece | Where |
 |-------|--------|
 | WCAG audits (axe, violation crops, optional Lighthouse) | Fly `POST /audit` |
+| CMS detection (`DetectCmsJob`, gbp-only scans) | Fly `POST /detect-cms` |
 | Report desktop PNG | Fly `POST /screenshot` |
 | Laravel app + queues | Laravel Cloud |
 
@@ -1032,7 +1033,7 @@ The image is based on `mcr.microsoft.com/playwright:v1.52.0-noble` (Chromium + s
 | Audit duration | ~90–180s typical | axe + Lighthouse run in parallel; PSI fallback adds ~15–30s |
 | `GET /health` | no `Authorization` | Fly health probes do not send a Bearer token |
 
-`POST /audit` and `POST /screenshot` require `Authorization: Bearer <token>` when `BROWSER_SERVICE_TOKEN` is set on Fly.
+`POST /audit`, `POST /detect-cms`, and `POST /screenshot` require `Authorization: Bearer <token>` when `BROWSER_SERVICE_TOKEN` is set on Fly.
 
 ### 1. Create the app and set secrets
 
@@ -1085,6 +1086,17 @@ curl -s -H "Authorization: Bearer YOUR_TOKEN" \
 ```
 
 Expected: non-null object with numeric `performance`.
+
+CMS detect smoke test:
+
+```bash
+curl -s -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://wordpress.org"}' \
+  https://nth-scanner-browser.fly.dev/detect-cms | jq '.platform'
+```
+
+Expected: `"wordpress"`. A **404** with `{"error":"Not found"}` means the Fly app is on an older deploy — redeploy from repo root (step 2 above).
 
 ### 4. Wire Laravel Cloud
 

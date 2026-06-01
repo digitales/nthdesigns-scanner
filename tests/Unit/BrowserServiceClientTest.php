@@ -33,6 +33,21 @@ class BrowserServiceClientTest extends TestCase
         $this->assertSame('wordpress', $payload['platform']);
     }
 
+    public function test_fetch_cms_detection_surfaces_missing_endpoint(): void
+    {
+        Config::set('scanner.audit_service_url', 'https://browser.example.com');
+        Config::set('scanner.audit_service_token', 'secret');
+
+        Http::fake([
+            'https://browser.example.com/detect-cms' => Http::response(['error' => 'Not found'], 404),
+        ]);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('CMS detect endpoint not found on browser service');
+
+        app(BrowserServiceClient::class)->fetchCmsDetection('https://example.com');
+    }
+
     public function test_fetch_audit_returns_payload(): void
     {
         Config::set('scanner.audit_service_url', 'https://browser.example.com');

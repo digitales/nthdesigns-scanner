@@ -107,8 +107,16 @@ class BrowserServiceClient
         }
 
         if (! $response->successful()) {
+            $body = trim($response->body());
+
+            if ($response->status() === 404) {
+                throw new \RuntimeException(
+                    'CMS detect endpoint not found on browser service — redeploy Fly with the latest scripts/browser-service (POST /detect-cms). Response: '.$body
+                );
+            }
+
             throw new \RuntimeException(
-                'CMS detect service failed: '.trim($response->body())
+                'CMS detect service failed: '.$body
             );
         }
 

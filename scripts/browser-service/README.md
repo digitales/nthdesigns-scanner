@@ -23,9 +23,10 @@ Prospects audited before Lighthouse/PSI worked on Fly keep `performance_score = 
 |--------|------|------|----------|
 | `GET` | `/health` | — | `{ "ok": true }` |
 | `POST` | `/audit` | `{ "url": "https://…" }` | audit.js JSON; violation PNGs include `content_base64` |
+| `POST` | `/detect-cms` | `{ "url": "https://…" }` | cms-detect.js JSON (`platform`, `confidence`, `signals`, …) |
 | `POST` | `/screenshot` | `{ "url": "https://…" }` | `{ "desktop": "desktop.png", "content_base64": "…" }` |
 
-Send `Authorization: Bearer <token>` on `POST /audit` and `POST /screenshot` when `BROWSER_SERVICE_TOKEN` or `AUDIT_SERVICE_TOKEN` is set. `GET /health` is always public (required for Fly health checks).
+Send `Authorization: Bearer <token>` on `POST /audit`, `POST /detect-cms`, and `POST /screenshot` when `BROWSER_SERVICE_TOKEN` or `AUDIT_SERVICE_TOKEN` is set. `GET /health` is always public (required for Fly health checks).
 
 ## Deploy (from repository root)
 
@@ -56,6 +57,13 @@ AUDIT_SERVICE_TOKEN=<same secret>
 cd scripts && npm ci
 BROWSER_SERVICE_TOKEN=test node browser-service/server.mjs
 ```
+
+```bash
+curl -s -H "Authorization: Bearer test" -H "Content-Type: application/json" \
+  -d '{"url":"https://example.com"}' http://127.0.0.1:8080/detect-cms | jq '.platform'
+```
+
+Expect a platform string (`wordpress`, `unknown`, etc.).
 
 ```bash
 curl -s -H "Authorization: Bearer test" -H "Content-Type: application/json" \
