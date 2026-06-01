@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\Prospect;
 use App\Services\ProspectAuditService;
 use App\Support\IncompleteAuditQuery;
+use App\Support\QueueDispatchDelay;
 use Illuminate\Console\Command;
 
 class BackfillAuditsCommand extends Command
@@ -58,25 +59,39 @@ class BackfillAuditsCommand extends Command
             $this->warn("Showing {$prospects->count()} due to --limit; {$remaining} more match the criteria.");
         }
 
+        $maxPerBatch = QueueDispatchDelay::maxJobsPerBatch($delay);
+
+        if ($maxPerBatch !== null && $prospects->count() > $maxPerBatch) {
+            $this->warn("With --delay={$delay}, each run can queue at most {$maxPerBatch} job(s) on SQS (".QueueDispatchDelay::MAX_SECONDS.'s cap). Re-run until none remain.');
+        }
+
         if (!$this->option('execute')) {
             $this->comment('Dry run — no changes made. Pass --execute to reset and dispatch jobs.');
 
             return self::SUCCESS;
         }
 
+        $toDispatch = $maxPerBatch !== null && $prospects->count() > $maxPerBatch
+            ? $prospects->take($maxPerBatch)->values()
+            : $prospects;
+        $heldBack = $prospects->count() - $toDispatch->count();
         $dispatched = 0;
 
-        foreach ($prospects as $index => $prospect) {
+        foreach ($toDispatch as $index => $prospect) {
             $audits->queueSiteAudit(
                 $prospect->fresh(),
                 suppressAutoReport: true,
-                delaySeconds: $index * $delay,
+                delaySeconds: QueueDispatchDelay::forIndex($index, $delay),
             );
 
             $dispatched++;
         }
 
         $this->info("Dispatched {$dispatched} audit job(s).");
+
+        if ($heldBack > 0) {
+            $this->warn("{$heldBack} prospect(s) not queued — SQS caps DelaySeconds at ".QueueDispatchDelay::MAX_SECONDS.'. Re-run this command when the queue drains.');
+        }
 
         return self::SUCCESS;
     }
