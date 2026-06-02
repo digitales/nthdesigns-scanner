@@ -46,8 +46,8 @@ return [
     // HTTP client timeout for Fly/browser-service /audit (page + axe + lighthouse can exceed 120s).
     'audit_timeout' => (int) env('AUDIT_TIMEOUT', 210),
 
-    // HTTP client timeout for Fly/browser-service /screenshot (goto + 60s capture).
-    'screenshot_timeout' => (int) env('SCREENSHOT_TIMEOUT', 120),
+    // HTTP client timeout for Fly/browser-service /screenshot (goto 45s + capture 60s + headroom).
+    'screenshot_timeout' => (int) env('SCREENSHOT_TIMEOUT', 150),
 
     'report_booking_url' => env('REPORT_BOOKING_URL'),
 

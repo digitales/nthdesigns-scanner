@@ -520,10 +520,12 @@ REPORT_BOOKING_URL=https://tidycal.com/yourhandle
 REPORT_EXPIRY_DAYS=30
 SEARCH_RATE_LIMIT_SECONDS=30
 AUDIT_TIMEOUT=210
-SCREENSHOT_TIMEOUT=120
+SCREENSHOT_TIMEOUT=150
 ```
 
 `AUDIT_TIMEOUT` is the Laravel HTTP client timeout for `POST {AUDIT_SERVICE_URL}/audit`. A full Fly audit (axe + Lighthouse + optional PageSpeed fallback) typically takes **90–180s**; keep this at **210s** unless smoke tests on slow URLs prove insufficient. Must stay below `AuditSiteJob` timeout (240s).
+
+`SCREENSHOT_TIMEOUT` is the HTTP client timeout for `POST {AUDIT_SERVICE_URL}/screenshot`. Playwright allows up to **45s** navigation + **60s** capture; with browser launch and base64 transfer, slow sites can exceed **120s**. Keep at **150s** unless smoke tests prove insufficient. Must stay below `CaptureScreenshotJob` timeout (180s).
 
 ### Node / audit scripts (Playwright path)
 
@@ -1342,7 +1344,7 @@ REPORT_BOOKING_URL=
 REPORT_EXPIRY_DAYS=30
 SEARCH_RATE_LIMIT_SECONDS=30
 AUDIT_TIMEOUT=210
-SCREENSHOT_TIMEOUT=120
+SCREENSHOT_TIMEOUT=150
 
 NODE_BINARY=node
 
