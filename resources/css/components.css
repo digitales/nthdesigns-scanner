@@ -756,6 +756,17 @@
   .ptable.ptable--prospects {
     table-layout: fixed;
   }
+  .ptable.ptable--comparison {
+    table-layout: fixed;
+  }
+  .ptable.ptable--comparison thead th {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .ptable.ptable--comparison tbody tr:hover {
+    background: inherit;
+    cursor: default;
+  }
   .ptable thead th {
     text-align: left;
     font-family: var(--font-mono);
