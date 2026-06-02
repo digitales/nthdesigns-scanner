@@ -196,6 +196,22 @@ class ProspectShowTest extends TestCase
                 ->where('navigation.back_label', 'Back to outreach'));
     }
 
+    public function test_show_direct_url_search_uses_single_site_context(): void
+    {
+        $user = User::factory()->create();
+        $search = Search::factory()->directUrl('https://wheretoescape.com/en-gb/')->create(['user_id' => $user->id]);
+        $prospect = Prospect::factory()->create(['search_id' => $search->id]);
+
+        $this->actingAs($user)
+            ->get("/prospects/{$prospect->id}")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Prospect/Show')
+                ->where('search.source', 'direct_url')
+                ->where('search.submitted_url', 'https://wheretoescape.com/en-gb/')
+                ->where('navigation.back_label', 'Back to single site'));
+    }
+
     public function test_show_includes_lighthouse_from_performance_score_when_payload_missing(): void
     {
         $user = User::factory()->create();

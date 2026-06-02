@@ -6,6 +6,7 @@ use App\Models\Search;
 use App\Support\SearchQueue;
 use App\Services\BenchmarkNormalizer;
 use App\Services\GooglePlacesService;
+use App\Services\ProspectExclusionService;
 use App\Services\SearchStatusService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -26,15 +27,21 @@ class ScrapeProspectsJob implements ShouldQueue
         SearchQueue::apply($this);
     }
 
-    public function handle(GooglePlacesService $places, SearchStatusService $searchStatus): void
-    {
+    public function handle(
+        GooglePlacesService $places,
+        SearchStatusService $searchStatus,
+        ProspectExclusionService $exclusions,
+    ): void {
         $this->search->update(['status' => 'discovering']);
 
         try {
-            $placeIds = $places->searchByNicheAndCity(
-                $this->search->niche,
-                $this->search->city,
-                $this->search->country,
+            $placeIds = $exclusions->filterPlaceIds(
+                $this->search->user_id,
+                $places->searchByNicheAndCity(
+                    $this->search->niche,
+                    $this->search->city,
+                    $this->search->country,
+                ),
             );
 
             $benchmarkPlace = $places->getTopRankedInNiche(

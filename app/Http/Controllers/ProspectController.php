@@ -9,6 +9,7 @@ use App\Models\AuditJob;
 use App\Models\Prospect;
 use App\Services\ProspectAuditService;
 use App\Services\ProspectEnrichmentService;
+use App\Services\ProspectExclusionService;
 use App\Services\ReportBuilderService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,8 +18,12 @@ use Inertia\Response;
 
 class ProspectController extends Controller
 {
-    public function show(Request $request, Prospect $prospect, ReportBuilderService $reportBuilder): Response
-    {
+    public function show(
+        Request $request,
+        Prospect $prospect,
+        ReportBuilderService $reportBuilder,
+        ProspectExclusionService $exclusions,
+    ): Response {
         $this->authorize('view', $prospect);
 
         $prospect->load([
@@ -33,8 +38,12 @@ class ProspectController extends Controller
             ? ['back_href' => '/outreach', 'back_label' => 'Back to outreach']
             : [
                 'back_href'  => '/searches/'.$prospect->search->id,
-                'back_label' => 'Back to '.$prospect->search->niche,
+                'back_label' => $prospect->search->isDirectUrl()
+                    ? 'Back to single site'
+                    : 'Back to '.$prospect->search->niche,
             ];
+
+        $ignored = $exclusions->findForUser($request->user()->id, $prospect->place_id);
 
         return Inertia::render('Prospect/Show', [
             'navigation' => $navigation,
@@ -58,10 +67,12 @@ class ProspectController extends Controller
                 'audit_status'     => $prospect->audit_status,
             ],
             'search' => [
-                'id'        => $prospect->search->id,
-                'niche'     => $prospect->search->niche,
-                'city'      => $prospect->search->city,
-                'scan_type' => $prospect->search->scan_type,
+                'id'            => $prospect->search->id,
+                'source'        => $prospect->search->source,
+                'submitted_url' => $prospect->search->submitted_url,
+                'niche'         => $prospect->search->niche,
+                'city'          => $prospect->search->city,
+                'scan_type'     => $prospect->search->scan_type,
             ],
             'report' => $prospect->report ? [
                 'id'               => $prospect->report->id,
@@ -92,6 +103,18 @@ class ProspectController extends Controller
                 'author'     => $n->user?->name ?? 'You',
                 'created_at' => $n->created_at->diffForHumans(),
             ]),
+            'ignored' => $ignored ? [
+                'reason'       => $ignored->reason,
+                'reason_label' => $ignored->label(),
+                'note'         => $ignored->note,
+                'ignored_at'   => $ignored->updated_at->diffForHumans(),
+            ] : null,
+            'ignoreReasons' => [
+                ['value' => 'acquired', 'label' => 'Company acquired'],
+                ['value' => 'cold', 'label' => 'Cold lead'],
+                ['value' => 'outreach_failed', 'label' => 'Outreach did not work'],
+                ['value' => 'other', 'label' => 'Other'],
+            ],
         ]);
     }
 

@@ -43,6 +43,7 @@ class ScrapeProspectsJobTest extends TestCase
         (new ScrapeProspectsJob($search))->handle(
             app(GooglePlacesService::class),
             app(SearchStatusService::class),
+            app(\App\Services\ProspectExclusionService::class),
         );
 
         $search->refresh();

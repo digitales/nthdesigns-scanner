@@ -2,10 +2,12 @@
 
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\ExportController;
+use App\Http\Controllers\IgnoredProspectController;
 use App\Http\Controllers\OutreachController;
 use App\Http\Controllers\OutreachEmailController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProspectController;
+use App\Http\Controllers\ProspectIgnoreController;
 use App\Http\Controllers\ProspectNoteController;
 use App\Http\Controllers\PublicBookingController;
 use App\Http\Controllers\PublicReportController;
@@ -71,6 +73,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/searches/{search}', [SearchController::class, 'show'])->name('searches.show');
 
     Route::get('/saved', [SavedProspectController::class, 'index'])->name('saved.index');
+    Route::get('/ignored', [IgnoredProspectController::class, 'index'])->name('ignored.index');
+    Route::delete('/ignored/{ignoredProspect}', [IgnoredProspectController::class, 'destroy'])->name('ignored.destroy');
     Route::get('/reports', [ReportDashboardController::class, 'index'])->name('reports.index');
     Route::post('/exports', [ExportController::class, 'store'])->name('exports.store');
 
@@ -83,6 +87,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/prospects/{prospect}', [ProspectController::class, 'show'])->name('prospects.show');
     Route::patch('/prospects/{prospect}', [ProspectController::class, 'update'])->name('prospects.update');
     Route::post('/prospects/{prospect}/notes', [ProspectNoteController::class, 'store'])->name('prospects.notes.store');
+    Route::post('/prospects/{prospect}/ignore', [ProspectIgnoreController::class, 'store'])->name('prospects.ignore.store');
+    Route::delete('/prospects/{prospect}/ignore', [ProspectIgnoreController::class, 'destroy'])->name('prospects.ignore.destroy');
     Route::post('/prospects/{prospect}/audit', [ProspectController::class, 'reauditSite'])->name('prospects.audit');
     Route::post('/prospects/{prospect}/report', [ProspectController::class, 'generateReport'])->name('prospects.report');
     Route::post('/prospects/{prospect}/outreach', [ProspectController::class, 'generateOutreach'])->name('prospects.outreach');

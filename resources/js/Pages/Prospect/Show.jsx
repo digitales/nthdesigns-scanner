@@ -21,10 +21,27 @@ const LIGHTHOUSE_METRICS = [
     { label: 'Best practices', key: 'best_practices' },
 ];
 
-export default function ProspectShow({ prospect, search, navigation, report, outreachEmails, auditFailure, audit, cms, lighthouse, pageSpeed, notes = [] }) {
+export default function ProspectShow({
+    prospect,
+    search,
+    navigation,
+    report,
+    outreachEmails,
+    auditFailure,
+    audit,
+    cms,
+    lighthouse,
+    pageSpeed,
+    notes = [],
+    ignored = null,
+    ignoreReasons = [],
+}) {
     const { flash } = usePage().props;
     const [copied, setCopied] = useState(false);
     const [editing, setEditing] = useState(false);
+    const [showIgnoreForm, setShowIgnoreForm] = useState(false);
+    const [ignoreReason, setIgnoreReason] = useState('acquired');
+    const [ignoreNote, setIgnoreNote] = useState('');
     const [form, setForm] = useState({
         business_name: prospect.business_name ?? '',
         phone: prospect.phone ?? '',
@@ -62,11 +79,34 @@ export default function ProspectShow({ prospect, search, navigation, report, out
         });
     };
 
+    const ignoreProspect = (e) => {
+        e.preventDefault();
+        router.post(`/prospects/${prospect.id}/ignore`, {
+            reason: ignoreReason,
+            note: ignoreNote.trim() || null,
+        }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setShowIgnoreForm(false);
+                setIgnoreNote('');
+            },
+        });
+    };
+
+    const unignoreProspect = () => {
+        router.delete(`/prospects/${prospect.id}/ignore`, { preserveScroll: true });
+    };
+
     const auditPending = prospect.audit_status === 'pending';
     const canReauditSite = Boolean(prospect.website_url)
         && !auditPending
         && ['accessibility_only', 'combined'].includes(search.scan_type);
     const latestOutreach = outreachEmails[0] ?? null;
+    const isDirectUrl = search.source === 'direct_url';
+    const directHost = search.submitted_url?.replace(/^https?:\/\//, '') ?? 'Single site';
+    const eyebrow = isDirectUrl
+        ? `C · Single site · ${directHost}`
+        : `C · ${search.niche} · ${search.city}`;
 
     return (
         <AuthenticatedLayout>
@@ -74,7 +114,7 @@ export default function ProspectShow({ prospect, search, navigation, report, out
 
             <main className="page" style={{ maxWidth: 1200 }}>
                 <PageHeader
-                    eyebrow={`C · ${search.niche} · ${search.city}`}
+                    eyebrow={eyebrow}
                     title={prospect.business_name}
                     sub={prospect.address ?? prospect.website_url?.replace(/^https?:\/\//, '')}
                     back={navigation.back_label}
@@ -84,6 +124,37 @@ export default function ProspectShow({ prospect, search, navigation, report, out
                 {flash?.success && (
                     <div className="skip-banner" style={{ background: 'var(--color-positive-soft)', marginBottom: 20 }}>
                         {flash.success}
+                    </div>
+                )}
+
+                {ignored && (
+                    <div
+                        className="skip-banner"
+                        style={{
+                            background: 'var(--color-stone-100)',
+                            border: '1px solid var(--color-stone-300)',
+                            marginBottom: 20,
+                        }}
+                    >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
+                            <div>
+                                <strong style={{ fontSize: 13 }}>Ignored from future scans</strong>
+                                <p className="micro" style={{ margin: '4px 0 0' }}>
+                                    {ignored.reason_label}
+                                    {ignored.note ? ` — ${ignored.note}` : ''}
+                                    {' · '}
+                                    {ignored.ignored_at}
+                                </p>
+                            </div>
+                            <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                                <Button kind="ghost" size="sm" onClick={() => router.visit('/ignored')}>
+                                    View all ignored
+                                </Button>
+                                <Button kind="ghost" size="sm" onClick={unignoreProspect}>
+                                    Undo ignore
+                                </Button>
+                            </div>
+                        </div>
                     </div>
                 )}
 
@@ -359,6 +430,47 @@ export default function ProspectShow({ prospect, search, navigation, report, out
                         </Card>
 
                         <TechnologySection cms={cms} />
+
+                        {!ignored && (
+                            <Card title="Ignore prospect">
+                                <p className="micro" style={{ marginBottom: 12 }}>
+                                    Skip this business in future niche and city scans. Use for acquisitions, cold leads, or failed outreach.
+                                </p>
+                                {showIgnoreForm ? (
+                                    <form onSubmit={ignoreProspect} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                        <label className="micro">Reason</label>
+                                        <select
+                                            className="input"
+                                            value={ignoreReason}
+                                            onChange={(e) => setIgnoreReason(e.target.value)}
+                                        >
+                                            {ignoreReasons.map((r) => (
+                                                <option key={r.value} value={r.value}>{r.label}</option>
+                                            ))}
+                                        </select>
+                                        <label className="micro">Note (optional)</label>
+                                        <textarea
+                                            className="textarea"
+                                            rows={2}
+                                            value={ignoreNote}
+                                            onChange={(e) => setIgnoreNote(e.target.value)}
+                                            placeholder="e.g. Acquired by Gallagher in 2024"
+                                            style={{ width: '100%' }}
+                                        />
+                                        <div style={{ display: 'flex', gap: 8 }}>
+                                            <Button kind="primary" size="sm" type="submit">Ignore from scans</Button>
+                                            <Button kind="ghost" size="sm" type="button" onClick={() => setShowIgnoreForm(false)}>
+                                                Cancel
+                                            </Button>
+                                        </div>
+                                    </form>
+                                ) : (
+                                    <Button kind="secondary" size="sm" onClick={() => setShowIgnoreForm(true)}>
+                                        Ignore prospect…
+                                    </Button>
+                                )}
+                            </Card>
+                        )}
 
                         <Card title="Private notes">
                             <p className="micro" style={{ marginBottom: 12 }}>Not included on public reports.</p>

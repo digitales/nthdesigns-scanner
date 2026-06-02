@@ -9,6 +9,7 @@ use App\Support\WebsiteUrlNormalizer;
 use App\Services\DirectUrlSearchEnrichment;
 use App\Services\GbpScoringService;
 use App\Services\GooglePlacesService;
+use App\Services\ProspectExclusionService;
 use App\Services\SearchStatusService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -35,6 +36,7 @@ class DirectUrlScanJob implements ShouldQueue
         SearchStatusService $searchStatus,
         WebsiteUrlNormalizer $normalizer,
         DirectUrlSearchEnrichment $enrichment,
+        ProspectExclusionService $exclusions,
     ): void {
         $search = $this->search->fresh();
 
@@ -46,6 +48,14 @@ class DirectUrlScanJob implements ShouldQueue
 
         $url = $search->submitted_url;
         $payload = $places->findByWebsiteUrl($url);
+
+        $placeId = $payload['id'] ?? 'direct:'.hash('sha256', $normalizer->normalize($url));
+
+        if ($exclusions->isIgnored($search->user_id, $placeId)) {
+            $search->update(['status' => 'complete', 'total_found' => 0]);
+
+            return;
+        }
 
         try {
             if ($payload) {
