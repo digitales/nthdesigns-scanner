@@ -172,7 +172,7 @@ export default function SearchShow({ search, prospects, outreachProspectIds = []
                         sub="Try lowering the minimum score or clearing the angle filter."
                     />
                 ) : (
-                    <DataTable style={{ background: 'var(--color-paper)' }}>
+                    <DataTable tableClassName="ptable--prospects" style={{ background: 'var(--color-paper)' }}>
                             <thead>
                                 <tr>
                                     <th style={{ width: 36 }}>
@@ -267,7 +267,11 @@ function ProspectRow({
                                             </span>
                                         )}
                     </div>
-                    <span className="url" style={isFailed ? { color: 'var(--color-sev-critical)' } : {}}>
+                    <span
+                        className="url"
+                        title={isFailed ? undefined : urlDisplay}
+                        style={isFailed ? { color: 'var(--color-sev-critical)' } : {}}
+                    >
                         {isFailed ? (p.audit_error ?? 'Audit failed') : urlDisplay}
                     </span>
                 </td>

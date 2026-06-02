@@ -753,6 +753,9 @@
     border-spacing: 0;
     font-size: 13px;
   }
+  .ptable.ptable--prospects {
+    table-layout: fixed;
+  }
   .ptable thead th {
     text-align: left;
     font-family: var(--font-mono);
@@ -779,6 +782,10 @@
   .ptable tbody tr:last-child td { border-bottom: 0; }
   .ptable tbody tr:hover { background: var(--color-paper-2); cursor: pointer; }
   .ptable .biz { font-weight: 500; }
+  .ptable.ptable--prospects .biz {
+    max-width: 0;
+    overflow: hidden;
+  }
   .ptable .biz .url {
     display: block;
     font-family: var(--font-mono);
@@ -786,6 +793,9 @@
     color: var(--color-stone-500);
     font-weight: 400;
     margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .ptable tbody tr.warm { background: linear-gradient(90deg, var(--color-accent-soft) 0%, transparent 50%); }
   .ptable tbody tr.warm:hover { background: linear-gradient(90deg, var(--color-accent-soft) 0%, var(--color-paper-2) 50%); }
