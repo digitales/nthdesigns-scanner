@@ -85,7 +85,7 @@ Version: parse from generator, e.g. `WordPress 6.4.2` → `6.4.2`.
 | Platform | Example signals |
 |----------|-----------------|
 | Shopify | `cdn.shopify.com`, `Shopify.shop`, `myshopify.com` in HTML |
-| Wix | `wix.com`, `wixstatic.com`, `wix-warmup-data` |
+| Wix | `wix.com`, `wixstatic.com`, `wix-warmup-data`, `parastorage.com`, `wix-thunderbolt`, `wix-first-paint`; `id="wix-*"`; headers `x-wix-request-id`, `link` (wix/parastorage), `server: Pepyaka`; generator contains Wix |
 | Squarespace | `squarespace.com`, `static.squarespace.com` |
 | Webflow | `webflow.com`, `wfdesign`, `data-wf-page` |
 | Joomla | generator `Joomla!`, `/components/com_` |

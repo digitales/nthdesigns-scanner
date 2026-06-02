@@ -64,8 +64,37 @@ const RULES = [
         weight: 10,
         test: ({ htmlLower }) => htmlLower.includes('wix.com')
             || htmlLower.includes('wixstatic.com')
-            || htmlLower.includes('wix-warmup-data'),
+            || htmlLower.includes('wix-warmup-data')
+            || htmlLower.includes('parastorage.com')
+            || htmlLower.includes('wix-thunderbolt')
+            || htmlLower.includes('wix-first-paint'),
         detail: () => 'Wix assets or markers',
+    },
+    {
+        id: 'html_wix_dom_ids',
+        platform: 'wix',
+        weight: 8,
+        test: ({ html }) => /\bid=["']wix-/i.test(html),
+        detail: () => 'Wix element or script ids',
+    },
+    {
+        id: 'header_wix',
+        platform: 'wix',
+        weight: 8,
+        test: ({ headers }) => (headers['x-wix-request-id'] ?? '') !== ''
+            || /wix|parastorage/i.test(headers.link ?? '')
+            || /pepyaka/i.test(headers.server ?? ''),
+        detail: ({ headers }) => headers['x-wix-request-id']
+            ?? headers.link
+            ?? headers.server
+            ?? '',
+    },
+    {
+        id: 'meta_generator_wix',
+        platform: 'wix',
+        weight: 10,
+        test: ({ generator }) => /wix/i.test(generator ?? ''),
+        detail: ({ generator }) => generator,
     },
     {
         id: 'html_squarespace',

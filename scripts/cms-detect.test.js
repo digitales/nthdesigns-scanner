@@ -38,6 +38,51 @@ test('detects Shopify from HTML markers', () => {
     assert.equal(result.platform, 'shopify');
 });
 
+test('detects Wix from wix-first-paint bootstrap markup', () => {
+    const html = load('wix-first-paint.html');
+    const result = resolveCmsFromInputs({
+        html,
+        bodyClass: '',
+        headers: {},
+        finalUrl: 'https://www.example-hotel.co.uk/',
+    });
+
+    assert.equal(result.platform, 'wix');
+    assert.equal(result.confidence, 'high');
+    assert.ok(result.signals.some((s) => s.id === 'html_wix' && s.matched));
+    assert.ok(result.signals.some((s) => s.id === 'html_wix_dom_ids' && s.matched));
+});
+
+test('detects Wix from parastorage CDN scripts', () => {
+    const html = load('wix-parastorage.html');
+    const result = resolveCmsFromInputs({
+        html,
+        bodyClass: '',
+        headers: {},
+        finalUrl: 'https://example.com/',
+    });
+
+    assert.equal(result.platform, 'wix');
+    assert.ok(result.signals.some((s) => s.id === 'html_wix' && s.matched));
+});
+
+test('detects Wix from response headers when HTML is empty', () => {
+    const result = resolveCmsFromInputs({
+        html: '<html><body></body></html>',
+        bodyClass: '',
+        headers: {
+            'x-wix-request-id': '1780410627.620235568732923178',
+            link: '<https://static.parastorage.com/>; rel=preconnect',
+            server: 'Pepyaka',
+        },
+        finalUrl: 'https://www.example-hotel.co.uk/',
+    });
+
+    assert.equal(result.platform, 'wix');
+    assert.equal(result.confidence, 'medium');
+    assert.ok(result.signals.some((s) => s.id === 'header_wix' && s.matched));
+});
+
 test('returns unknown when no signals match', () => {
     const html = load('unknown-static.html');
     const result = resolveCmsFromInputs({
