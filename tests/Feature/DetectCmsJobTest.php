@@ -12,6 +12,36 @@ class DetectCmsJobTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_force_redetects_when_cms_already_stored_for_url(): void
+    {
+        $prospect = Prospect::factory()->create([
+            'website_url' => 'https://example.com',
+            'cms_detection' => [
+                'platform' => 'unknown',
+                'url' => 'https://example.com',
+            ],
+        ]);
+
+        $this->mock(CmsDetectionRunnerService::class, function ($mock) {
+            $mock->shouldReceive('run')
+                ->once()
+                ->with('https://example.com')
+                ->andReturn([
+                    'platform' => 'wix',
+                    'version' => null,
+                    'confidence' => 'high',
+                    'signals' => [],
+                    'detected_at' => now()->toIso8601String(),
+                    'url' => 'https://example.com/',
+                ]);
+        });
+
+        (new DetectCmsJob($prospect, force: true))->handle(app(CmsDetectionRunnerService::class));
+
+        $prospect->refresh();
+        $this->assertSame('wix', $prospect->cms_detection['platform']);
+    }
+
     public function test_persists_cms_detection_on_prospect(): void
     {
         $prospect = Prospect::factory()->create([

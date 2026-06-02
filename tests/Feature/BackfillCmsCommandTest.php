@@ -79,6 +79,28 @@ class BackfillCmsCommandTest extends TestCase
         Queue::assertNothingPushed();
     }
 
+    public function test_force_redetects_prospects_with_existing_cms_detection(): void
+    {
+        Queue::fake();
+
+        $prospect = $this->prospectMissingCms([
+            'cms_detection' => [
+                'platform' => 'unknown',
+                'url' => 'https://example.com',
+            ],
+        ]);
+
+        $this->artisan('scanner:backfill-cms', ['--execute' => true, '--force' => true, '--delay' => 0])
+            ->expectsOutputToContain('Found 1 prospect(s) to re-detect.')
+            ->expectsOutputToContain('Dispatched 1')
+            ->assertExitCode(0);
+
+        Queue::assertPushed(DetectCmsJob::class, function (DetectCmsJob $job) use ($prospect) {
+            return $job->prospect->id === $prospect->id
+                && $job->force === true;
+        });
+    }
+
     public function test_skips_prospects_without_website(): void
     {
         Queue::fake();

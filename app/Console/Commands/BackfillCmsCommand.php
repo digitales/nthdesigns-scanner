@@ -12,12 +12,13 @@ class BackfillCmsCommand extends Command
 {
     protected $signature = 'scanner:backfill-cms
                             {--execute : Dispatch DetectCmsJob for matching prospects}
+                            {--force : Re-detect even when cms_detection is already stored}
                             {--search= : Limit to search ID}
                             {--prospect= : Limit to prospect ID}
                             {--limit= : Maximum prospects to dispatch}
                             {--delay=5 : Seconds between each dispatch}';
 
-    protected $description = 'Find prospects with a website but no CMS detection and queue DetectCmsJob';
+    protected $description = 'Queue CMS detection for prospects with a website URL';
 
     public function handle(): int
     {
@@ -26,12 +27,15 @@ class BackfillCmsCommand extends Command
         $limit = $this->option('limit') !== null ? (int) $this->option('limit') : null;
         $delay = max(0, (int) $this->option('delay'));
 
-        $query = $this->query($searchId, $prospectId);
+        $force = (bool) $this->option('force');
+        $query = $this->query($searchId, $prospectId, $force);
         $total = (clone $query)->count();
-        $prospects = $this->fetch($searchId, $prospectId, $limit);
+        $prospects = $this->fetch($searchId, $prospectId, $limit, $force);
 
         if ($prospects->isEmpty()) {
-            $this->info('No prospects missing CMS detection.');
+            $this->info($force
+                ? 'No prospects with a website URL match the criteria.'
+                : 'No prospects missing CMS detection.');
 
             return self::SUCCESS;
         }
@@ -49,7 +53,9 @@ class BackfillCmsCommand extends Command
         );
 
         $remaining = $total - $prospects->count();
-        $this->info("Found {$total} prospect(s) missing CMS detection.");
+        $this->info($force
+            ? "Found {$total} prospect(s) to re-detect."
+            : "Found {$total} prospect(s) missing CMS detection.");
 
         if ($remaining > 0) {
             $this->warn("Showing {$prospects->count()} due to --limit; {$remaining} more match the criteria.");
@@ -67,7 +73,7 @@ class BackfillCmsCommand extends Command
         $dispatched = 0;
 
         foreach ($toDispatch as $index => $prospect) {
-            $dispatch = DetectCmsJob::dispatch($prospect->fresh());
+            $dispatch = DetectCmsJob::dispatch($prospect->fresh(), $force);
             $delaySeconds = QueueDispatchDelay::forIndex($index, $delay);
 
             if ($delaySeconds > 0) {
@@ -89,12 +95,12 @@ class BackfillCmsCommand extends Command
     /**
      * @return Builder<Prospect>
      */
-    private function query(?int $searchId, ?int $prospectId): Builder
+    private function query(?int $searchId, ?int $prospectId, bool $force = false): Builder
     {
         return Prospect::query()
             ->whereNotNull('website_url')
             ->where('website_url', '!=', '')
-            ->whereNull('cms_detection')
+            ->when(! $force, fn (Builder $q) => $q->whereNull('cms_detection'))
             ->when($searchId !== null, fn (Builder $q) => $q->where('search_id', $searchId))
             ->when($prospectId !== null, fn (Builder $q) => $q->whereKey($prospectId))
             ->orderBy('id');
@@ -103,9 +109,9 @@ class BackfillCmsCommand extends Command
     /**
      * @return \Illuminate\Database\Eloquent\Collection<int, Prospect>
      */
-    private function fetch(?int $searchId, ?int $prospectId, ?int $limit)
+    private function fetch(?int $searchId, ?int $prospectId, ?int $limit, bool $force = false)
     {
-        $query = $this->query($searchId, $prospectId);
+        $query = $this->query($searchId, $prospectId, $force);
 
         if ($limit !== null) {
             $query->limit($limit);

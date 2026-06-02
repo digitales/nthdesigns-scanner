@@ -23,7 +23,7 @@ class DetectCmsJob implements ShouldQueue
 
     public int $timeout = 120;
 
-    public function __construct(public Prospect $prospect)
+    public function __construct(public Prospect $prospect, public bool $force = false)
     {
         AuditingQueue::apply($this);
     }
@@ -36,7 +36,7 @@ class DetectCmsJob implements ShouldQueue
             return;
         }
 
-        if ($this->alreadyDetected($prospect)) {
+        if (! $this->force && $this->alreadyDetected($prospect)) {
             return;
         }
 
