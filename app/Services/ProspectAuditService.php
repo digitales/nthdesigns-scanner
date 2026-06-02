@@ -46,6 +46,37 @@ class ProspectAuditService
     }
 
     /**
+     * Reset site-audit fields and queue {@see AuditSiteJob} for repair flows.
+     * Unlike {@see queueSiteAudit()}, allows prospects already pending (stuck re-dispatch).
+     */
+    public function repairSiteAudit(Prospect $prospect, bool $suppressAutoReport = true, int $delaySeconds = 0): void
+    {
+        $prospect->loadMissing('search');
+
+        if (empty($prospect->website_url)) {
+            throw ValidationException::withMessages([
+                'website_url' => 'Add a website URL before running a site audit.',
+            ]);
+        }
+
+        if (! in_array($prospect->search->scan_type, ['accessibility_only', 'combined'], true)) {
+            throw ValidationException::withMessages([
+                'website_url' => 'This search type does not include site audits.',
+            ]);
+        }
+
+        $prospect->update(array_merge($this->auditResetFields(), [
+            'suppress_auto_report' => $suppressAutoReport,
+        ]));
+
+        $dispatch = AuditSiteJob::dispatch($prospect->fresh());
+
+        if ($delaySeconds > 0) {
+            $dispatch->delay(now()->addSeconds($delaySeconds));
+        }
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function auditResetFields(): array
