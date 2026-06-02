@@ -786,6 +786,20 @@ php artisan scanner:backfill-audits --execute --delay=5
 
 Optional filters: `--search=ID`, `--prospect=ID`, `--limit=50`. Run on an app instance; auditing workers process the jobs. See `docs/superpowers/specs/2026-05-27-audit-backfill-design.md`.
 
+**Repair stuck, failed, or screenshot audits**
+
+When searches stay in **Auditing**, prospects remain `audit_status: pending` without a worker, or screenshot captures failed:
+
+```bash
+php artisan scanner:repair-audits              # dry-run (all categories)
+php artisan scanner:repair-audits --execute --delay=5
+php artisan scanner:repair-audits --execute --only=stuck --stuck-after=10
+```
+
+This command does **not** re-run Google Places / GBP scoring. It re-dispatches `AuditSiteJob` for stuck or failed site audits and `CaptureScreenshotJob` for failed/stuck screenshots. For incomplete audit *payloads* on finished prospects, use `scanner:backfill-audits` instead.
+
+See `docs/superpowers/specs/2026-06-02-audit-repair-design.md`.
+
 ### Rate limiting
 
 Search is limited to one search per user every 30 seconds (`SEARCH_RATE_LIMIT_SECONDS`). Adjust via env if needed.
