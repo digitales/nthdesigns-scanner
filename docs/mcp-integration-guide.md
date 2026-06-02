@@ -34,14 +34,30 @@ For clients that only support a static header:
 | `list_searches` | Recent operator searches |
 | `get_search` | Status + progress; `include_prospects` for detail |
 | `list_search_prospects` | Prospect summaries for one search |
+| `get_search_progress_flow` | Search/prospect progress flow snapshot (phase, step, coarse duration buckets) |
+| `watch_search_progress` | Bounded progress watch (supports streamable progress notifications) |
 | `start_single_site_audit` | Submit a URL (`direct_url` scan) |
 
 ## Monitoring workflow
 
 1. `start_single_site_audit` → `search_id`
-2. Poll `get_search` until `status` is `complete` or `failed`
+2. Poll `get_search_progress_flow` (or `get_search`) until `progress_flow.search_complete` is true
 3. Use `list_search_prospects` or `get_search` with `include_prospects: true` for failures/scores
 4. Open `app_url` in the browser for full UI
+
+### Streamable progress notifications (v1.1)
+
+When calling tools over streamable MCP transport, clients can include:
+
+```json
+{
+  "_meta": {
+    "progressToken": "search-42"
+  }
+}
+```
+
+Supported tools (`get_search`, `get_search_progress_flow`, `watch_search_progress`) may emit `notifications/progress` with monotonic `progress`, optional `total`, and `message`.
 
 ## Revocation
 

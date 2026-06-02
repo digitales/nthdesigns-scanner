@@ -4,11 +4,16 @@ namespace App\Services\Mcp;
 
 use App\Models\Search;
 use App\Models\User;
+use App\Services\ProgressFlowService;
 use App\Services\ReportBuilderService;
+use Illuminate\Support\Collection;
 
 class McpSearchService
 {
-    public function __construct(private ReportBuilderService $reportBuilder) {}
+    public function __construct(
+        private ReportBuilderService $reportBuilder,
+        private ProgressFlowService $progressFlow,
+    ) {}
 
     /**
      * @return array{searches: list<array<string, mixed>>}
@@ -37,16 +42,19 @@ class McpSearchService
     public function getSearch(User $user, int $searchId, bool $includeProspects = false): array
     {
         $search = $this->findAuthorizedSearch($user, $searchId);
+        $prospects = $this->loadProspects($search);
         $search->loadCount('prospects');
+        $flow = $this->progressFlow->searchFlow($search, $prospects);
 
         $payload = [
             'search' => $this->mapSearchDetail($search),
-            'progress' => $this->buildProgress($search),
+            'progress' => $this->buildProgress($search, $prospects),
+            'progress_flow' => $flow,
             'app_url' => route('searches.show', $search),
         ];
 
         if ($includeProspects) {
-            $payload['prospects'] = $this->mapProspects($search);
+            $payload['prospects'] = $this->mapProspects($search, $prospects);
         }
 
         return $payload;
@@ -58,10 +66,59 @@ class McpSearchService
     public function listSearchProspects(User $user, int $searchId): array
     {
         $search = $this->findAuthorizedSearch($user, $searchId);
+        $prospects = $this->loadProspects($search);
 
         return [
             'search_id' => $search->id,
-            'prospects' => $this->mapProspects($search),
+            'prospects' => $this->mapProspects($search, $prospects),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getSearchProgressFlow(User $user, int $searchId, bool $includeProspects = true): array
+    {
+        $search = $this->findAuthorizedSearch($user, $searchId);
+        $prospects = $this->loadProspects($search);
+        $flow = $this->progressFlow->searchFlow($search, $prospects);
+
+        $payload = [
+            'search_id' => $search->id,
+            'status' => $search->status,
+            'progress_flow' => $flow,
+            'app_url' => route('searches.show', $search),
+        ];
+
+        if ($includeProspects) {
+            $payload['prospects'] = $prospects->map(function ($prospect) use ($search) {
+                return [
+                    'id' => $prospect->id,
+                    'business_name' => $prospect->business_name,
+                    'audit_status' => $prospect->audit_status,
+                    'report_ready' => $prospect->report !== null,
+                    'progress_flow' => $this->progressFlow->prospectFlow($prospect, $search),
+                ];
+            })->values()->all();
+        }
+
+        return $payload;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function watchSearchProgress(User $user, int $searchId, int $timeoutSeconds = 45, bool $includeProspects = false): array
+    {
+        $timeoutSeconds = max(5, min(45, $timeoutSeconds));
+
+        return [
+            'watch' => [
+                'search_id' => $searchId,
+                'timeout_seconds' => $timeoutSeconds,
+                'include_prospects' => $includeProspects,
+            ],
+            'snapshot' => $this->getSearchProgressFlow($user, $searchId, $includeProspects),
         ];
     }
 
@@ -111,10 +168,8 @@ class McpSearchService
     /**
      * @return array<string, mixed>
      */
-    private function buildProgress(Search $search): array
+    private function buildProgress(Search $search, Collection $prospects): array
     {
-        $prospects = $search->prospects()->with('report')->get();
-
         $auditStatusCounts = [
             'pending' => 0,
             'complete' => 0,
@@ -146,23 +201,29 @@ class McpSearchService
     /**
      * @return list<array<string, mixed>>
      */
-    private function mapProspects(Search $search): array
+    private function mapProspects(Search $search, Collection $prospects): array
     {
-        $prospects = $search->prospects()
+        return $prospects->map(fn ($prospect) => $this->mapProspect($prospect, $search))->values()->all();
+    }
+
+    /**
+     * @return Collection<int, mixed>
+     */
+    private function loadProspects(Search $search): Collection
+    {
+        return $search->prospects()
             ->with([
                 'report',
-                'auditJobs' => fn ($q) => $q->where('status', 'failed')->latest()->limit(1),
+                'auditJobs' => fn ($q) => $q->latest()->limit(1),
             ])
             ->orderByDesc('combined_score')
             ->get();
-
-        return $prospects->map(fn ($prospect) => $this->mapProspect($prospect))->values()->all();
     }
 
     /**
      * @return array<string, mixed>
      */
-    private function mapProspect($prospect): array
+    private function mapProspect($prospect, Search $search): array
     {
         $cms = $this->reportBuilder->cmsForProspect($prospect);
 
@@ -181,6 +242,7 @@ class McpSearchService
             'report_ready' => $prospect->report !== null,
             'cms_badge' => $cms['badge'] ?? null,
             'cms_pending' => $cms['pending'] ?? false,
+            'progress_flow' => $this->progressFlow->prospectFlow($prospect, $search),
         ];
     }
 }

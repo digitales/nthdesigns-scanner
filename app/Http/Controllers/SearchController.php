@@ -6,6 +6,7 @@ use App\Http\Requests\StoreDirectUrlSearchRequest;
 use App\Jobs\DirectUrlScanJob;
 use App\Jobs\ScrapeProspectsJob;
 use App\Models\Search;
+use App\Services\ProgressFlowService;
 use App\Services\ReportBuilderService;
 use App\Services\UserSettingsService;
 use App\Support\WebsiteUrlNormalizer;
@@ -120,7 +121,11 @@ class SearchController extends Controller
         return redirect()->route('searches.show', $search);
     }
 
-    public function show(Search $search, ReportBuilderService $reportBuilder): Response
+    public function show(
+        Search $search,
+        ReportBuilderService $reportBuilder,
+        ProgressFlowService $progressFlow,
+    ): Response
     {
         $this->authorize('view', $search);
 
@@ -128,16 +133,20 @@ class SearchController extends Controller
             ->with([
                 'report',
                 'outreachEmails' => fn ($q) => $q->latest()->limit(1),
-                'auditJobs' => fn ($q) => $q->where('status', 'failed')->latest()->limit(1),
+                'auditJobs' => fn ($q) => $q->latest()->limit(1),
             ])
             ->orderByDesc('combined_score')
-            ->get()
-            ->map(function ($p) use ($reportBuilder) {
+            ->get();
+
+        $searchFlow = $progressFlow->searchFlow($search, $prospects);
+
+        $prospectPayloads = $prospects->map(function ($p) use ($reportBuilder, $progressFlow, $search) {
                 $latestOutreach = $p->outreachEmails->first();
                 $isWarm = $p->report?->viewed_at !== null
                     && $latestOutreach?->sent_at !== null
                     && !($latestOutreach?->response_received ?? false);
                 $cms = $reportBuilder->cmsForProspect($p);
+                $failedAudit = $p->auditJobs->firstWhere('status', 'failed') ?? $p->auditJobs->first();
 
                 return [
                     'id'                => $p->id,
@@ -159,13 +168,14 @@ class SearchController extends Controller
                     'combined_score'    => $p->combined_score,
                     'dominant_angle'    => $p->dominant_angle,
                     'audit_status'      => $p->audit_status,
-                    'audit_error'       => $p->auditJobs->first()?->error_message,
+                    'audit_error'       => $failedAudit?->error_message,
                     'report_ready'      => $p->report !== null,
                     'report_url'        => $p->report ? url('/r/'.$p->report->token) : null,
                     'is_warm'           => $isWarm,
                     'last_viewed'       => $p->report?->viewed_at?->diffForHumans(),
                     'cms_badge'         => $cms['badge'] ?? null,
                     'cms_pending'       => $cms['pending'] ?? false,
+                    'progress_flow'     => $progressFlow->prospectFlow($p, $search),
                 ];
             });
 
@@ -185,8 +195,9 @@ class SearchController extends Controller
                 'status'         => $search->status,
                 'total_found'    => $search->total_found,
                 'created_at'     => $search->created_at->toISOString(),
+                'progress_flow'  => $searchFlow,
             ],
-            'prospects' => $prospects,
+            'prospects' => $prospectPayloads,
         ]);
     }
 

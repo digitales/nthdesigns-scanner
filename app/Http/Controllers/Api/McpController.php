@@ -76,6 +76,8 @@ class McpController extends Controller
             'list_searches',
             'get_search',
             'list_search_prospects',
+            'get_search_progress_flow',
+            'watch_search_progress',
             'start_single_site_audit',
         ];
     }
@@ -280,7 +282,7 @@ class McpController extends Controller
             return $this->respondToolsList($id);
         }
         if ($method === 'tools/call') {
-            return $this->respondToolsCall($params, $id, $user);
+            return $this->respondToolsCall($request, $params, $id, $user, $legacyTransport);
         }
 
         if (! in_array($method, $this->mcpMethodNames(), true)) {
@@ -397,13 +399,45 @@ class McpController extends Controller
                     'required' => ['website_url'],
                 ],
             ],
+            [
+                'name' => 'get_search_progress_flow',
+                'description' => 'Get progress flow snapshot for a search, with optional per-prospect progress rows.',
+                'inputSchema' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'search_id' => ['type' => 'integer', 'description' => 'Search ID'],
+                        'include_prospects' => ['type' => 'boolean', 'description' => 'Include prospect progress rows (default true)'],
+                    ],
+                    'required' => ['search_id'],
+                ],
+            ],
+            [
+                'name' => 'watch_search_progress',
+                'description' => 'Watch progress for up to 45s; supports progressToken notifications on streamable transport.',
+                'inputSchema' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'search_id' => ['type' => 'integer', 'description' => 'Search ID'],
+                        'timeout_seconds' => ['type' => 'integer', 'description' => 'Max watch duration (5-45, default 45)'],
+                        'include_prospects' => ['type' => 'boolean', 'description' => 'Include prospect rows in snapshots (default false)'],
+                    ],
+                    'required' => ['search_id'],
+                ],
+            ],
         ];
     }
 
-    private function respondToolsCall(array $params, mixed $id, User $user): JsonResponse
+    private function respondToolsCall(
+        Request $request,
+        array $params,
+        mixed $id,
+        User $user,
+        bool $legacyTransport,
+    ): JsonResponse|Response
     {
         $name = $params['name'] ?? null;
         $arguments = is_array($params['arguments'] ?? null) ? $params['arguments'] : [];
+        $progressToken = $this->progressTokenFromMeta($params['_meta'] ?? null);
 
         if (config('mcp.log_tool_calls', false)) {
             Log::info('MCP tools/call', ['tool' => $name]);
@@ -415,6 +449,10 @@ class McpController extends Controller
 
         if (! in_array($name, $this->mcpMethodNames(), true)) {
             return $this->jsonRpcError(-32601, 'Method not found', $id);
+        }
+
+        if (! $legacyTransport && $progressToken !== null && $this->supportsProgressStreaming($name)) {
+            return $this->streamProgressToolCall($id, $name, $arguments, $user, $progressToken);
         }
 
         try {
@@ -478,12 +516,165 @@ class McpController extends Controller
                 $user,
                 (int) ($params['search_id'] ?? 0),
             ),
+            'get_search_progress_flow' => $this->searches->getSearchProgressFlow(
+                $user,
+                (int) ($params['search_id'] ?? 0),
+                (bool) ($params['include_prospects'] ?? true),
+            ),
+            'watch_search_progress' => $this->searches->watchSearchProgress(
+                $user,
+                (int) ($params['search_id'] ?? 0),
+                (int) ($params['timeout_seconds'] ?? 45),
+                (bool) ($params['include_prospects'] ?? false),
+            ),
             'start_single_site_audit' => $this->singleSiteAudits->start(
                 $user,
                 (string) ($params['website_url'] ?? ''),
             ),
             default => throw new \InvalidArgumentException('Method not found'),
         };
+    }
+
+    private function supportsProgressStreaming(string $toolName): bool
+    {
+        return in_array($toolName, [
+            'get_search',
+            'get_search_progress_flow',
+            'watch_search_progress',
+        ], true);
+    }
+
+    private function progressTokenFromMeta(mixed $meta): string|int|null
+    {
+        if (! is_array($meta)) {
+            return null;
+        }
+
+        $token = $meta['progressToken'] ?? null;
+
+        return is_string($token) || is_int($token) ? $token : null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $arguments
+     */
+    private function streamProgressToolCall(
+        mixed $id,
+        string $name,
+        array $arguments,
+        User $user,
+        string|int $progressToken,
+    ): Response {
+        return response()->stream(function () use ($id, $name, $arguments, $user, $progressToken): void {
+            $searchId = (int) ($arguments['search_id'] ?? 0);
+            $timeout = max(5, min((int) ($arguments['timeout_seconds'] ?? 45), 45));
+            $startedAt = microtime(true);
+            $lastProgress = -1.0;
+
+            do {
+                $snapshot = $name === 'watch_search_progress'
+                    ? $this->searches->watchSearchProgress(
+                        $user,
+                        $searchId,
+                        $timeout,
+                        (bool) ($arguments['include_prospects'] ?? false),
+                    )
+                    : ($name === 'get_search'
+                        ? $this->searches->getSearch($user, $searchId, (bool) ($arguments['include_prospects'] ?? false))
+                        : $this->searches->getSearchProgressFlow(
+                        $user,
+                        $searchId,
+                        (bool) ($arguments['include_prospects'] ?? true),
+                    ));
+
+                $flow = $name === 'watch_search_progress'
+                    ? ($snapshot['snapshot']['progress_flow'] ?? [])
+                    : ($snapshot['progress_flow'] ?? []);
+
+                $progress = (float) ($flow['progress'] ?? 0);
+                $total = $flow['total'] ?? null;
+                $message = (string) ($flow['message'] ?? 'In progress');
+                $complete = (bool) ($flow['search_complete'] ?? false);
+
+                if ($progress > $lastProgress) {
+                    $lastProgress = $progress;
+                    $notification = [
+                        'jsonrpc' => '2.0',
+                        'method' => 'notifications/progress',
+                        'params' => [
+                            'progressToken' => $progressToken,
+                            'progress' => $progress,
+                            'message' => $message,
+                        ],
+                    ];
+
+                    if (is_int($total) || is_float($total)) {
+                        $notification['params']['total'] = $total;
+                    }
+
+                    echo "event: message\n";
+                    echo 'data: '.json_encode($notification, JSON_UNESCAPED_SLASHES)."\n\n";
+                    ob_flush();
+                    flush();
+                }
+
+                if ($complete) {
+                    $result = $name === 'get_search'
+                        ? $this->searches->getSearch($user, $searchId, (bool) ($arguments['include_prospects'] ?? false))
+                        : $snapshot;
+
+                    $final = [
+                        'jsonrpc' => '2.0',
+                        'id' => $id,
+                        'result' => [
+                            'content' => [[
+                                'type' => 'text',
+                                'text' => json_encode($result, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT),
+                            ]],
+                        ],
+                    ];
+
+                    echo "event: message\n";
+                    echo 'data: '.json_encode($final, JSON_UNESCAPED_SLASHES)."\n\n";
+                    ob_flush();
+                    flush();
+
+                    return;
+                }
+
+                sleep(2);
+            } while ((microtime(true) - $startedAt) < $timeout);
+
+            $result = $name === 'get_search'
+                ? $this->searches->getSearch($user, $searchId, (bool) ($arguments['include_prospects'] ?? false))
+                : $this->searches->getSearchProgressFlow(
+                    $user,
+                    $searchId,
+                    $name === 'watch_search_progress'
+                        ? (bool) ($arguments['include_prospects'] ?? false)
+                        : (bool) ($arguments['include_prospects'] ?? true),
+                );
+
+            $final = [
+                'jsonrpc' => '2.0',
+                'id' => $id,
+                'result' => [
+                    'content' => [[
+                        'type' => 'text',
+                        'text' => json_encode($result, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT),
+                    ]],
+                ],
+            ];
+
+            echo "event: message\n";
+            echo 'data: '.json_encode($final, JSON_UNESCAPED_SLASHES)."\n\n";
+            ob_flush();
+            flush();
+        }, 200, [
+            'Content-Type' => 'text/event-stream',
+            'Cache-Control' => 'no-cache',
+            'Connection' => 'keep-alive',
+        ]);
     }
 
     private function resolveUser(Request $request): ?User

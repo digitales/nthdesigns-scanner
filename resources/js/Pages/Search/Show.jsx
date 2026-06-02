@@ -23,7 +23,9 @@ import { normalizeAngle } from '@/Components/ui/scoreBand';
 
 export default function SearchShow({ search, prospects, outreachProspectIds = [] }) {
     const inQueue = new Set(outreachProspectIds);
-    const isRunning = ['pending', 'discovering', 'auditing'].includes(search.status);
+    const flow = search.progress_flow ?? {};
+    const phase = flow.phase ?? 'queued';
+    const isRunning = ['queued', 'discovering', 'auditing'].includes(phase);
     const showA11y = search.scan_type !== 'gbp_only';
 
     const [selected, setSelected] = useState({});
@@ -50,18 +52,8 @@ export default function SearchShow({ search, prospects, outreachProspectIds = []
     const selectedIds = Object.keys(selected).filter((id) => selected[id]);
     const total = search.total_found ?? prospects.length;
     const discovered = prospects.length;
-    const audited = prospects.filter((p) => p.audit_status !== 'pending').length;
     const isDirectUrl = search.source === 'direct_url';
-    const phase = isDirectUrl
-        ? search.status === 'pending'
-            ? 'queued'
-            : 'auditing'
-        : search.status === 'pending'
-          ? 'queued'
-          : search.status === 'auditing' || (total > 0 && discovered >= total)
-            ? 'auditing'
-            : 'discovering';
-    const progressCurrent = phase === 'auditing' ? audited : discovered;
+    const progressCurrent = flow.progress ?? (phase === 'discovering' ? discovered : prospects.filter((p) => p.audit_status !== 'pending').length);
     const directHost = search.submitted_url?.replace(/^https?:\/\//, '') ?? 'Single site';
     const pageTitle = isDirectUrl ? directHost : `${search.niche} in ${search.city}`;
     const eyebrow = isDirectUrl ? `B · Single site · ${directHost}` : `B · ${search.niche} · ${search.city}`;
@@ -82,16 +74,12 @@ export default function SearchShow({ search, prospects, outreachProspectIds = []
               queued: 'Waiting for worker',
               discovering: 'Discovering businesses',
               auditing: 'Auditing websites',
+              complete: 'Complete',
+              failed: 'Failed',
           }[phase];
-    const pct = total > 0 ? Math.round((progressCurrent / total) * 100) : 0;
-    const remainingMin = Math.max(
-        1,
-        Math.round((total - progressCurrent) * (phase === 'auditing' ? 0.7 : phase === 'discovering' ? 0.15 : 0.1)),
-    );
-    const progressMeta =
-        phase === 'queued'
-            ? 'starting soon'
-            : `${phase === 'auditing' ? 'audited' : 'found'} ${progressCurrent} of ${total} · ~${remainingMin} min remaining`;
+    const flowTotal = flow.total ?? total;
+    const pct = flow.percent ?? (flowTotal > 0 ? Math.round((progressCurrent / flowTotal) * 100) : 0);
+    const progressMeta = flow.message ?? (phase === 'queued' ? 'starting soon' : `${progressCurrent} of ${flowTotal}`);
 
     const toggleRow = (id) => setSelected((prev) => ({ ...prev, [id]: !prev[id] }));
     const toggleAll = (checked) => {
@@ -305,7 +293,7 @@ function ProspectRow({
                     {isFailed ? (
                         <Status kind="failed">Audit failed</Status>
                     ) : isPending ? (
-                        <Status kind="pending">Auditing site</Status>
+                        <Status kind="pending">{p.progress_flow?.status_message ?? 'Auditing site'}</Status>
                     ) : isWarm ? (
                         <Status kind="warm">Viewed {p.last_viewed}</Status>
                     ) : (
