@@ -6,6 +6,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { formatAuditError } from '../audit-error-format.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SCRIPTS_ROOT = path.resolve(__dirname, '..');
@@ -93,7 +94,14 @@ function runNodeScript(scriptName, args) {
                 }
             }
 
-            reject(new Error(stderr.trim() || trimmed || `${scriptName} exited with code ${code}`));
+            reject(
+                new Error(
+                    formatAuditError(
+                        trimmed || `${scriptName} exited with code ${code}`,
+                        { stderr, stdout: trimmed },
+                    ),
+                ),
+            );
         });
     });
 }
@@ -236,7 +244,9 @@ const server = createServer(async (req, res) => {
 
         sendJson(res, 404, { error: 'Not found' });
     } catch (error) {
-        sendJson(res, 500, { error: error.message || 'Internal server error' });
+        sendJson(res, 500, {
+            error: formatAuditError(error, { stage: 'browser-service' }),
+        });
     }
 });
 

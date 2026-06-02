@@ -53,6 +53,8 @@ return [
 
     'report_expiry_days' => (int) env('REPORT_EXPIRY_DAYS', 30),
 
+    'audit_error_detail_retention_days' => (int) env('AUDIT_ERROR_DETAIL_RETENTION_DAYS', 90),
+
     'reports_disk' => env('REPORTS_DISK', 'public'),
 
     'search_rate_limit_seconds' => (int) env('SEARCH_RATE_LIMIT_SECONDS', 30),

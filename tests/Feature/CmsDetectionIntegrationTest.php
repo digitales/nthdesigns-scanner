@@ -77,6 +77,7 @@ class CmsDetectionIntegrationTest extends TestCase
             app(\App\Services\A11yScoringService::class),
             app(\App\Services\SearchStatusService::class),
             app(\App\Services\ScreenshotStorageService::class),
+            app(\App\Services\AuditErrorRecorder::class),
         );
 
         $prospect->refresh();

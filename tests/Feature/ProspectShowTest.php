@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\AuditJob;
+use App\Models\AuditJobErrorDetail;
 use App\Models\Prospect;
 use App\Models\Search;
 use App\Models\User;
@@ -74,6 +75,76 @@ class ProspectShowTest extends TestCase
                 ->where('cms.label', 'WordPress 6.4')
                 ->where('cms.badge', 'WP')
                 ->where('cms.pending', false));
+    }
+
+    public function test_show_includes_audit_failure_with_full_diagnostic(): void
+    {
+        $user = User::factory()->create();
+        $prospect = Prospect::factory()->create([
+            'search_id' => Search::factory()->create(['user_id' => $user->id])->id,
+            'audit_status' => 'failed',
+            'website_url' => 'https://example.com',
+        ]);
+        $job = AuditJob::create([
+            'prospect_id'   => $prospect->id,
+            'job_type'      => 'accessibility',
+            'status'        => 'failed',
+            'error_message' => 'page.goto: Timeout',
+            'completed_at'  => now(),
+        ]);
+        AuditJobErrorDetail::create([
+            'audit_job_id' => $job->id,
+            'body'         => "page.goto: Timeout\nCall log:\n  - navigating",
+            'created_at'   => now(),
+        ]);
+
+        $this->actingAs($user)
+            ->get("/prospects/{$prospect->id}")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Prospect/Show')
+                ->has('auditFailure')
+                ->where('auditFailure.summary', 'page.goto: Timeout')
+                ->where('auditFailure.detail_expired', false)
+                ->where('auditFailure.full', "page.goto: Timeout\nCall log:\n  - navigating"));
+    }
+
+    public function test_show_marks_audit_failure_detail_expired_when_purged(): void
+    {
+        $user = User::factory()->create();
+        $prospect = Prospect::factory()->create([
+            'search_id' => Search::factory()->create(['user_id' => $user->id])->id,
+            'audit_status' => 'failed',
+        ]);
+        AuditJob::create([
+            'prospect_id'   => $prospect->id,
+            'job_type'      => 'accessibility',
+            'status'        => 'failed',
+            'error_message' => 'Audit script failed',
+            'completed_at'  => now(),
+        ]);
+
+        $this->actingAs($user)
+            ->get("/prospects/{$prospect->id}")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('auditFailure.summary', 'Audit script failed')
+                ->where('auditFailure.detail_expired', true)
+                ->where('auditFailure.full', null));
+    }
+
+    public function test_show_omits_audit_failure_when_not_failed(): void
+    {
+        $user = User::factory()->create();
+        $prospect = Prospect::factory()->create([
+            'search_id' => Search::factory()->create(['user_id' => $user->id])->id,
+            'audit_status' => 'complete',
+        ]);
+
+        $this->actingAs($user)
+            ->get("/prospects/{$prospect->id}")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->where('auditFailure', null));
     }
 
     public function test_show_omits_audit_when_pending(): void

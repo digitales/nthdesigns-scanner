@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\AuditJobErrorDetail;
 use App\Models\Prospect;
 use App\Models\ProspectReport;
 use App\Services\ScreenshotStorageService;
@@ -11,12 +12,16 @@ class PurgeExpiredProspectData extends Command
 {
     protected $signature = 'scanner:purge-expired';
 
-    protected $description = 'Purge expired prospect raw payloads and report assets';
+    protected $description = 'Purge expired prospect raw payloads, report assets, and aged audit error details';
 
     public function handle(ScreenshotStorageService $storage): int
     {
         $prospectCount = 0;
         $reportCount = 0;
+        $detailCutoff = now()->subDays(config('scanner.audit_error_detail_retention_days', 90));
+        $detailCount = AuditJobErrorDetail::query()
+            ->where('created_at', '<', $detailCutoff)
+            ->delete();
 
         Prospect::query()
             ->whereNotNull('expires_at')
@@ -45,7 +50,7 @@ class PurgeExpiredProspectData extends Command
                 }
             });
 
-        $this->info("Purged raw data for {$prospectCount} prospect(s) and {$reportCount} expired report(s).");
+        $this->info("Purged raw data for {$prospectCount} prospect(s), {$reportCount} expired report(s), and {$detailCount} audit error detail(s).");
 
         return self::SUCCESS;
     }

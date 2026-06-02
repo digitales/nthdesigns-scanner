@@ -6,6 +6,7 @@ use App\Models\AuditJob;
 use App\Models\Prospect;
 use App\Support\AuditingQueue;
 use App\Services\A11yScoringService;
+use App\Services\AuditErrorRecorder;
 use App\Services\AuditRunnerService;
 use App\Services\ScreenshotStorageService;
 use App\Services\SearchStatusService;
@@ -35,6 +36,7 @@ class AuditSiteJob implements ShouldQueue
         A11yScoringService $scorer,
         SearchStatusService $searchStatus,
         ScreenshotStorageService $storage,
+        AuditErrorRecorder $errorRecorder,
     ): void {
         $prospect = $this->prospect->fresh();
 
@@ -103,10 +105,11 @@ class AuditSiteJob implements ShouldQueue
             ]);
 
             $auditJob->update([
-                'status'        => 'failed',
-                'error_message' => $e->getMessage(),
-                'completed_at'  => now(),
+                'status'       => 'failed',
+                'completed_at' => now(),
             ]);
+
+            $errorRecorder->recordFailure($auditJob, $errorRecorder->formatThrowable($e));
 
             $prospect->update(['audit_status' => 'failed']);
 

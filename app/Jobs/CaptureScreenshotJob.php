@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Models\AuditJob;
 use App\Models\ProspectReport;
 use App\Support\AuditingQueue;
+use App\Services\AuditErrorRecorder;
 use App\Services\ScreenshotCaptureService;
 use App\Services\ScreenshotStorageService;
 use Illuminate\Bus\Queueable;
@@ -30,6 +31,7 @@ class CaptureScreenshotJob implements ShouldQueue
     public function handle(
         ScreenshotCaptureService $capture,
         ScreenshotStorageService $storage,
+        AuditErrorRecorder $errorRecorder,
     ): void {
         $report = $this->report->fresh(['prospect']);
 
@@ -67,10 +69,11 @@ class CaptureScreenshotJob implements ShouldQueue
             ]);
 
             $auditJob->update([
-                'status'        => 'failed',
-                'error_message' => $e->getMessage(),
-                'completed_at'  => now(),
+                'status'       => 'failed',
+                'completed_at' => now(),
             ]);
+
+            $errorRecorder->recordFailure($auditJob, $errorRecorder->formatThrowable($e));
         } finally {
             File::deleteDirectory($localDir);
         }

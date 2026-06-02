@@ -9,6 +9,7 @@ class AuditRunnerService
 {
     public function __construct(
         private BrowserServiceClient $browserService,
+        private AuditErrorRecorder $errorRecorder,
     ) {}
 
     public function shouldSkip(): bool
@@ -47,7 +48,10 @@ class AuditRunnerService
 
         if (!$result->successful()) {
             throw new \RuntimeException(
-                'Audit script failed: '.trim($result->errorOutput() ?: $result->output())
+                $this->errorRecorder->formatProcessOutput(
+                    $result->errorOutput(),
+                    $result->output(),
+                )
             );
         }
 

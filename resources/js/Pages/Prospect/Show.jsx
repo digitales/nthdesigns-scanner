@@ -1,6 +1,7 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import AuditFailureSection from '@/Components/audit/AuditFailureSection';
 import SiteAuditSection from '@/Components/audit/SiteAuditSection';
 import TechnologySection from '@/Components/cms/TechnologySection';
 import PageSpeedSection from '@/Components/audit/PageSpeedSection';
@@ -20,7 +21,7 @@ const LIGHTHOUSE_METRICS = [
     { label: 'Best practices', key: 'best_practices' },
 ];
 
-export default function ProspectShow({ prospect, search, navigation, report, outreachEmails, audit, cms, lighthouse, pageSpeed, notes = [] }) {
+export default function ProspectShow({ prospect, search, navigation, report, outreachEmails, auditFailure, audit, cms, lighthouse, pageSpeed, notes = [] }) {
     const { flash } = usePage().props;
     const [copied, setCopied] = useState(false);
     const [editing, setEditing] = useState(false);
@@ -123,6 +124,8 @@ export default function ProspectShow({ prospect, search, navigation, report, out
                                 </div>
                             )}
                         </div>
+
+                        <AuditFailureSection auditFailure={auditFailure} />
 
                         {search.scan_type !== 'gbp_only'
                             && prospect.audit_status === 'complete'

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class AuditJob extends Model
 {
@@ -20,5 +21,10 @@ class AuditJob extends Model
     public function prospect(): BelongsTo
     {
         return $this->belongsTo(Prospect::class);
+    }
+
+    public function errorDetail(): HasOne
+    {
+        return $this->hasOne(AuditJobErrorDetail::class);
     }
 }

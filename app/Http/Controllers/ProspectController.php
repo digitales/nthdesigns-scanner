@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\UpdateProspectRequest;
 use App\Jobs\GenerateOutreachEmailJob;
 use App\Jobs\GenerateProspectReportJob;
+use App\Models\AuditJob;
 use App\Models\Prospect;
 use App\Services\ProspectAuditService;
 use App\Services\ProspectEnrichmentService;
@@ -24,7 +25,7 @@ class ProspectController extends Controller
             'search',
             'report',
             'outreachEmails' => fn ($q) => $q->latest(),
-            'auditJobs',
+            'auditJobs.errorDetail',
             'notes.user',
         ]);
 
@@ -80,6 +81,7 @@ class ProspectController extends Controller
                 'response_received'  => $e->response_received,
                 'created_at'         => $e->created_at->diffForHumans(),
             ]),
+            'auditFailure' => $this->auditFailureFor($prospect),
             'audit' => $reportBuilder->buildOperatorAudit($prospect),
             'cms' => $reportBuilder->cmsForProspect($prospect),
             'pageSpeed' => $reportBuilder->buildOperatorPageSpeed($prospect),
@@ -91,6 +93,37 @@ class ProspectController extends Controller
                 'created_at' => $n->created_at->diffForHumans(),
             ]),
         ]);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function auditFailureFor(Prospect $prospect): ?array
+    {
+        if ($prospect->audit_status !== 'failed') {
+            return null;
+        }
+
+        $failedJobs = $prospect->auditJobs
+            ->where('status', 'failed')
+            ->sortByDesc('id');
+
+        $job = $failedJobs->firstWhere('job_type', 'accessibility')
+            ?? $failedJobs->first();
+
+        if (!$job instanceof AuditJob) {
+            return null;
+        }
+
+        $detail = $job->errorDetail;
+
+        return [
+            'summary'        => $job->error_message ?? 'Audit failed',
+            'full'           => $detail?->body,
+            'detail_expired' => $detail === null,
+            'job_id'         => $job->id,
+            'failed_at'      => $job->completed_at?->toIso8601String(),
+        ];
     }
 
     public function update(UpdateProspectRequest $request, Prospect $prospect, ProspectEnrichmentService $enrichment): RedirectResponse

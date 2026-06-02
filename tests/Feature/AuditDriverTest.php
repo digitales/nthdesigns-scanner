@@ -7,6 +7,7 @@ use App\Jobs\CombineScoresJob;
 use App\Models\Prospect;
 use App\Models\Search;
 use App\Models\User;
+use App\Services\AuditErrorRecorder;
 use App\Services\AuditRunnerService;
 use App\Services\SearchStatusService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -40,6 +41,7 @@ class AuditDriverTest extends TestCase
             app(\App\Services\A11yScoringService::class),
             app(SearchStatusService::class),
             app(\App\Services\ScreenshotStorageService::class),
+            app(AuditErrorRecorder::class),
         );
 
         Bus::assertDispatched(CombineScoresJob::class);

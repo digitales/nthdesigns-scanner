@@ -12,6 +12,7 @@ import { join } from 'node:path';
 import { buildLighthousePayload } from './lighthouse-detail.js';
 import { fetchPageSpeedLighthouse } from './pagespeed-fetch.js';
 import { detectCms } from './cms-detect.js';
+import { formatAuditError } from './audit-error-format.js';
 
 const url = process.argv[2];
 const outputDir = process.argv[3] || null;
@@ -177,7 +178,7 @@ async function main() {
     } catch (error) {
         process.stdout.write(JSON.stringify({
             url,
-            error: error.message,
+            error: formatAuditError(error, { stage: 'audit' }),
             violations: [],
             pass_count: 0,
             incomplete_count: 0,
