@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\IgnoredProspect;
 use App\Services\ProspectExclusionService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -40,5 +41,14 @@ class IgnoredProspectController extends Controller
                 ['value' => IgnoredProspect::REASON_OTHER, 'label' => 'Other'],
             ],
         ]);
+    }
+
+    public function destroy(Request $request, IgnoredProspect $ignoredProspect): RedirectResponse
+    {
+        abort_unless($ignoredProspect->user_id === $request->user()->id, 403);
+
+        $ignoredProspect->delete();
+
+        return back()->with('success', 'Prospect included in scans again.');
     }
 }
