@@ -234,11 +234,21 @@ export default function PublicReport({ report }) {
     );
 }
 
+function formatGbpRating(value) {
+    if (value == null || value === '') {
+        return '—';
+    }
+
+    const rating = Number(value);
+
+    return Number.isFinite(rating) ? rating.toFixed(1) : '—';
+}
+
 function ComparisonTable({ businessName, you, benchmark }) {
     const rows = [
         { label: 'Reviews', you: you.review_count ?? 0, them: benchmark.review_count },
         { label: 'Photos', you: you.photo_count ?? 0, them: benchmark.photo_count },
-        { label: 'Rating', you: you.rating ?? '—', them: benchmark.rating ?? '—' },
+        { label: 'Rating', you: formatGbpRating(you.rating), them: formatGbpRating(benchmark.rating) },
         { label: 'Description', you: you.has_description ? 'Yes' : 'No', them: (benchmark.has_description ?? false) ? 'Yes' : 'No' },
         { label: 'Hours', you: you.hours_complete ? 'Complete' : 'Incomplete', them: (benchmark.hours_complete ?? false) ? 'Complete' : 'Incomplete' },
     ];
