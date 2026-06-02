@@ -85,4 +85,33 @@ class DetectCmsJobTest extends TestCase
 
         (new DetectCmsJob($prospect))->handle(app(CmsDetectionRunnerService::class));
     }
+
+    public function test_survives_queue_round_trip_when_force_is_false(): void
+    {
+        $prospect = Prospect::factory()->create([
+            'website_url' => 'https://example.com',
+            'cms_detection' => null,
+        ]);
+
+        $this->mock(CmsDetectionRunnerService::class, function ($mock) {
+            $mock->shouldReceive('run')
+                ->once()
+                ->with('https://example.com')
+                ->andReturn([
+                    'platform' => 'wordpress',
+                    'version' => null,
+                    'confidence' => 'high',
+                    'signals' => [],
+                    'detected_at' => now()->toIso8601String(),
+                    'url' => 'https://example.com',
+                ]);
+        });
+
+        $job = unserialize(serialize(new DetectCmsJob($prospect)));
+
+        $job->handle(app(CmsDetectionRunnerService::class));
+
+        $prospect->refresh();
+        $this->assertSame('wordpress', $prospect->cms_detection['platform']);
+    }
 }

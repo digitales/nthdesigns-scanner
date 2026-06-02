@@ -23,8 +23,11 @@ class DetectCmsJob implements ShouldQueue
 
     public int $timeout = 120;
 
-    public function __construct(public Prospect $prospect, public bool $force = false)
+    public bool $force = false;
+
+    public function __construct(public Prospect $prospect, bool $force = false)
     {
+        $this->force = $force;
         AuditingQueue::apply($this);
     }
 
