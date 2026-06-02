@@ -244,7 +244,12 @@ function ComparisonTable({ businessName, you, benchmark }) {
     ];
 
     return (
-        <DataTable style={{ background: 'var(--color-paper)' }}>
+        <DataTable tableClassName="ptable--comparison" style={{ background: 'var(--color-paper)' }}>
+            <colgroup>
+                <col style={{ width: '33.33%' }} />
+                <col style={{ width: '33.33%' }} />
+                <col style={{ width: '33.33%' }} />
+            </colgroup>
             <thead>
                 <tr>
                     <th>Signal</th>
