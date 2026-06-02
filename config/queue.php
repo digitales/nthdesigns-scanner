@@ -44,6 +44,11 @@ return [
             'after_commit' => false,
         ],
 
+        // Laravel Cloud injects managed config at runtime; sync allows local/tests with AUDITING_QUEUE_CONNECTION=cloud
+        'cloud' => [
+            'driver' => 'sync',
+        ],
+
         'beanstalkd' => [
             'driver' => 'beanstalkd',
             'host' => env('BEANSTALKD_QUEUE_HOST', 'localhost'),
