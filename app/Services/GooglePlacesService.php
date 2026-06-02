@@ -230,6 +230,7 @@ class GooglePlacesService
             'regularOpeningHours',
             'editorialSummary',
             'primaryType',
+            'addressComponents',
             'businessStatus',
         ]);
     }

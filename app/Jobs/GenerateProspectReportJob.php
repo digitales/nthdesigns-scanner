@@ -77,6 +77,10 @@ class GenerateProspectReportJob implements ShouldQueue
             return $snapshot;
         }
 
+        if (blank($search->niche) || blank($search->city)) {
+            return null;
+        }
+
         $place = $places->getTopRankedInNiche(
             $search->niche,
             $search->city,

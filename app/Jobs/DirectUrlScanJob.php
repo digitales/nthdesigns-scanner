@@ -6,6 +6,7 @@ use App\Models\Prospect;
 use App\Models\Search;
 use App\Support\SearchQueue;
 use App\Support\WebsiteUrlNormalizer;
+use App\Services\DirectUrlSearchEnrichment;
 use App\Services\GbpScoringService;
 use App\Services\GooglePlacesService;
 use App\Services\SearchStatusService;
@@ -33,6 +34,7 @@ class DirectUrlScanJob implements ShouldQueue
         GbpScoringService $scorer,
         SearchStatusService $searchStatus,
         WebsiteUrlNormalizer $normalizer,
+        DirectUrlSearchEnrichment $enrichment,
     ): void {
         $search = $this->search->fresh();
 
@@ -47,9 +49,20 @@ class DirectUrlScanJob implements ShouldQueue
 
         try {
             if ($payload) {
+                $searchUpdates = $enrichment->attributesFor($search, $payload);
+
+                if ($searchUpdates !== []) {
+                    $search->update($searchUpdates);
+                    $search->refresh();
+                }
+
                 $overlay = $scorer->overlayProspectFields($payload, new Prospect(['website_url' => $url]));
                 $fields = $scorer->extractFields($overlay);
-                $scored = $scorer->score($overlay, null, '');
+                $scored = $scorer->score(
+                    $overlay,
+                    $search->benchmark_snapshot,
+                    $search->city ?? '',
+                );
 
                 $prospect = Prospect::create(array_merge($fields, [
                     'search_id'       => $search->id,

@@ -46,6 +46,7 @@ class DirectUrlScanJobTest extends TestCase
             app(\App\Services\GbpScoringService::class),
             app(\App\Services\SearchStatusService::class),
             app(\App\Support\WebsiteUrlNormalizer::class),
+            app(\App\Services\DirectUrlSearchEnrichment::class),
         );
 
         $prospect = Prospect::where('search_id', $search->id)->first();
@@ -79,6 +80,7 @@ class DirectUrlScanJobTest extends TestCase
             app(\App\Services\GbpScoringService::class),
             app(\App\Services\SearchStatusService::class),
             app(\App\Support\WebsiteUrlNormalizer::class),
+            app(\App\Services\DirectUrlSearchEnrichment::class),
         );
 
         $prospect = Prospect::where('search_id', $search->id)->first();
@@ -112,5 +114,59 @@ class DirectUrlScanJobTest extends TestCase
 
         Bus::assertDispatched(GenerateProspectReportJob::class);
         $this->assertSame('complete', $search->fresh()->status);
+    }
+
+    public function test_enriches_search_from_gbp_for_report_benchmarks(): void
+    {
+        Bus::fake([AuditSiteJob::class]);
+
+        $user = User::factory()->create();
+        $search = Search::factory()->directUrl('https://example.com')->create([
+            'user_id' => $user->id,
+            'status'  => 'pending',
+            'country' => 'GB',
+        ]);
+
+        $this->mock(GooglePlacesService::class, function ($mock) {
+            $mock->shouldReceive('findByWebsiteUrl')
+                ->once()
+                ->andReturn([
+                    'id'                => 'places/prospect',
+                    'displayName'       => ['text' => 'Example Dental'],
+                    'websiteUri'        => 'https://example.com',
+                    'primaryType'       => 'dentist',
+                    'userRatingCount'   => 5,
+                    'photos'            => [],
+                    'addressComponents' => [
+                        ['longText' => 'Wimbledon', 'types' => ['locality']],
+                        ['shortText' => 'GB', 'types' => ['country']],
+                    ],
+                ]);
+
+            $mock->shouldReceive('getTopRankedInNiche')
+                ->once()
+                ->with('dentist', 'Wimbledon', 'GB', 'places/prospect')
+                ->andReturn([
+                    'id'              => 'places/leader',
+                    'displayName'     => ['text' => 'Top Dentist'],
+                    'userRatingCount' => 90,
+                    'photos'          => array_fill(0, 15, []),
+                    'rating'          => 4.8,
+                ]);
+        });
+
+        (new DirectUrlScanJob($search))->handle(
+            app(GooglePlacesService::class),
+            app(\App\Services\GbpScoringService::class),
+            app(\App\Services\SearchStatusService::class),
+            app(\App\Support\WebsiteUrlNormalizer::class),
+            app(\App\Services\DirectUrlSearchEnrichment::class),
+        );
+
+        $search->refresh();
+
+        $this->assertSame('dentist', $search->niche);
+        $this->assertSame('Wimbledon', $search->city);
+        $this->assertSame('places/leader', $search->benchmark_snapshot['place_id']);
     }
 }

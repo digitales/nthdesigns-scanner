@@ -130,4 +130,63 @@ class GenerateProspectReportJobTest extends TestCase
         $this->assertSame(97, $report->report_data['benchmark']['review_count']);
         $this->assertSame('places/top-listing', $report->benchmark_place_id);
     }
+
+    public function test_direct_url_search_uses_enriched_benchmark_snapshot(): void
+    {
+        $search = Search::factory()->directUrl('https://example.com')->create([
+            'niche'  => 'dentist',
+            'city'   => 'Wimbledon',
+            'country'=> 'GB',
+            'benchmark_snapshot' => [
+                'place_id'        => 'places/leader',
+                'name'            => 'Top Dentist',
+                'review_count'    => 90,
+                'photo_count'     => 15,
+                'rating'          => 4.8,
+                'has_description' => true,
+                'hours_complete'  => true,
+            ],
+        ]);
+
+        $prospect = Prospect::factory()->create([
+            'search_id'     => $search->id,
+            'place_id'      => 'places/prospect',
+            'business_name' => 'Example Dental',
+        ]);
+
+        (new GenerateProspectReportJob($prospect))->handle(
+            app(GooglePlacesService::class),
+            app(ReportBuilderService::class),
+        );
+
+        $report = ProspectReport::where('prospect_id', $prospect->id)->firstOrFail();
+
+        $this->assertSame('Top Dentist', $report->report_data['benchmark']['name']);
+        $this->assertSame('dentist', $report->report_data['niche']);
+        $this->assertSame('Wimbledon', $report->report_data['city']);
+    }
+
+    public function test_direct_url_search_builds_report_without_benchmark(): void
+    {
+        $search = Search::factory()->directUrl('https://example.com')->create([
+            'benchmark_snapshot' => null,
+        ]);
+
+        $prospect = Prospect::factory()->create([
+            'search_id'     => $search->id,
+            'place_id'      => 'places/example',
+            'business_name' => 'Example Ltd',
+        ]);
+
+        (new GenerateProspectReportJob($prospect))->handle(
+            app(GooglePlacesService::class),
+            app(ReportBuilderService::class),
+        );
+
+        $report = ProspectReport::where('prospect_id', $prospect->id)->firstOrFail();
+
+        $this->assertNull($report->benchmark_place_id);
+        $this->assertNull($report->report_data['benchmark']);
+        $this->assertSame([], $report->report_data['comparison']);
+    }
 }
