@@ -2,8 +2,9 @@
 
 import { chromium } from 'playwright';
 import { chromiumLaunchOptions } from './browser.js';
+import { navigateForCapture } from './navigate.js';
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 
 const url = process.argv[2];
 const outputDir = process.argv[3];
@@ -22,8 +23,7 @@ async function main() {
     const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
 
     try {
-        // domcontentloaded — networkidle hangs on sites with analytics / long-polling.
-        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
+        await navigateForCapture(page, url);
         await page.screenshot({
             path: desktopPath,
             fullPage: false,

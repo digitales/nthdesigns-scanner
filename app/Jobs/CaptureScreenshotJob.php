@@ -12,6 +12,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
@@ -20,12 +21,27 @@ class CaptureScreenshotJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public int $tries = 2;
+    public int $tries = 3;
     public int $timeout = 180;
+
+    /** @var list<int> */
+    public array $backoff = [60, 120];
 
     public function __construct(public ProspectReport $report)
     {
         AuditingQueue::apply($this);
+    }
+
+    /**
+     * @return list<object>
+     */
+    public function middleware(): array
+    {
+        return [
+            (new WithoutOverlapping('fly-browser-screenshot'))
+                ->releaseAfter($this->timeout)
+                ->expireAfter(600),
+        ];
     }
 
     public function handle(

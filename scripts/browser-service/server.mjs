@@ -13,6 +13,46 @@ const SCRIPTS_ROOT = path.resolve(__dirname, '..');
 const APP_ROOT = path.resolve(SCRIPTS_ROOT, '..');
 const PORT = Number(process.env.PORT || 8080);
 const TOKEN = process.env.BROWSER_SERVICE_TOKEN || process.env.AUDIT_SERVICE_TOKEN || '';
+const MAX_CONCURRENT = Math.max(1, Number(process.env.BROWSER_SERVICE_MAX_CONCURRENT || 2));
+
+let activeJobs = 0;
+/** @type {Array<() => void>} */
+const jobWaiters = [];
+
+function acquireJobSlot() {
+    if (activeJobs < MAX_CONCURRENT) {
+        activeJobs++;
+
+        return Promise.resolve();
+    }
+
+    return new Promise((resolve) => {
+        jobWaiters.push(() => {
+            activeJobs++;
+            resolve();
+        });
+    });
+}
+
+function releaseJobSlot() {
+    activeJobs--;
+
+    const next = jobWaiters.shift();
+
+    if (next) {
+        next();
+    }
+}
+
+async function withJobConcurrency(fn) {
+    await acquireJobSlot();
+
+    try {
+        return await fn();
+    } finally {
+        releaseJobSlot();
+    }
+}
 
 process.on('uncaughtException', (error) => {
     console.error('[browser-service] uncaughtException', error);
@@ -117,7 +157,7 @@ function withTempDir(fn) {
 }
 
 async function handleAudit(url) {
-    return withTempDir(async (tmpDir) => {
+    return withJobConcurrency(() => withTempDir(async (tmpDir) => {
         const stdout = await runNodeScript('audit.js', [url, tmpDir]);
         const payload = JSON.parse(stdout);
 
@@ -143,17 +183,19 @@ async function handleAudit(url) {
         });
 
         return payload;
-    });
+    }));
 }
 
 async function handleDetectCms(url) {
-    const stdout = await runNodeScript('detect-cms.js', [url]);
+    return withJobConcurrency(async () => {
+        const stdout = await runNodeScript('detect-cms.js', [url]);
 
-    return JSON.parse(stdout);
+        return JSON.parse(stdout);
+    });
 }
 
 async function handleScreenshot(url) {
-    return withTempDir(async (tmpDir) => {
+    return withJobConcurrency(() => withTempDir(async (tmpDir) => {
         const stdout = await runNodeScript('screenshot.js', [url, tmpDir]);
         const payload = JSON.parse(stdout);
 
@@ -172,7 +214,7 @@ async function handleScreenshot(url) {
             desktop: filename,
             content_base64: fs.readFileSync(filePath).toString('base64'),
         };
-    });
+    }));
 }
 
 function sendJson(res, status, body) {
@@ -261,5 +303,5 @@ server.on('error', (error) => {
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-    console.log(`[browser-service] listening on 0.0.0.0:${PORT}`);
+    console.log(`[browser-service] listening on 0.0.0.0:${PORT} (max concurrent jobs: ${MAX_CONCURRENT})`);
 });

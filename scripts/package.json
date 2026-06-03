@@ -4,7 +4,7 @@
     "type": "module",
     "scripts": {
         "audit": "node audit.js",
-        "test": "node --test lighthouse-detail.test.js pagespeed-fetch.test.js cms-detect.test.js"
+        "test": "node --test lighthouse-detail.test.js pagespeed-fetch.test.js cms-detect.test.js navigate.test.js"
     },
     "dependencies": {
         "@axe-core/playwright": "^4.10.1",

@@ -13,6 +13,7 @@ import { buildLighthousePayload } from './lighthouse-detail.js';
 import { fetchPageSpeedLighthouse } from './pagespeed-fetch.js';
 import { detectCms } from './cms-detect.js';
 import { formatAuditError } from './audit-error-format.js';
+import { navigateForCapture } from './navigate.js';
 
 const url = process.argv[2];
 const outputDir = process.argv[3] || null;
@@ -158,7 +159,7 @@ async function main() {
     try {
         const lighthousePromise = resolveLighthouse(url);
 
-        const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
+        const response = await navigateForCapture(page, url);
         const cms = await detectCms(page, response);
         const axe = await runAxe(page);
         const violationScreenshots = await captureViolationScreenshots(page, axe.violations);

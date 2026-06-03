@@ -10,6 +10,7 @@ primary_region = 'lhr'
   NODE_ENV = 'production'
   PLAYWRIGHT_BROWSERS_PATH = '/ms-playwright'
   LIGHTHOUSE_BINARY = '/app/scripts/node_modules/.bin/lighthouse'
+  BROWSER_SERVICE_MAX_CONCURRENT = '2'
 
 [build]
   dockerfile = 'Dockerfile'
