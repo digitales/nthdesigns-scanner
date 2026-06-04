@@ -513,6 +513,7 @@ GOOGLE_PLACES_API_KEY=
 BRAVE_SEARCH_API_KEY=
 # WEBSITE_DISCOVERY_PROVIDER=brave
 # Legacy: WEBSITE_DISCOVERY_PROVIDER=google_cse + GOOGLE_CSE_KEY + GOOGLE_CSE_CX
+# Backfill saved prospects: php artisan scanner:backfill-websites  then  --execute --delay=5
 OPENROUTER_API_KEY=
 OPENROUTER_MODEL=anthropic/claude-sonnet-4
 ```

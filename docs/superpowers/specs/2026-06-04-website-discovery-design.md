@@ -54,9 +54,12 @@ Many discovery prospects have no website on their Google Business Profile. Today
 | `GbpScoringService::isWeakWebsiteHost` | Expose or extract shared blocklist for CSE candidates (Facebook, Yelp, Linktree, etc.) |
 | `AuditSiteJob` / `CombineScoresJob` | Unchanged; dispatched when `website_url` present after discovery |
 
-### Not in scope (v1)
+### Backfill command
 
-- Batch re-discovery for existing prospects
+`php artisan scanner:backfill-websites` — dry-run lists eligible prospects; `--execute` runs discovery (API quota per row). `--no-audit` skips `AuditSiteJob`; default with `--execute` queues audits. Options: `--search=`, `--prospect=`, `--limit=`, `--delay=`.
+
+### Not in scope
+
 - MCP tools for discovery
 - Search results table chips
 - Writing discovered URL back to Google Places

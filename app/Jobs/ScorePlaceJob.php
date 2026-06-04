@@ -79,7 +79,7 @@ class ScorePlaceJob implements ShouldQueue
             ]
         );
 
-        $prospect = $this->applyWebsiteDiscovery($prospect, $search, $payload, $scorer, $discovery);
+        $prospect = $this->applyWebsiteDiscovery($prospect, $search, $payload, $discovery);
 
         $this->dispatchNextStep($prospect, $search);
         $searchStatus->refresh($search);
@@ -92,7 +92,6 @@ class ScorePlaceJob implements ShouldQueue
         Prospect $prospect,
         Search $search,
         array $payload,
-        GbpScoringService $scorer,
         WebsiteDiscoveryService $discovery,
     ): Prospect {
         $match = $discovery->discover($prospect, $search, $payload);
@@ -101,34 +100,7 @@ class ScorePlaceJob implements ShouldQueue
             return $prospect;
         }
 
-        $prospect->website_url = $match['url'];
-        $prospect->website_url_source = 'google_cse';
-        $prospect->website_discovery_confidence = $match['confidence'];
-        $prospect->website_discovered_at = now();
-
-        $overlay = $scorer->overlayProspectFields($payload, $prospect);
-        $scored = $scorer->score(
-            $overlay,
-            $search->benchmark_snapshot,
-            $search->city ?? '',
-        );
-
-        $flags = $scored['flags'];
-
-        if (! in_array(WebsiteDiscoveryService::GBP_FLAG_NOT_ON_PROFILE, $flags, true)) {
-            $flags[] = WebsiteDiscoveryService::GBP_FLAG_NOT_ON_PROFILE;
-        }
-
-        $prospect->update([
-            'website_url'                  => $match['url'],
-            'website_url_source'           => 'google_cse',
-            'website_discovery_confidence' => $match['confidence'],
-            'website_discovered_at'        => $prospect->website_discovered_at,
-            'gbp_score'                    => $scored['score'],
-            'gbp_flags'                    => $flags,
-        ]);
-
-        return $prospect->fresh();
+        return $discovery->applyMatch($prospect, $search, $match);
     }
 
     private function dispatchNextStep(Prospect $prospect, Search $search): void

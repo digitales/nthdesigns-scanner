@@ -116,6 +116,58 @@ class WebsiteDiscoveryService
         return $match;
     }
 
+    public function isBackfillCandidate(Prospect $prospect, Search $search): bool
+    {
+        if (! empty($prospect->website_url)) {
+            return false;
+        }
+
+        return $this->shouldDiscover($search, $prospect->raw_gbp_payload ?? []);
+    }
+
+    /**
+     * Persist a discovery match: URL provenance, GBP rescore, combined score.
+     *
+     * @param  array{url: string, confidence: string}  $match
+     */
+    public function applyMatch(Prospect $prospect, Search $search, array $match): Prospect
+    {
+        $payload = $prospect->raw_gbp_payload ?? [];
+        $discoveredAt = now();
+
+        $overlayProspect = new Prospect([
+            'website_url' => $match['url'],
+        ]);
+
+        $overlay = $this->gbpScorer->overlayProspectFields($payload, $overlayProspect);
+        $scored = $this->gbpScorer->score(
+            $overlay,
+            $search->benchmark_snapshot,
+            $search->city ?? '',
+        );
+
+        $flags = $scored['flags'];
+
+        if (! in_array(self::GBP_FLAG_NOT_ON_PROFILE, $flags, true)) {
+            $flags[] = self::GBP_FLAG_NOT_ON_PROFILE;
+        }
+
+        $prospect->fill([
+            'website_url'                  => $match['url'],
+            'website_url_source'           => 'google_cse',
+            'website_discovery_confidence' => $match['confidence'],
+            'website_discovered_at'        => $discoveredAt,
+            'gbp_score'                    => $scored['score'],
+            'gbp_flags'                    => $flags,
+        ]);
+
+        $combined = app(CombineScoresService::class)->combineForProspect($prospect, $search->scan_type);
+        $prospect->fill($combined);
+        $prospect->save();
+
+        return $prospect->fresh();
+    }
+
     /**
      * @param  list<array{url: string, title: string, snippet: string}>  $candidates
      * @return array{url: string, confidence: string}|null
