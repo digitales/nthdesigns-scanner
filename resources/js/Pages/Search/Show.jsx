@@ -281,7 +281,7 @@ function ProspectRow({
                 {showA11y && (
                     <>
                         <td className="num">{p.gbp_score ?? '—'}</td>
-                        <td className="num">{p.a11y_score ?? '—'}</td>
+                        <td className="num">{isPending ? '…' : (p.a11y_score ?? '—')}</td>
                         <td className="num">
                             <PerfScore value={p.performance_score} auditStatus={p.audit_status} />
                         </td>

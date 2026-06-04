@@ -150,9 +150,11 @@ class ProspectShowTest extends TestCase
     public function test_show_omits_audit_when_pending(): void
     {
         $user = User::factory()->create();
+        $search = Search::factory()->create(['user_id' => $user->id, 'scan_type' => 'combined']);
         $prospect = Prospect::factory()->create([
-            'search_id' => Search::factory()->create(['user_id' => $user->id])->id,
+            'search_id' => $search->id,
             'audit_status' => 'pending',
+            'website_url' => 'https://example.com',
             'raw_a11y_payload' => null,
         ]);
 
@@ -162,7 +164,9 @@ class ProspectShowTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('Prospect/Show')
                 ->where('audit', null)
-                ->where('lighthouse', null));
+                ->where('lighthouse', null)
+                ->where('progress_flow.audit_status', 'pending')
+                ->where('progress_flow.status_message', 'Running accessibility audit'));
     }
 
     public function test_show_navigation_defaults_to_search(): void

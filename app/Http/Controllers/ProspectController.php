@@ -7,6 +7,7 @@ use App\Jobs\GenerateOutreachEmailJob;
 use App\Jobs\GenerateProspectReportJob;
 use App\Models\AuditJob;
 use App\Models\Prospect;
+use App\Services\ProgressFlowService;
 use App\Services\ProspectAuditService;
 use App\Services\ProspectEnrichmentService;
 use App\Services\ProspectExclusionService;
@@ -23,6 +24,7 @@ class ProspectController extends Controller
         Prospect $prospect,
         ReportBuilderService $reportBuilder,
         ProspectExclusionService $exclusions,
+        ProgressFlowService $progressFlow,
     ): Response {
         $this->authorize('view', $prospect);
 
@@ -115,6 +117,7 @@ class ProspectController extends Controller
                 ['value' => 'outreach_failed', 'label' => 'Outreach did not work'],
                 ['value' => 'other', 'label' => 'Other'],
             ],
+            'progress_flow' => $progressFlow->prospectFlow($prospect, $prospect->search),
         ]);
     }
 

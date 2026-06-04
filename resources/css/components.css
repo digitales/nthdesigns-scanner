@@ -727,6 +727,11 @@
     font-variant-numeric: tabular-nums;
     align-self: start;
   }
+  .score-card .value.value--status {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    letter-spacing: normal;
+  }
   .score-card.highlight .value { color: var(--color-accent-ink); }
   .score-card .value .unit {
     font-size: 14px;

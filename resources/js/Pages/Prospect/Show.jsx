@@ -1,5 +1,5 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import AuditFailureSection from '@/Components/audit/AuditFailureSection';
 import SiteAuditSection from '@/Components/audit/SiteAuditSection';
@@ -35,6 +35,7 @@ export default function ProspectShow({
     notes = [],
     ignored = null,
     ignoreReasons = [],
+    progress_flow: progressFlow = {},
 }) {
     const { flash } = usePage().props;
     const [copied, setCopied] = useState(false);
@@ -98,9 +99,22 @@ export default function ProspectShow({
     };
 
     const auditPending = prospect.audit_status === 'pending';
+    const auditSkipped = prospect.audit_status === 'skipped';
+    const showA11y = search.scan_type !== 'gbp_only';
+    const a11yAuditMessage = progressFlow.status_message ?? 'Running accessibility audit';
     const canReauditSite = Boolean(prospect.website_url)
         && !auditPending
         && ['accessibility_only', 'combined'].includes(search.scan_type);
+
+    useEffect(() => {
+        if (!auditPending || !showA11y) return;
+        const timer = setInterval(() => {
+            router.reload({
+                only: ['prospect', 'audit', 'auditFailure', 'lighthouse', 'pageSpeed', 'progress_flow', 'report'],
+            });
+        }, 4000);
+        return () => clearInterval(timer);
+    }, [auditPending, showA11y]);
     const latestOutreach = outreachEmails[0] ?? null;
     const isDirectUrl = search.source === 'direct_url';
     const directHost = search.submitted_url?.replace(/^https?:\/\//, '') ?? 'Single site';
@@ -161,7 +175,10 @@ export default function ProspectShow({
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 32 }}>
                     <div>
                         <div className="score-card-stack">
-                            <div className="score-card-row score-card-row--primary">
+                            <div
+                                className="score-card-row score-card-row--primary"
+                                style={!showA11y ? { gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' } : undefined}
+                            >
                                 <ScoreCard
                                     label="Combined"
                                     value={prospect.combined_score}
@@ -169,7 +186,14 @@ export default function ProspectShow({
                                     highlight={(prospect.combined_score ?? 0) >= 71}
                                 />
                                 <ScoreCard label="GBP" value={prospect.gbp_score} unit="/100" />
-                                <ScoreCard label="Accessibility" value={prospect.a11y_score} unit="/100" />
+                                {showA11y && (
+                                    <ScoreCard
+                                        label="Accessibility"
+                                        value={auditPending || auditSkipped ? null : prospect.a11y_score}
+                                        unit="/100"
+                                        pendingLabel={auditPending ? a11yAuditMessage : null}
+                                    />
+                                )}
                             </div>
                             {search.scan_type !== 'gbp_only' && (
                                 <div className="score-card-row score-card-row--speed">
@@ -207,8 +231,19 @@ export default function ProspectShow({
                             </p>
                         )}
 
+                        {auditPending && showA11y && (
+                            <p className="micro" style={{ marginTop: -16, marginBottom: 28, color: 'var(--color-stone-500)' }}>
+                                Site audit in progress — scores update automatically when complete.
+                            </p>
+                        )}
+
                         <Card title="Weakness flags" style={{ marginBottom: 24 }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: showA11y ? '1fr 1fr' : '1fr',
+                                gap: 32,
+                            }}
+                            >
                                 <div>
                                     <div className="eyebrow" style={{ marginBottom: 10 }}>GBP</div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -224,23 +259,33 @@ export default function ProspectShow({
                                         )}
                                     </div>
                                 </div>
-                                <div>
-                                    <div className="eyebrow" style={{ marginBottom: 10 }}>Accessibility</div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                        {(prospect.a11y_flags ?? []).length === 0 ? (
-                                            <span className="micro">None flagged</span>
-                                        ) : (
-                                            (prospect.a11y_flags ?? []).map((flag, i) => (
-                                                <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                                        <span style={{ width: 6, height: 6, background: 'var(--color-sev-serious)', transform: 'rotate(45deg)' }} />
-                                                        <span style={{ fontSize: 13 }}>{flag}</span>
+                                {showA11y && (
+                                    <div>
+                                        <div className="eyebrow" style={{ marginBottom: 10 }}>Accessibility</div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                            {auditPending ? (
+                                                <Status kind="pending">{a11yAuditMessage}</Status>
+                                            ) : auditSkipped ? (
+                                                <span className="micro">
+                                                    {prospect.website_url
+                                                        ? 'Site audit skipped.'
+                                                        : 'Site audit skipped — no website URL to audit.'}
+                                                </span>
+                                            ) : (prospect.a11y_flags ?? []).length === 0 ? (
+                                                <span className="micro">None flagged</span>
+                                            ) : (
+                                                (prospect.a11y_flags ?? []).map((flag, i) => (
+                                                    <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                            <span style={{ width: 6, height: 6, background: 'var(--color-sev-serious)', transform: 'rotate(45deg)' }} />
+                                                            <span style={{ fontSize: 13 }}>{flag}</span>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            ))
-                                        )}
+                                                ))
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
+                                )}
                             </div>
                         </Card>
 
