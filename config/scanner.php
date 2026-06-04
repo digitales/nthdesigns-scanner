@@ -79,4 +79,13 @@ return [
 
     'places_details_ttl_days' => (int) env('PLACES_DETAILS_TTL_DAYS', 14),
 
+    'website_discovery_enabled' => filter_var(env('WEBSITE_DISCOVERY_ENABLED', true), FILTER_VALIDATE_BOOL),
+
+    /** @var string brave|google_cse */
+    'website_discovery_provider' => env('WEBSITE_DISCOVERY_PROVIDER', 'brave'),
+
+    'website_discovery_timeout_seconds' => (int) env('WEBSITE_DISCOVERY_TIMEOUT', 8),
+
+    'website_discovery_num_results' => (int) env('WEBSITE_DISCOVERY_NUM_RESULTS', 5),
+
 ];

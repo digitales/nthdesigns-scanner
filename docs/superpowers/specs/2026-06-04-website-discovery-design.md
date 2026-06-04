@@ -1,10 +1,10 @@
 # Website discovery (no GBP website) — Design Spec
 
 **Date:** 2026-06-04  
-**Status:** Approved (brainstorming)  
+**Status:** Implemented  
 **Scope:** Automatically discover a prospect’s website via Google Programmable Search when GBP has no `websiteUri`, for `accessibility_only` / `combined` scans. Record URL provenance, re-score GBP, queue site audit. Show source on prospect detail.
 
-**Approach:** `WebsiteDiscoveryService` + `GoogleCustomSearchService` called inline from `ScorePlaceJob` after initial GBP scoring. New prospect columns for `website_url_source` and discovery metadata. Fail-open on API errors.
+**Approach:** `WebsiteDiscoveryService` + **Brave Search API** (default) or legacy `GoogleCustomSearchService`, called inline from `ScorePlaceJob` after initial GBP scoring. New prospect columns for `website_url_source` and discovery metadata. Fail-open on API errors.
 
 ---
 
@@ -20,7 +20,7 @@ Many discovery prospects have no website on their Google Business Profile. Today
 |-------|----------|
 | Apply URL | Auto-apply on confident match; re-score GBP; queue `AuditSiteJob` |
 | When | Inline in `ScorePlaceJob`, after create/update, before `dispatchNextStep` |
-| Provider | Google Programmable Search Engine (Custom Search JSON API) |
+| Provider | **Brave Search API** (default); optional legacy Google CSE via `WEBSITE_DISCOVERY_PROVIDER=google_cse` |
 | Scope | Only when `scan_type` is `accessibility_only` or `combined` **and** GBP payload has no `websiteUri` |
 | Matching | Two-tier: **high** = name + city signals; **medium** = name token in domain/title only |
 | GBP after discovery | Overlay discovered URL for rescoring; add flag **“Website not listed on Google profile”** when source is `google_cse` |

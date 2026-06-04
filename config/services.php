@@ -39,6 +39,15 @@ return [
         'key' => env('GOOGLE_PLACES_API_KEY'),
     ],
 
+    'google_cse' => [
+        'key' => env('GOOGLE_CSE_KEY'),
+        'cx'  => env('GOOGLE_CSE_CX'),
+    ],
+
+    'brave_search' => [
+        'api_key' => env('BRAVE_SEARCH_API_KEY'),
+    ],
+
     'openrouter' => [
         'key'      => env('OPENROUTER_API_KEY'),
         'model'    => env('OPENROUTER_MODEL', 'anthropic/claude-sonnet-4'),

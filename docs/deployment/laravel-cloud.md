@@ -509,6 +509,10 @@ Cloud sets `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_BUCKET`, `AWS_ENDP
 
 ```env
 GOOGLE_PLACES_API_KEY=
+# Optional: discover websites when GBP has no websiteUri (Brave Search API — ~$5/mo credit ≈ 1k queries)
+BRAVE_SEARCH_API_KEY=
+# WEBSITE_DISCOVERY_PROVIDER=brave
+# Legacy: WEBSITE_DISCOVERY_PROVIDER=google_cse + GOOGLE_CSE_KEY + GOOGLE_CSE_CX
 OPENROUTER_API_KEY=
 OPENROUTER_MODEL=anthropic/claude-sonnet-4
 ```

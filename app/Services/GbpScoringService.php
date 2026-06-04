@@ -215,7 +215,7 @@ class GbpScoringService
         return ['score' => $score, 'flags' => $flags];
     }
 
-    private function isWeakWebsiteHost(string $uri): bool
+    public function isWeakWebsiteHost(string $uri): bool
     {
         $host = strtolower((string) parse_url($uri, PHP_URL_HOST));
 

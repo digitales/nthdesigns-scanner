@@ -36,6 +36,8 @@ class ProspectEnrichmentTest extends TestCase
         $prospect->refresh();
         $this->assertSame('+441234567890', $prospect->phone);
         $this->assertSame('https://example.com', $prospect->website_url);
+        $this->assertSame('operator', $prospect->website_url_source);
+        $this->assertNull($prospect->website_discovery_confidence);
         $this->assertNotContains('No phone number listed', $prospect->gbp_flags);
         $this->assertNotContains('No website listed', $prospect->gbp_flags);
     }

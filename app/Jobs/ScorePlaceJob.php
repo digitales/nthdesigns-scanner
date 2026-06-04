@@ -8,6 +8,7 @@ use App\Support\SearchQueue;
 use App\Services\GooglePlacesService;
 use App\Services\GbpScoringService;
 use App\Services\SearchStatusService;
+use App\Services\WebsiteDiscoveryService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -33,6 +34,7 @@ class ScorePlaceJob implements ShouldQueue
         GooglePlacesService $places,
         GbpScoringService $scorer,
         SearchStatusService $searchStatus,
+        WebsiteDiscoveryService $discovery,
     ): void {
         $existing = Prospect::where('search_id', $this->search->id)
             ->where('place_id', $this->placeId)
@@ -68,16 +70,65 @@ class ScorePlaceJob implements ShouldQueue
             ],
             [
                 ...$fields,
-                'gbp_score'       => $scored['score'],
-                'gbp_flags'       => $scored['flags'],
-                'raw_gbp_payload' => $payload,
-                'expires_at'      => now()->addDays(config('scanner.report_expiry_days', 30)),
-                'audit_status'    => 'pending',
+                'website_url_source' => 'gbp',
+                'gbp_score'          => $scored['score'],
+                'gbp_flags'          => $scored['flags'],
+                'raw_gbp_payload'    => $payload,
+                'expires_at'         => now()->addDays(config('scanner.report_expiry_days', 30)),
+                'audit_status'       => 'pending',
             ]
         );
 
+        $prospect = $this->applyWebsiteDiscovery($prospect, $search, $payload, $scorer, $discovery);
+
         $this->dispatchNextStep($prospect, $search);
         $searchStatus->refresh($search);
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function applyWebsiteDiscovery(
+        Prospect $prospect,
+        Search $search,
+        array $payload,
+        GbpScoringService $scorer,
+        WebsiteDiscoveryService $discovery,
+    ): Prospect {
+        $match = $discovery->discover($prospect, $search, $payload);
+
+        if ($match === null) {
+            return $prospect;
+        }
+
+        $prospect->website_url = $match['url'];
+        $prospect->website_url_source = 'google_cse';
+        $prospect->website_discovery_confidence = $match['confidence'];
+        $prospect->website_discovered_at = now();
+
+        $overlay = $scorer->overlayProspectFields($payload, $prospect);
+        $scored = $scorer->score(
+            $overlay,
+            $search->benchmark_snapshot,
+            $search->city ?? '',
+        );
+
+        $flags = $scored['flags'];
+
+        if (! in_array(WebsiteDiscoveryService::GBP_FLAG_NOT_ON_PROFILE, $flags, true)) {
+            $flags[] = WebsiteDiscoveryService::GBP_FLAG_NOT_ON_PROFILE;
+        }
+
+        $prospect->update([
+            'website_url'                  => $match['url'],
+            'website_url_source'           => 'google_cse',
+            'website_discovery_confidence' => $match['confidence'],
+            'website_discovered_at'        => $prospect->website_discovered_at,
+            'gbp_score'                    => $scored['score'],
+            'gbp_flags'                    => $flags,
+        ]);
+
+        return $prospect->fresh();
     }
 
     private function dispatchNextStep(Prospect $prospect, Search $search): void
