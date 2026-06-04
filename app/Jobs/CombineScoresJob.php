@@ -38,7 +38,7 @@ class CombineScoresJob implements ShouldQueue
         }
 
         $search = $prospect->search;
-        $result = $combiner->combine($prospect, $search->scan_type);
+        $result = $combiner->combineForProspect($prospect, $search->scan_type);
 
         $auditStatus = match (true) {
             $prospect->audit_status === 'failed' => 'failed',

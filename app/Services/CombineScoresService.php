@@ -7,6 +7,29 @@ use App\Models\Prospect;
 class CombineScoresService
 {
     /**
+     * Scan type for scoring and display. GBP-only searches upgrade to combined
+     * once this prospect has site-audit payload (batch or ad-hoc "Run site audit").
+     */
+    public function effectiveScanType(Prospect $prospect, string $searchScanType): string
+    {
+        if ($searchScanType === 'gbp_only' && $this->prospectHasSiteAudit($prospect)) {
+            return 'combined';
+        }
+
+        return $searchScanType;
+    }
+
+    /**
+     * @return array{combined_score: int, dominant_angle: string}
+     */
+    public function combineForProspect(Prospect $prospect, ?string $searchScanType = null): array
+    {
+        $searchScanType ??= $prospect->search?->scan_type ?? 'gbp_only';
+
+        return $this->combine($prospect, $this->effectiveScanType($prospect, $searchScanType));
+    }
+
+    /**
      * Merge GBP and accessibility scores based on scan type.
      *
      * @return array{combined_score: int, dominant_angle: string}
@@ -60,5 +83,12 @@ class CombineScoresService
             'combined_score' => $combined,
             'dominant_angle' => $dominant,
         ];
+    }
+
+    private function prospectHasSiteAudit(Prospect $prospect): bool
+    {
+        $payload = $prospect->raw_a11y_payload;
+
+        return is_array($payload) && $payload !== [];
     }
 }

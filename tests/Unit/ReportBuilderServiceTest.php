@@ -323,11 +323,13 @@ class ReportBuilderServiceTest extends TestCase
         $this->assertNull($this->service->buildOperatorPageSpeed($prospect));
     }
 
-    public function test_build_operator_page_speed_returns_null_for_gbp_only(): void
+    public function test_build_operator_page_speed_returns_shape_for_gbp_only_after_ad_hoc_audit(): void
     {
         $prospect = new Prospect([
             'audit_status' => 'complete',
             'performance_score' => 50,
+            'website_url' => 'https://example.com',
+            'raw_a11y_payload' => ['url' => 'https://example.com'],
             'raw_lighthouse_payload' => [
                 'performance' => 50,
                 'metrics' => ['lcp' => ['display' => '3.2 s', 'rating' => 'poor']],
@@ -336,7 +338,10 @@ class ReportBuilderServiceTest extends TestCase
         ]);
         $prospect->setRelation('search', new Search(['scan_type' => 'gbp_only']));
 
-        $this->assertNull($this->service->buildOperatorPageSpeed($prospect));
+        $pageSpeed = $this->service->buildOperatorPageSpeed($prospect);
+
+        $this->assertNotNull($pageSpeed);
+        $this->assertSame('https://example.com', $pageSpeed['url']);
     }
 
     public function test_build_operator_page_speed_returns_null_for_legacy_score_only_payload(): void

@@ -100,11 +100,16 @@ export default function ProspectShow({
 
     const auditPending = prospect.audit_status === 'pending';
     const auditSkipped = prospect.audit_status === 'skipped';
-    const showA11y = search.scan_type !== 'gbp_only';
+    const hasSiteAudit = Boolean(audit);
+    const effectiveScanType = search.effective_scan_type ?? search.scan_type;
+    const isGbpOnlySearch = search.scan_type === 'gbp_only';
+    const showA11y = effectiveScanType !== 'gbp_only'
+        || auditPending
+        || Boolean(auditFailure);
     const a11yAuditMessage = progressFlow.status_message ?? 'Running accessibility audit';
-    const canReauditSite = Boolean(prospect.website_url)
+    const canRunSiteAudit = Boolean(prospect.website_url)
         && !auditPending
-        && ['accessibility_only', 'combined'].includes(search.scan_type);
+        && ['accessibility_only', 'combined', 'gbp_only'].includes(search.scan_type);
 
     useEffect(() => {
         if (!auditPending || !showA11y) return;
@@ -195,7 +200,7 @@ export default function ProspectShow({
                                     />
                                 )}
                             </div>
-                            {search.scan_type !== 'gbp_only' && (
+                            {showA11y && (
                                 <div className="score-card-row score-card-row--speed">
                                     <ScoreCard
                                         label="Page speed"
@@ -222,7 +227,7 @@ export default function ProspectShow({
 
                         <AuditFailureSection auditFailure={auditFailure} />
 
-                        {search.scan_type !== 'gbp_only'
+                        {showA11y
                             && prospect.audit_status === 'complete'
                             && prospect.performance_score > 0
                             && !pageSpeed && (
@@ -291,13 +296,15 @@ export default function ProspectShow({
 
                         <PageSpeedSection pageSpeed={pageSpeed} />
 
-                        {canReauditSite && (
+                        {canRunSiteAudit && (
                             <div style={{ marginBottom: 24 }}>
                                 <Button kind="secondary" size="sm" onClick={reauditSite}>
-                                    Re-run site audit
+                                    {hasSiteAudit ? 'Re-run site audit' : 'Run site audit'}
                                 </Button>
                                 <p className="micro" style={{ marginTop: 8, color: 'var(--color-stone-500)' }}>
-                                    Re-audits the website only. GBP scores are unchanged and no Google Places API calls are made.
+                                    {isGbpOnlySearch && !hasSiteAudit
+                                        ? 'This prospect was scanned GBP-only. Run a site audit to upgrade it to a full combined audit (accessibility + page speed).'
+                                        : 'Re-audits the website only. GBP scores are unchanged and no Google Places API calls are made.'}
                                 </p>
                             </div>
                         )}

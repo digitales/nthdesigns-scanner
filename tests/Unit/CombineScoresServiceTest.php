@@ -26,6 +26,35 @@ class CombineScoresServiceTest extends TestCase
         $this->assertSame('gbp', $result['dominant_angle']);
     }
 
+    public function test_gbp_only_upgrades_to_combined_when_site_audit_present(): void
+    {
+        $prospect = new Prospect([
+            'gbp_score' => 68,
+            'a11y_score' => 45,
+            'performance_score' => 30,
+            'raw_a11y_payload' => ['url' => 'https://example.com', 'violations' => []],
+        ]);
+
+        $this->assertSame('combined', $this->service->effectiveScanType($prospect, 'gbp_only'));
+
+        $result = $this->service->combineForProspect($prospect, 'gbp_only');
+
+        // round(23.8 + 22.5 + 10.5) = 57
+        $this->assertSame(57, $result['combined_score']);
+        $this->assertSame('both', $result['dominant_angle']);
+    }
+
+    public function test_gbp_only_stays_gbp_only_without_site_audit_payload(): void
+    {
+        $prospect = new Prospect([
+            'gbp_score' => 68,
+            'a11y_score' => 0,
+            'raw_a11y_payload' => null,
+        ]);
+
+        $this->assertSame('gbp_only', $this->service->effectiveScanType($prospect, 'gbp_only'));
+    }
+
     public function test_accessibility_only_uses_a11y_score(): void
     {
         $prospect = new Prospect(['gbp_score' => 80, 'a11y_score' => 45]);

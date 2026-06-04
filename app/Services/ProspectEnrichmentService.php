@@ -39,7 +39,7 @@ class ProspectEnrichmentService
         $websiteChanged = $previousWebsite !== $newWebsite;
 
         $scored = $this->gbpScorer->scoreProspect($prospect);
-        $combined = $this->combiner->combine($prospect, $prospect->search->scan_type);
+        $combined = $this->combiner->combineForProspect($prospect);
 
         $updates = array_merge(
             $prospect->only(['business_name', 'phone', 'website_url', 'address']),

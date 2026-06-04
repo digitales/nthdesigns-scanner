@@ -7,6 +7,7 @@ use App\Jobs\GenerateOutreachEmailJob;
 use App\Jobs\GenerateProspectReportJob;
 use App\Models\AuditJob;
 use App\Models\Prospect;
+use App\Services\CombineScoresService;
 use App\Services\ProgressFlowService;
 use App\Services\ProspectAuditService;
 use App\Services\ProspectEnrichmentService;
@@ -25,6 +26,7 @@ class ProspectController extends Controller
         ReportBuilderService $reportBuilder,
         ProspectExclusionService $exclusions,
         ProgressFlowService $progressFlow,
+        CombineScoresService $combiner,
     ): Response {
         $this->authorize('view', $prospect);
 
@@ -69,12 +71,13 @@ class ProspectController extends Controller
                 'audit_status'     => $prospect->audit_status,
             ],
             'search' => [
-                'id'            => $prospect->search->id,
-                'source'        => $prospect->search->source,
-                'submitted_url' => $prospect->search->submitted_url,
-                'niche'         => $prospect->search->niche,
-                'city'          => $prospect->search->city,
-                'scan_type'     => $prospect->search->scan_type,
+                'id'                  => $prospect->search->id,
+                'source'              => $prospect->search->source,
+                'submitted_url'       => $prospect->search->submitted_url,
+                'niche'               => $prospect->search->niche,
+                'city'                => $prospect->search->city,
+                'scan_type'           => $prospect->search->scan_type,
+                'effective_scan_type' => $combiner->effectiveScanType($prospect, $prospect->search->scan_type),
             ],
             'report' => $prospect->report ? [
                 'id'               => $prospect->report->id,

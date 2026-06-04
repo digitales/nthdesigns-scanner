@@ -16,6 +16,7 @@ class ReportBuilderService
     public function build(Prospect $prospect, ?array $benchmarkSource = null): array
     {
         $search = $prospect->search;
+        $scanType = app(CombineScoresService::class)->effectiveScanType($prospect, $search->scan_type);
         $a11yPayload = $prospect->raw_a11y_payload ?? [];
         $lighthousePayload = $prospect->raw_lighthouse_payload ?? [];
 
@@ -46,7 +47,7 @@ class ReportBuilderService
             'niche'              => $search->niche,
             'city'               => $search->city,
             'country'            => $search->country,
-            'scan_type'          => $search->scan_type,
+            'scan_type'          => $scanType,
             'booking_url'        => $bookingUrl,
             'generated_at'       => now()->toIso8601String(),
             'website_url'        => $prospect->website_url,
@@ -234,10 +235,6 @@ class ReportBuilderService
         $prospect->loadMissing('search');
 
         if ($prospect->audit_status !== 'complete') {
-            return null;
-        }
-
-        if ($prospect->search?->scan_type === 'gbp_only') {
             return null;
         }
 

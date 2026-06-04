@@ -77,4 +77,31 @@ class ProspectReauditTest extends TestCase
             ->post("/prospects/{$prospect->id}/audit")
             ->assertForbidden();
     }
+
+    public function test_gbp_only_prospect_with_website_can_queue_site_audit(): void
+    {
+        Queue::fake();
+
+        $user = User::factory()->create();
+        $search = Search::factory()->create(['user_id' => $user->id, 'scan_type' => 'gbp_only']);
+        $prospect = Prospect::factory()->create([
+            'search_id'        => $search->id,
+            'website_url'      => 'https://sustainable-health.example',
+            'audit_status'     => 'complete',
+            'gbp_score'        => 68,
+            'combined_score'   => 68,
+            'raw_a11y_payload' => null,
+        ]);
+
+        $this->actingAs($user)
+            ->post("/prospects/{$prospect->id}/audit")
+            ->assertRedirect()
+            ->assertSessionHas('success', 'Site audit queued. GBP scores unchanged.');
+
+        $prospect->refresh();
+        $this->assertSame('pending', $prospect->audit_status);
+        $this->assertSame(68, $prospect->gbp_score);
+
+        Queue::assertPushed(AuditSiteJob::class);
+    }
 }

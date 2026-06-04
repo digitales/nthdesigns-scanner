@@ -28,12 +28,6 @@ class ProspectAuditService
             ]);
         }
 
-        if (! in_array($prospect->search->scan_type, ['accessibility_only', 'combined'], true)) {
-            throw ValidationException::withMessages([
-                'website_url' => 'This search type does not include site audits.',
-            ]);
-        }
-
         $prospect->update(array_merge($this->auditResetFields(), [
             'suppress_auto_report' => $suppressAutoReport,
         ]));
