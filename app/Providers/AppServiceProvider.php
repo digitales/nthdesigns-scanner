@@ -2,9 +2,17 @@
 
 namespace App\Providers;
 
+use App\Models\IgnoredProspect;
+use App\Models\OauthMcpRefreshTokenFamily;
+use App\Models\OutreachEmail;
+use App\Models\OutreachSelection;
 use App\Models\Prospect;
 use App\Models\Search;
 use App\Models\UserMcpKey;
+use App\Policies\IgnoredProspectPolicy;
+use App\Policies\OauthMcpRefreshTokenFamilyPolicy;
+use App\Policies\OutreachEmailPolicy;
+use App\Policies\OutreachSelectionPolicy;
 use App\Policies\ProspectPolicy;
 use App\Policies\SearchPolicy;
 use App\Policies\UserMcpKeyPolicy;
@@ -33,6 +41,10 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Search::class, SearchPolicy::class);
         Gate::policy(Prospect::class, ProspectPolicy::class);
         Gate::policy(UserMcpKey::class, UserMcpKeyPolicy::class);
+        Gate::policy(OutreachSelection::class, OutreachSelectionPolicy::class);
+        Gate::policy(OutreachEmail::class, OutreachEmailPolicy::class);
+        Gate::policy(OauthMcpRefreshTokenFamily::class, OauthMcpRefreshTokenFamilyPolicy::class);
+        Gate::policy(IgnoredProspect::class, IgnoredProspectPolicy::class);
 
         Vite::prefetch(concurrency: 3);
     }

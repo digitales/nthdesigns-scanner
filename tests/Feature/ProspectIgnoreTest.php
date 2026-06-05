@@ -189,6 +189,23 @@ class ProspectIgnoreTest extends TestCase
         $this->assertDatabaseMissing('ignored_prospects', ['id' => $ignored->id]);
     }
 
+    public function test_cannot_remove_another_users_ignored_entry(): void
+    {
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+        $ignored = IgnoredProspect::create([
+            'user_id'  => $owner->id,
+            'place_id' => 'places/private',
+            'reason'   => IgnoredProspect::REASON_OTHER,
+        ]);
+
+        $this->actingAs($other)
+            ->delete("/ignored/{$ignored->id}")
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('ignored_prospects', ['id' => $ignored->id]);
+    }
+
     public function test_scrape_job_skips_ignored_place_ids(): void
     {
         config(['services.google_places.key' => 'test-key']);

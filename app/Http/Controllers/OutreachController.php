@@ -91,18 +91,20 @@ class OutreachController extends Controller
 
     public function destroySelection(Request $request, Prospect $prospect): RedirectResponse
     {
-        $this->authorize('view', $prospect);
-
-        OutreachSelection::query()
+        $selection = OutreachSelection::query()
             ->where('user_id', $request->user()->id)
             ->where('prospect_id', $prospect->id)
-            ->delete();
+            ->firstOrFail();
+
+        $this->authorize('delete', $selection);
+        $selection->delete();
 
         return back();
     }
 
     public function clearSelections(Request $request): RedirectResponse
     {
+        $this->authorize('deleteAny', OutreachSelection::class);
         $request->user()->outreachSelections()->delete();
 
         return back();

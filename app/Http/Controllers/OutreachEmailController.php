@@ -10,7 +10,7 @@ class OutreachEmailController extends Controller
 {
     public function markSent(Request $request, OutreachEmail $outreachEmail): RedirectResponse
     {
-        $this->authorize('view', $outreachEmail->prospect);
+        $this->authorize('update', $outreachEmail);
 
         $outreachEmail->update(['sent_at' => now()]);
 
@@ -19,7 +19,7 @@ class OutreachEmailController extends Controller
 
     public function markResponse(Request $request, OutreachEmail $outreachEmail): RedirectResponse
     {
-        $this->authorize('view', $outreachEmail->prospect);
+        $this->authorize('update', $outreachEmail);
 
         $outreachEmail->update(['response_received' => true]);
 

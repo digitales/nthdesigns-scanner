@@ -45,7 +45,7 @@ class IgnoredProspectController extends Controller
 
     public function destroy(Request $request, IgnoredProspect $ignoredProspect): RedirectResponse
     {
-        abort_unless($ignoredProspect->user_id === $request->user()->id, 403);
+        $this->authorize('delete', $ignoredProspect);
 
         $ignoredProspect->delete();
 

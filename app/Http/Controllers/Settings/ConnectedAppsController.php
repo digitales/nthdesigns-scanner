@@ -9,7 +9,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 class ConnectedAppsController extends Controller
 {
@@ -42,9 +41,7 @@ class ConnectedAppsController extends Controller
 
     public function destroy(Request $request, OauthMcpRefreshTokenFamily $family): RedirectResponse
     {
-        if ($family->user_id !== $request->user()->id) {
-            throw new AccessDeniedHttpException;
-        }
+        $this->authorize('delete', $family);
 
         $this->refreshTokens->revokeFamily($family, 'user');
 
