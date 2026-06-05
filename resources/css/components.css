@@ -856,6 +856,16 @@
   .ptable.ptable--prospects {
     table-layout: fixed;
   }
+  .ptable.ptable--prospects th.col-check { width: 36px; }
+  .ptable.ptable--prospects th.col-biz { width: 28%; }
+  .ptable.ptable--prospects th.col-combined { width: 9%; }
+  .ptable.ptable--prospects th.col-score-sm { width: 6%; }
+  .ptable.ptable--prospects th.col-cms { width: 8%; }
+  .ptable.ptable--prospects th.col-angle { width: 11%; }
+  .ptable.ptable--prospects th.col-report { width: 14%; }
+  .ptable.ptable--prospects th.col-actions { width: 14%; text-align: right; }
+  .ptable.ptable--prospects td.col-actions { text-align: right; }
+  .ptable--paper { background: var(--color-paper); }
   .ptable.ptable--comparison {
     table-layout: fixed;
   }
@@ -1469,4 +1479,32 @@
   .sparkline-bar { width: 6px; border-radius: 1px; flex-shrink: 0; }
   .sparkline-bar--active { height: 20px; background: var(--color-accent); }
   .sparkline-bar--idle { height: 8px; background: var(--color-stone-200); }
+  .micro-uppercase { font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-stone-500); }
+  .text-center { text-align: center; }
+  .mt-20 { margin-top: 20px; }
+  .pt-4 { padding-top: 4px; }
+  .body-14-medium { font-size: 14px; font-weight: 500; }
+  .banner-success {
+    background: var(--color-positive-soft);
+    border-color: oklch(0.58 0.11 145 / 0.25);
+    color: oklch(0.35 0.08 145);
+  .outreach-layout { display: grid; grid-template-columns: 300px 1fr; gap: 32px; }
+  .queue-list { display: flex; flex-direction: column; gap: 8px; }
+  .queue-link { text-decoration: none; color: inherit; flex: 1; min-width: 0; }
+  .queue-chip-title { font-weight: 500; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .queue-chip-meta { display: flex; gap: 8px; margin-top: 6px; align-items: center; }
+  .queue-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .card-title-flush { margin: 0; }
+
+  .filter-range-row { display: flex; align-items: center; gap: 10px; padding-top: 6px; }
+  .min-w-36 { min-width: 36px; }
+  .text-medium { font-weight: 500; }
+  .biz-title-row { display: flex; align-items: center; gap: 8px; }
+  .badge--queue { font-size: 10px; background: var(--color-stone-200); }
+  .mt-16 { margin-top: 16px; }
+  .skel-row { padding: 14px 20px; }
+  .skel-block { width: 60%; display: block; }
+  .note-cell { max-width: 240px; }
+  .progress-fill[data-pct] { width: calc(var(--progress-pct, 0) * 1%); }
+
 }
