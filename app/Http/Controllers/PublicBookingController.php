@@ -15,6 +15,14 @@ class PublicBookingController extends Controller
 {
     public function show(Request $request, AgencyBookingService $agencyBooking): Response|RedirectResponse|HttpResponse
     {
+        if ($agencyBooking->nativeBookingActive()) {
+            $token = $request->query('report');
+
+            if (! is_string($token) || $token === '') {
+                abort(404, 'Open booking from your report link.');
+            }
+        }
+
         $token = $request->query('report');
 
         if (is_string($token) && $token !== '' && $agencyBooking->nativeBookingActive()) {

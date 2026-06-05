@@ -79,6 +79,20 @@ class PublicBookingTest extends TestCase
             ->assertRedirect(url('/r/'.$report->token).'#book');
     }
 
+    public function test_book_page_returns_404_when_native_booking_enabled_without_report_token(): void
+    {
+        AgencyBookingSetting::current()->update([
+            'enabled' => true,
+            'fastmail_username' => 'bookings@example.com',
+            'fastmail_app_password' => 'test-app-password',
+            'caldav_calendar_url' => 'https://caldav.fastmail.com/dav/calendars/user/bookings%40example.com/primary/',
+        ]);
+
+        config(['scanner.report_booking_url' => 'https://tidycal.com/legacy']);
+
+        $this->get(route('book.index'))->assertNotFound();
+    }
+
     public function test_book_page_returns_404_when_not_configured(): void
     {
         config(['scanner.report_booking_url' => null]);

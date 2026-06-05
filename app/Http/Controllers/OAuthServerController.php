@@ -9,6 +9,7 @@ use App\Models\OauthMcpClient;
 use App\Services\OAuthMcp\OAuthMcpAuthorizationCodeIssuer;
 use App\Services\OAuthMcp\OAuthMcpClientRegistrar;
 use App\Services\OAuthMcp\OAuthMcpTokenGrantHandler;
+use App\Services\OAuthMcpJwtService;
 use App\Services\OAuthMcpRefreshTokenService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,6 +23,7 @@ class OAuthServerController extends Controller
         private OAuthMcpAuthorizationCodeIssuer $authorizationCodes,
         private OAuthMcpTokenGrantHandler $tokenGrants,
         private OAuthMcpRefreshTokenService $refreshTokens,
+        private OAuthMcpJwtService $jwt,
     ) {}
 
     /**
@@ -98,10 +100,14 @@ class OAuthServerController extends Controller
      */
     public function revoke(OAuthRevokeTokenRequest $request): Response
     {
+        $token = (string) $request->input('token');
         $hint = (string) $request->input('token_type_hint', 'refresh_token');
-        if ($hint === 'refresh_token') {
+
+        if ($hint === 'access_token') {
+            $this->jwt->revokeAccessToken($token);
+        } else {
             $this->refreshTokens->revokeByRawToken(
-                (string) $request->input('token'),
+                $token,
                 'user',
                 (string) $request->input('client_id'),
             );

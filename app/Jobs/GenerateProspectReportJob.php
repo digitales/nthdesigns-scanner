@@ -32,6 +32,7 @@ class GenerateProspectReportJob implements ShouldQueue
     public function handle(
         GooglePlacesService $places,
         ReportBuilderService $builder,
+        BenchmarkNormalizer $benchmarks,
     ): void {
         $prospect = $this->prospect->fresh(['search.user.setting']);
 
@@ -40,7 +41,7 @@ class GenerateProspectReportJob implements ShouldQueue
         }
 
         $search = $prospect->search;
-        $benchmark = $this->resolveBenchmark($places, $search, $prospect);
+        $benchmark = $this->resolveBenchmark($places, $benchmarks, $search, $prospect);
 
         $reportData = $builder->build($prospect, $benchmark);
         $expiryDays = config('scanner.report_expiry_days', 30);
@@ -71,6 +72,7 @@ class GenerateProspectReportJob implements ShouldQueue
      */
     private function resolveBenchmark(
         GooglePlacesService $places,
+        BenchmarkNormalizer $benchmarks,
         Search $search,
         Prospect $prospect,
     ): ?array {
@@ -91,6 +93,6 @@ class GenerateProspectReportJob implements ShouldQueue
             $prospect->place_id,
         );
 
-        return $place ? (new BenchmarkNormalizer)->fromPlace($place) : null;
+        return $place ? $benchmarks->fromPlace($place) : null;
     }
 }
