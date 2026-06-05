@@ -158,6 +158,44 @@ class ScanNicheJobTest extends TestCase
         $this->assertSame(8, $today->result_count);
     }
 
+    public function test_skips_when_scan_already_complete_without_force(): void
+    {
+        config(['services.google_places.key' => 'test-key']);
+
+        NicheScan::query()->create([
+            'niche' => 'Dental Practice',
+            'niche_query' => 'dental practice',
+            'city' => 'Birmingham',
+            'country' => 'GB',
+            'scan_date' => '2026-05-27',
+            'result_count' => 10,
+            'sampled_count' => 5,
+            'avg_gbp_score' => 50,
+            'pct_no_website' => 20,
+            'pct_low_reviews' => 40,
+            'opportunity_score' => 70,
+            'status' => 'complete',
+            'ran_at' => now(),
+        ]);
+
+        Http::fake();
+
+        (new ScanNicheJob(
+            niche: 'Dental Practice',
+            nicheQuery: 'dental practice',
+            city: 'Birmingham',
+            country: 'GB',
+            sample: 5,
+            scanDate: '2026-05-27',
+        ))->handle(
+            app(NicheSampleCollector::class),
+            app(NicheExclusionService::class),
+        );
+
+        Http::assertNothingSent();
+        $this->assertSame('complete', NicheScan::query()->value('status'));
+    }
+
     public function test_zero_results_completes_with_opportunity_score_zero(): void
     {
         config(['services.google_places.key' => 'test-key']);

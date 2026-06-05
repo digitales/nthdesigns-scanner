@@ -119,6 +119,39 @@ class DirectUrlScanJobTest extends TestCase
         $this->assertSame('complete', $search->fresh()->status);
     }
 
+    public function test_skips_when_prospect_already_exists(): void
+    {
+        Bus::fake([AuditSiteJob::class]);
+
+        $user = User::factory()->create();
+        $search = Search::factory()->directUrl('https://example.com')->create([
+            'user_id' => $user->id,
+            'status' => 'discovering',
+        ]);
+
+        Prospect::factory()->create([
+            'search_id' => $search->id,
+            'place_id' => 'places/existing',
+            'website_url' => 'https://example.com',
+        ]);
+
+        $this->mock(GooglePlacesService::class, function ($mock) {
+            $mock->shouldNotReceive('findByWebsiteUrl');
+        });
+
+        (new DirectUrlScanJob($search))->handle(
+            app(GooglePlacesService::class),
+            app(\App\Services\GbpScoringService::class),
+            app(\App\Services\SearchStatusService::class),
+            app(\App\Support\WebsiteUrlNormalizer::class),
+            app(\App\Services\DirectUrlSearchEnrichment::class),
+            app(ProspectExclusionService::class),
+        );
+
+        $this->assertSame(1, Prospect::where('search_id', $search->id)->count());
+        Bus::assertNotDispatched(AuditSiteJob::class);
+    }
+
     public function test_enriches_search_from_gbp_for_report_benchmarks(): void
     {
         Bus::fake([AuditSiteJob::class]);

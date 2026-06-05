@@ -84,6 +84,33 @@ class ScanNichesCommandTest extends TestCase
         Queue::assertNothingPushed();
     }
 
+    public function test_force_passes_flag_to_dispatched_jobs(): void
+    {
+        Queue::fake();
+
+        $this->travelTo(now('Europe/London')->startOfDay());
+
+        NicheScan::query()->create([
+            'niche' => 'Dental Practice',
+            'niche_query' => 'dental practice',
+            'city' => 'Birmingham',
+            'country' => 'GB',
+            'scan_date' => now('Europe/London')->toDateString(),
+            'result_count' => 10,
+            'sampled_count' => 5,
+            'status' => 'complete',
+            'ran_at' => now(),
+        ]);
+
+        $this->artisan('niches:scan', [
+            '--cities' => 'Birmingham',
+            '--niches' => 'Dental Practice',
+            '--force' => true,
+        ])->assertExitCode(0);
+
+        Queue::assertPushed(ScanNicheJob::class, fn (ScanNicheJob $job) => $job->force === true);
+    }
+
     public function test_excludes_ignored_niches_from_dispatch(): void
     {
         Queue::fake();

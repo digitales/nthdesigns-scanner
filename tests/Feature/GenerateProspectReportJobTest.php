@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\CaptureScreenshotJob;
 use App\Jobs\GenerateProspectReportJob;
 use App\Models\Prospect;
 use App\Models\ProspectReport;
@@ -10,6 +11,7 @@ use App\Services\GooglePlacesService;
 use App\Services\ReportBuilderService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class GenerateProspectReportJobTest extends TestCase
@@ -164,6 +166,29 @@ class GenerateProspectReportJobTest extends TestCase
         $this->assertSame('Top Dentist', $report->report_data['benchmark']['name']);
         $this->assertSame('dentist', $report->report_data['niche']);
         $this->assertSame('Wimbledon', $report->report_data['city']);
+    }
+
+    public function test_skips_screenshot_dispatch_when_desktop_already_stored(): void
+    {
+        Queue::fake();
+
+        $search = Search::factory()->create();
+        $prospect = Prospect::factory()->create([
+            'search_id' => $search->id,
+            'website_url' => 'https://example.com',
+        ]);
+
+        ProspectReport::factory()->create([
+            'prospect_id' => $prospect->id,
+            'screenshot_paths' => ['desktop' => 'https://cdn.example/reports/desktop.png'],
+        ]);
+
+        (new GenerateProspectReportJob($prospect))->handle(
+            app(GooglePlacesService::class),
+            app(ReportBuilderService::class),
+        );
+
+        Queue::assertNotPushed(CaptureScreenshotJob::class);
     }
 
     public function test_direct_url_search_builds_report_without_benchmark(): void

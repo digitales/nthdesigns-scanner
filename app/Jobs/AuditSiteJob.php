@@ -111,9 +111,10 @@ class AuditSiteJob implements ShouldQueue
 
             $errorRecorder->recordFailure($auditJob, $errorRecorder->formatThrowable($e));
 
-            $prospect->update(['audit_status' => 'failed']);
-
-            $searchStatus->refresh($prospect->search);
+            if ($this->attempts() >= $this->tries) {
+                $prospect->update(['audit_status' => 'failed']);
+                $searchStatus->refresh($prospect->search);
+            }
 
             throw $e;
         } finally {

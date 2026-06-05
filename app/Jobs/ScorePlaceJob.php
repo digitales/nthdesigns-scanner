@@ -40,7 +40,7 @@ class ScorePlaceJob implements ShouldQueue
             ->where('place_id', $this->placeId)
             ->first();
 
-        if ($existing && !in_array($existing->audit_status, ['pending'], true)) {
+        if ($existing) {
             return;
         }
 

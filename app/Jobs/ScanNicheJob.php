@@ -31,12 +31,17 @@ class ScanNicheJob implements ShouldQueue
         public string $country,
         public int $sample,
         public string $scanDate,
+        public bool $force = false,
     ) {
         NicheQueue::apply($this);
     }
 
     public function handle(NicheSampleCollector $collector, NicheExclusionService $exclusions): void
     {
+        if (! $this->force && $this->alreadyComplete()) {
+            return;
+        }
+
         $scan = $this->pendingScan();
 
         $result = $collector->collect(
@@ -49,6 +54,16 @@ class ScanNicheJob implements ShouldQueue
         $this->markComplete($scan, $result);
 
         $exclusions->refreshForNiche($this->niche);
+    }
+
+    private function alreadyComplete(): bool
+    {
+        return NicheScan::query()
+            ->where('niche', $this->niche)
+            ->where('city', $this->city)
+            ->whereDate('scan_date', Carbon::parse($this->scanDate)->toDateString())
+            ->where('status', 'complete')
+            ->exists();
     }
 
     private function pendingScan(): NicheScan

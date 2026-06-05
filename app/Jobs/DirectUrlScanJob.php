@@ -44,6 +44,12 @@ class DirectUrlScanJob implements ShouldQueue
             return;
         }
 
+        if (Prospect::where('search_id', $search->id)->exists()) {
+            $searchStatus->refresh($search);
+
+            return;
+        }
+
         $search->update(['status' => 'discovering']);
 
         $url = $search->submitted_url;

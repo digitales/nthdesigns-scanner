@@ -56,7 +56,9 @@ class GenerateProspectReportJob implements ShouldQueue
             ]
         );
 
-        if ($prospect->website_url) {
+        $paths = $report->screenshot_paths ?? [];
+
+        if ($prospect->website_url && empty($paths['desktop'])) {
             CaptureScreenshotJob::dispatch($report);
         }
     }

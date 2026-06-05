@@ -193,6 +193,38 @@ class ScorePlaceJobWebsiteDiscoveryTest extends TestCase
         Bus::assertDispatched(AuditSiteJob::class);
     }
 
+    public function test_skips_when_prospect_already_exists(): void
+    {
+        Bus::fake([AuditSiteJob::class]);
+
+        $user = User::factory()->create();
+        $search = Search::factory()->create([
+            'user_id' => $user->id,
+            'scan_type' => 'combined',
+            'city' => 'Manchester',
+        ]);
+
+        Prospect::factory()->create([
+            'search_id' => $search->id,
+            'place_id' => 'places/abc',
+            'audit_status' => 'pending',
+        ]);
+
+        $this->mock(GooglePlacesService::class, function ($mock) {
+            $mock->shouldNotReceive('getPlaceDetails');
+        });
+
+        (new ScorePlaceJob($search, 'places/abc'))->handle(
+            app(GooglePlacesService::class),
+            app(\App\Services\GbpScoringService::class),
+            app(\App\Services\SearchStatusService::class),
+            app(WebsiteDiscoveryService::class),
+        );
+
+        $this->assertSame(1, Prospect::where('search_id', $search->id)->count());
+        Bus::assertNotDispatched(AuditSiteJob::class);
+    }
+
     public function test_cse_failure_leaves_prospect_without_website(): void
     {
         Bus::fake([AuditSiteJob::class]);
