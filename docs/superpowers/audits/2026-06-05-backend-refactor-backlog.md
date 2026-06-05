@@ -491,6 +491,96 @@ Cohesive pipeline (ONS fetch, taxonomy filter, Birmingham validation, PHP config
 | Effort | ~1–2 hours |
 
 ### S5 — Reports & public surfaces
+
+#### REF-S5-01: ReportBuilderService decomposition candidate (457 lines)
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S5 Reports & public surfaces |
+| Scores | M=3 R=1 L=2 O=2 → Total 8 (P2) |
+| Evidence | `app/Services/ReportBuilderService.php` (457 lines); appendix #1 file-size signal |
+| Spec gap | None — [2026-05-27-prospect-site-audit-detail-design.md](../specs/2026-05-27-prospect-site-audit-detail-design.md) intentionally centralises shaping in this service |
+| PR slice | Medium — "S5: extract ViolationMapper, OperatorPageSpeedBuilder, CmsLabelResolver from ReportBuilderService" |
+| Risk | Low — covered by `ReportBuilderServiceTest`, `GenerateProspectReportJobTest`, `ProspectShowTest` |
+| Effort | ~4–6 hours |
+| Notes | Natural extraction units: `mapViolations` / `summarizeViolations` (shared with S4), `buildOperatorPageSpeed` + metric shapers, `cmsForProspect` label/badge helpers, public `build()` benchmark section. Highest-priority decomposition in codebase. |
+
+#### REF-S5-02: PublicReportController re-shapes stored report_data with inline fallbacks
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S5 Reports & public surfaces |
+| Scores | M=2 R=1 L=2 O=2 → Total 7 (P2) |
+| Evidence | `app/Http/Controllers/PublicReportController.php:38-79` — ~40 lines assembling Inertia props from `report_data` + live model fields |
+| Spec gap | [2026-05-27-prospect-site-audit-detail-design.md](../specs/2026-05-27-prospect-site-audit-detail-design.md) — spec routes shaping through `ReportBuilderService`; public page bypasses it |
+| PR slice | Medium — "S5: add ReportBuilderService::buildPublicProps or read stored snapshot only" |
+| Risk | Medium — stale or inconsistent props if `report_data` and live prospect diverge; F1 prop-bloat cross-ref |
+| Effort | ~2–3 hours |
+| Notes | `combined_score` and `performance_score` read live from `$report->prospect` (lines 58–59) while `grade` / `grade_label` come from stored JSON (56–57). |
+
+#### REF-S5-03: ReportDashboardController loads all reports without pagination
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S5 Reports & public surfaces |
+| Scores | M=2 R=2 L=2 O=1 → Total 7 (P2) |
+| Evidence | `app/Http/Controllers/ReportDashboardController.php:38-46,48-72` — four stat clones plus unbounded `->get()` |
+| Spec gap | None |
+| PR slice | Medium — "S5: paginate ReportDashboardController and consolidate stats query" |
+| Risk | Low — grows with report volume per operator; eager load on `outreachEmails` is correct |
+| Effort | ~2 hours |
+| Notes | Inline `$request->only(['niche', 'viewed', 'warm'])` filter — Form Request gap (read-only index). No `ProspectReportPolicy`; scoping via `whereHas` user_id only. |
+
+#### REF-S5-04: GenerateProspectReportJob re-dispatches CaptureScreenshotJob on every run
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S5 Reports & public surfaces |
+| Scores | M=2 R=2 L=2 O=2 → Total 8 (P2) |
+| Evidence | `app/Jobs/GenerateProspectReportJob.php:47-61` — `updateOrCreate` then unconditional `CaptureScreenshotJob::dispatch` |
+| Spec gap | None |
+| PR slice | Medium — "S5: skip CaptureScreenshotJob when desktop screenshot_paths already set" |
+| Risk | Medium — job retry or manual re-generation queues duplicate Fly captures (links REF-S3-02) |
+| Effort | ~1 hour |
+| Notes | `tries = 2` with no idempotency guard. Token preserved on update (`$existing?->token`). |
+
+#### REF-S5-05: ReportBuilderService uses service locator for CombineScoresService
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S5 Reports & public surfaces |
+| Scores | M=1 R=1 L=2 O=1 → Total 5 (P3) |
+| Evidence | `app/Services/ReportBuilderService.php:19` — `app(CombineScoresService::class)` inside `build()` |
+| Spec gap | None |
+| PR slice | Medium — "S5: inject CombineScoresService into ReportBuilderService" |
+| Risk | Low — complicates testing and hides dependency graph |
+| Effort | ~0.5 hours |
+
+#### REF-S5-06: Public report grade can desync from live combined_score
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S5 Reports & public surfaces |
+| Scores | M=2 R=1 L=2 O=2 → Total 7 (P2) |
+| Evidence | `app/Http/Controllers/PublicReportController.php:56-59`; `app/Services/ReportBuilderService.php:40-41,320-328` |
+| Spec gap | None |
+| PR slice | Medium — "S5: derive public grade from stored report_data only or regenerate on score change" |
+| Risk | Medium — operator enrichment/rescore updates prospect but public page shows old grade with new score band colour (`Public.jsx:14` uses live `combined_score`) |
+| Effort | ~1–2 hours |
+| Notes | `Public.jsx` uses `gradeColor(report.combined_score)` while headline grade comes from snapshot JSON. |
+
+#### REF-S5-07: Public.jsx duplicates audit section visibility logic from operator components
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S5 Reports & public surfaces |
+| Scores | M=2 R=1 L=1 O=1 → Total 5 (P3) |
+| Evidence | `resources/js/Pages/Report/Public.jsx:15-20`; operator shaping in `ReportBuilderService::buildOperatorAudit` |
+| Spec gap | None — F1 light pass |
+| PR slice | Medium — "F1/S5: share hasA11y/hasLighthouse helpers between public and operator audit UI" |
+| Risk | Low — display-only drift |
+| Effort | ~1 hour |
+
 ### S6 — Outreach
 ### S7 — OAuth & MCP
 ### S8 — Booking & calendar
