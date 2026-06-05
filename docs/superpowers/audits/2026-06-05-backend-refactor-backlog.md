@@ -582,6 +582,94 @@ Cohesive pipeline (ONS fetch, taxonomy filter, Birmingham validation, PHP config
 | Effort | ~1 hour |
 
 ### S6 — Outreach
+
+#### REF-S6-01: OutreachController queue mutations use inline validation
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S6 Outreach |
+| Scores | M=2 R=1 L=2 O=1 → Total 6 (P3) |
+| Evidence | `app/Http/Controllers/OutreachController.php:75-78,114-118` |
+| Spec gap | None — cross-cutting Form Request gap (REF-S10-01) |
+| PR slice | Medium — "S6: add StoreOutreachSelectionRequest and GenerateOutreachEmailsRequest" |
+| Risk | Low |
+| Effort | ~1 hour |
+| Notes | `storeSelection()` and `generate()` inline `$request->validate()`. Contrast `ProspectIgnoreController` which uses `StoreIgnoredProspectRequest`. |
+
+#### REF-S6-02: OutreachSelectionPolicy exists but is never registered or invoked
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S6 Outreach |
+| Scores | M=2 R=2 L=2 O=2 → Total 8 (P2) |
+| Evidence | `app/Policies/OutreachSelectionPolicy.php:10-13`; `app/Providers/AppServiceProvider.php:33-35` (no `Gate::policy`); `app/Http/Controllers/OutreachController.php:93-100` uses `ProspectPolicy::view` + manual `where user_id` |
+| Spec gap | [2026-05-26-operator-ui-design.md](../specs/2026-05-26-operator-ui-design.md) — policy documented; never wired in provider |
+| PR slice | Medium — "S6: register OutreachSelectionPolicy and authorize destroy/clear via selection model" |
+| Risk | Medium — dead policy gives false confidence; `destroySelection` deletes by `prospect_id` without loading `OutreachSelection` for policy check (scoped query mitigates) |
+| Effort | ~1 hour |
+
+#### REF-S6-03: OutreachEmailController checks prospect view, not email ownership
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S6 Outreach |
+| Scores | M=2 R=2 L=2 O=1 → Total 7 (P2) |
+| Evidence | `app/Http/Controllers/OutreachEmailController.php:13,22` — `authorize('view', $outreachEmail->prospect)`; `app/Models/OutreachEmail.php:14` has `user_id` |
+| Spec gap | None |
+| PR slice | Medium — "S6: add OutreachEmailPolicy (user owns email row)" |
+| Risk | Low — prospect is already user-scoped via search; edge case if email `user_id` diverges from prospect owner |
+| Effort | ~1 hour |
+
+#### REF-S6-04: GenerateOutreachEmailJob lacks idempotency on queue retry
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S6 Outreach |
+| Scores | M=2 R=2 L=2 O=2 → Total 8 (P2) |
+| Evidence | `app/Jobs/GenerateOutreachEmailJob.php:21,43-53` — `tries = 2`, unconditional `OutreachEmail::create` |
+| Spec gap | None |
+| PR slice | Medium — "S6: skip GenerateOutreachEmailJob when matching email exists (prospect + user + pitch_angle)" |
+| Risk | Medium — retry duplicates Anthropic API spend and outreach email rows |
+| Effort | ~1–2 hours |
+| Notes | Job rethrows after log (line 59) so Laravel retry is active. No dedup guard unlike `ScorePlaceJob` idempotency pattern. |
+
+#### REF-S6-05: GenerateOutreachEmailJob routed to auditing queue
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S6 Outreach |
+| Scores | M=1 R=1 L=2 O=2 → Total 6 (P3) |
+| Evidence | `app/Jobs/GenerateOutreachEmailJob.php:29` — `AuditingQueue::apply($this)`; contrast audit/report jobs in same queue |
+| Spec gap | None |
+| PR slice | Medium — "S6: route GenerateOutreachEmailJob to searches or dedicated outreach queue" |
+| Risk | Low — Anthropic HTTP work competes with Fly audit/screenshot workers on managed `auditing` queue |
+| Effort | ~0.5 hours |
+
+#### REF-S6-06: OutreachController index() fat inline serialization
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S6 Outreach |
+| Scores | M=2 R=1 L=2 O=1 → Total 6 (P3) |
+| Evidence | `app/Http/Controllers/OutreachController.php:30-70` (155-line controller); `ProspectListResource` used only in `SavedProspectController` |
+| Spec gap | [2026-05-29-outreach-queue-clickable-prospects-design.md](../specs/2026-05-29-outreach-queue-clickable-prospects-design.md) — v1 spec said backend payload unchanged; drift risk as fields grow |
+| PR slice | Medium — "S6: extract outreach queue/email payload mapper or extend ProspectListResource" |
+| Risk | Low — F1/REF-S10-04 cross-ref on Resource underuse |
+| Effort | ~2 hours |
+| Notes | `Index.jsx` correctly wraps queue chips in `Link` with `?from=outreach` per spec (lines 131–133). |
+
+#### REF-S6-07: OutreachEmail model uses legacy `protected $casts`
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S6 Outreach |
+| Scores | M=1 R=1 L=2 O=1 → Total 5 (P3) |
+| Evidence | `app/Models/OutreachEmail.php:19-22` |
+| Spec gap | None — see REF-S10-02 |
+| PR slice | Small — batch with REF-S10-02 `casts()` migration |
+| Risk | Low |
+| Effort | ~0.5 hours (batch) |
+
 ### S7 — OAuth & MCP
 ### S8 — Booking & calendar
 ### S9 — Operator settings & data hygiene
