@@ -4,9 +4,11 @@ namespace App\Services;
 
 use App\Models\Prospect;
 use App\Services\Reports\CmsLabelResolver;
+use App\Services\Reports\LighthouseMetricsExtractor;
+use App\Services\Reports\OperatorAuditAssembler;
 use App\Services\Reports\OperatorPageSpeedBuilder;
+use App\Services\Reports\ReportGradeCalculator;
 use App\Services\Reports\ViolationMapper;
-use Illuminate\Support\Carbon;
 
 class ReportBuilderService
 {
@@ -16,6 +18,9 @@ class ReportBuilderService
         private ViolationMapper $violations,
         private OperatorPageSpeedBuilder $pageSpeed,
         private CmsLabelResolver $cms,
+        private ReportGradeCalculator $grades,
+        private LighthouseMetricsExtractor $lighthouse,
+        private OperatorAuditAssembler $operatorAudit,
     ) {}
 
     /**
@@ -47,9 +52,9 @@ class ReportBuilderService
 
         $violationSummary = $this->violations->summarize($a11yPayload);
         $topViolations = $this->violations->top($a11yPayload, 5);
-        $lighthouse = $this->extractLighthouse($lighthousePayload, $a11yPayload);
+        $lighthouse = $this->lighthouse->extract($lighthousePayload, $a11yPayload);
         $combined = (int) $prospect->combined_score;
-        $grade = $this->combinedToGrade($combined);
+        $grade = $this->grades->combinedToGrade($combined);
 
         $search->loadMissing('user.setting');
         $bookingUrl = $search->user?->setting?->booking_url ?: config('scanner.report_booking_url');
@@ -63,7 +68,7 @@ class ReportBuilderService
             'generated_at' => now()->toIso8601String(),
             'website_url' => $prospect->website_url,
             'grade' => $grade,
-            'grade_label' => $this->gradeLabel($grade),
+            'grade_label' => $this->grades->gradeLabel($grade),
             'performance_score' => $prospect->performance_score,
             'violation_summary' => $violationSummary,
             'top_violations' => $topViolations,
@@ -93,42 +98,7 @@ class ReportBuilderService
      */
     public function buildOperatorAudit(Prospect $prospect): ?array
     {
-        if ($prospect->audit_status !== 'complete') {
-            return null;
-        }
-
-        $a11yPayload = $prospect->raw_a11y_payload;
-        $lighthousePayload = $prospect->raw_lighthouse_payload ?? [];
-
-        if ($a11yPayload === null || $a11yPayload === []) {
-            return null;
-        }
-
-        $lighthouse = $this->lighthouseForProspect($prospect) ?? [
-            'performance' => null,
-            'accessibility' => null,
-            'seo' => null,
-            'best_practices' => null,
-        ];
-        $hasLighthouse = $this->hasLighthouseMetrics($lighthouse);
-
-        if (($a11yPayload['violations'] ?? []) === [] && ! $hasLighthouse && ! isset($a11yPayload['pass_count'])) {
-            return null;
-        }
-
-        $auditedAt = $this->auditedAt($prospect);
-
-        return [
-            'audited_at' => $auditedAt?->toIso8601String() ?? now()->toIso8601String(),
-            'url' => $a11yPayload['url'] ?? $prospect->website_url ?? '',
-            'summary' => $this->violations->summarize($a11yPayload),
-            'pass_count' => (int) ($a11yPayload['pass_count'] ?? 0),
-            'incomplete_count' => (int) ($a11yPayload['incomplete_count'] ?? 0),
-            'top_violations' => $this->violations->top($a11yPayload, 5),
-            'all_violations' => $this->violations->all($a11yPayload),
-            'lighthouse' => $lighthouse,
-            'performance_score' => (int) $prospect->performance_score,
-        ];
+        return $this->operatorAudit->build($prospect);
     }
 
     /**
@@ -144,14 +114,7 @@ class ReportBuilderService
      */
     public function lighthouseForProspect(Prospect $prospect): ?array
     {
-        $a11yPayload = is_array($prospect->raw_a11y_payload) ? $prospect->raw_a11y_payload : [];
-        $lighthouse = $this->extractLighthouse($prospect->raw_lighthouse_payload ?? [], $a11yPayload);
-
-        if ($lighthouse['performance'] === null && (int) $prospect->performance_score > 0) {
-            $lighthouse['performance'] = (int) $prospect->performance_score;
-        }
-
-        return $this->hasLighthouseMetrics($lighthouse) ? $lighthouse : null;
+        return $this->operatorAudit->lighthouseForProspect($prospect);
     }
 
     /**
@@ -162,43 +125,19 @@ class ReportBuilderService
         return $this->pageSpeed->build($prospect);
     }
 
-    /**
-     * @param  array{performance: int|null, accessibility: int|null, seo: int|null, best_practices: int|null}  $lighthouse
-     */
-    private function hasLighthouseMetrics(array $lighthouse): bool
-    {
-        return $lighthouse['performance'] !== null
-            || $lighthouse['accessibility'] !== null
-            || $lighthouse['seo'] !== null
-            || $lighthouse['best_practices'] !== null;
-    }
-
-    /** @see resources/css/tokens.css — grade thresholds from combined score */
     public function combinedToGrade(int $combinedScore): string
     {
-        return match (true) {
-            $combinedScore >= 85 => 'D',
-            $combinedScore >= 70 => 'C',
-            $combinedScore >= 50 => 'C+',
-            $combinedScore >= 30 => 'B',
-            default => 'B+',
-        };
+        return $this->grades->combinedToGrade($combinedScore);
     }
 
     public function healthToGrade(int $healthScore): string
     {
-        return $this->combinedToGrade(max(0, min(100, 100 - $healthScore)));
+        return $this->grades->healthToGrade($healthScore);
     }
 
     public function gradeLabel(string $grade): string
     {
-        return match ($grade) {
-            'A' => 'Strong online presence',
-            'B' => 'Good with room to improve',
-            'C' => 'Several gaps to address',
-            'D' => 'Needs attention',
-            default => 'Significant issues found',
-        };
+        return $this->grades->gradeLabel($grade);
     }
 
     /**
@@ -252,26 +191,6 @@ class ReportBuilderService
      */
     public function extractLighthouse(array $lighthousePayload, array $a11yPayload): array
     {
-        $lh = $lighthousePayload['lighthouse'] ?? $lighthousePayload ?? $a11yPayload['lighthouse'] ?? [];
-
-        return [
-            'performance' => isset($lh['performance']) ? (int) $lh['performance'] : null,
-            'accessibility' => isset($lh['accessibility']) ? (int) $lh['accessibility'] : null,
-            'seo' => isset($lh['seo']) ? (int) $lh['seo'] : null,
-            'best_practices' => isset($lh['best_practices']) ? (int) $lh['best_practices'] : null,
-        ];
-    }
-
-    private function auditedAt(Prospect $prospect): ?Carbon
-    {
-        $completedJob = $prospect->relationLoaded('auditJobs')
-            ? $prospect->auditJobs
-                ->where('job_type', 'accessibility')
-                ->where('status', 'complete')
-                ->sortByDesc('completed_at')
-                ->first()
-            : null;
-
-        return $completedJob?->completed_at ?? $prospect->updated_at;
+        return $this->lighthouse->extract($lighthousePayload, $a11yPayload);
     }
 }
