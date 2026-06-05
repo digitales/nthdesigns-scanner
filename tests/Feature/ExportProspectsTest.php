@@ -37,4 +37,13 @@ class ExportProspectsTest extends TestCase
             ->assertRedirect()
             ->assertSessionHasErrors('export');
     }
+
+    public function test_export_rejects_invalid_scan_type_filter(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->post('/exports', ['scan_type' => 'invalid'])
+            ->assertSessionHasErrors('scan_type');
+    }
 }

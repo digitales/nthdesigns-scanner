@@ -2,21 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreExportRequest;
 use App\Models\Export;
 use App\Queries\ProspectListQuery;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ExportController extends Controller
 {
-    public function store(Request $request): StreamedResponse|RedirectResponse
+    public function store(StoreExportRequest $request): StreamedResponse|RedirectResponse
     {
         $this->authorize('create', Export::class);
 
-        $filters = $request->only([
-            'from', 'to', 'niche', 'city', 'scan_type', 'min_score', 'dominant_angle', 'warm',
-        ]);
+        $filters = $request->validated();
 
         $prospects = (new ProspectListQuery($request->user()))
             ->apply($filters)

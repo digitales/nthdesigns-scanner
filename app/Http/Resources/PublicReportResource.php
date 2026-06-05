@@ -26,8 +26,9 @@ class PublicReportResource
             ? null
             : (TidyCalEmbed::bookPageUrl($bookingUrl, ['report' => $report->token]) ?? $bookingUrl);
         $booking = $report->booking;
-        $combinedScore = (int) $report->prospect->combined_score;
-        $grade = $reportBuilder->combinedToGrade($combinedScore);
+        $combinedScore = (int) ($data['combined_score'] ?? $report->prospect->combined_score);
+        $grade = $data['grade'] ?? $reportBuilder->combinedToGrade($combinedScore);
+        $gradeLabel = $data['grade_label'] ?? $reportBuilder->gradeLabel($grade);
 
         return [
             'business_name' => $data['prospect']['business_name'] ?? $report->prospect->business_name,
@@ -39,9 +40,9 @@ class PublicReportResource
             'benchmark' => $data['benchmark'] ?? null,
             'comparison' => $data['comparison'] ?? [],
             'grade' => $grade,
-            'grade_label' => $reportBuilder->gradeLabel($grade),
+            'grade_label' => $gradeLabel,
             'combined_score' => $combinedScore,
-            'performance_score' => $report->prospect->performance_score,
+            'performance_score' => $data['performance_score'] ?? $report->prospect->performance_score,
             'violation_summary' => $data['violation_summary'] ?? ['critical' => 0, 'serious' => 0, 'moderate' => 0, 'minor' => 0, 'total' => 0],
             'top_violations' => $data['top_violations'] ?? [],
             'lighthouse' => $data['lighthouse'] ?? [],

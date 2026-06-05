@@ -69,6 +69,7 @@ class ReportBuilderService
             'website_url' => $prospect->website_url,
             'grade' => $grade,
             'grade_label' => $this->grades->gradeLabel($grade),
+            'combined_score' => $combined,
             'performance_score' => $prospect->performance_score,
             'violation_summary' => $violationSummary,
             'top_violations' => $topViolations,

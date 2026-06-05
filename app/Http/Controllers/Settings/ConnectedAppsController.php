@@ -52,6 +52,8 @@ class ConnectedAppsController extends Controller
 
     public function destroyAll(Request $request): RedirectResponse
     {
+        $this->authorize('deleteAny', OauthMcpRefreshTokenFamily::class);
+
         $count = 0;
         OauthMcpRefreshTokenFamily::active()
             ->where('user_id', $request->user()->id)

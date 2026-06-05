@@ -61,4 +61,22 @@ class ConnectedAppsControllerTest extends TestCase
         $family->refresh();
         $this->assertNull($family->revoked_at);
     }
+
+    public function test_destroy_all_revokes_only_authenticated_users_families(): void
+    {
+        $user = User::factory()->create();
+        $other = User::factory()->create();
+        $ownFamily = $this->makeFamily($user);
+        $otherFamily = $this->makeFamily($other);
+
+        $this->actingAs($user)
+            ->delete('/settings/connected-apps')
+            ->assertRedirect('/settings/connected-apps');
+
+        $ownFamily->refresh();
+        $otherFamily->refresh();
+
+        $this->assertNotNull($ownFamily->revoked_at);
+        $this->assertNull($otherFamily->revoked_at);
+    }
 }
