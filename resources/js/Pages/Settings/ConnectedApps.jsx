@@ -30,21 +30,21 @@ export default function ConnectedApps({ families }) {
                     sub="OAuth-connected AI tools (Cursor, Claude, ChatGPT). Revoking forces the client to sign in again."
                 />
 
-                <p className="micro" style={{ marginBottom: 16 }}>
+                <p className="micro mb-16">
                     <Link href="/settings">← Back to settings</Link>
                     {' · '}
                     <Link href="/settings/mcp-keys">MCP keys (header auth)</Link>
                 </p>
 
                 {flash?.success && (
-                    <p className="micro" style={{ color: 'var(--color-positive)', marginBottom: 16 }}>
+                    <p className="micro text-positive mb-16">
                         {flash.success}
                     </p>
                 )}
 
                 <Card title="Your connections">
                     {families.length > 0 && (
-                        <div style={{ marginBottom: 12 }}>
+                        <div className="mb-12">
                             <Button type="button" kind="secondary" size="sm" onClick={disconnectAll}>
                                 Disconnect all
                             </Button>
@@ -56,21 +56,11 @@ export default function ConnectedApps({ families }) {
                             and complete the sign-in flow.
                         </p>
                     ) : (
-                        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        <ul className="settings-list settings-list--compact">
                             {families.map((family) => (
-                                <li
-                                    key={family.id}
-                                    style={{
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'flex-start',
-                                        gap: 16,
-                                        padding: '12px 0',
-                                        borderBottom: '1px solid var(--color-border)',
-                                    }}
-                                >
+                                <li key={family.id} className="settings-row">
                                     <div>
-                                        <p className="micro" style={{ fontWeight: 600, marginBottom: 4 }}>
+                                        <p className="micro settings-family-name">
                                             {family.redirect_host}
                                         </p>
                                         <p className="micro">Scope: {family.scope}</p>
@@ -94,7 +84,7 @@ export default function ConnectedApps({ families }) {
                     )}
                 </Card>
 
-                <p className="micro" style={{ marginTop: 24 }}>
+                <p className="micro mt-24">
                     MCP endpoint: <code>{`${window.location.origin}/api/mcp`}</code> — use OAuth when adding the remote
                     connector in your AI client.
                 </p>
