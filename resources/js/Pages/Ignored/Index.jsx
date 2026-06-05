@@ -84,7 +84,7 @@ export default function IgnoredIndex({
                 <th>Note</th>
                 <th>Last seen</th>
                 <th>Ignored</th>
-                <th style={{ textAlign: "right" }}>Actions</th>
+                <th className="text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -112,7 +112,7 @@ export default function IgnoredIndex({
                   <td>
                     <Status kind="pending">{row.reason_label}</Status>
                   </td>
-                  <td className="micro" style={{ maxWidth: 240 }}>
+                  <td className="micro note-cell">
                     {row.note ?? "—"}
                   </td>
                   <td>
@@ -124,8 +124,8 @@ export default function IgnoredIndex({
                   </td>
                   <td className="micro">{row.ignored_at}</td>
                   <td
+                    className="text-right"
                     onClick={(e) => e.stopPropagation()}
-                    style={{ textAlign: "right" }}
                   >
                     <RowActions>
                       {row.prospect_id && (

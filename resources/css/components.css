@@ -1425,4 +1425,78 @@
   .auth-shell-brand {
     margin-bottom: 28px;
   }
+
+  .text-positive { color: var(--color-positive); }
+  .text-critical { color: var(--color-sev-critical); }
+  .text-stone { color: var(--color-stone-500); }
+  .text-medium { font-weight: 500; }
+  .text-center { text-align: center; }
+  .text-right { text-align: right; }
+  .capitalize { text-transform: capitalize; }
+  .m-0 { margin: 0; }
+  .mb-8 { margin-bottom: 8px; }
+  .mb-12 { margin-bottom: 12px; }
+  .mb-16 { margin-bottom: 16px; }
+  .mb-20 { margin-bottom: 20px; }
+  .mb-24 { margin-bottom: 24px; }
+  .mb-32 { margin-bottom: 32px; }
+  .mt-4 { margin-top: 4px; }
+  .mt-8 { margin-top: 8px; }
+  .pt-4 { padding-top: 4px; }
+  .card-title-flush { margin: 0; }
+  .section-intro { margin-top: 8px; margin-bottom: 20px; }
+  .profile-nav-links {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .form-actions { display: flex; align-items: center; gap: 12px; }
+  .form-actions-end {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 24px;
+  }
+  .btn-link-inline {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-decoration: underline;
+    color: inherit;
+  }
+  .note-cell { max-width: 240px; }
+  .history-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .micro-uppercase {
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-stone-500);
+  }
+  .booking-intro { margin-bottom: 12px; }
+  .hours-sep { text-align: center; }
+  .pagination-nav {
+    margin-top: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .pagination-links {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .pagination-disabled { opacity: 0.45; pointer-events: none; }
+  .pagination-gap { padding: 0 4px; }
 }

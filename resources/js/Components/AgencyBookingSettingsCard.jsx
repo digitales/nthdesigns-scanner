@@ -16,7 +16,7 @@ const TIMEZONES = [
 function Subsection({ title, children }) {
     return (
         <Stack gap={16} className="stack--section">
-            <div className="micro" style={{ fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-stone-500)' }}>
+            <div className="micro micro-uppercase">
                 {title}
             </div>
             {children}
@@ -91,8 +91,8 @@ export default function AgencyBookingSettingsCard({ agencyBooking }) {
 
     return (
         <Card title="Report booking (Fastmail)">
-            <Stack direction="row" justify="between" align="start" gap={16} style={{ marginBottom: 12 }}>
-                <p className="micro stack--grow" style={{ margin: 0 }}>
+            <Stack direction="row" justify="between" align="start" gap={16} className="booking-intro">
+                <p className="micro stack--grow m-0">
                     Prospects book 30-minute review calls inline on public reports. Slots sync from your shared Fastmail calendar via CalDAV.
                 </p>
                 <Status kind={status.kind}>{status.label}</Status>
@@ -109,7 +109,7 @@ export default function AgencyBookingSettingsCard({ agencyBooking }) {
                     </Stack>
 
                     {!data.enabled && (
-                        <p className="micro" style={{ margin: 0, color: 'var(--color-stone-500)' }}>
+                        <p className="micro m-0 text-stone">
                             When off, report CTAs use the Booking URL fallback in Defaults below.
                         </p>
                     )}
@@ -147,12 +147,12 @@ export default function AgencyBookingSettingsCard({ agencyBooking }) {
                                         {testing ? 'Testing…' : 'Test connection'}
                                     </Button>
                                     {!agencyBooking.has_app_password && !data.fastmail_app_password && (
-                                        <span className="micro" style={{ color: 'var(--color-stone-500)' }}>
+                                        <span className="micro text-stone">
                                             Enter an app password to test.
                                         </span>
                                     )}
                                     {Array.isArray(flash?.agency_booking_calendars) && flash?.success && !recentlySuccessful && (
-                                        <span className="micro" style={{ color: 'var(--color-positive)' }}>
+                                        <span className="micro text-positive">
                                             {flash.success}
                                         </span>
                                     )}
@@ -232,13 +232,13 @@ export default function AgencyBookingSettingsCard({ agencyBooking }) {
                                 </Grid>
 
                                 <div>
-                                    <div className="micro" style={{ fontWeight: 500, marginBottom: 8 }}>Working hours</div>
+                                    <div className="micro text-medium mb-8">Working hours</div>
                                     <Grid cols="hours">
                                         {DAYS.map((day) => {
                                             const enabled = data.working_hours[day]?.enabled ?? false;
                                             return (
                                                 <div key={day} className="grid--contents">
-                                                    <label className="micro" style={{ textTransform: 'capitalize' }}>
+                                                    <label className="micro capitalize">
                                                         {day.slice(0, 3)}
                                                     </label>
                                                     <Checkbox
@@ -252,7 +252,7 @@ export default function AgencyBookingSettingsCard({ agencyBooking }) {
                                                         onChange={(e) => setDay(day, 'start', e.target.value)}
                                                         disabled={!enabled}
                                                     />
-                                                    <span className="micro" style={{ textAlign: 'center' }}>–</span>
+                                                    <span className="micro text-center hours-sep">–</span>
                                                     <Input
                                                         type="time"
                                                         value={data.working_hours[day]?.end ?? '17:00'}
@@ -293,12 +293,12 @@ export default function AgencyBookingSettingsCard({ agencyBooking }) {
 
                     <FormError message={errors.agency_booking} />
 
-                    <Stack direction="row" gap={12} align="center" wrap style={{ paddingTop: data.enabled ? 4 : 0 }}>
+                    <Stack direction="row" gap={12} align="center" wrap className={data.enabled ? 'pt-4' : ''}>
                         <Button kind="primary" type="submit" disabled={processing}>
                             {processing ? 'Saving…' : 'Save booking settings'}
                         </Button>
                         {recentlySuccessful && (
-                            <span className="micro" style={{ color: 'var(--color-positive)' }}>Saved.</span>
+                            <span className="micro text-positive">Saved.</span>
                         )}
                     </Stack>
                 </Stack>

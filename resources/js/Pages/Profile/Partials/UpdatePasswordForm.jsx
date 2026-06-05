@@ -1,4 +1,4 @@
-import { Button, Field, FormError, Input } from '@/Components/ui';
+import { Button, Field, FormError, Input, Stack } from '@/Components/ui';
 import { Transition } from '@headlessui/react';
 import { useForm } from '@inertiajs/react';
 import { useRef } from 'react';
@@ -43,13 +43,13 @@ export default function UpdatePasswordForm() {
 
     return (
         <section>
-            <div className="card-title" style={{ marginTop: 0 }}>Update password</div>
-            <p className="micro" style={{ marginTop: 8, marginBottom: 20 }}>
+            <div className="card-title card-title-flush">Update password</div>
+            <p className="micro section-intro">
                 Ensure your account is using a long, random password to stay secure.
             </p>
 
             <form onSubmit={updatePassword}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <Stack gap={16}>
                     <Field label="Current password">
                         <Input
                             id="current_password"
@@ -85,7 +85,7 @@ export default function UpdatePasswordForm() {
                         <FormError message={errors.password_confirmation} />
                     </Field>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div className="form-actions">
                         <Button kind="primary" type="submit" disabled={processing}>
                             Save
                         </Button>
@@ -97,12 +97,12 @@ export default function UpdatePasswordForm() {
                             leave="transition ease-in-out"
                             leaveTo="opacity-0"
                         >
-                            <p className="micro" style={{ color: 'var(--color-positive)' }}>
+                            <p className="micro text-positive">
                                 Saved.
                             </p>
                         </Transition>
                     </div>
-                </div>
+                </Stack>
             </form>
         </section>
     );

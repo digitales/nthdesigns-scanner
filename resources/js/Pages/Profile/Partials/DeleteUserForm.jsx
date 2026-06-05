@@ -42,8 +42,8 @@ export default function DeleteUserForm() {
 
     return (
         <section>
-            <div className="card-title" style={{ marginTop: 0 }}>Delete account</div>
-            <p className="micro" style={{ marginTop: 8, marginBottom: 20 }}>
+            <div className="card-title card-title-flush">Delete account</div>
+            <p className="micro section-intro">
                 Once your account is deleted, all of its resources and data will be permanently
                 deleted. Before deleting your account, please download any data or information
                 that you wish to retain.
@@ -55,11 +55,11 @@ export default function DeleteUserForm() {
 
             <Modal show={confirmingUserDeletion} onClose={closeModal}>
                 <form onSubmit={deleteUser} className="p-6">
-                    <div className="card-title" style={{ marginTop: 0 }}>
+                    <div className="card-title card-title-flush">
                         Are you sure you want to delete your account?
                     </div>
 
-                    <p className="micro" style={{ marginTop: 8, marginBottom: 20 }}>
+                    <p className="micro section-intro">
                         Once your account is deleted, all of its resources and data will be
                         permanently deleted. Please enter your password to confirm you would like
                         to permanently delete your account.
@@ -79,7 +79,7 @@ export default function DeleteUserForm() {
                         <FormError message={errors.password} />
                     </Field>
 
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 24 }}>
+                    <div className="form-actions-end">
                         <Button kind="secondary" type="button" onClick={closeModal}>
                             Cancel
                         </Button>
