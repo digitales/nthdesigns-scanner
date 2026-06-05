@@ -8,6 +8,7 @@ use App\Support\AuditingQueue;
 use App\Services\A11yScoringService;
 use App\Services\AuditErrorRecorder;
 use App\Services\AuditRunnerService;
+use App\Services\CmsDetectionRunnerService;
 use App\Services\ScreenshotStorageService;
 use App\Services\SearchStatusService;
 use Illuminate\Bus\Queueable;
@@ -37,6 +38,7 @@ class AuditSiteJob implements ShouldQueue
         SearchStatusService $searchStatus,
         ScreenshotStorageService $storage,
         AuditErrorRecorder $errorRecorder,
+        CmsDetectionRunnerService $cmsRunner,
     ): void {
         $prospect = $this->prospect->fresh();
 
@@ -85,8 +87,14 @@ class AuditSiteJob implements ShouldQueue
                 'raw_lighthouse_payload'  => $payload['lighthouse'] ?? null,
             ];
 
-            if (isset($payload['cms']) && is_array($payload['cms'])) {
-                $updates['cms_detection'] = $payload['cms'];
+            try {
+                $updates['cms_detection'] = $cmsRunner->run($prospect->website_url);
+            } catch (\Throwable $e) {
+                Log::warning('AuditSiteJob CMS detection failed', [
+                    'prospect_id' => $prospect->id,
+                    'url' => $prospect->website_url,
+                    'error' => $e->getMessage(),
+                ]);
             }
 
             $prospect->update($updates);

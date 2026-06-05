@@ -8,6 +8,7 @@ use App\Models\Prospect;
 use App\Models\Search;
 use App\Models\User;
 use App\Services\AuditRunnerService;
+use App\Services\CmsDetectionRunnerService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
@@ -39,7 +40,7 @@ class CmsDetectionIntegrationTest extends TestCase
         Queue::assertNotPushed(AuditSiteJob::class);
     }
 
-    public function test_audit_site_job_stores_cms_from_payload(): void
+    public function test_audit_site_job_stores_cms_via_detection_runner(): void
     {
         Queue::fake();
 
@@ -59,19 +60,22 @@ class CmsDetectionIntegrationTest extends TestCase
                 'incomplete_count' => 0,
                 'violation_screenshots' => [],
                 'lighthouse' => null,
-                'cms' => [
-                    'platform' => 'shopify',
-                    'version' => null,
-                    'confidence' => 'high',
-                    'signals' => [],
-                    'detected_at' => now()->toIso8601String(),
-                    'url' => 'https://example.com',
-                ],
             ]);
         });
 
         $this->mock(\App\Services\ScreenshotStorageService::class, function ($mock) {
             $mock->shouldReceive('storeViolationScreenshots')->andReturn([]);
+        });
+
+        $this->mock(CmsDetectionRunnerService::class, function ($mock) {
+            $mock->shouldReceive('run')->with('https://example.com')->andReturn([
+                'platform' => 'shopify',
+                'version' => null,
+                'confidence' => 'high',
+                'signals' => [],
+                'detected_at' => now()->toIso8601String(),
+                'url' => 'https://example.com',
+            ]);
         });
 
         (new AuditSiteJob($prospect))->handle(
@@ -80,6 +84,7 @@ class CmsDetectionIntegrationTest extends TestCase
             app(\App\Services\SearchStatusService::class),
             app(\App\Services\ScreenshotStorageService::class),
             app(\App\Services\AuditErrorRecorder::class),
+            app(CmsDetectionRunnerService::class),
         );
 
         $prospect->refresh();

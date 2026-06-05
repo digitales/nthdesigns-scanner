@@ -15,6 +15,7 @@ import {
     IconButton,
     Icons,
     Input,
+    Page,
     PageHeader,
     RowActions,
     ScoreBadge,
@@ -95,7 +96,7 @@ export default function SearchShow({ search, prospects, outreachProspectIds = []
         <AuthenticatedLayout>
             <Head title={pageTitle} />
 
-            <main className="page page-wide" style={{ maxWidth: 1440 }}>
+            <Page width="xl" className="page-wide">
                 <PageHeader
                     eyebrow={eyebrow}
                     title={isRunning ? (isDirectUrl ? 'Auditing website…' : phaseTitle) : completeTitle}
@@ -217,7 +218,7 @@ export default function SearchShow({ search, prospects, outreachProspectIds = []
                             </tbody>
                     </DataTable>
                 )}
-            </main>
+            </Page>
         </AuthenticatedLayout>
     );
 }

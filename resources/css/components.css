@@ -261,6 +261,7 @@
     padding: 36px 32px 80px;
   }
 
+  .page--xl { max-width: 1440px; }
   .page--wide { max-width: 1200px; }
   .page--medium { max-width: 1160px; }
   .page--narrow { max-width: 720px; }

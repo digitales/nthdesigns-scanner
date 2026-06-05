@@ -9,6 +9,7 @@ use App\Models\Search;
 use App\Models\User;
 use App\Services\AuditErrorRecorder;
 use App\Services\AuditRunnerService;
+use App\Services\CmsDetectionRunnerService;
 use App\Services\ScreenshotStorageService;
 use App\Services\SearchStatusService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -59,6 +60,7 @@ class AuditSiteJobTest extends TestCase
                 app(SearchStatusService::class),
                 app(ScreenshotStorageService::class),
                 app(AuditErrorRecorder::class),
+                app(CmsDetectionRunnerService::class),
             );
             $this->fail('Expected RuntimeException was not thrown.');
         } catch (RuntimeException $e) {
@@ -92,6 +94,7 @@ class AuditSiteJobTest extends TestCase
                 app(SearchStatusService::class),
                 app(ScreenshotStorageService::class),
                 app(AuditErrorRecorder::class),
+                app(CmsDetectionRunnerService::class),
             );
             $this->fail('Expected RuntimeException was not thrown.');
         } catch (RuntimeException) {

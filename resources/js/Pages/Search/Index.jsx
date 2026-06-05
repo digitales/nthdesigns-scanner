@@ -7,6 +7,7 @@ import {
   Field,
   FormError,
   Input,
+  Page,
   PageHeader,
   Select,
 } from "@/Components/ui";
@@ -57,7 +58,7 @@ export default function SearchIndex({
     <AuthenticatedLayout>
       <Head title="New search" />
 
-      <main className="page" style={{ maxWidth: 1160 }}>
+      <Page width="medium">
         <PageHeader
           eyebrow="New search"
           title="Run a prospect scan."
@@ -235,7 +236,7 @@ export default function SearchIndex({
             )}
           </aside>
         </div>
-      </main>
+      </Page>
     </AuthenticatedLayout>
   );
 }

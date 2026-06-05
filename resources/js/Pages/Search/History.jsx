@@ -1,14 +1,14 @@
 import { Head, Link, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import SearchHistoryCard from '@/Components/Search/SearchHistoryCard';
-import { Button, EmptyState, Icons, PageHeader, Pagination } from '@/Components/ui';
+import { Button, EmptyState, Icons, Page, PageHeader, Pagination } from '@/Components/ui';
 
 export default function SearchHistory({ searches, pagination }) {
     return (
         <AuthenticatedLayout>
             <Head title="Search history" />
 
-            <main className="page" style={{ maxWidth: 640 }}>
+            <Page width="compact">
                 <PageHeader
                     back="Back to search"
                     onBack={() => router.visit('/search')}
@@ -40,7 +40,7 @@ export default function SearchHistory({ searches, pagination }) {
                         <Pagination pagination={pagination} href="/searches" />
                     </>
                 )}
-            </main>
+            </Page>
         </AuthenticatedLayout>
     );
 }

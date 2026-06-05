@@ -1,4 +1,5 @@
 const WIDTH_CLASS = {
+    xl: 'page--xl',
     wide: 'page--wide',
     medium: 'page--medium',
     narrow: 'page--narrow',

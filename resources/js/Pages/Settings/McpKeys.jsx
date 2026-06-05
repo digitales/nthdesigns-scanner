@@ -1,7 +1,7 @@
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Button, Card, Field, FormError, Input, PageHeader } from '@/Components/ui';
+import { Button, Card, Field, FormError, Input, Page, PageHeader } from '@/Components/ui';
 
 export default function McpKeys({ keys, newKey, mcpUrl }) {
     const { flash } = usePage().props;
@@ -37,7 +37,7 @@ export default function McpKeys({ keys, newKey, mcpUrl }) {
         <AuthenticatedLayout>
             <Head title="MCP keys" />
 
-            <main className="page" style={{ maxWidth: 720 }}>
+            <Page width="narrow">
                 <PageHeader
                     eyebrow="Settings"
                     title="MCP keys"
@@ -123,7 +123,7 @@ export default function McpKeys({ keys, newKey, mcpUrl }) {
                         client supports it — use Connected apps to revoke OAuth sessions.
                     </p>
                 </Card>
-            </main>
+            </Page>
         </AuthenticatedLayout>
     );
 }

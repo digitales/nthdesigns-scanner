@@ -9,6 +9,7 @@ use App\Models\Search;
 use App\Models\User;
 use App\Services\AuditErrorRecorder;
 use App\Services\AuditRunnerService;
+use App\Services\CmsDetectionRunnerService;
 use App\Services\SearchStatusService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
@@ -42,6 +43,7 @@ class AuditDriverTest extends TestCase
             app(SearchStatusService::class),
             app(\App\Services\ScreenshotStorageService::class),
             app(AuditErrorRecorder::class),
+            app(CmsDetectionRunnerService::class),
         );
 
         Bus::assertDispatched(CombineScoresJob::class);
