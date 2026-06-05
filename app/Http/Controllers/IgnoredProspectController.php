@@ -2,37 +2,32 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\FilterIgnoredProspectsRequest;
 use App\Models\IgnoredProspect;
 use App\Services\ProspectExclusionService;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class IgnoredProspectController extends Controller
 {
-    public function index(Request $request, ProspectExclusionService $exclusions): Response
+    public function index(FilterIgnoredProspectsRequest $request, ProspectExclusionService $exclusions): Response
     {
-        $filters = $request->validate([
-            'reason' => [
-                'nullable',
-                'string',
-                Rule::in([
-                    IgnoredProspect::REASON_ACQUIRED,
-                    IgnoredProspect::REASON_COLD,
-                    IgnoredProspect::REASON_OUTREACH_FAILED,
-                    IgnoredProspect::REASON_OTHER,
-                ]),
-            ],
-        ]);
+        $filters = $request->validated();
+        $reason = $filters['reason'] ?? null;
 
-        $entries = $exclusions->listForUser($request->user(), $filters['reason'] ?? null);
+        $paginator = $exclusions->paginateForUser($request->user(), $reason);
 
         return Inertia::render('Ignored/Index', [
-            'entries' => $entries->values(),
-            'filters' => $filters,
-            'meta' => ['total' => $entries->count()],
+            'entries' => collect($paginator->items())->values(),
+            'filters' => ['reason' => $reason],
+            'meta' => ['total' => $paginator->total()],
+            'pagination' => [
+                'total' => $paginator->total(),
+                'current_page' => $paginator->currentPage(),
+                'per_page' => $paginator->perPage(),
+                'last_page' => $paginator->lastPage(),
+            ],
             'reasonOptions' => [
                 ['value' => '', 'label' => 'All reasons'],
                 ['value' => IgnoredProspect::REASON_ACQUIRED, 'label' => 'Company acquired'],
@@ -43,7 +38,7 @@ class IgnoredProspectController extends Controller
         ]);
     }
 
-    public function destroy(Request $request, IgnoredProspect $ignoredProspect): RedirectResponse
+    public function destroy(IgnoredProspect $ignoredProspect): RedirectResponse
     {
         $this->authorize('delete', $ignoredProspect);
 

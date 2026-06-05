@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\IgnoredProspect;
 use App\Models\Prospect;
 use App\Models\User;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 final class ProspectExclusionService
@@ -70,6 +72,36 @@ final class ProspectExclusionService
      */
     public function listForUser(User $user, ?string $reason = null): Collection
     {
+        $ignored = $this->ignoredQueryForUser($user, $reason)->get();
+
+        if ($ignored->isEmpty()) {
+            return collect();
+        }
+
+        $latestByPlace = $this->latestProspectsByPlace($user, $ignored->pluck('place_id')->all());
+
+        return $ignored->map(fn (IgnoredProspect $row) => $this->formatIgnoredRow($row, $latestByPlace));
+    }
+
+    public function paginateForUser(User $user, ?string $reason = null, int $perPage = 20): LengthAwarePaginator
+    {
+        $paginator = $this->ignoredQueryForUser($user, $reason)
+            ->paginate($perPage)
+            ->withQueryString();
+
+        $latestByPlace = $this->latestProspectsByPlace(
+            $user,
+            $paginator->getCollection()->pluck('place_id')->all(),
+        );
+
+        return $paginator->through(fn (IgnoredProspect $row) => $this->formatIgnoredRow($row, $latestByPlace));
+    }
+
+    /**
+     * @return Builder<IgnoredProspect>
+     */
+    private function ignoredQueryForUser(User $user, ?string $reason = null)
+    {
         $query = IgnoredProspect::query()
             ->where('user_id', $user->id)
             ->orderByDesc('updated_at');
@@ -78,38 +110,62 @@ final class ProspectExclusionService
             $query->where('reason', $reason);
         }
 
-        $ignored = $query->get();
+        return $query;
+    }
 
-        if ($ignored->isEmpty()) {
+    /**
+     * @param  list<string>  $placeIds
+     * @return Collection<string, Prospect>
+     */
+    private function latestProspectsByPlace(User $user, array $placeIds): Collection
+    {
+        if ($placeIds === []) {
             return collect();
         }
 
-        $latestByPlace = Prospect::query()
-            ->whereIn('place_id', $ignored->pluck('place_id'))
+        return Prospect::query()
+            ->whereIn('place_id', $placeIds)
             ->whereHas('search', fn ($q) => $q->where('user_id', $user->id))
             ->with('search')
             ->orderByDesc('id')
             ->get()
             ->groupBy('place_id')
             ->map->first();
+    }
 
-        return $ignored->map(function (IgnoredProspect $row) use ($latestByPlace) {
-            $prospect = $latestByPlace->get($row->place_id);
+    /**
+     * @param  Collection<string, Prospect>  $latestByPlace
+     * @return array{
+     *     id: int,
+     *     place_id: string,
+     *     reason: string,
+     *     reason_label: string,
+     *     note: string|null,
+     *     ignored_at: string,
+     *     prospect_id: int|null,
+     *     business_name: string|null,
+     *     niche: string|null,
+     *     city: string|null,
+     *     combined_score: int|null
+     * }
+     */
+    private function formatIgnoredRow(IgnoredProspect $row, Collection $latestByPlace): array
+    {
+        $prospect = $latestByPlace->get($row->place_id);
 
-            return [
-                'id' => $row->id,
-                'place_id' => $row->place_id,
-                'reason' => $row->reason,
-                'reason_label' => $row->label(),
-                'note' => $row->note,
-                'ignored_at' => $row->updated_at->diffForHumans(),
-                'prospect_id' => $prospect?->id,
-                'business_name' => $prospect?->business_name,
-                'niche' => $prospect?->search?->niche,
-                'city' => $prospect?->search?->city,
-                'combined_score' => $prospect?->combined_score,
-            ];
-        });
+        return [
+            'id' => $row->id,
+            'place_id' => $row->place_id,
+            'reason' => $row->reason,
+            'reason_label' => $row->label(),
+            'note' => $row->note,
+            'ignored_at' => $row->updated_at->diffForHumans(),
+            'prospect_id' => $prospect?->id,
+            'business_name' => $prospect?->business_name,
+            'niche' => $prospect?->search?->niche,
+            'city' => $prospect?->search?->city,
+            'combined_score' => $prospect?->combined_score,
+        ];
     }
 
     /**

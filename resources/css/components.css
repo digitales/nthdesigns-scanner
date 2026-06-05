@@ -856,6 +856,16 @@
   .ptable.ptable--prospects {
     table-layout: fixed;
   }
+  .ptable.ptable--prospects th.col-check { width: 36px; }
+  .ptable.ptable--prospects th.col-biz { width: 28%; }
+  .ptable.ptable--prospects th.col-combined { width: 9%; }
+  .ptable.ptable--prospects th.col-score-sm { width: 6%; }
+  .ptable.ptable--prospects th.col-cms { width: 8%; }
+  .ptable.ptable--prospects th.col-angle { width: 11%; }
+  .ptable.ptable--prospects th.col-report { width: 14%; }
+  .ptable.ptable--prospects th.col-actions { width: 14%; text-align: right; }
+  .ptable.ptable--prospects td.col-actions { text-align: right; }
+  .ptable--paper { background: var(--color-paper); }
   .ptable.ptable--comparison {
     table-layout: fixed;
   }
@@ -1425,4 +1435,22 @@
   .auth-shell-brand {
     margin-bottom: 28px;
   }
+
+  .filter-range-row { display: flex; align-items: center; gap: 10px; padding-top: 6px; }
+  .min-w-36 { min-width: 36px; }
+  .text-right { text-align: right; }
+  .text-critical { color: var(--color-sev-critical); }
+  .text-serious { color: var(--color-sev-serious); }
+  .text-positive { color: var(--color-positive); }
+  .text-medium { font-weight: 500; }
+  .biz-title-row { display: flex; align-items: center; gap: 8px; }
+  .badge--queue { font-size: 10px; background: var(--color-stone-200); }
+  .detail-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+  .flag-wrap { display: flex; flex-wrap: wrap; gap: 6px; }
+  .eyebrow-spaced { margin-bottom: 10px; }
+  .mt-16 { margin-top: 16px; }
+  .skel-row { padding: 14px 20px; }
+  .skel-block { width: 60%; display: block; }
+  .note-cell { max-width: 240px; }
+  .progress-fill[data-pct] { width: calc(var(--progress-pct, 0) * 1%); }
 }
