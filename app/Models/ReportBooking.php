@@ -21,11 +21,14 @@ class ReportBooking extends Model
         'confirmation_sent_at',
     ];
 
-    protected $casts = [
-        'starts_at' => 'datetime',
-        'ends_at' => 'datetime',
-        'confirmation_sent_at' => 'datetime',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'starts_at' => 'datetime',
+            'ends_at' => 'datetime',
+            'confirmation_sent_at' => 'datetime',
+        ];
+    }
 
     public function report(): BelongsTo
     {
