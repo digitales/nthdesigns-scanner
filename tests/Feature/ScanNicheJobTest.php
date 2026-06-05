@@ -9,6 +9,7 @@ use App\Services\NicheExclusionService;
 use App\Services\NicheSampleCollector;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use RuntimeException;
 use Tests\TestCase;
 
 class ScanNicheJobTest extends TestCase
@@ -264,5 +265,67 @@ class ScanNicheJobTest extends TestCase
             'niche' => 'Spark',
             'reason' => IgnoredNiche::REASON_LOW_RESULTS,
         ]);
+    }
+
+    public function test_failed_persists_error_message_on_scan_row(): void
+    {
+        NicheScan::query()->create([
+            'niche' => 'Dental Practice',
+            'niche_query' => 'dental practice',
+            'city' => 'Birmingham',
+            'country' => 'GB',
+            'scan_date' => '2026-05-27',
+            'status' => 'pending',
+        ]);
+
+        (new ScanNicheJob(
+            niche: 'Dental Practice',
+            nicheQuery: 'dental practice',
+            city: 'Birmingham',
+            country: 'GB',
+            sample: 5,
+            scanDate: '2026-05-27',
+        ))->failed(new RuntimeException('Places API quota exceeded'));
+
+        $row = NicheScan::query()->first();
+
+        $this->assertSame('failed', $row->status);
+        $this->assertSame('Places API quota exceeded', $row->error_message);
+    }
+
+    public function test_complete_clears_prior_error_message(): void
+    {
+        config(['services.google_places.key' => 'test-key']);
+
+        NicheScan::query()->create([
+            'niche' => 'Dental Practice',
+            'niche_query' => 'dental practice',
+            'city' => 'Birmingham',
+            'country' => 'GB',
+            'scan_date' => '2026-05-27',
+            'status' => 'pending',
+            'error_message' => 'Previous failure',
+        ]);
+
+        Http::fake([
+            'https://places.googleapis.com/v1/places:searchText' => Http::response(['places' => []], 200),
+        ]);
+
+        (new ScanNicheJob(
+            niche: 'Dental Practice',
+            nicheQuery: 'dental practice',
+            city: 'Birmingham',
+            country: 'GB',
+            sample: 5,
+            scanDate: '2026-05-27',
+        ))->handle(
+            app(NicheSampleCollector::class),
+            app(NicheExclusionService::class),
+        );
+
+        $row = NicheScan::query()->first();
+
+        $this->assertSame('complete', $row->status);
+        $this->assertNull($row->error_message);
     }
 }

@@ -131,4 +131,25 @@ class NicheScanSampleControllerTest extends TestCase
 
         Queue::assertNothingPushed();
     }
+
+    public function test_show_returns_persisted_failure_message(): void
+    {
+        $user = User::factory()->create();
+
+        $scan = NicheScan::query()->create([
+            'niche' => 'Dental Practice',
+            'niche_query' => 'dental practice',
+            'city' => 'Leeds',
+            'country' => 'GB',
+            'scan_date' => '2026-05-27',
+            'status' => 'failed',
+            'error_message' => 'Places API quota exceeded',
+        ]);
+
+        $this->actingAs($user)
+            ->getJson("/niches/{$scan->id}/sample")
+            ->assertStatus(422)
+            ->assertJsonPath('status', 'failed')
+            ->assertJsonPath('message', 'Places API quota exceeded');
+    }
 }

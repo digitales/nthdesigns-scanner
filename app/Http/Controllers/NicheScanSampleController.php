@@ -14,7 +14,7 @@ class NicheScanSampleController extends Controller
         if ($nicheScan->status === 'failed') {
             return response()->json([
                 'status' => 'failed',
-                'message' => 'Sample scan failed.',
+                'message' => $nicheScan->error_message ?? 'Sample scan failed.',
             ], 422);
         }
 

@@ -13,6 +13,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Throwable;
 
 class ScanNicheJob implements ShouldQueue
@@ -81,6 +82,7 @@ class ScanNicheJob implements ShouldQueue
                 'niche_query' => $this->nicheQuery,
                 'country' => $this->country,
                 'status' => 'pending',
+                'error_message' => null,
             ]);
 
             return $scan->fresh();
@@ -109,7 +111,10 @@ class ScanNicheJob implements ShouldQueue
             ->where('niche', $this->niche)
             ->where('city', $this->city)
             ->whereDate('scan_date', $this->scanDate)
-            ->update(['status' => 'failed']);
+            ->update([
+                'status' => 'failed',
+                'error_message' => Str::limit($exception?->getMessage() ?? 'Scan failed', 2000),
+            ]);
     }
 
     public static function opportunityScore(
@@ -147,6 +152,7 @@ class ScanNicheJob implements ShouldQueue
         $scan->update([
             ...$metrics,
             'status' => 'complete',
+            'error_message' => null,
             'ran_at' => now(),
         ]);
     }
