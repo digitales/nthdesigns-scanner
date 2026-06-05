@@ -2,6 +2,7 @@
 
 namespace App\Services\Mcp;
 
+use App\Http\Resources\SearchSummaryMapper;
 use App\Models\Search;
 use App\Models\User;
 use App\Services\ProgressFlowService;
@@ -30,7 +31,7 @@ class McpSearchService
 
         return [
             'searches' => $query->limit($limit)->get()
-                ->map(fn (Search $search) => $this->mapSearchSummary($search))
+                ->map(fn (Search $search) => SearchSummaryMapper::format($search, 'iso'))
                 ->values()
                 ->all(),
         ];
@@ -47,7 +48,7 @@ class McpSearchService
         $flow = $this->progressFlow->searchFlow($search, $prospects);
 
         $payload = [
-            'search' => $this->mapSearchDetail($search),
+            'search' => SearchSummaryMapper::detail($search),
             'progress' => $this->buildProgress($search, $prospects),
             'progress_flow' => $flow,
             'app_url' => route('searches.show', $search),
@@ -135,34 +136,6 @@ class McpSearchService
         }
 
         return $search;
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function mapSearchSummary(Search $search): array
-    {
-        return [
-            'id' => $search->id,
-            'source' => $search->source,
-            'submitted_url' => $search->submitted_url,
-            'niche' => $search->niche,
-            'city' => $search->city,
-            'status' => $search->status,
-            'total_found' => $search->total_found,
-            'created_at' => $search->created_at->toIso8601String(),
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function mapSearchDetail(Search $search): array
-    {
-        return array_merge($this->mapSearchSummary($search), [
-            'country' => $search->country,
-            'scan_type' => $search->scan_type,
-        ]);
     }
 
     /**

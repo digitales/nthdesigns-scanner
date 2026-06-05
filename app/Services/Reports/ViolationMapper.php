@@ -3,6 +3,7 @@
 namespace App\Services\Reports;
 
 use App\Support\AxeViolationCopy;
+use App\Support\ViolationCounter;
 
 class ViolationMapper
 {
@@ -12,18 +13,7 @@ class ViolationMapper
      */
     public function summarize(array $payload): array
     {
-        $counts = ['critical' => 0, 'serious' => 0, 'moderate' => 0, 'minor' => 0];
-
-        foreach ($payload['violations'] ?? [] as $violation) {
-            $impact = $violation['impact'] ?? 'minor';
-            if (isset($counts[$impact])) {
-                $counts[$impact]++;
-            }
-        }
-
-        $counts['total'] = array_sum($counts);
-
-        return $counts;
+        return ViolationCounter::summarizePayload($payload);
     }
 
     /**

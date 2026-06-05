@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreDirectUrlSearchRequest;
 use App\Http\Requests\StoreSearchRequest;
+use App\Http\Resources\SearchSummaryMapper;
 use App\Jobs\DirectUrlScanJob;
 use App\Jobs\ScrapeProspectsJob;
 use App\Models\Search;
@@ -34,7 +35,7 @@ class SearchController extends Controller
                 ->latest()
                 ->take(4)
                 ->get()
-                ->map(fn ($s) => $this->mapSearchSummary($s)),
+                ->map(fn ($s) => SearchSummaryMapper::format($s)),
         ]);
     }
 
@@ -48,7 +49,7 @@ class SearchController extends Controller
 
         return Inertia::render('Search/History', [
             'searches' => $paginator->getCollection()
-                ->map(fn ($s) => $this->mapSearchSummary($s))
+                ->map(fn ($s) => SearchSummaryMapper::format($s))
                 ->values(),
             'pagination' => [
                 'total' => $paginator->total(),
@@ -193,22 +194,5 @@ class SearchController extends Controller
             ],
             'prospects' => $prospectPayloads,
         ]);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function mapSearchSummary(Search $search): array
-    {
-        return [
-            'id' => $search->id,
-            'source' => $search->source,
-            'submitted_url' => $search->submitted_url,
-            'niche' => $search->niche,
-            'city' => $search->city,
-            'status' => $search->status,
-            'total_found' => $search->total_found,
-            'created_at' => $search->created_at->diffForHumans(),
-        ];
     }
 }

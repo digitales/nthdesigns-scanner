@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Support\ViolationCounter;
+
 class A11yScoringService
 {
     /**
@@ -22,14 +24,7 @@ class A11yScoringService
         }
 
         $violations = $payload['violations'] ?? [];
-        $counts = ['critical' => 0, 'serious' => 0, 'moderate' => 0, 'minor' => 0];
-
-        foreach ($violations as $violation) {
-            $impact = $violation['impact'] ?? 'minor';
-            if (isset($counts[$impact])) {
-                $counts[$impact]++;
-            }
-        }
+        $counts = ViolationCounter::countByImpact($violations);
 
         if ($counts['critical'] > 0) {
             $points = min($counts['critical'] * 15, 30);
