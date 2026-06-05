@@ -8,6 +8,11 @@ use Illuminate\Validation\Rule;
 
 class FilterIgnoredProspectsRequest extends FormRequest
 {
+    public function authorize(): bool
+    {
+        return $this->user() !== null;
+    }
+
     /**
      * @return array<string, mixed>
      */

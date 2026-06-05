@@ -1,35 +1,21 @@
 <?php
 
-$auditDriver = env('AUDIT_DRIVER', 'playwright');
-$auditServiceUrl = env('AUDIT_SERVICE_URL');
+use App\Support\ScannerConfig;
 
-if ($auditServiceUrl) {
-    $auditDriver = 'http';
-} elseif ($auditDriver === 'cloudflare') {
-    $auditDriver = 'skip';
-}
-
-$screenshotDriver = env('SCREENSHOT_DRIVER');
-
-if (! $screenshotDriver) {
-    if ($auditServiceUrl) {
-        $screenshotDriver = 'http';
-    } elseif (env('AUDIT_DRIVER') === 'cloudflare') {
-        $screenshotDriver = 'cloudflare';
-    } else {
-        $screenshotDriver = 'playwright';
-    }
-}
+$drivers = ScannerConfig::driversForConfig();
 
 return [
 
-    'audit_driver' => $auditDriver,
+    'audit_driver' => $drivers['audit_driver'],
 
-    'screenshot_driver' => $screenshotDriver,
+    /** @var string playwright|http|skip — defaults to audit_driver when unset */
+    'cms_detect_driver' => $drivers['cms_detect_driver'],
 
-    'audit_service_url' => $auditServiceUrl,
+    'screenshot_driver' => $drivers['screenshot_driver'],
 
-    'audit_service_token' => env('AUDIT_SERVICE_TOKEN'),
+    'audit_service_url' => $drivers['audit_service_url'],
+
+    'audit_service_token' => $drivers['audit_service_token'],
 
     'node_binary' => env('NODE_BINARY', 'node'),
 
@@ -87,5 +73,11 @@ return [
     'website_discovery_timeout_seconds' => (int) env('WEBSITE_DISCOVERY_TIMEOUT', 8),
 
     'website_discovery_num_results' => (int) env('WEBSITE_DISCOVERY_NUM_RESULTS', 5),
+
+    /** Seconds to wait between Google Places pagination requests (API requirement; 0 in tests). */
+    'places_pagination_delay_seconds' => (int) env('PLACES_PAGINATION_DELAY_SECONDS', 2),
+
+    /** Poll interval for MCP streamable progress watches. */
+    'mcp_progress_poll_seconds' => (int) env('MCP_PROGRESS_POLL_SECONDS', 2),
 
 ];

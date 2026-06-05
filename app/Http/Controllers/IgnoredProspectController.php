@@ -21,7 +21,6 @@ class IgnoredProspectController extends Controller
         return Inertia::render('Ignored/Index', [
             'entries' => collect($paginator->items())->values(),
             'filters' => ['reason' => $reason],
-            'meta' => ['total' => $paginator->total()],
             'pagination' => [
                 'total' => $paginator->total(),
                 'current_page' => $paginator->currentPage(),

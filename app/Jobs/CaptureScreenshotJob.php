@@ -54,7 +54,7 @@ class CaptureScreenshotJob implements ShouldQueue
     public function middleware(): array
     {
         return [
-            (new WithoutOverlapping('fly-browser-screenshot'))
+            (new WithoutOverlapping('fly-browser-screenshot-report-'.$this->report->id))
                 ->releaseAfter($this->timeout)
                 ->expireAfter(600),
         ];

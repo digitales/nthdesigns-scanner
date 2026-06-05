@@ -51,10 +51,6 @@ class OutreachController extends Controller
                 'pitch_angle' => 'auto',
                 'cpc_benchmark' => '',
             ],
-            'flash' => [
-                'success' => $request->session()->get('success'),
-                'skipped' => $request->session()->get('skipped', []),
-            ],
         ]);
     }
 

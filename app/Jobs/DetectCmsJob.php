@@ -52,6 +52,17 @@ class DetectCmsJob implements ShouldQueue
                 'error' => $e->getMessage(),
             ]);
 
+            if ($this->attempts() >= $this->tries) {
+                $prospect->update([
+                    'cms_detection' => [
+                        'status' => 'failed',
+                        'error' => $e->getMessage(),
+                        'failed_at' => now()->toIso8601String(),
+                        'url' => $prospect->website_url,
+                    ],
+                ]);
+            }
+
             throw $e;
         }
     }

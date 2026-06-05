@@ -18,7 +18,6 @@ import {
 export default function IgnoredIndex({
   entries,
   filters,
-  meta,
   pagination,
   reasonOptions,
 }) {
@@ -49,7 +48,7 @@ export default function IgnoredIndex({
       <main className="page page-wide">
         <PageHeader
           eyebrow="Ignored prospects"
-          title={`${meta.total} ignored`}
+          title={`${pagination.total} ignored`}
           sub="Businesses you have excluded from future scans. Open a row to review details or undo ignore."
         />
 
@@ -154,11 +153,13 @@ export default function IgnoredIndex({
                 ))}
               </tbody>
             </DataTable>
-            <Pagination
-              pagination={pagination}
-              href="/ignored"
-              query={filterQuery}
-            />
+            {pagination?.last_page > 1 && (
+              <Pagination
+                pagination={pagination}
+                href="/ignored"
+                query={filterQuery}
+              />
+            )}
           </>
         )}
       </main>
