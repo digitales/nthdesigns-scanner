@@ -355,9 +355,30 @@ export default function ProspectShow({
                                 <>
                                     <div className="micro mb-8 break-all">/r/{report.token}</div>
                                     {report.booking && (
-                                        <p className="micro text-positive mb-8">
-                                            Booked · {report.booking.label} · {report.booking.attendee_name}
-                                        </p>
+                                        <Stack gap={8} className="mb-16">
+                                            <Status kind={report.booking.confirmation_sent ? 'ready' : 'pending'}>
+                                                Booked · {report.booking.label}
+                                            </Status>
+                                            <div className="micro">
+                                                {report.booking.attendee_name} · {report.booking.attendee_email}
+                                            </div>
+                                            {report.booking.attendee_phone && (
+                                                <div className="micro text-stone">{report.booking.attendee_phone}</div>
+                                            )}
+                                            {report.booking.note && (
+                                                <div className="micro text-stone">Note: {report.booking.note}</div>
+                                            )}
+                                            {report.booking.can_resend_confirmation && (
+                                                <Button
+                                                    kind="ghost"
+                                                    size="sm"
+                                                    disabled={actionProcessing === 'resend'}
+                                                    onClick={() => postAction('resend', `/prospects/${prospect.id}/booking/resend-confirmation`, { preserveScroll: true })}
+                                                >
+                                                    {actionProcessing === 'resend' ? 'Queuing…' : 'Resend confirmation'}
+                                                </Button>
+                                            )}
+                                        </Stack>
                                     )}
                                     <Stack direction="row" gap={8} className="mb-16">
                                         <Button kind="secondary" size="sm" onClick={copyReportLink}>

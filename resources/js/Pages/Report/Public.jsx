@@ -148,6 +148,7 @@ export default function PublicReport({ report }) {
                                     token={report.token}
                                     businessName={report.business_name}
                                     existingBooking={report.booking}
+                                    timezoneLabel={report.booking_timezone_label}
                                 />
                             ) : (
                                 <>

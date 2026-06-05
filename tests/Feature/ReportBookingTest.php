@@ -81,6 +81,8 @@ class ReportBookingTest extends TestCase
 
         $response->assertCreated();
         $response->assertJsonPath('booking.attendee_name', 'Jane Smith');
+        $response->assertJsonPath('booking.confirmation_sent', true);
+        $response->assertJsonStructure(['booking' => ['ics_url', 'google_calendar_url']]);
 
         $this->assertDatabaseHas('report_bookings', [
             'prospect_report_id' => $report->id,
@@ -187,7 +189,7 @@ class ReportBookingTest extends TestCase
         $report = ProspectReport::factory()->create();
         $slot = $this->getJson('/r/'.$report->token.'/slots')->json('slots.0');
 
-        $this->postJson('/r/'.$report->token.'/book', [
+        $response = $this->postJson('/r/'.$report->token.'/book', [
             'starts_at' => $slot['starts_at'],
             'attendee_name' => 'Jane Smith',
             'attendee_email' => 'jane@example.com',
@@ -197,6 +199,63 @@ class ReportBookingTest extends TestCase
         $this->assertNotNull($booking);
         $this->assertSame('confirmed', $booking->status);
         $this->assertNull($booking->confirmation_sent_at);
+        $response->assertJsonPath('booking.confirmation_sent', false);
         $this->assertCount(1, $this->calendar->createdEvents());
+    }
+
+    public function test_slots_returns_503_when_calendar_busy_lookup_fails(): void
+    {
+        $report = ProspectReport::factory()->create();
+
+        $this->calendar->failOnBusy(
+            new RequestException(new HttpResponse(new PsrResponse(503)))
+        );
+
+        $this->getJson('/r/'.$report->token.'/slots')
+            ->assertStatus(503)
+            ->assertJsonPath('message', 'Booking is temporarily unavailable. Please try again shortly.')
+            ->assertJsonPath('slots', []);
+    }
+
+    public function test_book_stores_note_on_calendar_event(): void
+    {
+        $report = ProspectReport::factory()->create();
+        $slot = $this->getJson('/r/'.$report->token.'/slots')->json('slots.0');
+
+        $this->postJson('/r/'.$report->token.'/book', [
+            'starts_at' => $slot['starts_at'],
+            'attendee_name' => 'Jane Smith',
+            'attendee_email' => 'jane@example.com',
+            'note' => 'Please call my mobile first',
+        ])->assertCreated();
+
+        $event = $this->calendar->createdEvents()[0];
+        $this->assertStringContainsString('Please call my mobile first', $event->description);
+    }
+
+    public function test_booking_ics_download_returns_calendar_file(): void
+    {
+        $report = ProspectReport::factory()->create();
+        $slot = $this->getJson('/r/'.$report->token.'/slots')->json('slots.0');
+
+        $this->postJson('/r/'.$report->token.'/book', [
+            'starts_at' => $slot['starts_at'],
+            'attendee_name' => 'Jane Smith',
+            'attendee_email' => 'jane@example.com',
+        ])->assertCreated();
+
+        $this->get('/r/'.$report->token.'/booking.ics')
+            ->assertOk()
+            ->assertHeader('content-type', 'text/calendar; charset=utf-8')
+            ->assertSee('BEGIN:VCALENDAR');
+    }
+
+    public function test_slots_include_timezone_label(): void
+    {
+        $report = ProspectReport::factory()->create();
+
+        $this->getJson('/r/'.$report->token.'/slots')
+            ->assertOk()
+            ->assertJsonPath('timezone_label', 'UK (London)');
     }
 }

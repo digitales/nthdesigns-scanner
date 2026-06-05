@@ -1902,7 +1902,7 @@
   .queue-link { text-decoration: none; color: inherit; flex: 1; min-width: 0; }
   .queue-chip-title { font-weight: 500; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .queue-chip-meta { display: flex; gap: 8px; margin-top: 6px; align-items: center; }
-  .queue-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .queue-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
   .view-new-badge { color: var(--color-accent-deep); font-size: 10px; margin-left: 6px; }
   .table-sentinel { height: 1px; padding: 0; border: 0; }
   .settings-list {
@@ -2137,6 +2137,8 @@
     background: var(--color-accent-soft);
   }
   .booking-form { display: flex; flex-direction: column; gap: 14px; }
+  .booking-add-to-calendar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .textarea { min-height: 88px; resize: vertical; }
 
   .email-card-meta { margin-bottom: 4px; }
   .email-card-scores { display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; }

@@ -27,6 +27,7 @@ export { default as ScoreBadge } from './ScoreBadge';
 export { default as ScoreCard } from './ScoreCard';
 export { default as Segmented } from './Segmented';
 export { default as Select } from './Select';
+export { default as Textarea } from './Textarea';
 export { default as SevChip } from './SevChip';
 export { default as StatTile } from './StatTile';
 export { default as StatsStrip } from './StatsStrip';

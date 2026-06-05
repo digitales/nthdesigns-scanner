@@ -1,5 +1,7 @@
 # Audit Repair Implementation Plan
 
+> **Status (2026-06-05):** Implemented on `main` — `scanner:repair-audits`, query classes under `app/Queries/*`, and feature tests shipped. Checkboxes below are a historical task log; prefer the code and `docs/deployment/laravel-cloud.md` for operator steps.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add `scanner:repair-audits` to kickstart stuck site audits, retry all failed site audits, and retry failed/stuck screenshot captures — without re-running Google Places / GBP scoring.

@@ -14,4 +14,6 @@ interface CalendarProvider
     public function busyIntervals(CarbonInterface $from, CarbonInterface $to): array;
 
     public function createEvent(CalendarEventDraft $draft): string;
+
+    public function deleteEvent(string $uid): void;
 }

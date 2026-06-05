@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use App\Models\ProspectReport;
 use App\Services\AgencyBookingService;
+use App\Services\Booking\BookingPresentation;
 use App\Services\ReportBuilderService;
 use App\Support\TidyCalEmbed;
 use Illuminate\Http\Request;
@@ -50,13 +51,12 @@ class PublicReportResource
             'book_cta_url' => $bookCtaUrl,
             'book_cta_external' => $bookingUrl && ! TidyCalEmbed::isEmbeddable($bookingUrl),
             'native_booking' => $nativeBooking,
-            'booking' => $booking ? [
-                'starts_at' => $booking->starts_at->toIso8601String(),
-                'label' => $booking->starts_at
-                    ->timezone($agencyBooking->settings()->timezone)
-                    ->format('l j F Y, g:i A'),
-                'attendee_name' => $booking->attendee_name,
-            ] : null,
+            'booking' => $booking
+                ? BookingPresentation::publicBookingPayload($booking, $agencyBooking->settings(), $report->token)
+                : null,
+            'booking_timezone_label' => $nativeBooking
+                ? BookingPresentation::timezoneLabel($agencyBooking->settings()->timezone)
+                : null,
             'generated_at' => $data['generated_at'] ?? $report->created_at->toISOString(),
             'expires_at' => $report->expires_at?->toISOString(),
             'token' => $report->token,

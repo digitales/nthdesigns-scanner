@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Services\Browser\ViolationScreenshotMaterializer;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
@@ -50,38 +51,7 @@ class BrowserServiceClient
      */
     public function materializeViolationScreenshots(array $payload, string $localDir): array
     {
-        $shots = $payload['violation_screenshots'] ?? [];
-
-        if (! is_array($shots)) {
-            return $payload;
-        }
-
-        $materialized = [];
-
-        foreach ($shots as $shot) {
-            if (! is_array($shot)) {
-                continue;
-            }
-
-            $file = $shot['file'] ?? null;
-            $base64 = $shot['content_base64'] ?? null;
-
-            if (is_string($file) && is_string($base64) && $base64 !== '') {
-                $decoded = base64_decode($base64, true);
-
-                if ($decoded !== false) {
-                    $path = rtrim($localDir, '/').'/'.basename($file);
-                    file_put_contents($path, $decoded);
-                }
-            }
-
-            unset($shot['content_base64']);
-            $materialized[] = $shot;
-        }
-
-        $payload['violation_screenshots'] = $materialized;
-
-        return $payload;
+        return (new ViolationScreenshotMaterializer)->materialize($payload, $localDir);
     }
 
     /**

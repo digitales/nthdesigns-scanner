@@ -14,6 +14,7 @@ export default function AppShell({ children }) {
         { href: '/saved', label: 'Saved', match: ['saved.index'] },
         { href: '/ignored', label: 'Ignored', match: ['ignored.index'] },
         { href: '/reports', label: 'Reports', match: ['reports.index'] },
+        { href: '/bookings', label: 'Bookings', match: ['bookings.index'] },
         { href: '/settings', label: 'Settings', match: ['settings.index', 'settings.*'] },
     ];
 
