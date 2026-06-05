@@ -25,50 +25,36 @@ export default function BookIndex({ embedPath }) {
 
             <div className="public-report-wrap">
                 <article className="public-report book-page">
-                    <header style={{ padding: '56px 80px 32px', borderBottom: '1px solid var(--color-line)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 40 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                <span className="brand-mark" style={{ width: 22, height: 22 }} />
-                                <span style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 17 }}>nthdesigns</span>
+                    <header>
+                        <div className="public-report-header-bar">
+                            <div className="public-report-brand">
+                                <span className="brand-mark brand-mark--md" />
+                                <span className="public-report-brand-name">nthdesigns</span>
                             </div>
-                            <div className="micro" style={{ textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                            <div className="micro micro--upper">
                                 Scheduling
                             </div>
                         </div>
 
-                        <div className="eyebrow" style={{ marginBottom: 14, color: 'var(--color-accent-deep)' }}>Next step</div>
-                        <h1 style={{
-                            fontFamily: 'var(--font-serif)',
-                            fontWeight: 400,
-                            fontSize: 48,
-                            lineHeight: 1.1,
-                            letterSpacing: '-0.02em',
-                            margin: '0 0 14px',
-                        }}>
+                        <div className="eyebrow eyebrow--spaced eyebrow--accent">Next step</div>
+                        <h1 className="public-report-title public-report-title--book">
                             Book a free 30-minute review
                         </h1>
-                        <p style={{
-                            fontFamily: 'var(--font-serif)',
-                            fontSize: 18,
-                            color: 'var(--color-stone-600)',
-                            maxWidth: 520,
-                            margin: 0,
-                            lineHeight: 1.55,
-                        }}>
+                        <p className="public-report-book-lede">
                             Choose a time that suits you. We will walk through the audit findings and outline what fixing them would involve — no obligation.
                         </p>
                     </header>
 
-                    <section className="book-embed-section" style={{ padding: '32px 80px 56px' }}>
+                    <section className="book-embed-section">
                         <div className="tidycal-embed" data-path={embedPath} />
-                        <p className="micro" style={{ marginTop: 24, textAlign: 'center' }}>
+                        <p className="micro public-report-embed-note">
                             Typical reply within one working day
                         </p>
                     </section>
 
-                    <footer style={{ padding: '32px 80px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--color-line)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span className="brand-mark" style={{ width: 14, height: 14 }} />
+                    <footer className="public-report-footer--bordered">
+                        <div className="public-report-footer-brand">
+                            <span className="brand-mark brand-mark--sm" />
                             <span className="micro">nthdesigns · Digital consultancy</span>
                         </div>
                     </footer>

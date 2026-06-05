@@ -1533,11 +1533,234 @@
   .book-embed-section .tidycal-embed {
     min-height: 500px;
   }
+  .public-report header {
+    padding: 56px 80px 40px;
+    border-bottom: 1px solid var(--color-line);
+  }
+  .public-report.book-page header {
+    padding-bottom: 32px;
+  }
+  .public-report-header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 48px;
+  }
+  .public-report.book-page .public-report-header-bar {
+    margin-bottom: 40px;
+  }
+  .public-report-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .public-report-brand-name {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 17px;
+  }
+  .brand-mark--md {
+    width: 22px;
+    height: 22px;
+  }
+  .brand-mark--sm {
+    width: 14px;
+    height: 14px;
+  }
+  .micro--upper {
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .public-report .eyebrow--spaced {
+    margin-bottom: 14px;
+  }
+  .public-report .eyebrow--section {
+    margin-bottom: 10px;
+  }
+  .public-report .eyebrow--accent,
+  .public-report .eyebrow--cta {
+    color: var(--color-accent-deep);
+  }
+  .public-report .eyebrow--cta {
+    margin-bottom: 18px;
+  }
+  .public-report-title {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-size: 56px;
+    line-height: 1.05;
+    letter-spacing: -0.022em;
+    margin: 0 0 18px;
+  }
+  .public-report-title--book {
+    font-size: 48px;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin: 0 0 14px;
+  }
+  .public-report-meta {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    flex-wrap: wrap;
+    color: var(--color-stone-600);
+    font-size: 14px;
+  }
+  .public-report-meta-url {
+    font-size: 13px;
+    color: var(--color-stone-700);
+  }
+  .public-report-meta-sep {
+    color: var(--color-stone-400);
+  }
+  .public-report-section {
+    padding: 64px 80px;
+    border-bottom: 1px solid var(--color-line);
+  }
+  .public-report-section--lg {
+    padding: 72px 80px;
+  }
+  .public-report-section--alt {
+    background: var(--color-paper-2);
+  }
+  .public-report-section--cta {
+    padding: 96px 80px;
+    text-align: center;
+  }
+  .book-embed-section {
+    padding: 32px 80px 56px;
+  }
+  .public-report-grade-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 48px;
+    align-items: center;
+  }
+  .public-report-grade-letter {
+    font-family: var(--font-serif);
+    font-size: 160px;
+    line-height: 0.85;
+    font-weight: 400;
+    letter-spacing: -0.04em;
+  }
+  .public-report-grade-label {
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-top: 8px;
+  }
+  .public-report-lede {
+    font-family: var(--font-serif);
+    font-size: 22px;
+    line-height: 1.5;
+    color: var(--color-stone-700);
+    margin: 0;
+  }
+  .public-report-lede strong {
+    font-weight: 400;
+    color: var(--color-ink);
+  }
+  .public-report-chips {
+    margin-top: 24px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .public-report-h2 {
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: 38px;
+    letter-spacing: -0.018em;
+    margin: 0 0 16px;
+    line-height: 1.15;
+  }
+  .public-report-h2--perf {
+    margin-bottom: 28px;
+  }
+  .public-report-prose {
+    color: var(--color-stone-600);
+    font-size: 15px;
+    line-height: 1.6;
+    max-width: 620px;
+    margin: 0 0 36px;
+  }
+  .public-report-violations {
+    display: flex;
+    flex-direction: column;
+    gap: 36px;
+  }
+  .public-report-cta-title {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-size: 48px;
+    letter-spacing: -0.02em;
+    margin: 0 0 18px;
+    line-height: 1.1;
+  }
+  .public-report-cta-copy {
+    font-family: var(--font-serif);
+    font-size: 18px;
+    color: var(--color-stone-600);
+    max-width: 480px;
+    margin: 0 auto 32px;
+    line-height: 1.55;
+  }
+  .public-report-cta-note {
+    margin-top: 20px;
+  }
+  .public-report-book-lede {
+    font-family: var(--font-serif);
+    font-size: 18px;
+    color: var(--color-stone-600);
+    max-width: 520px;
+    margin: 0;
+    line-height: 1.55;
+  }
+  .public-report-embed-note {
+    margin-top: 24px;
+    text-align: center;
+  }
+  .public-report footer {
+    padding: 32px 80px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .public-report footer.public-report-footer--bordered {
+    border-top: 1px solid var(--color-line);
+  }
+  .public-report-footer-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .public-report-table-wrap {
+    border: 1px solid var(--color-line);
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--color-paper);
+  }
+  .ptable.ptable--comparison col.col-signal,
+  .ptable.ptable--comparison col.col-you,
+  .ptable.ptable--comparison col.col-benchmark {
+    width: 33.33%;
+  }
+  .ptable.ptable--comparison th.col-benchmark,
+  .ptable.ptable--comparison td.col-benchmark {
+    background: var(--color-accent-soft);
+  }
+  .ptable.ptable--comparison .comparison-label {
+    color: var(--color-stone-600);
+  }
+  .ptable.ptable--comparison .comparison-value {
+    font-family: var(--font-serif);
+    font-size: 28px;
+  }
   @media (max-width: 640px) {
     .public-report { max-width: 100%; }
-    .public-report.book-page header,
-    .public-report.book-page .book-embed-section,
-    .public-report.book-page footer {
+    .public-report header,
+    .public-report .public-report-section,
+    .public-report .book-embed-section,
+    .public-report footer {
       padding-left: 24px;
       padding-right: 24px;
     }
