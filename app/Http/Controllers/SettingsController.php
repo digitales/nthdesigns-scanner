@@ -12,6 +12,7 @@ use App\Services\UserSettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\RateLimiter;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -72,6 +73,18 @@ class SettingsController extends Controller
     public function scanNiches(ScanNichesFromSettingsRequest $request): RedirectResponse
     {
         $validated = $request->validated();
+        $user = $request->user();
+        $rateKey = 'settings-scan-niches:'.$user->id;
+
+        if (RateLimiter::tooManyAttempts($rateKey, 1)) {
+            $seconds = RateLimiter::availableIn($rateKey);
+
+            return back()->withErrors([
+                'niche_scan' => "Please wait {$seconds} seconds before queueing another market scan.",
+            ]);
+        }
+
+        RateLimiter::hit($rateKey, 300);
 
         $params = ! empty($validated['force']) ? ['--force' => true] : [];
 
@@ -83,6 +96,18 @@ class SettingsController extends Controller
     public function bootstrapNiches(BootstrapNichesFromSettingsRequest $request): RedirectResponse
     {
         $request->validated();
+        $user = $request->user();
+        $rateKey = 'settings-bootstrap-niches:'.$user->id;
+
+        if (RateLimiter::tooManyAttempts($rateKey, 1)) {
+            $seconds = RateLimiter::availableIn($rateKey);
+
+            return back()->withErrors([
+                'niche_bootstrap' => "Please wait {$seconds} seconds before queueing another catalog refresh.",
+            ]);
+        }
+
+        RateLimiter::hit($rateKey, 3600);
 
         Artisan::queue('niches:bootstrap', [
             '--no-interaction' => true,

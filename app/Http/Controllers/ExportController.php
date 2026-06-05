@@ -12,6 +12,8 @@ class ExportController extends Controller
 {
     public function store(Request $request): StreamedResponse|RedirectResponse
     {
+        $this->authorize('create', Export::class);
+
         $filters = $request->only([
             'from', 'to', 'niche', 'city', 'scan_type', 'min_score', 'dominant_angle', 'warm',
         ]);

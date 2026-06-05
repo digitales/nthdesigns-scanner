@@ -25,6 +25,9 @@ return [
 
     'audit_driver' => $auditDriver,
 
+    /** @var string playwright|http|skip — defaults to audit_driver when unset */
+    'cms_detect_driver' => env('CMS_DETECT_DRIVER') ?: $auditDriver,
+
     'screenshot_driver' => $screenshotDriver,
 
     'audit_service_url' => $auditServiceUrl,
@@ -87,5 +90,11 @@ return [
     'website_discovery_timeout_seconds' => (int) env('WEBSITE_DISCOVERY_TIMEOUT', 8),
 
     'website_discovery_num_results' => (int) env('WEBSITE_DISCOVERY_NUM_RESULTS', 5),
+
+    /** Seconds to wait between Google Places pagination requests (API requirement; 0 in tests). */
+    'places_pagination_delay_seconds' => (int) env('PLACES_PAGINATION_DELAY_SECONDS', 2),
+
+    /** Poll interval for MCP streamable progress watches. */
+    'mcp_progress_poll_seconds' => (int) env('MCP_PROGRESS_POLL_SECONDS', 2),
 
 ];

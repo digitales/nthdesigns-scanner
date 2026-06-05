@@ -250,29 +250,29 @@ export default function ProspectShow({
                             && prospect.audit_status === 'complete'
                             && prospect.performance_score > 0
                             && !pageSpeed && (
-                            <p className="micro" style={{ marginTop: -16, marginBottom: 28, color: 'var(--color-stone-500)' }}>
+                            <p className="micro text-muted mb-28">
                                 Re-run site audit for Core Web Vitals breakdown
                             </p>
                         )}
 
                         {auditPending && showA11y && (
-                            <p className="micro" style={{ marginTop: -16, marginBottom: 28, color: 'var(--color-stone-500)' }}>
+                            <p className="micro text-muted mb-28">
                                 Site audit in progress — scores update automatically when complete.
                             </p>
                         )}
 
-                        <Card title="Weakness flags" style={{ marginBottom: 24 }}>
+                        <Card title="Weakness flags" className="mb-24">
                             <Grid cols={showA11y ? 2 : 1} gap={32}>
                                 <div>
-                                    <div className="eyebrow" style={{ marginBottom: 10 }}>GBP</div>
+                                    <div className="eyebrow eyebrow-spaced">GBP</div>
                                     <Stack gap={8}>
                                         {(prospect.gbp_flags ?? []).length === 0 ? (
                                             <span className="micro">None flagged</span>
                                         ) : (
                                             (prospect.gbp_flags ?? []).map((flag, i) => (
                                                 <Stack key={i} direction="row" gap={8} align="center">
-                                                    <span style={{ width: 6, height: 6, background: 'var(--color-stone-400)', borderRadius: '50%' }} />
-                                                    <span style={{ fontSize: 13 }}>{flag}</span>
+                                                    <span className="flag-dot" />
+                                                    <span className="body-13">{flag}</span>
                                                 </Stack>
                                             ))
                                         )}
@@ -280,7 +280,7 @@ export default function ProspectShow({
                                 </div>
                                 {showA11y && (
                                     <div>
-                                        <div className="eyebrow" style={{ marginBottom: 10 }}>Accessibility</div>
+                                        <div className="eyebrow eyebrow-spaced">Accessibility</div>
                                         <Stack gap={8}>
                                             {auditPending ? (
                                                 <Status kind="pending">{a11yAuditMessage}</Status>
@@ -296,8 +296,8 @@ export default function ProspectShow({
                                                 (prospect.a11y_flags ?? []).map((flag, i) => (
                                                     <Stack key={i} direction="row" justify="between" align="center" gap={8}>
                                                         <Stack direction="row" gap={8} align="center">
-                                                            <span style={{ width: 6, height: 6, background: 'var(--color-sev-serious)', transform: 'rotate(45deg)' }} />
-                                                            <span style={{ fontSize: 13 }}>{flag}</span>
+                                                            <span className="flag-dot flag-dot--serious" />
+                                                            <span className="body-13">{flag}</span>
                                                         </Stack>
                                                     </Stack>
                                                 ))
@@ -311,7 +311,7 @@ export default function ProspectShow({
                         <PageSpeedSection pageSpeed={pageSpeed} />
 
                         {canRunSiteAudit && (
-                            <div style={{ marginBottom: 24 }}>
+                            <div className="section-spaced">
                                 <Button
                                     kind="secondary"
                                     size="sm"
@@ -324,7 +324,7 @@ export default function ProspectShow({
                                           ? 'Re-run site audit'
                                           : 'Run site audit'}
                                 </Button>
-                                <p className="micro" style={{ marginTop: 8, color: 'var(--color-stone-500)' }}>
+                                <p className="micro text-muted mt-8">
                                     {isGbpOnlySearch && !hasSiteAudit
                                         ? 'This prospect was scanned GBP-only. Run a site audit to upgrade it to a full combined audit (accessibility + page speed).'
                                         : 'Re-audits the website only. GBP scores are unchanged and no Google Places API calls are made.'}

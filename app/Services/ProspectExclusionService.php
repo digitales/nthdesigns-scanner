@@ -5,7 +5,7 @@ namespace App\Services;
 use App\Models\IgnoredProspect;
 use App\Models\Prospect;
 use App\Models\User;
-use Illuminate\Support\Collection;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 final class ProspectExclusionService
 {
@@ -54,21 +54,9 @@ final class ProspectExclusionService
     }
 
     /**
-     * @return Collection<int, array{
-     *     id: int,
-     *     place_id: string,
-     *     reason: string,
-     *     reason_label: string,
-     *     note: string|null,
-     *     ignored_at: string,
-     *     prospect_id: int|null,
-     *     business_name: string|null,
-     *     niche: string|null,
-     *     city: string|null,
-     *     combined_score: int|null
-     * }>
+     * @return LengthAwarePaginator<int, array<string, mixed>>
      */
-    public function listForUser(User $user, ?string $reason = null): Collection
+    public function paginateForUser(User $user, ?string $reason = null, int $perPage = 25): LengthAwarePaginator
     {
         $query = IgnoredProspect::query()
             ->where('user_id', $user->id)
@@ -78,10 +66,11 @@ final class ProspectExclusionService
             $query->where('reason', $reason);
         }
 
-        $ignored = $query->get();
+        $paginator = $query->paginate($perPage)->withQueryString();
+        $ignored = collect($paginator->items());
 
         if ($ignored->isEmpty()) {
-            return collect();
+            return $paginator;
         }
 
         $latestByPlace = Prospect::query()
@@ -93,7 +82,7 @@ final class ProspectExclusionService
             ->groupBy('place_id')
             ->map->first();
 
-        return $ignored->map(function (IgnoredProspect $row) use ($latestByPlace) {
+        return $paginator->through(function (IgnoredProspect $row) use ($latestByPlace) {
             $prospect = $latestByPlace->get($row->place_id);
 
             return [

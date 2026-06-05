@@ -45,21 +45,21 @@ export default function SettingsIndex({ settings, agencyBooking, nicheMaintenanc
                 />
 
                 {flash?.success && (
-                    <p className="micro" style={{ color: 'var(--color-positive)', marginBottom: 16 }}>
+                    <p className="micro text-positive mb-16">
                         {flash.success}
                     </p>
                 )}
 
                 <Stack gap={24}>
                     <Card title="AI client access">
-                        <p className="micro" style={{ margin: '0 0 8px' }}>
+                        <p className="micro m-0 mb-8">
                             Connect Cursor, Claude, or ChatGPT to monitor scans and start single-site audits from chat.
                         </p>
-                        <Stack as="p" className="micro" gap={4} style={{ margin: 0 }}>
-                            <Link href="/settings/connected-apps" className="micro" style={{ fontWeight: 500 }}>
+                        <Stack as="p" className="micro m-0" gap={4}>
+                            <Link href="/settings/connected-apps" className="micro micro-medium">
                                 Connected apps (OAuth) →
                             </Link>
-                            <Link href="/settings/mcp-keys" className="micro" style={{ fontWeight: 500 }}>
+                            <Link href="/settings/mcp-keys" className="micro micro-medium">
                                 MCP keys (header auth) →
                             </Link>
                         </Stack>
@@ -69,27 +69,26 @@ export default function SettingsIndex({ settings, agencyBooking, nicheMaintenanc
                         <MetaList>
                             {Object.entries(health).map(([key, status]) => (
                                 <SplitRow key={key}>
-                                    <span className="micro" style={{ fontWeight: 500, textTransform: 'capitalize' }}>
+                                    <span className="micro micro-medium micro-capitalize">
                                         {formatKey(key)}
                                     </span>
                                     <span
-                                        className="micro"
-                                        style={status.ok ? undefined : { color: 'var(--color-sev-critical)' }}
+                                        className={`micro${status.ok ? '' : ' text-critical'}`}
                                     >
                                         {status.message}
                                     </span>
                                 </SplitRow>
                             ))}
                             <SplitRow>
-                                <span className="micro" style={{ fontWeight: 500 }}>Reports disk</span>
+                                <span className="micro micro-medium">Reports disk</span>
                                 <span className="micro">{env.reports_disk}</span>
                             </SplitRow>
                             <SplitRow>
-                                <span className="micro" style={{ fontWeight: 500 }}>Audit driver</span>
+                                <span className="micro micro-medium">Audit driver</span>
                                 <span className="micro">{env.audit_driver}</span>
                             </SplitRow>
                             <SplitRow>
-                                <span className="micro" style={{ fontWeight: 500 }}>Screenshot driver</span>
+                                <span className="micro micro-medium">Screenshot driver</span>
                                 <span className="micro">{env.screenshot_driver}</span>
                             </SplitRow>
                         </MetaList>
@@ -131,12 +130,12 @@ export default function SettingsIndex({ settings, agencyBooking, nicheMaintenanc
                                     <FormError message={errors.booking_url} />
                                 </Field>
 
-                                <Stack direction="row" gap={12} align="center" style={{ marginTop: 4 }}>
+                                <Stack direction="row" gap={12} align="center" className="mt-4">
                                     <Button kind="primary" type="submit" disabled={processing}>
                                         {processing ? 'Saving…' : 'Save settings'}
                                     </Button>
                                     {recentlySuccessful && (
-                                        <p className="micro" style={{ color: 'var(--color-positive)' }}>
+                                        <p className="micro text-positive">
                                             Saved.
                                         </p>
                                     )}
@@ -148,19 +147,19 @@ export default function SettingsIndex({ settings, agencyBooking, nicheMaintenanc
                     <Card title="Niche maintenance">
                         <MetaList className="meta-list--spaced">
                             <SplitRow className="split-row--center">
-                                <span className="micro" style={{ fontWeight: 500 }}>Niches configured</span>
+                                <span className="micro micro-medium">Niches configured</span>
                                 <span className="micro">{nicheMaintenance.niche_count}</span>
                             </SplitRow>
                             <SplitRow className="split-row--center">
-                                <span className="micro" style={{ fontWeight: 500 }}>Cities configured</span>
+                                <span className="micro micro-medium">Cities configured</span>
                                 <span className="micro">{nicheMaintenance.city_count}</span>
                             </SplitRow>
                             <SplitRow className="split-row--center">
-                                <span className="micro" style={{ fontWeight: 500 }}>Last market scan</span>
+                                <span className="micro micro-medium">Last market scan</span>
                                 <span className="micro">{nicheMaintenance.last_scan_human}</span>
                             </SplitRow>
                             <SplitRow className="split-row--center">
-                                <span className="micro" style={{ fontWeight: 500 }}>Config generated</span>
+                                <span className="micro micro-medium">Config generated</span>
                                 <span className="micro">{nicheMaintenance.config_generated ?? 'Unknown'}</span>
                             </SplitRow>
                         </MetaList>
@@ -168,13 +167,13 @@ export default function SettingsIndex({ settings, agencyBooking, nicheMaintenanc
                         <Stack
                             as="form"
                             gap={16}
-                            style={{ marginBottom: 32 }}
+                            className="mb-32"
                             onSubmit={(e) => {
                                 e.preventDefault();
                                 scanForm.post('/settings/niches/scan');
                             }}
                         >
-                            <p className="micro" style={{ margin: 0 }}>
+                            <p className="micro m-0">
                                 Dispatches sample scans for all configured niche×city pairs (respects ignored niches).
                                 A full catalog is ~6,000 queue jobs.
                             </p>
@@ -200,7 +199,7 @@ export default function SettingsIndex({ settings, agencyBooking, nicheMaintenanc
                                 bootstrapForm.post('/settings/niches/bootstrap');
                             }}
                         >
-                            <p className="micro" style={{ margin: 0, color: 'var(--color-sev-critical)' }}>
+                            <p className="micro m-0 text-critical">
                                 Re-fetches UK cities and Google Places types, validates in Birmingham, and overwrites{' '}
                                 <code>config/niches.php</code>. On Laravel Cloud, commit and redeploy the updated config
                                 for changes to persist.

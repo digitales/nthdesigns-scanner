@@ -1425,4 +1425,27 @@
   .auth-shell-brand {
     margin-bottom: 28px;
   }
+
+  .micro-medium { font-weight: 500; }
+  .micro-capitalize { text-transform: capitalize; }
+  .text-positive { color: var(--color-positive); }
+  .text-critical { color: var(--color-sev-critical); }
+  .m-0 { margin: 0; }
+  .mb-8 { margin-bottom: 8px; }
+  .mb-16 { margin-bottom: 16px; }
+  .mb-32 { margin-bottom: 32px; }
+  .mt-4 { margin-top: 4px; }
+  .text-right { text-align: right; }
+  .flag-wrap { display: flex; flex-wrap: wrap; gap: 6px; }
+  .detail-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+  .text-muted { color: var(--color-stone-500); }
+  .mb-24 { margin-bottom: 24px; }
+  .mb-28 { margin-bottom: 28px; }
+  .eyebrow-spaced { margin-bottom: 10px; }
+  .body-13 { font-size: 13px; }
+  .body-13-medium { font-size: 13px; font-weight: 500; }
+  .flag-dot { width: 6px; height: 6px; background: var(--color-stone-400); border-radius: 50%; flex-shrink: 0; }
+  .flag-dot--serious { background: var(--color-sev-serious); border-radius: 0; transform: rotate(45deg); }
+  .section-spaced { margin-bottom: 24px; }
+  .mt-8 { margin-top: 8px; }
 }

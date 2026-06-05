@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\AgencyBookingSetting;
+use App\Models\Export;
 use App\Models\IgnoredProspect;
 use App\Models\OauthMcpRefreshTokenFamily;
 use App\Models\OutreachEmail;
@@ -9,6 +11,8 @@ use App\Models\OutreachSelection;
 use App\Models\Prospect;
 use App\Models\Search;
 use App\Models\UserMcpKey;
+use App\Policies\AgencyBookingSettingPolicy;
+use App\Policies\ExportPolicy;
 use App\Policies\IgnoredProspectPolicy;
 use App\Policies\OauthMcpRefreshTokenFamilyPolicy;
 use App\Policies\OutreachEmailPolicy;
@@ -45,6 +49,8 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(OutreachEmail::class, OutreachEmailPolicy::class);
         Gate::policy(OauthMcpRefreshTokenFamily::class, OauthMcpRefreshTokenFamilyPolicy::class);
         Gate::policy(IgnoredProspect::class, IgnoredProspectPolicy::class);
+        Gate::policy(Export::class, ExportPolicy::class);
+        Gate::policy(AgencyBookingSetting::class, AgencyBookingSettingPolicy::class);
 
         Vite::prefetch(concurrency: 3);
     }
