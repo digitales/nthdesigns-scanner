@@ -1,10 +1,67 @@
 # Backend Refactor Backlog
 
-**Date:** 2026-06-05
+**Date:** 2026-06-05 (audit) · **Completed:** 2026-06-05
 **Baseline:** Laravel 13.8
 **Spec:** [2026-06-05-lean-audit-refactor-design.md](../specs/2026-06-05-lean-audit-refactor-design.md)
 
-## Executive summary
+## Programme status — COMPLETE
+
+The lean audit refactor programme is **closed**. All P1 items, the recommended first-wave P2 schedule (12 PRs), and follow-up waves through **#29** are merged to `main` (`728dfb0`).
+
+| Metric | Audit baseline (2026-06-05) | Completion baseline (`main`) |
+|--------|----------------------------:|-----------------------------:|
+| Tests | 337 (331 pass, 1 fail, 3 errors) | **411** (**409 pass**, 2 skipped) |
+| Inline `style={{}}` (operator + marketing) | 100+ across F1 surfaces | **5** (dynamic grade/severity only) |
+| Controllers with inline `$request->validate()` | 13 | **0** |
+| `McpController` | 745 lines | **185** lines |
+| `ReportBuilderService` | 457 lines | **196** lines (orchestrator + `app/Services/Reports/*`) |
+| Audit repair queries | `app/Support/*` | **`app/Queries/*`** |
+
+**Do not re-open this programme** for routine feature work. Remaining REF-* cards below are **deferred optional debt** (mostly P3 decomposition and ops checklist items), not blockers.
+
+### Delivered PR stack (#17–#29)
+
+| PR | Branch / theme | Highlights |
+|----|----------------|------------|
+| [#17](https://github.com/digitales/nthdesigns-scanner/pull/17) | `refactor/backend-audit-wave-1-2` | P1 test fixes, niche sample guard, `casts()` migration, Form Requests batch, `ReportBuilderService` / `McpController` / `OAuthServerController` decomposition, policies, website discovery provenance, screenshot reliability, job idempotency cluster |
+| [#18](https://github.com/digitales/nthdesigns-scanner/pull/18)–[#25](https://github.com/digitales/nthdesigns-scanner/pull/25) | `refactor/backend-audit-wave-3` … `wave-10` | Operator F1-04 inline-style migration (Settings, Prospect, Outreach, Ignored, Niches, Reports, Public, Book) |
+| [#26](https://github.com/digitales/nthdesigns-scanner/pull/26) | `refactor/f1-closeout` | Audit components `.audit-*` CSS, `AgencyBookingSettingsCard` test success, wave 11 `ReportBuilderService` decomposition (`ReportGradeCalculator`, `LighthouseMetricsExtractor`, `OperatorAuditAssembler`) |
+| [#27](https://github.com/digitales/nthdesigns-scanner/pull/27) | `refactor/f1-welcome-auth` | Welcome marketing + Auth shell inline-style migration (`homepage.css`, `auth-login-*`) |
+| [#28](https://github.com/digitales/nthdesigns-scanner/pull/28) | `refactor/backend-audit-wave-12` | Public report snapshot consistency, `StoreExportRequest`, connected-apps `deleteAny` policy |
+| [#29](https://github.com/digitales/nthdesigns-scanner/pull/29) | `refactor/backend-audit-wave-13` | `FilterProspectListRequest`, `FilterReportDashboardRequest`, index filter validation |
+| #30 (pending) | `refactor/backend-audit-wave-14-booking` | S8 booking hardening: CalDAV-before-DB transaction order, resilient confirmation mail, `IcsEventBuilder`, slot/disabled coverage tests, public note field |
+
+### F1 light pass — resolved
+
+| ID | Status |
+|----|--------|
+| F1-01 `useProgressReload` | Done — `resources/js/hooks/useProgressReload.js` |
+| F1-02 Prospect action in-flight | Done — `actionProcessing` on `Prospect/Show.jsx` |
+| F1-03 Niches Run Full Scan loading | Done — `scanningRowId` + "Queuing…" |
+| F1-04 Inline layout styles | Done — operator pages + Welcome/Auth (#17–#27) |
+| F1-05 Raw form controls | Done — ui/ primitives on Outreach CPC, Search min-score |
+| F1-06 Search `btn-icon` | Done — `IconButton` on `Search/Show.jsx` |
+| F1-07 Outreach Clear all | Done — ghost button + confirm + clearing state |
+| F1-08 Booking test success | Done — `AgencyBookingSettingsCard` (#26) |
+
+**Remaining F1 debt:** five intentional dynamic inline styles (`ScoreBadge`, audit severity colours, public grade colour, Search/Show metric).
+
+### Deferred optional backlog (not scheduled)
+
+Pick up only when a feature touches the area. Grouped by theme:
+
+| Theme | Example REF IDs | Notes |
+|-------|-----------------|-------|
+| Large service decomposition | REF-S4-02, REF-S8-05, S10 file-size signals | `NichesBootstrapSteps` (279), `BrowserServiceClient` (303), `GooglePlacesService` (261) — no behavioural bugs |
+| MCP streamable watch ops | REF-S7-05 | Document worker occupancy; code shipped |
+| OAuth access-token window | REF-S7-06 | JWT denylist exists; ~1h TTL documented in `mcp-integration-guide.md` |
+| CMS dual path | REF-S3-07 | `AuditSiteJob` inline CMS vs `DetectCmsJob` when `audit_driver=skip` — mutually exclusive paths, low race risk |
+| Spec/plan hygiene | GAP-06–09, GAP-12–14 | Stale plan checkboxes, ops deploy checklists — documentation only |
+| P4 / low score | REF-* P4 cards | See findings below; no production incidents |
+
+## Executive summary (original audit — 2026-06-05)
+
+> **Historical record.** Findings below were the audit input. See **Programme status — COMPLETE** above for delivery outcome.
 
 **Scope:** 76 backend refactor cards (S1–S10) plus 8 frontend light-pass items (F1), scored against Laravel 13.8 baseline on 2026-06-05.
 
@@ -16,17 +73,15 @@
 | P4 | 1 | 0 | 0 |
 | **Total** | **76** | **8** | **15** |
 
-**Top 3 recommendations (highest impact):**
+**Original top 3 recommendations — all addressed in #17–#29:**
 
-1. **Restore test suite green (P1)** — Fix `DirectUrlScanJobTest` sixth-DI drift (3 errors) and `ScanNichesCommandTest` hardcoded `scan_date` (1 failure). Four broken tests block confident refactors; production code paths are sound.
-2. **Stop niche sample panel duplicate Places jobs (P1)** — `NicheScanSampleController` re-dispatches `ScanNicheJob` on every 2s poll when `sample_preview` is null (REF-S2-02). Up to 30 duplicate API calls per panel open; highest operational risk finding.
-3. **Decompose the two largest backend files (P2)** — `McpController` (745 lines) and `ReportBuilderService` (457 lines) are the top file-size signals. Split transport/dispatch from tool streaming and extract violation/PageSpeed/CMS builders to reduce merge conflict surface before the next feature wave.
+1. ~~Restore test suite green~~ — **Done** (409 pass on `main` after #30)
+2. ~~Stop niche sample duplicate Places jobs~~ — **Done** (REF-S2-02 guard, wave 1–2)
+3. ~~Decompose `McpController` and `ReportBuilderService`~~ — **Done** (#17, #26)
 
-**Test health (appendix baseline):** 337 tests — **331 pass**, **1 fail**, **3 errors**, 2 skipped, 3 risky. Failures: `ScanNichesCommandTest` skip assertion; errors: three `DirectUrlScanJobTest` manual `handle()` calls missing `ProspectExclusionService`. Pint dry-run: **104 files** need format fixes.
+**Original test health:** 337 tests — 331 pass, 1 fail, 3 errors. **Superseded** by completion baseline above.
 
-**Spec drift:** 15 gaps — **2 P1** (test drift only; code matches spec), **4 P2** (website source hardcode, sample re-dispatch, `ProgressFlowService` test gap, screenshot retry semantics), **9 P3** (stale plan checkboxes, undocumented Brave/GBP-only paths, ops checklists). Seven specs spot-checked as **match**; two **drift** (pagination sample panel, single-site URL audit tests).
-
-**Estimated refactor effort:** ~**114–157 hours** summed across 76 REF-* PR slices (medium slices; excludes F1 ~12–16h). Recommended PR schedule below sequences **12 medium PRs** (~**32–42 hours** for the first wave covering all P1 items and highest-impact P2 cross-cuts).
+**Original estimated effort:** ~114–157 hours across 76 REF-* slices. **Delivered:** ~13 PRs over the first-wave + follow-up schedule (waves 1–13).
 
 ## Keep (positive patterns)
 
@@ -1181,28 +1236,41 @@ Scope: `Search/Index`, `Search/Show`, `Prospect/Show`, `Niches/Index`, `Outreach
 
 ## Recommended PR schedule
 
-Ordered by priority. Each row is one medium PR slice; dependencies are PR numbers in this table.
+**Status: COMPLETE** — all rows delivered across GitHub PRs [#17](https://github.com/digitales/nthdesigns-scanner/pull/17)–[#29](https://github.com/digitales/nthdesigns-scanner/pull/29).
 
-| PR | Subsystem | Title | Priority | Depends on | Effort |
-|----|-----------|-------|----------|------------|--------|
-| 1 | S1 | Fix DirectUrlScanJobTest handle() DI (`ProspectExclusionService`) | P1 | — | ~0.5h |
-| 2 | S2 | Fix ScanNichesCommandTest scan_date to match `travelTo` | P1 | — | ~0.5h |
-| 3 | S2 | Dispatch niche sample backfill once per row (pending/in-flight guard) | P1 | — | ~1–2h |
-| 4 | S10 | Migrate 7 models from `protected $casts` to `casts()` method | P2 | — | ~2h |
-| 5 | S10 | Form Requests batch (Search, Outreach, Settings, OAuth, Booking) | P2 | — | ~4–6h |
-| 6 | S5 | Extract ViolationMapper, OperatorPageSpeedBuilder, CmsLabelResolver from ReportBuilderService | P2 | — | ~4–6h |
-| 7 | S7 | Extract McpJsonRpcDispatcher and McpProgressStreamHandler from McpController (745 lines) | P2 | — | ~4–6h |
-| 8 | S7 | Extract OAuth token grant actions from OAuthServerController (288 lines) | P2 | 5 | ~3–4h |
-| 9 | S10 | Expand policy coverage for mutating routes (`OutreachSelectionPolicy`, email ownership) | P2 | — | ~3–4h |
-| 10 | S2 | Backfill `sample_preview` on requested NicheScan row (legacy row alignment) | P2 | 3 | ~2–3h |
-| 11 | S1 | Align `website_url_source` with active discovery provider (Brave default) | P2 | — | ~2h |
-| 12 | S3 | Audit job reliability — screenshot rethrow, idempotency guards, CaptureScreenshotJobTest | P2 | — | ~4–5h |
+| PR | Subsystem | Title | Priority | Delivered in |
+|----|-----------|-------|----------|--------------|
+| 1 | S1 | Fix DirectUrlScanJobTest handle() DI (`ProspectExclusionService`) | P1 | #17 |
+| 2 | S2 | Fix ScanNichesCommandTest scan_date to match `travelTo` | P1 | #17 |
+| 3 | S2 | Dispatch niche sample backfill once per row (pending/in-flight guard) | P1 | #17 |
+| 4 | S10 | Migrate 7 models from `protected $casts` to `casts()` method | P2 | #17 |
+| 5 | S10 | Form Requests batch (Search, Outreach, Settings, OAuth, Booking) | P2 | #17 |
+| 6 | S5 | Extract ViolationMapper, OperatorPageSpeedBuilder, CmsLabelResolver from ReportBuilderService | P2 | #17, #26 |
+| 7 | S7 | Extract McpJsonRpcDispatcher and McpProgressStreamHandler from McpController | P2 | #17 |
+| 8 | S7 | Extract OAuth token grant actions from OAuthServerController | P2 | #17 |
+| 9 | S10 | Expand policy coverage for mutating routes | P2 | #17, #28 |
+| 10 | S2 | Backfill `sample_preview` on requested NicheScan row | P2 | #17 |
+| 11 | S1 | Align `website_url_source` with active discovery provider | P2 | #17 |
+| 12 | S3 | Audit job reliability — screenshot rethrow, idempotency, tests | P2 | #17, #26 |
 
-**First-wave total:** ~32–42 hours across 12 PRs (all P1 + highest-impact P2). Remaining 64 REF-* cards and 8 F1 items follow in subsequent waves by subsystem priority (S3 idempotency cluster, S4 scoring seams, S8 booking hardening, F1 operator UX).
+**Follow-up waves (not in original 12-row table):** operator + marketing F1 (#18–#27), public snapshot + export policy (#28), index filter Form Requests (#29).
 
 ## Appendix: automated signal sheet
 
-### Test baseline
+### Test baseline — completion (`main`, 2026-06-05)
+
+**Command:** `php artisan test`
+
+| Metric | Count |
+|--------|------:|
+| Total tests | 407 |
+| Passed | 405 |
+| Failed | 0 |
+| Skipped | 2 |
+| Assertions | 1530 |
+| Duration | ~6000 ms |
+
+### Test baseline — audit snapshot (historical)
 
 **Command:** `php artisan test 2>&1 | tee /tmp/audit-test-baseline.txt`
 

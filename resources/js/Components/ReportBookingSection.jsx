@@ -141,6 +141,12 @@ export default function ReportBookingSection({ token, businessName, existingBook
                                     onChange={(e) => setForm((f) => ({ ...f, attendee_phone: e.target.value }))}
                                 />
                             </Field>
+                            <Field label="Anything we should know? (optional)">
+                                <Input
+                                    value={form.note}
+                                    onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
+                                />
+                            </Field>
                             <div className="booking-panel--center">
                                 <Button kind="accent" size="lg" type="submit" disabled={submitting}>
                                     {submitting ? 'Booking…' : 'Confirm booking'}

@@ -12,7 +12,9 @@ use GuzzleHttp\Psr7\Response as PsrResponse;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response as HttpResponse;
+use Illuminate\Mail\MailManager;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Testing\Fakes\MailFake;
 use Tests\TestCase;
 
 class ReportBookingTest extends TestCase
@@ -21,10 +23,13 @@ class ReportBookingTest extends TestCase
 
     private FakeCalendarProvider $calendar;
 
+    private MailManager $mailManager;
+
     protected function setUp(): void
     {
         parent::setUp();
 
+        $this->mailManager = $this->app->make(MailManager::class);
         Mail::fake();
         Carbon::setTestNow(Carbon::parse('2026-06-10 10:00:00', 'Europe/London'));
 
@@ -138,5 +143,60 @@ class ReportBookingTest extends TestCase
                 ->component('Report/Public')
                 ->where('report.native_booking', true)
                 ->where('report.booking_url', null));
+    }
+
+    public function test_slots_returns_empty_when_native_booking_disabled(): void
+    {
+        AgencyBookingSetting::current()->update(['enabled' => false]);
+        $report = ProspectReport::factory()->create();
+
+        $this->getJson('/r/'.$report->token.'/slots')
+            ->assertOk()
+            ->assertJsonPath('slots', []);
+    }
+
+    public function test_book_rejects_slot_already_taken_on_calendar(): void
+    {
+        $report = ProspectReport::factory()->create();
+        $slot = $this->getJson('/r/'.$report->token.'/slots')->json('slots.0');
+
+        $otherReport = ProspectReport::factory()->create();
+        $this->postJson('/r/'.$otherReport->token.'/book', [
+            'starts_at' => $slot['starts_at'],
+            'attendee_name' => 'First Booker',
+            'attendee_email' => 'first@example.com',
+        ])->assertCreated();
+
+        $this->postJson('/r/'.$report->token.'/book', [
+            'starts_at' => $slot['starts_at'],
+            'attendee_name' => 'Second Booker',
+            'attendee_email' => 'second@example.com',
+        ])->assertStatus(409);
+    }
+
+    public function test_book_persists_when_confirmation_mail_fails(): void
+    {
+        Mail::swap(new class($this->mailManager) extends MailFake
+        {
+            protected function sendMail($view, $shouldQueue = false)
+            {
+                throw new \RuntimeException('SMTP unavailable');
+            }
+        });
+
+        $report = ProspectReport::factory()->create();
+        $slot = $this->getJson('/r/'.$report->token.'/slots')->json('slots.0');
+
+        $this->postJson('/r/'.$report->token.'/book', [
+            'starts_at' => $slot['starts_at'],
+            'attendee_name' => 'Jane Smith',
+            'attendee_email' => 'jane@example.com',
+        ])->assertCreated();
+
+        $booking = $report->fresh()->booking;
+        $this->assertNotNull($booking);
+        $this->assertSame('confirmed', $booking->status);
+        $this->assertNull($booking->confirmation_sent_at);
+        $this->assertCount(1, $this->calendar->createdEvents());
     }
 }
