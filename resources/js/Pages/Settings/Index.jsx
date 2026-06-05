@@ -1,6 +1,7 @@
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import AgencyBookingSettingsCard from '@/Components/AgencyBookingSettingsCard';
+import ApiUsageQuotasCard from '@/Components/ApiUsageQuotasCard';
 import {
     Button,
     Card,
@@ -16,7 +17,7 @@ import {
     Stack,
 } from '@/Components/ui';
 
-export default function SettingsIndex({ settings, agencyBooking, nicheMaintenance, health, env }) {
+export default function SettingsIndex({ settings, agencyBooking, nicheMaintenance, health, apiUsage, env }) {
     const { flash } = usePage().props;
     const { data, setData, patch, processing, errors, recentlySuccessful } = useForm({
         default_country: settings.default_country,
@@ -91,6 +92,8 @@ export default function SettingsIndex({ settings, agencyBooking, nicheMaintenanc
                             </SplitRow>
                         </MetaList>
                     </Card>
+
+                    {apiUsage ? <ApiUsageQuotasCard apiUsage={apiUsage} /> : null}
 
                     <AgencyBookingSettingsCard agencyBooking={agencyBooking} />
 

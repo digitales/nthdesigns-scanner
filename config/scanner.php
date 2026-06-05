@@ -80,4 +80,36 @@ return [
     /** Poll interval for MCP streamable progress watches. */
     'mcp_progress_poll_seconds' => (int) env('MCP_PROGRESS_POLL_SECONDS', 2),
 
+    'api_quota' => [
+        'enforcement' => filter_var(env('API_QUOTA_ENFORCEMENT', true), FILTER_VALIDATE_BOOL),
+        'warning_percent' => (int) env('API_QUOTA_WARNING_PERCENT', 80),
+        'limits' => [
+            'google_places' => [
+                'text_search' => [
+                    'daily' => (int) env('API_QUOTA_PLACES_TEXT_SEARCH_DAILY', 500),
+                    'monthly' => (int) env('API_QUOTA_PLACES_TEXT_SEARCH_MONTHLY', 10000),
+                ],
+                'place_details' => [
+                    'daily' => (int) env('API_QUOTA_PLACES_PLACE_DETAILS_DAILY', 200),
+                    'monthly' => (int) env('API_QUOTA_PLACES_PLACE_DETAILS_MONTHLY', 2000),
+                ],
+            ],
+            'brave' => [
+                'web_search' => [
+                    'daily' => (int) env('API_QUOTA_BRAVE_WEB_SEARCH_DAILY', 100),
+                    'monthly' => (int) env('API_QUOTA_BRAVE_WEB_SEARCH_MONTHLY', 3000),
+                ],
+            ],
+        ],
+        'cost_pence' => [
+            'google_places' => [
+                'text_search' => (float) env('API_COST_PLACES_TEXT_SEARCH_PENCE', 0.1),
+                'place_details' => (float) env('API_COST_PLACES_PLACE_DETAILS_PENCE', 2.0),
+            ],
+            'brave' => [
+                'web_search' => (float) env('API_COST_BRAVE_WEB_SEARCH_PENCE', 0.5),
+            ],
+        ],
+    ],
+
 ];

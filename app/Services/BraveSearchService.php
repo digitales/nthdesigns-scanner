@@ -2,12 +2,17 @@
 
 namespace App\Services;
 
+use App\Services\ApiUsage\ApiUsageGate;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class BraveSearchService
 {
     private const ENDPOINT = 'https://api.search.brave.com/res/v1/web/search';
+
+    public function __construct(
+        private ApiUsageGate $usageGate,
+    ) {}
 
     /**
      * @return list<array{url: string, title: string, snippet: string}>
@@ -24,6 +29,8 @@ class BraveSearchService
         $count = max(1, min(20, (int) config('scanner.website_discovery_num_results', 5)));
         $country = strtoupper(substr(trim($country), 0, 2)) ?: 'GB';
 
+        $this->usageGate->assertWithinQuota('brave', 'web_search');
+
         $response = Http::timeout($timeout)
             ->withHeaders([
                 'Accept' => 'application/json',
@@ -37,6 +44,8 @@ class BraveSearchService
                 'search_lang' => 'en',
                 'safesearch' => 'moderate',
             ]);
+
+        $this->usageGate->recordCompletedRequest('brave', 'web_search');
 
         if ($response->failed()) {
             Log::warning('Brave Search request failed', [

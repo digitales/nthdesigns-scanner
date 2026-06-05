@@ -2,6 +2,7 @@
 
 namespace App\Services\GooglePlaces;
 
+use App\Services\ApiUsage\ApiUsageGate;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -9,6 +10,7 @@ class PlacesTextSearchClient
 {
     public function __construct(
         private string $apiKey,
+        private ApiUsageGate $usageGate,
         private string $baseUrl = 'https://places.googleapis.com/v1/places',
     ) {}
 
@@ -31,11 +33,15 @@ class PlacesTextSearchClient
                 $payload['pageToken'] = $pageToken;
             }
 
+            $this->usageGate->assertWithinQuota('google_places', 'text_search');
+
             $response = Http::withHeaders([
                 'Content-Type' => 'application/json',
                 'X-Goog-Api-Key' => $this->apiKey,
                 'X-Goog-FieldMask' => 'places.id,nextPageToken',
             ])->post("{$this->baseUrl}:searchText", $payload);
+
+            $this->usageGate->recordCompletedRequest('google_places', 'text_search');
 
             if ($response->failed()) {
                 Log::error('GooglePlaces searchText failed', [

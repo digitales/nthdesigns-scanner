@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateUserSettingsRequest;
 use App\Models\NicheScan;
 use App\Services\AgencyBookingService;
 use App\Services\ApiHealthService;
+use App\Services\ApiUsage\ApiUsageDashboard;
 use App\Services\UserSettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,8 +19,13 @@ use Inertia\Response;
 
 class SettingsController extends Controller
 {
-    public function index(Request $request, ApiHealthService $health, UserSettingsService $settings, AgencyBookingService $agencyBooking): Response
-    {
+    public function index(
+        Request $request,
+        ApiHealthService $health,
+        UserSettingsService $settings,
+        AgencyBookingService $agencyBooking,
+        ApiUsageDashboard $apiUsage,
+    ): Response {
         $setting = $settings->forUser($request->user());
         $bookingSettings = $agencyBooking->settings();
         $lastScan = NicheScan::query()->orderByDesc('ran_at')->first()?->ran_at;
@@ -52,6 +58,7 @@ class SettingsController extends Controller
                 'config_generated' => self::parseNichesConfigDate(),
             ],
             'health' => $health->checkAll(),
+            'apiUsage' => $apiUsage->snapshot(),
             'env' => [
                 'reports_disk' => config('scanner.reports_disk', 'public'),
                 'audit_driver' => config('scanner.audit_driver'),

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AgencyBookingSettingsController;
+use App\Http\Controllers\ApiQuotaSettingsController;
 use App\Http\Controllers\BookingDashboardController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\IgnoredProspectController;
@@ -120,6 +121,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/settings/mcp-keys/{mcpKey}', [McpKeyController::class, 'update'])->name('settings.mcp-keys.update');
     Route::delete('/settings/mcp-keys/{mcpKey}', [McpKeyController::class, 'destroy'])->name('settings.mcp-keys.destroy');
     Route::patch('/settings', [SettingsController::class, 'update'])->name('settings.update');
+    Route::patch('/settings/api-quotas', [ApiQuotaSettingsController::class, 'update'])->name('settings.api-quotas.update');
     Route::patch('/settings/agency-booking', [AgencyBookingSettingsController::class, 'update'])->name('settings.agency-booking.update');
     Route::post('/settings/agency-booking/test', [AgencyBookingSettingsController::class, 'testConnection'])->name('settings.agency-booking.test');
     Route::post('/settings/niches/scan', [SettingsController::class, 'scanNiches'])->name('settings.niches.scan');

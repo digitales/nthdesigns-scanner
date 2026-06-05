@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\AgencyBookingSetting;
+use App\Models\ApiQuotaSetting;
 use App\Models\Export;
 use App\Models\IgnoredProspect;
 use App\Models\OauthMcpRefreshTokenFamily;
@@ -12,6 +13,7 @@ use App\Models\Prospect;
 use App\Models\Search;
 use App\Models\UserMcpKey;
 use App\Policies\AgencyBookingSettingPolicy;
+use App\Policies\ApiQuotaSettingPolicy;
 use App\Policies\ExportPolicy;
 use App\Policies\IgnoredProspectPolicy;
 use App\Policies\NicheExclusionPolicy;
@@ -21,7 +23,9 @@ use App\Policies\OutreachSelectionPolicy;
 use App\Policies\ProspectPolicy;
 use App\Policies\SearchPolicy;
 use App\Policies\UserMcpKeyPolicy;
+use App\Queue\FailJobOnApiQuotaExceeded;
 use App\Support\ScannerConfig;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
@@ -52,6 +56,11 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(IgnoredProspect::class, IgnoredProspectPolicy::class);
         Gate::policy(Export::class, ExportPolicy::class);
         Gate::policy(AgencyBookingSetting::class, AgencyBookingSettingPolicy::class);
+        Gate::policy(ApiQuotaSetting::class, ApiQuotaSettingPolicy::class);
+
+        Bus::pipeThrough([
+            FailJobOnApiQuotaExceeded::class,
+        ]);
 
         Gate::define('manageNicheExclusions', [NicheExclusionPolicy::class, 'manage']);
 
