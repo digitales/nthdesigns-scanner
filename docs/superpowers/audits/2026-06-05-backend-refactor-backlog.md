@@ -671,6 +671,95 @@ Cohesive pipeline (ONS fetch, taxonomy filter, Birmingham validation, PHP config
 | Effort | ~0.5 hours (batch) |
 
 ### S7 — OAuth & MCP
+
+#### REF-S7-01: McpController decomposition candidate (745 lines)
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S7 OAuth & MCP |
+| Scores | M=3 R=1 L=2 O=2 → Total 8 (P2) |
+| Evidence | `app/Http/Controllers/Api/McpController.php` (745 lines); appendix file-size signal #1 |
+| Spec gap | None — [2026-06-01-mcp-scan-monitoring-design.md](../specs/2026-06-01-mcp-scan-monitoring-design.md) and [2026-06-02-mcp-progress-flow-design.md](../specs/2026-06-02-mcp-progress-flow-design.md) describe behaviour, not controller shape |
+| PR slice | Medium — "S7: extract McpJsonRpcDispatcher and McpProgressStreamHandler from McpController" |
+| Risk | Low — `McpScanToolsTest` (14 tests) covers tool surface |
+| Effort | ~4–6 hours |
+| Notes | Cohesive responsibilities: auth resolution, JSON-RPC routing, streamable SSE progress loop (lines 561–677), tool definitions, origin allowlist. Natural split: transport/auth vs dispatch vs streaming. |
+
+#### REF-S7-02: OAuthServerController fat grant handler (288 lines)
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S7 OAuth & MCP |
+| Scores | M=2 R=1 L=2 O=1 → Total 6 (P3) |
+| Evidence | `app/Http/Controllers/OAuthServerController.php` (288 lines); appendix #7 file-size signal |
+| Spec gap | None |
+| PR slice | Medium — "S7: extract OAuth token grant actions (authorization_code, refresh, revoke)" |
+| Risk | Low — OAuth flow covered by `McpScanToolsTest` and manual integration |
+| Effort | ~3–4 hours |
+| Notes | Five inline `$request->validate()` call sites (lines 27, 60, 135, 155, 212). PKCE, resource indicator, and refresh rotation logic inline in private methods. |
+
+#### REF-S7-03: OAuthServerController uses inline validation on all mutating endpoints
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S7 OAuth & MCP |
+| Scores | M=2 R=1 L=2 O=1 → Total 6 (P3) |
+| Evidence | `app/Http/Controllers/OAuthServerController.php:27-30,60-69,135-139,155-162,212-218` |
+| Spec gap | None — REF-S10-01 |
+| PR slice | Medium — "S7: add OAuth Register/Token/Revoke Form Requests" |
+| Risk | Low — OAuth endpoints are machine clients; validation rules are stable |
+| Effort | ~2 hours |
+
+#### REF-S7-04: No dedicated ProgressFlowService unit tests
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S7 OAuth & MCP |
+| Scores | M=2 R=1 L=2 O=2 → Total 7 (P2) |
+| Evidence | `app/Services/ProgressFlowService.php` (176 lines); `tests/Feature/McpScanToolsTest.php:198-260` exercises flow via MCP only; `tests/Feature/ProspectShowTest.php:168` asserts one prospect field |
+| Spec gap | [2026-06-02-mcp-progress-flow-design.md](../specs/2026-06-02-mcp-progress-flow-design.md) — phase/step/message semantics documented; no direct service tests |
+| PR slice | Medium — "S7: add ProgressFlowServiceTest (search phases, prospect steps, duration buckets)" |
+| Risk | Low — MCP integration tests pass (`php artisan test --filter=Mcp` → 14 pass) |
+| Effort | ~2 hours |
+| Notes | `watch_search_progress` snapshot path in `McpSearchService` (lines 111–122) returns one-shot data; long-poll semantics live in controller stream handler. |
+
+#### REF-S7-05: McpController streamProgressToolCall blocks worker up to 45s
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S7 OAuth & MCP |
+| Scores | M=1 R=2 L=2 O=2 → Total 7 (P2) |
+| Evidence | `app/Http/Controllers/Api/McpController.php:568-646` — `sleep(2)` loop until timeout or `search_complete` |
+| Spec gap | [2026-06-02-mcp-progress-flow-design.md](../specs/2026-06-02-mcp-progress-flow-design.md) — bounded watch documented; worker occupancy not addressed |
+| PR slice | Medium — "S7: document streamable watch worker cost or move watch loop to async notifier" |
+| Risk | Low — streamable transport is opt-in; legacy JSON-RPC unaffected |
+| Effort | ~2–3 hours |
+| Notes | Matches `mcp-integration-guide.md` streamable progress notification design. Cloud worker concurrency may limit concurrent watches. |
+
+#### REF-S7-06: OAuth access-token revocation on revoke endpoint ignores access_token hint
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S7 OAuth & MCP |
+| Scores | M=2 R=1 L=2 O=2 → Total 7 (P2) |
+| Evidence | `app/Http/Controllers/OAuthServerController.php:141-148` — only revokes when `token_type_hint === 'refresh_token'` |
+| Spec gap | None — RFC 7009 allows best-effort; short TTL access tokens assumed |
+| PR slice | Medium — "S7: document access-token revocation window or add JWT denylist" |
+| Risk | Medium — revoked refresh family still leaves ~1h access token valid (`mcp-integration-guide.md:69`) |
+| Effort | ~1–2 hours |
+
+#### REF-S7-07: ConnectedAppsController uses manual user_id check instead of policy
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S7 OAuth & MCP |
+| Scores | M=1 R=1 L=2 O=1 → Total 5 (P3) |
+| Evidence | `app/Http/Controllers/Settings/ConnectedAppsController.php:45-47` — `AccessDeniedHttpException` vs `McpKeyController` policy pattern |
+| Spec gap | None — REF-S10-03 |
+| PR slice | Medium — "S7/S9: add OauthMcpRefreshTokenFamilyPolicy" |
+| Risk | Low — check is correct; inconsistent with `UserMcpKeyPolicy` |
+| Effort | ~1 hour |
+
 ### S8 — Booking & calendar
 ### S9 — Operator settings & data hygiene
 ### S10 — Shared infrastructure
