@@ -11,46 +11,24 @@ export default function AuditFailureSection({ auditFailure }) {
     const { summary, full, detail_expired: detailExpired } = auditFailure;
 
     return (
-        <Card title="Audit failed" style={{ marginBottom: 24, borderColor: 'var(--color-sev-critical)' }}>
-            <p style={{ margin: 0, fontSize: 13, color: 'var(--color-sev-critical)' }}>{summary}</p>
+        <Card title="Audit failed" className="audit-section-card audit-section-card--critical">
+            <p className="audit-failure-summary">{summary}</p>
             {detailExpired && (
-                <p className="micro" style={{ marginTop: 12, marginBottom: 0, color: 'var(--color-stone-500)' }}>
+                <p className="micro audit-failure-note">
                     Full diagnostic expired (retention). Summary above is still available.
                 </p>
             )}
             {!detailExpired && full && (
-                <div style={{ marginTop: 12 }}>
+                <div className="audit-failure-toggle">
                     <button
                         type="button"
-                        className="micro"
+                        className="micro btn-link-inline"
                         onClick={() => setOpen((v) => !v)}
-                        style={{
-                            background: 'none',
-                            border: 'none',
-                            padding: 0,
-                            cursor: 'pointer',
-                            color: 'var(--color-stone-600)',
-                            textDecoration: 'underline',
-                        }}
                     >
                         {open ? 'Hide full diagnostic' : 'View full diagnostic'}
                     </button>
                     {open && (
-                        <pre
-                            style={{
-                                marginTop: 10,
-                                marginBottom: 0,
-                                padding: 12,
-                                fontSize: 11,
-                                lineHeight: 1.45,
-                                overflow: 'auto',
-                                maxHeight: 320,
-                                background: 'var(--color-stone-100)',
-                                borderRadius: 4,
-                                whiteSpace: 'pre-wrap',
-                                wordBreak: 'break-word',
-                            }}
-                        >
+                        <pre className="audit-failure-pre">
                             {full}
                         </pre>
                     )}

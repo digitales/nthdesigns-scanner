@@ -4,8 +4,8 @@ export default function LighthouseDial({ label, score }) {
     const offset = circumference - (score / 100) * circumference;
 
     return (
-        <div style={{ textAlign: 'center' }}>
-            <svg width="120" height="120" viewBox="0 0 120 120" style={{ display: 'block', margin: '0 auto' }}>
+        <div className="lighthouse-dial">
+            <svg width="120" height="120" viewBox="0 0 120 120" className="lighthouse-dial-svg">
                 <circle cx="60" cy="60" r="45" fill="none" stroke="var(--color-stone-200)" strokeWidth="8" />
                 <circle
                     cx="60"

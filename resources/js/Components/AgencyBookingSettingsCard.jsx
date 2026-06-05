@@ -50,6 +50,7 @@ export default function AgencyBookingSettingsCard({ agencyBooking }) {
     });
 
     const [testing, setTesting] = useState(false);
+    const [testMessage, setTestMessage] = useState(null);
 
     const discoveredCalendars = flash?.agency_booking_calendars ?? [];
     const status = bookingStatus(agencyBooking, data.enabled);
@@ -69,11 +70,18 @@ export default function AgencyBookingSettingsCard({ agencyBooking }) {
 
     const testConnection = () => {
         setTesting(true);
+        setTestMessage(null);
         router.post('/settings/agency-booking/test', {
             fastmail_username: data.fastmail_username,
             fastmail_app_password: data.fastmail_app_password,
         }, {
             preserveScroll: true,
+            onSuccess: (page) => {
+                const message = page.props.flash?.success;
+                if (message) {
+                    setTestMessage(message);
+                }
+            },
             onFinish: () => setTesting(false),
         });
     };
@@ -151,9 +159,9 @@ export default function AgencyBookingSettingsCard({ agencyBooking }) {
                                             Enter an app password to test.
                                         </span>
                                     )}
-                                    {Array.isArray(flash?.agency_booking_calendars) && flash?.success && !recentlySuccessful && (
+                                    {testMessage && !recentlySuccessful && (
                                         <span className="micro text-positive">
-                                            {flash.success}
+                                            {testMessage}
                                         </span>
                                     )}
                                 </Stack>

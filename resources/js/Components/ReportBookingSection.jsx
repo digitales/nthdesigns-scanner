@@ -78,15 +78,11 @@ export default function ReportBookingSection({ token, businessName, existingBook
 
     if (confirmed) {
         return (
-            <div style={{ maxWidth: 520, margin: '0 auto' }}>
-                <p style={{
-                    fontFamily: 'var(--font-serif)',
-                    fontSize: 20,
-                    margin: '0 0 12px',
-                }}>
+            <div className="booking-panel--narrow">
+                <p className="booking-confirmed-title">
                     You&apos;re booked for {confirmed.label}.
                 </p>
-                <p className="micro" style={{ margin: 0 }}>
+                <p className="micro m-0">
                     Confirmation sent to {confirmed.attendee_name}. We&apos;ll walk through the findings for {businessName} on the call.
                 </p>
             </div>
@@ -94,10 +90,10 @@ export default function ReportBookingSection({ token, businessName, existingBook
     }
 
     return (
-        <div style={{ maxWidth: 640, margin: '0 auto', textAlign: 'left' }}>
+        <div className="booking-panel">
             {loadingSlots && <p className="micro">Loading available times…</p>}
             {error && (
-                <p className="micro" style={{ color: 'var(--color-sev-critical)', marginBottom: 16 }}>
+                <p className="micro text-critical mb-16">
                     {error}
                 </p>
             )}
@@ -108,29 +104,14 @@ export default function ReportBookingSection({ token, businessName, existingBook
 
             {slots.length > 0 && (
                 <>
-                    <p className="micro" style={{ marginBottom: 12 }}>Choose a time (UK)</p>
-                    <div
-                        style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                            gap: 8,
-                            marginBottom: 24,
-                        }}
-                    >
+                    <p className="micro mb-12">Choose a time (UK)</p>
+                    <div className="booking-slots-grid">
                         {slots.map((slot) => (
                             <button
                                 key={slot.starts_at}
                                 type="button"
                                 onClick={() => setSelected(slot)}
-                                style={{
-                                    padding: '10px 12px',
-                                    border: `1px solid ${selected?.starts_at === slot.starts_at ? 'var(--color-accent-deep)' : 'var(--color-line)'}`,
-                                    borderRadius: 6,
-                                    background: selected?.starts_at === slot.starts_at ? 'var(--color-accent-soft)' : 'transparent',
-                                    cursor: 'pointer',
-                                    fontSize: 13,
-                                    textAlign: 'left',
-                                }}
+                                className={`booking-slot${selected?.starts_at === slot.starts_at ? ' booking-slot--selected' : ''}`}
                             >
                                 {slot.label}
                             </button>
@@ -138,7 +119,7 @@ export default function ReportBookingSection({ token, businessName, existingBook
                     </div>
 
                     {selected && (
-                        <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                        <form onSubmit={submit} className="booking-form">
                             <Field label="Your name">
                                 <Input
                                     required
@@ -160,7 +141,7 @@ export default function ReportBookingSection({ token, businessName, existingBook
                                     onChange={(e) => setForm((f) => ({ ...f, attendee_phone: e.target.value }))}
                                 />
                             </Field>
-                            <div style={{ textAlign: 'center', marginTop: 8 }}>
+                            <div className="booking-panel--center">
                                 <Button kind="accent" size="lg" type="submit" disabled={submitting}>
                                     {submitting ? 'Booking…' : 'Confirm booking'}
                                 </Button>

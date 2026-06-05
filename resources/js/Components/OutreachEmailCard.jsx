@@ -27,12 +27,16 @@ export default function OutreachEmailCard({ email, reportUrl, performanceScore }
         <Card pad={false} className={`email-card${isSent ? ' sent' : ''}`}>
             <div className="email-card-header">
                 <div>
-                    <div className="micro" style={{ marginBottom: 4 }}>To: {email.to_email ?? '—'}</div>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+                    <div className="micro email-card-meta">To: {email.to_email ?? '—'}</div>
+                    <div className="email-card-scores">
                         <ScoreBadge value={email.combined_score} withBar={false} />
                         <div>
                             <AnglePill angle={email.pitch_angle} />
-                            {showSlowSite && <div style={{ marginTop: 6 }}><span className="slow-site-tag">+ slow site</span></div>}
+                            {showSlowSite && (
+                                <div className="email-card-slow-tag">
+                                    <span className="slow-site-tag">+ slow site</span>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -70,7 +74,7 @@ export default function OutreachEmailCard({ email, reportUrl, performanceScore }
             <div className="email-card-footer">
                 {reportUrl && <span>{reportUrl.replace(/^https?:\/\/[^/]+/, '')}</span>}
                 {email.sent_at && (
-                    <span style={{ marginLeft: 12 }}>Sent {new Date(email.sent_at).toLocaleDateString()}</span>
+                    <span className="email-card-sent-date">Sent {new Date(email.sent_at).toLocaleDateString()}</span>
                 )}
             </div>
         </Card>

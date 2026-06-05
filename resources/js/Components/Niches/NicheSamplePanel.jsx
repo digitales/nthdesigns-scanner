@@ -81,8 +81,8 @@ export default function NicheSamplePanel({ scan, scanning = false, onClose, onRu
             <div className="niches-panel-header">
                 <div>
                     <div className="niches-panel-title">{scan.niche}</div>
-                    <div className="micro" style={{ marginTop: 4 }}>{scan.city}</div>
-                    <div style={{ marginTop: 8 }}>
+                    <div className="micro niches-panel-meta">{scan.city}</div>
+                    <div className="niches-panel-score">
                         <ScoreBadge
                             value={scan.opportunity_score != null ? Math.round(scan.opportunity_score) : null}
                             withBar={false}
@@ -103,7 +103,7 @@ export default function NicheSamplePanel({ scan, scanning = false, onClose, onRu
 
                 {state === 'failed' && (
                     <div>
-                        <p className="micro" style={{ color: 'var(--color-danger)', marginBottom: 12 }}>{error}</p>
+                        <p className="micro niches-sample-error">{error}</p>
                         <Button type="button" kind="secondary" onClick={() => loadSample(new AbortController().signal)}>
                             Retry
                         </Button>

@@ -17,9 +17,12 @@ function MetricCell({ label, metric }) {
     if (!metric) return null;
 
     return (
-        <div style={{ padding: '12px 16px', background: 'var(--color-paper-2)', borderRadius: 6 }}>
-            <div className="eyebrow" style={{ marginBottom: 6 }}>{label}</div>
-            <div className="tabular" style={{ fontSize: 20, fontWeight: 500, color: RATING_COLOR[metric.rating] ?? 'inherit' }}>
+        <div className="pagespeed-metric">
+            <div className="eyebrow pagespeed-metric-eyebrow">{label}</div>
+            <div
+                className="tabular pagespeed-metric-value"
+                style={{ color: RATING_COLOR[metric.rating] ?? 'inherit' }}
+            >
                 {metric.display}
             </div>
         </div>
@@ -38,49 +41,44 @@ export default function PageSpeedSection({ pageSpeed }) {
         : null;
 
     return (
-        <Card title="Page speed" style={{ marginBottom: 24 }}>
-            {auditedLabel && <div className="micro" style={{ marginBottom: 6 }}>Audited {auditedLabel}</div>}
+        <Card title="Page speed" className="audit-section-card">
+            {auditedLabel && <div className="micro audit-section-meta">Audited {auditedLabel}</div>}
             {pageSpeed.url && (
-                <a href={pageSpeed.url} target="_blank" rel="noopener noreferrer" className="micro" style={{ display: 'block', marginBottom: 20 }}>
+                <a
+                    href={pageSpeed.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="micro pagespeed-link"
+                >
                     {pageSpeed.url.replace(/^https?:\/\//, '')}
                 </a>
             )}
 
-            <div className="eyebrow" style={{ marginBottom: 10 }}>Core Web Vitals</div>
-            <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
-                gap: 12,
-                marginBottom: 12,
-            }}>
+            <div className="eyebrow audit-eyebrow-spaced">Core Web Vitals</div>
+            <div className="pagespeed-metrics-grid">
                 {Object.entries(METRIC_LABELS).map(([key, label]) => (
                     <MetricCell key={key} label={label} metric={metrics[key]} />
                 ))}
             </div>
-            <p className="micro" style={{ marginBottom: 24 }}>Measured via Google Lighthouse · mobile</p>
+            <p className="micro mb-24">Measured via Google Lighthouse · mobile</p>
 
-            <div className="eyebrow" style={{ marginBottom: 12 }}>Opportunities</div>
+            <div className="eyebrow audit-eyebrow-spaced-lg">Opportunities</div>
             {opportunities.length === 0 ? (
                 <p className="micro">No significant opportunities detected</p>
             ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div className="audit-stack--sm">
                     {opportunities.map((opp) => (
                         <div
                             key={opp.id}
-                            style={{
-                                padding: '12px 16px',
-                                borderRadius: 6,
-                                borderLeft: opp.highlight ? '3px solid var(--color-sev-critical)' : '3px solid transparent',
-                                background: opp.highlight ? 'var(--color-sev-critical-soft)' : 'var(--color-paper-2)',
-                            }}
+                            className={`pagespeed-opportunity${opp.highlight ? ' pagespeed-opportunity--highlight' : ''}`}
                         >
-                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, marginBottom: 4 }}>
-                                <span style={{ fontSize: 13, fontWeight: 500 }}>{opp.title}</span>
+                            <div className="pagespeed-opportunity-row">
+                                <span className="pagespeed-opportunity-title">{opp.title}</span>
                                 {opp.savings_display && (
-                                    <span className="micro tabular" style={{ whiteSpace: 'nowrap' }}>{opp.savings_display}</span>
+                                    <span className="micro tabular pagespeed-opportunity-savings">{opp.savings_display}</span>
                                 )}
                             </div>
-                            {opp.description && <p className="micro" style={{ margin: 0 }}>{opp.description}</p>}
+                            {opp.description && <p className="micro m-0">{opp.description}</p>}
                         </div>
                     ))}
                 </div>

@@ -18,38 +18,31 @@ export default function SearchHistoryCard({ search, showFound = false }) {
     const isDirectUrl = search.source === 'direct_url';
 
     return (
-        <Link
-            href={`/searches/${search.id}`}
-            style={{
-                display: 'block',
-                textDecoration: 'none',
-                color: 'inherit',
-            }}
-        >
-            <Card pad style={{ padding: '12px 14px' }}>
+        <Link href={`/searches/${search.id}`} className="history-card-link">
+            <Card pad className="history-card-pad">
                 {isDirectUrl ? (
                     <>
-                        <div style={{ fontWeight: 500, fontSize: 13 }}>
+                        <div className="history-card-title">
                             {search.submitted_url?.replace(/^https?:\/\//, '') ?? 'Single site'}
                         </div>
-                        <div className="micro" style={{ marginTop: 4 }}>
+                        <div className="micro history-card-meta">
                             Single site · {search.created_at}
                         </div>
                     </>
                 ) : (
                     <>
-                        <div style={{ fontWeight: 500, fontSize: 13 }}>{search.niche}</div>
-                        <div className="micro" style={{ marginTop: 4 }}>
+                        <div className="history-card-title">{search.niche}</div>
+                        <div className="micro history-card-meta">
                             {search.city} · {search.created_at}
                         </div>
                     </>
                 )}
                 {showFound && search.total_found != null ? (
-                    <div className="micro" style={{ marginTop: 4 }}>
+                    <div className="micro history-card-meta">
                         {search.total_found} found
                     </div>
                 ) : null}
-                <div style={{ marginTop: 8 }}>
+                <div className="history-card-status">
                     <SearchStatus status={search.status} />
                 </div>
             </Card>
