@@ -5,10 +5,43 @@
 **Spec:** [2026-06-05-lean-audit-refactor-design.md](../specs/2026-06-05-lean-audit-refactor-design.md)
 
 ## Executive summary
-_TBD after Task 14_
+
+**Scope:** 76 backend refactor cards (S1–S10) plus 8 frontend light-pass items (F1), scored against Laravel 13.8 baseline on 2026-06-05.
+
+| Priority | REF-* cards | F1 items | Spec gaps (GAP-*) |
+|----------|------------:|---------:|------------------:|
+| P1 | 1 | 0 | 2 |
+| P2 | 38 | 8 | 4 |
+| P3 | 36 | 0 | 9 |
+| P4 | 1 | 0 | 0 |
+| **Total** | **76** | **8** | **15** |
+
+**Top 3 recommendations (highest impact):**
+
+1. **Restore test suite green (P1)** — Fix `DirectUrlScanJobTest` sixth-DI drift (3 errors) and `ScanNichesCommandTest` hardcoded `scan_date` (1 failure). Four broken tests block confident refactors; production code paths are sound.
+2. **Stop niche sample panel duplicate Places jobs (P1)** — `NicheScanSampleController` re-dispatches `ScanNicheJob` on every 2s poll when `sample_preview` is null (REF-S2-02). Up to 30 duplicate API calls per panel open; highest operational risk finding.
+3. **Decompose the two largest backend files (P2)** — `McpController` (745 lines) and `ReportBuilderService` (457 lines) are the top file-size signals. Split transport/dispatch from tool streaming and extract violation/PageSpeed/CMS builders to reduce merge conflict surface before the next feature wave.
+
+**Test health (appendix baseline):** 337 tests — **331 pass**, **1 fail**, **3 errors**, 2 skipped, 3 risky. Failures: `ScanNichesCommandTest` skip assertion; errors: three `DirectUrlScanJobTest` manual `handle()` calls missing `ProspectExclusionService`. Pint dry-run: **104 files** need format fixes.
+
+**Spec drift:** 15 gaps — **2 P1** (test drift only; code matches spec), **4 P2** (website source hardcode, sample re-dispatch, `ProgressFlowService` test gap, screenshot retry semantics), **9 P3** (stale plan checkboxes, undocumented Brave/GBP-only paths, ops checklists). Seven specs spot-checked as **match**; two **drift** (pagination sample panel, single-site URL audit tests).
+
+**Estimated refactor effort:** ~**114–157 hours** summed across 76 REF-* PR slices (medium slices; excludes F1 ~12–16h). Recommended PR schedule below sequences **12 medium PRs** (~**32–42 hours** for the first wave covering all P1 items and highest-impact P2 cross-cuts).
 
 ## Keep (positive patterns)
-_TBD after Task 14_
+
+Patterns worth preserving during refactors — do not "fix" these into heavier abstractions.
+
+- **`RepairAuditsCommand` dry-run / `--execute` gate** — Default preview with category table, SQS batch warnings, and explicit execute flag. Matches operator safety expectations; mirror for `PurgeExpiredProspectData` (REF-S9-03) rather than inventing a new pattern.
+- **`Support/*Query` classes for repair selection** — `StuckSiteAuditQuery`, `FailedSiteAuditQuery`, `FailedScreenshotQuery`, `IncompleteAuditQuery` isolate eligibility SQL from the command. Good query-object shape; consolidate namespace under `app/Queries/` (REF-S3-08 / REF-S10-05) without changing behaviour.
+- **`ProspectAuditService::repairSiteAudit()` distinct path** — Separate from `queueSiteAudit()`; allows re-dispatch on stuck `pending` audits. Repair command and `ProspectReauditTest` depend on this seam — preserve when tightening idempotency guards on jobs.
+- **`AuditingQueuePresence` connection-aware detection** — Age-only staleness when queue connection is `cloud`; local/sync uses presence checks. Correct env-aware operator repair signal; keep when optimising `StuckSiteAuditQuery` N+1 (REF-S3-06).
+- **`Components/ui/` design system (implemented)** — All seven F1 target surfaces import `@/Components/ui/`; no Breeze `btn`/`card` classes on scoped pages. UI refactor spec delivered; remaining F1 debt is inline `style={{}}` and legacy `btn-icon` row actions, not the primitive layer.
+- **`RecalculateNicheScoresCommand` dry-run pattern** — `--dry-run` previews score deltas in a table before write; `chunkById` batching. Same family as repair and backfill commands; use as template for `niches:scan` operator previews.
+- **`BackfillCmsCommand` / `BackfillWebsitesCommand` operator gates** — `--execute` default-off with candidate counts. `BackfillWebsitesCommand` SQL eligibility push is the improvement target (REF-S1-10), not the dry-run UX.
+- **`ScorePlaceJob` idempotency guard** — Early return when prospect exists and audit is not pending; reference pattern for `DirectUrlScanJob`, `ScanNicheJob`, and `CaptureScreenshotJob` guards (invert condition carefully for REF-S4-01).
+- **`ProgressFlowService` phase/step semantics** — Wired in web (`SearchController`, `ProspectController`) and MCP (`McpSearchService`); `McpScanToolsTest` covers tool surface. Add unit tests (REF-S7-04) without reshaping the service API.
+- **`StoreDirectUrlSearchRequest` + rate-limit symmetry** — Direct-URL search path is idiomatic; extend to niche `store()` (REF-S1-05) rather than collapsing both into controller inline validation.
 
 ## Spec gap register
 
@@ -321,8 +354,6 @@ Cohesive pipeline (ONS fetch, taxonomy filter, Birmingham validation, PHP config
 `store()` and `destroy()` both inline `$request->validate(['niche' => ...])`. Matches cross-cutting Form Request gap pattern (6 requests vs 18 store/update controllers).
 
 ### S3 — Audit pipeline
-
-> **Keep candidates (not scored — for Task 14):** `RepairAuditsCommand` dry-run / `--execute` gate with category table and SQS batch warnings; `AuditingQueuePresence` connection-aware queue check (age-only when `cloud`); `ProspectAuditService::repairSiteAudit()` distinct from `queueSiteAudit()` (allows re-dispatch on stuck pending).
 
 #### REF-S3-01: CaptureScreenshotJob swallows exceptions — Laravel retries never fire
 
@@ -707,18 +738,6 @@ Cohesive pipeline (ONS fetch, taxonomy filter, Birmingham validation, PHP config
 | Effort | ~2 hours |
 | Notes | `Index.jsx` correctly wraps queue chips in `Link` with `?from=outreach` per spec (lines 131–133). |
 
-#### REF-S6-07: OutreachEmail model uses legacy `protected $casts`
-
-| Field | Value |
-|-------|-------|
-| Subsystem | S6 Outreach |
-| Scores | M=1 R=1 L=2 O=1 → Total 5 (P3) |
-| Evidence | `app/Models/OutreachEmail.php:19-22` |
-| Spec gap | None — see REF-S10-02 |
-| PR slice | Small — batch with REF-S10-02 `casts()` migration |
-| Risk | Low |
-| Effort | ~0.5 hours (batch) |
-
 ### S7 — OAuth & MCP
 
 #### REF-S7-01: McpController decomposition candidate (745 lines)
@@ -874,18 +893,6 @@ Cohesive pipeline (ONS fetch, taxonomy filter, Birmingham validation, PHP config
 | Risk | Low — booking feature is new; tests mock at provider boundary |
 | Effort | ~2–3 hours |
 
-#### REF-S8-06: AgencyBookingSetting and ReportBooking on legacy `$casts`
-
-| Field | Value |
-|-------|-------|
-| Subsystem | S8 Booking & calendar |
-| Scores | M=1 R=1 L=2 O=1 → Total 5 (P3) |
-| Evidence | `app/Models/AgencyBookingSetting.php:23`; `app/Models/ReportBooking.php:24` |
-| Spec gap | None — REF-S10-02 |
-| PR slice | Small — batch with REF-S10-02 |
-| Risk | Low |
-| Effort | ~0.5 hours (batch) |
-
 #### REF-S8-07: PublicBookingController TidyCal fallback bypasses native booking when enabled
 
 | Field | Value |
@@ -1012,7 +1019,7 @@ Cohesive pipeline (ONS fetch, taxonomy filter, Birmingham validation, PHP config
 | PR slice | Medium — "S10: migrate remaining models to casts() method" |
 | Risk | Low — mechanical refactor |
 | Effort | ~2 hours |
-| Notes | Referenced by REF-S6-07, REF-S8-06. Seven models with no explicit casts are fine. |
+| Notes | Covers `OutreachEmail`, `AgencyBookingSetting`, `ReportBooking`, and four other legacy models (see appendix). Seven models with no explicit casts are fine. |
 
 #### REF-S10-03: Policy coverage gaps on mutating routes
 
@@ -1082,7 +1089,7 @@ Cohesive pipeline (ONS fetch, taxonomy filter, Birmingham validation, PHP config
 | ID | Title | Priority | Referenced from |
 |----|-------|----------|-----------------|
 | REF-S10-01 | Form Request coverage gap (6 vs 13 inline validate controllers) | P2 | REF-S1-05, REF-S2-08, REF-S6-01, REF-S7-03, REF-S8-01, REF-S9-01 |
-| REF-S10-02 | Legacy `$casts` → `casts()` migration (7 models) | P3 | REF-S6-07, REF-S8-06 |
+| REF-S10-02 | Legacy `$casts` → `casts()` migration (7 models) | P3 | — |
 | REF-S10-03 | Policy coverage on mutating routes | P2 | REF-S6-02, REF-S6-03, REF-S7-07, REF-S9-04 |
 | REF-S10-04 | Http/Resources underuse | P3 | REF-S1-06, REF-S5-02, REF-S6-06 |
 | REF-S10-05 | Support/ vs Queries/ query object split | P3 | REF-S3-08 |
@@ -1173,6 +1180,25 @@ Scope: `Search/Index`, `Search/Show`, `Prospect/Show`, `Niches/Index`, `Outreach
 | Notes | Errors route via `FormError` (`errors.agency_booking`). Save path shows "Saved." — test path is quieter. |
 
 ## Recommended PR schedule
+
+Ordered by priority. Each row is one medium PR slice; dependencies are PR numbers in this table.
+
+| PR | Subsystem | Title | Priority | Depends on | Effort |
+|----|-----------|-------|----------|------------|--------|
+| 1 | S1 | Fix DirectUrlScanJobTest handle() DI (`ProspectExclusionService`) | P1 | — | ~0.5h |
+| 2 | S2 | Fix ScanNichesCommandTest scan_date to match `travelTo` | P1 | — | ~0.5h |
+| 3 | S2 | Dispatch niche sample backfill once per row (pending/in-flight guard) | P1 | — | ~1–2h |
+| 4 | S10 | Migrate 7 models from `protected $casts` to `casts()` method | P2 | — | ~2h |
+| 5 | S10 | Form Requests batch (Search, Outreach, Settings, OAuth, Booking) | P2 | — | ~4–6h |
+| 6 | S5 | Extract ViolationMapper, OperatorPageSpeedBuilder, CmsLabelResolver from ReportBuilderService | P2 | — | ~4–6h |
+| 7 | S7 | Extract McpJsonRpcDispatcher and McpProgressStreamHandler from McpController (745 lines) | P2 | — | ~4–6h |
+| 8 | S7 | Extract OAuth token grant actions from OAuthServerController (288 lines) | P2 | 5 | ~3–4h |
+| 9 | S10 | Expand policy coverage for mutating routes (`OutreachSelectionPolicy`, email ownership) | P2 | — | ~3–4h |
+| 10 | S2 | Backfill `sample_preview` on requested NicheScan row (legacy row alignment) | P2 | 3 | ~2–3h |
+| 11 | S1 | Align `website_url_source` with active discovery provider (Brave default) | P2 | — | ~2h |
+| 12 | S3 | Audit job reliability — screenshot rethrow, idempotency guards, CaptureScreenshotJobTest | P2 | — | ~4–5h |
+
+**First-wave total:** ~32–42 hours across 12 PRs (all P1 + highest-impact P2). Remaining 64 REF-* cards and 8 F1 items follow in subsequent waves by subsystem priority (S3 idempotency cluster, S4 scoring seams, S8 booking hardening, F1 operator UX).
 
 ## Appendix: automated signal sheet
 
