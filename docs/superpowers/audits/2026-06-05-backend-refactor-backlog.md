@@ -851,6 +851,92 @@ Cohesive pipeline (ONS fetch, taxonomy filter, Birmingham validation, PHP config
 | Notes | `PublicBookingTest` covers TidyCal paths only; `ReportBookingTest` covers native JSON API. |
 
 ### S9 — Operator settings & data hygiene
+
+#### REF-S9-01: SettingsController uses inline validation on three mutating actions
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S9 Operator settings & data hygiene |
+| Scores | M=2 R=1 L=2 O=1 → Total 6 (P3) |
+| Evidence | `app/Http/Controllers/SettingsController.php:61-65,75-77,88-90`; `app/Http/Controllers/Settings/McpKeyController.php:41-43,62-64` |
+| Spec gap | None — REF-S10-01 |
+| PR slice | Medium — "S9: add UpdateSettingsRequest, ScanNichesRequest, BootstrapNichesRequest" |
+| Risk | Low — `bootstrapNiches` typed `REFRESH` confirm matches [2026-05-29-niche-settings-maintenance-design.md](../specs/2026-05-29-niche-settings-maintenance-design.md) |
+| Effort | ~1–2 hours |
+
+#### REF-S9-02: Settings niche maintenance queues heavy jobs without operator guardrails
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S9 Operator settings & data hygiene |
+| Scores | M=2 R=2 L=2 O=2 → Total 8 (P2) |
+| Evidence | `app/Http/Controllers/SettingsController.php:73-98` — `Artisan::queue('niches:scan')` and `niches:bootstrap --force` with flash-only feedback |
+| Spec gap | [2026-05-29-niche-settings-maintenance-design.md](../specs/2026-05-29-niche-settings-maintenance-design.md) — "flash queued only; failures in Horizon/logs" is intentional |
+| PR slice | Medium — "S9: add rate limit or confirm dialog for bootstrap on Settings" |
+| Risk | Medium — accidental double-click queues duplicate Places jobs across all niche×city pairs |
+| Effort | ~1–2 hours |
+| Notes | Spec aligns with implementation; operator UX gap remains. `SettingsTest` covers happy path. |
+
+#### REF-S9-03: PurgeExpiredProspectData lacks dry-run / `--execute` gate
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S9 Operator settings & data hygiene |
+| Scores | M=2 R=1 L=2 O=2 → Total 7 (P2) |
+| Evidence | `app/Console/Commands/PurgeExpiredProspectData.php:17-55` — always mutates; contrast `RepairAuditsCommand` dry-run pattern (S3 keep candidate) |
+| Spec gap | None |
+| PR slice | Medium — "S9: add scanner:purge-expired dry-run default with --execute" |
+| Risk | Low — scheduled command; `PurgeExpiredProspectDataTest` covers behaviour |
+| Effort | ~1–2 hours |
+
+#### REF-S9-04: IgnoredProspectController destroy uses abort_unless instead of policy
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S9 Operator settings & data hygiene |
+| Scores | M=1 R=1 L=2 O=1 → Total 5 (P3) |
+| Evidence | `app/Http/Controllers/IgnoredProspectController.php:48` — manual `user_id` check; no `IgnoredProspectPolicy` |
+| Spec gap | None — REF-S10-03 |
+| PR slice | Medium — "S9: add IgnoredProspectPolicy for list/destroy" |
+| Risk | Low — check is correct |
+| Effort | ~1 hour |
+
+#### REF-S9-05: ProspectExclusionService listForUser loads all rows without pagination
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S9 Operator settings & data hygiene |
+| Scores | M=2 R=2 L=2 O=1 → Total 7 (P2) |
+| Evidence | `app/Services/ProspectExclusionService.php:56-142` — `listForUser()` returns full collection; `IgnoredProspectController.php:30-35` passes `total` count only |
+| Spec gap | None |
+| PR slice | Medium — "S9: paginate ignored prospects index" |
+| Risk | Low — grows with operator ignore volume |
+| Effort | ~2 hours |
+
+#### REF-S9-06: HandleInertiaRequests duplicates outreach flash props
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S9 Operator settings & data hygiene |
+| Scores | M=1 R=1 L=2 O=1 → Total 5 (P3) |
+| Evidence | `app/Http/Middleware/HandleInertiaRequests.php:37-45` shares `skipped` flash; `app/Http/Controllers/OutreachController.php:66-69` also passes page-local `flash` |
+| Spec gap | None |
+| PR slice | Medium — "S9: consolidate outreach flash into middleware or page-only props" |
+| Risk | Low — 48-line middleware is not a god-object; minor duplication |
+| Effort | ~0.5 hours |
+
+#### REF-S9-07: UserSettingsService is thin wrapper — settings update bypasses service
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S9 Operator settings & data hygiene |
+| Scores | M=1 R=1 L=1 O=1 → Total 4 (P4) |
+| Evidence | `app/Services/UserSettingsService.php` (32 lines); `SettingsController.php:67-68` calls `$setting->update()` directly after `forUser()` |
+| Spec gap | None |
+| PR slice | Small — "S9: add UserSettingsService::update() for validation + persist seam" |
+| Risk | Low |
+| Effort | ~0.5 hours |
+
 ### S10 — Shared infrastructure
 
 ## Cross-cutting findings (S10)
