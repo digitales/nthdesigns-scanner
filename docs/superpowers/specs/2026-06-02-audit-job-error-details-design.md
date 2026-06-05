@@ -177,6 +177,21 @@ Document env in `.env.example`.
 
 ---
 
+## CaptureScreenshotJob — retry, overlap, and idempotency (GAP-15)
+
+`CaptureScreenshotJob` shares the `AuditErrorRecorder` failure path with `AuditSiteJob` but has distinct queue behaviour operators should understand when diagnosing stuck screenshots.
+
+| Concern | Behaviour |
+|---------|-----------|
+| Retries | `tries = 3`, `backoff = [60, 120]`. On failure the job records summary + detail via `AuditErrorRecorder`, marks the attempt’s `audit_jobs` row `failed`, then **rethrows** so Laravel schedules the next attempt. |
+| Overlap | `WithoutOverlapping('fly-browser-screenshot')` with `releaseAfter(180)` and `expireAfter(600)`. Only one screenshot job holds the lock at a time; others wait or retry later. |
+| Idempotency | Skips when `screenshot_paths.desktop` is already populated or the prospect has no `website_url`. Safe to re-dispatch from `scanner:repair-audits` when desktop is still missing. |
+| Per-attempt audit row | Each run creates a new `audit_jobs` row (`job_type = screenshot`). Failed attempts remain in history; the latest successful run sets `screenshot_paths` and completes its row. |
+
+**Tests:** Feature coverage for rethrow + retry is optional; unit/feature tests should assert `AuditErrorRecorder` is invoked on failure and that an existing `desktop` path prevents re-capture.
+
+---
+
 ## Decisions log
 
 | Decision | Choice |

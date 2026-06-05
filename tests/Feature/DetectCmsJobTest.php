@@ -86,6 +86,33 @@ class DetectCmsJobTest extends TestCase
         (new DetectCmsJob($prospect))->handle(app(CmsDetectionRunnerService::class));
     }
 
+    public function test_persists_failure_on_final_attempt(): void
+    {
+        $prospect = Prospect::factory()->create([
+            'website_url' => 'https://example.com',
+            'cms_detection' => null,
+        ]);
+
+        $this->mock(CmsDetectionRunnerService::class, function ($mock) {
+            $mock->shouldReceive('run')
+                ->once()
+                ->andThrow(new \RuntimeException('CMS service unavailable'));
+        });
+
+        $job = new DetectCmsJob($prospect);
+        $job->tries = 1;
+
+        try {
+            $job->handle(app(CmsDetectionRunnerService::class));
+        } catch (\RuntimeException) {
+            // expected
+        }
+
+        $prospect->refresh();
+        $this->assertSame('failed', $prospect->cms_detection['status']);
+        $this->assertSame('CMS service unavailable', $prospect->cms_detection['error']);
+    }
+
     public function test_survives_queue_round_trip_when_force_is_false(): void
     {
         $prospect = Prospect::factory()->create([

@@ -70,8 +70,10 @@ class GooglePlacesService
                 break;
             }
 
-            // Places API requires a short delay before using nextPageToken
-            sleep(2);
+            $delay = (int) config('scanner.places_pagination_delay_seconds', 2);
+            if ($delay > 0) {
+                sleep($delay);
+            }
         }
 
         return array_unique($placeIds);

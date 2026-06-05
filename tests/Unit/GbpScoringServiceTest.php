@@ -5,7 +5,7 @@ namespace Tests\Unit;
 use App\Models\Prospect;
 use App\Models\Search;
 use App\Services\GbpScoringService;
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 
 class GbpScoringServiceTest extends TestCase
 {
@@ -14,7 +14,7 @@ class GbpScoringServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new GbpScoringService;
+        $this->service = app(GbpScoringService::class);
     }
 
     private function benchmarkFixture(): array
