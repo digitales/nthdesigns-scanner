@@ -158,6 +158,119 @@ _TBD after Task 12_
 | Effort | ~1–2 hours |
 
 ### S2 — Niche scanning
+
+#### REF-S2-01: ScanNichesCommandTest hardcoded scan_date drift
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S2 Niche scanning |
+| Scores | M=2 R=1 L=3 O=3 → Total 9 (P2) |
+| Evidence | `tests/Feature/ScanNichesCommandTest.php:66-81`; `app/Console/Commands/ScanNichesCommand.php:54,95-102` |
+| Spec gap | None — skip logic matches [2026-05-27-niche-opportunity-scanner-design.md](../specs/2026-05-27-niche-opportunity-scanner-design.md) |
+| PR slice | Medium — "S2: fix ScanNichesCommandTest scan_date to match travelTo" |
+| Risk | Low — test-only; production skip-by-scan_date works |
+| Effort | ~0.5 hours |
+
+Test seeds `scan_date => '2026-05-29'` but `travelTo(now('Europe/London')->startOfDay())` yields 2026-06-05, so `alreadyComplete()` misses the row and command outputs `Dispatched 1` instead of `Skipped 1`. `php artisan test --filter=ScanNichesCommandTest` → 1 failure (3 pass).
+
+#### REF-S2-02: NicheScanSampleController re-dispatches job on every poll
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S2 Niche scanning |
+| Scores | M=2 R=3 L=2 O=3 → Total 10 (P1) |
+| Evidence | `app/Http/Controllers/NicheScanSampleController.php:36-47`; `resources/js/Components/Niches/NicheSamplePanel.jsx:17-62` |
+| Spec gap | [2026-05-28-niches-pagination-sample-panel-design.md](../specs/2026-05-28-niches-pagination-sample-panel-design.md) — spec says skip duplicate dispatch when `pending`; code only guards `pending`, not in-flight backfill |
+| PR slice | Medium — "S2: dispatch sample backfill once per row (pending/in-flight guard)" |
+| Risk | High — up to 30 duplicate Places jobs per panel open (2s × 30 polls); API quota burn |
+| Effort | ~1–2 hours |
+
+When `sample_preview` is null and `status === 'complete'`, every poll re-dispatches `ScanNicheJob`. Spec concurrency rule covers `pending` only. Panel polls every 2s (max 30).
+
+#### REF-S2-03: Legacy sample backfill writes today's row, not polled row
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S2 Niche scanning |
+| Scores | M=2 R=2 L=2 O=3 → Total 9 (P2) |
+| Evidence | `app/Http/Controllers/NicheScanSampleController.php:37-44`; `app/Jobs/ScanNicheJob.php:54-67`; `docs/niches.md:309-315` |
+| Spec gap | [2026-05-28-niches-pagination-sample-panel-design.md](../specs/2026-05-28-niches-pagination-sample-panel-design.md) — backfill intentionally uses today's `scan_date`; legacy rows never receive `sample_preview` on polled id |
+| PR slice | Medium — "S2: backfill sample_preview on requested NicheScan row (or redirect poll to latest)" |
+| Risk | Medium — pre-migration rows without `sample_preview` time out in panel; operator sees perpetual loading then failure |
+| Effort | ~2–3 hours |
+
+Backfill dispatches with `scanDate: now()` while client polls `/niches/{id}/sample` on the historical row. Job upserts `(niche, city, scan_date=today)` — original row stays null. Acknowledged in `docs/niches.md` as follow-up.
+
+#### REF-S2-04: ScanNicheJob lacks idempotency guard on queue retry
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S2 Niche scanning |
+| Scores | M=2 R=2 L=2 O=3 → Total 9 (P2) |
+| Evidence | `app/Jobs/ScanNicheJob.php:38-68`; contrast `app/Jobs/ScorePlaceJob.php:39-45` |
+| Spec gap | [2026-05-27-niche-opportunity-scanner-design.md](../specs/2026-05-27-niche-opportunity-scanner-design.md) — retry semantics not documented |
+| PR slice | Medium — "S2: add ScanNicheJob idempotency guard (skip when complete unless forced)" |
+| Risk | Medium — retry resets `status=pending` via `updateOrCreate` and re-calls Places API; may clobber aggregates mid-retry |
+| Effort | ~1–2 hours |
+
+`pendingScan()` always sets `status => 'pending'` with no early return when row is already `complete`. Sibling `ScorePlaceJob` returns when prospect exists and audit is not pending.
+
+#### REF-S2-05: ScanNicheJob failure records status only — no operator-visible error
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S2 Niche scanning |
+| Scores | M=1 R=1 L=2 O=2 → Total 6 (P3) |
+| Evidence | `app/Jobs/ScanNicheJob.php:70-84`; `app/Models/NicheScan.php:9-24`; `database/migrations/2026_05_27_140000_create_niche_scans_table.php` |
+| Spec gap | [2026-05-27-niche-opportunity-scanner-design.md](../specs/2026-05-27-niche-opportunity-scanner-design.md) — "log error" only; no column for message |
+| PR slice | Medium — "S2: persist ScanNicheJob failure reason on niche_scans row" |
+| Risk | Low — `failed()` logs to application log; sample panel shows generic "Sample scan failed." |
+| Effort | ~2 hours |
+
+`failed()` updates `status = 'failed'` and logs; no `error_message` column or JSON field. Sample endpoint returns generic 422 message.
+
+#### REF-S2-06: Duplicated ROW_NUMBER latest-scan subquery
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S2 Niche scanning |
+| Scores | M=2 R=1 L=2 O=1 → Total 6 (P3) |
+| Evidence | `app/Http/Controllers/NicheScanController.php:20-28`; `app/Services/NicheExclusionService.php:144-154` |
+| Spec gap | None |
+| PR slice | Medium — "S2: extract LatestNicheScanQuery for index and exclusion max results" |
+| Risk | Low — both queries tested independently (`NicheScanControllerTest`, `NicheExclusionServiceTest`) |
+| Effort | ~1–2 hours |
+
+Identical `ROW_NUMBER() OVER (PARTITION BY niche, city ORDER BY ran_at DESC, id DESC)` window in controller index and `maxLatestResultCount()`. Natural `app/Queries/LatestNicheScanQuery.php` extraction.
+
+#### REF-S2-07: NichesBootstrapCommand decomposition candidate (342 lines)
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S2 Niche scanning |
+| Scores | M=2 R=1 L=2 O=1 → Total 6 (P3) |
+| Evidence | `app/Console/Commands/NichesBootstrapCommand.php` (342 lines); appendix file-size signal |
+| Spec gap | [2026-05-27-niches-bootstrap-design.md](../specs/2026-05-27-niches-bootstrap-design.md) — spec explicitly chose single command class |
+| PR slice | Medium — "S2: extract NichesBootstrapSteps from NichesBootstrapCommand" |
+| Risk | Low — operator-run one-time command; covered by `NichesBootstrapCommandTest` |
+| Effort | ~3–4 hours |
+
+Cohesive pipeline (ONS fetch, taxonomy filter, Birmingham validation, PHP config writer) in one class. Spec decision is intentional; size still hurts navigation.
+
+#### REF-S2-08: NicheIgnoreController uses inline validation
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S2 Niche scanning |
+| Scores | M=2 R=1 L=2 O=1 → Total 6 (P3) |
+| Evidence | `app/Http/Controllers/NicheIgnoreController.php:13-15,24-26` |
+| Spec gap | None — appendix Form Request gap |
+| PR slice | Medium — "S2: add StoreNicheIgnoreRequest for ignore/include routes" |
+| Risk | Low |
+| Effort | ~0.5 hours |
+
+`store()` and `destroy()` both inline `$request->validate(['niche' => ...])`. Matches cross-cutting Form Request gap pattern (6 requests vs 18 store/update controllers).
+
 ### S3 — Audit pipeline
 ### S4 — Scoring & enrichment
 ### S5 — Reports & public surfaces
