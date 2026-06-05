@@ -2,19 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\FilterProspectListRequest;
 use App\Http\Resources\ProspectListResource;
 use App\Queries\ProspectListQuery;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class SavedProspectController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(FilterProspectListRequest $request): Response
     {
-        $filters = $request->only([
-            'from', 'to', 'niche', 'city', 'scan_type', 'min_score', 'dominant_angle', 'warm',
-        ]);
+        $filters = $request->validated();
 
         $listQuery = new ProspectListQuery($request->user());
         $prospects = $listQuery->apply($filters)->query()->get();

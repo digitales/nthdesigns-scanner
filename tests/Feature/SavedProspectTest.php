@@ -25,4 +25,13 @@ class SavedProspectTest extends TestCase
 
         $this->actingAs($user)->get('/saved')->assertOk();
     }
+
+    public function test_saved_page_rejects_invalid_scan_type_filter(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get('/saved?scan_type=invalid')
+            ->assertSessionHasErrors('scan_type');
+    }
 }
