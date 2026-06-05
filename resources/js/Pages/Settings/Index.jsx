@@ -8,8 +8,12 @@ import {
     Field,
     FormError,
     Input,
+    MetaList,
+    Page,
     PageHeader,
     Select,
+    SplitRow,
+    Stack,
 } from '@/Components/ui';
 
 export default function SettingsIndex({ settings, agencyBooking, nicheMaintenance, health, env }) {
@@ -33,7 +37,7 @@ export default function SettingsIndex({ settings, agencyBooking, nicheMaintenanc
         <AuthenticatedLayout>
             <Head title="Settings" />
 
-            <main className="page" style={{ maxWidth: 720 }}>
+            <Page width="narrow">
                 <PageHeader
                     eyebrow="Settings"
                     title="Workspace defaults."
@@ -46,28 +50,25 @@ export default function SettingsIndex({ settings, agencyBooking, nicheMaintenanc
                     </p>
                 )}
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                <Stack gap={24}>
                     <Card title="AI client access">
                         <p className="micro" style={{ margin: '0 0 8px' }}>
                             Connect Cursor, Claude, or ChatGPT to monitor scans and start single-site audits from chat.
                         </p>
-                        <p className="micro" style={{ margin: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <Stack as="p" className="micro" gap={4} style={{ margin: 0 }}>
                             <Link href="/settings/connected-apps" className="micro" style={{ fontWeight: 500 }}>
                                 Connected apps (OAuth) →
                             </Link>
                             <Link href="/settings/mcp-keys" className="micro" style={{ fontWeight: 500 }}>
                                 MCP keys (header auth) →
                             </Link>
-                        </p>
+                        </Stack>
                     </Card>
 
                     <Card title="API & storage health">
-                        <ul style={{ display: 'flex', flexDirection: 'column', gap: 12, margin: 0, padding: 0, listStyle: 'none' }}>
+                        <MetaList>
                             {Object.entries(health).map(([key, status]) => (
-                                <li
-                                    key={key}
-                                    style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}
-                                >
+                                <SplitRow key={key}>
                                     <span className="micro" style={{ fontWeight: 500, textTransform: 'capitalize' }}>
                                         {formatKey(key)}
                                     </span>
@@ -77,28 +78,28 @@ export default function SettingsIndex({ settings, agencyBooking, nicheMaintenanc
                                     >
                                         {status.message}
                                     </span>
-                                </li>
+                                </SplitRow>
                             ))}
-                            <li style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+                            <SplitRow>
                                 <span className="micro" style={{ fontWeight: 500 }}>Reports disk</span>
                                 <span className="micro">{env.reports_disk}</span>
-                            </li>
-                            <li style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+                            </SplitRow>
+                            <SplitRow>
                                 <span className="micro" style={{ fontWeight: 500 }}>Audit driver</span>
                                 <span className="micro">{env.audit_driver}</span>
-                            </li>
-                            <li style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+                            </SplitRow>
+                            <SplitRow>
                                 <span className="micro" style={{ fontWeight: 500 }}>Screenshot driver</span>
                                 <span className="micro">{env.screenshot_driver}</span>
-                            </li>
-                        </ul>
+                            </SplitRow>
+                        </MetaList>
                     </Card>
 
                     <AgencyBookingSettingsCard agencyBooking={agencyBooking} />
 
                     <Card title="Defaults">
                         <form onSubmit={submit}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                            <Stack gap={16}>
                                 <Field label="Default country">
                                     <Select
                                         value={data.default_country}
@@ -130,7 +131,7 @@ export default function SettingsIndex({ settings, agencyBooking, nicheMaintenanc
                                     <FormError message={errors.booking_url} />
                                 </Field>
 
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 4 }}>
+                                <Stack direction="row" gap={12} align="center" style={{ marginTop: 4 }}>
                                     <Button kind="primary" type="submit" disabled={processing}>
                                         {processing ? 'Saving…' : 'Save settings'}
                                     </Button>
@@ -139,62 +140,65 @@ export default function SettingsIndex({ settings, agencyBooking, nicheMaintenanc
                                             Saved.
                                         </p>
                                     )}
-                                </div>
-                            </div>
+                                </Stack>
+                            </Stack>
                         </form>
                     </Card>
 
                     <Card title="Niche maintenance">
-                        <ul style={{ display: 'flex', flexDirection: 'column', gap: 12, margin: '0 0 24px', padding: 0, listStyle: 'none' }}>
-                            <li style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}>
+                        <MetaList className="meta-list--spaced">
+                            <SplitRow className="split-row--center">
                                 <span className="micro" style={{ fontWeight: 500 }}>Niches configured</span>
                                 <span className="micro">{nicheMaintenance.niche_count}</span>
-                            </li>
-                            <li style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}>
+                            </SplitRow>
+                            <SplitRow className="split-row--center">
                                 <span className="micro" style={{ fontWeight: 500 }}>Cities configured</span>
                                 <span className="micro">{nicheMaintenance.city_count}</span>
-                            </li>
-                            <li style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}>
+                            </SplitRow>
+                            <SplitRow className="split-row--center">
                                 <span className="micro" style={{ fontWeight: 500 }}>Last market scan</span>
                                 <span className="micro">{nicheMaintenance.last_scan_human}</span>
-                            </li>
-                            <li style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}>
+                            </SplitRow>
+                            <SplitRow className="split-row--center">
                                 <span className="micro" style={{ fontWeight: 500 }}>Config generated</span>
                                 <span className="micro">{nicheMaintenance.config_generated ?? 'Unknown'}</span>
-                            </li>
-                        </ul>
+                            </SplitRow>
+                        </MetaList>
 
-                        <form
+                        <Stack
+                            as="form"
+                            gap={16}
+                            style={{ marginBottom: 32 }}
                             onSubmit={(e) => {
                                 e.preventDefault();
                                 scanForm.post('/settings/niches/scan');
                             }}
-                            style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 32 }}
                         >
                             <p className="micro" style={{ margin: 0 }}>
                                 Dispatches sample scans for all configured niche×city pairs (respects ignored niches).
                                 A full catalog is ~6,000 queue jobs.
                             </p>
-                            <label className="micro" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <Stack as="label" className="micro" direction="row" gap={8} align="center">
                                 <Checkbox
                                     checked={scanForm.data.force}
                                     onChange={(checked) => scanForm.setData('force', checked)}
                                 />
                                 Force re-scan (include rows already complete today)
-                            </label>
+                            </Stack>
                             <div>
                                 <Button kind="secondary" type="submit" disabled={scanForm.processing}>
                                     {scanForm.processing ? 'Queuing…' : 'Run market scan'}
                                 </Button>
                             </div>
-                        </form>
+                        </Stack>
 
-                        <form
+                        <Stack
+                            as="form"
+                            gap={16}
                             onSubmit={(e) => {
                                 e.preventDefault();
                                 bootstrapForm.post('/settings/niches/bootstrap');
                             }}
-                            style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
                         >
                             <p className="micro" style={{ margin: 0, color: 'var(--color-sev-critical)' }}>
                                 Re-fetches UK cities and Google Places types, validates in Birmingham, and overwrites{' '}
@@ -220,10 +224,10 @@ export default function SettingsIndex({ settings, agencyBooking, nicheMaintenanc
                                     {bootstrapForm.processing ? 'Queuing…' : 'Refresh catalog'}
                                 </Button>
                             </div>
-                        </form>
+                        </Stack>
                     </Card>
-                </div>
-            </main>
+                </Stack>
+            </Page>
         </AuthenticatedLayout>
     );
 }

@@ -11,8 +11,12 @@ import {
     AnglePill,
     Button,
     Card,
+    Grid,
+    Page,
     PageHeader,
     ScoreCard,
+    SidebarLayout,
+    Stack,
     Status,
 } from '@/Components/ui';
 
@@ -142,7 +146,7 @@ export default function ProspectShow({
         <AuthenticatedLayout>
             <Head title={prospect.business_name} />
 
-            <main className="page" style={{ maxWidth: 1200 }}>
+            <Page width="wide">
                 <PageHeader
                     eyebrow={eyebrow}
                     title={prospect.business_name}
@@ -166,7 +170,7 @@ export default function ProspectShow({
                             marginBottom: 20,
                         }}
                     >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
+                        <Stack direction="row" justify="between" align="start" gap={16}>
                             <div>
                                 <strong style={{ fontSize: 13 }}>Ignored from future scans</strong>
                                 <p className="micro" style={{ margin: '4px 0 0' }}>
@@ -176,19 +180,19 @@ export default function ProspectShow({
                                     {ignored.ignored_at}
                                 </p>
                             </div>
-                            <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                            <Stack direction="row" gap={8} className="stack--shrink-0">
                                 <Button kind="ghost" size="sm" onClick={() => router.visit('/ignored')}>
                                     View all ignored
                                 </Button>
                                 <Button kind="ghost" size="sm" onClick={unignoreProspect}>
                                     Undo ignore
                                 </Button>
-                            </div>
-                        </div>
+                            </Stack>
+                        </Stack>
                     </div>
                 )}
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 32 }}>
+                <SidebarLayout>
                     <div>
                         <div className="score-card-stack">
                             <div
@@ -254,31 +258,26 @@ export default function ProspectShow({
                         )}
 
                         <Card title="Weakness flags" style={{ marginBottom: 24 }}>
-                            <div style={{
-                                display: 'grid',
-                                gridTemplateColumns: showA11y ? '1fr 1fr' : '1fr',
-                                gap: 32,
-                            }}
-                            >
+                            <Grid cols={showA11y ? 2 : 1} gap={32}>
                                 <div>
                                     <div className="eyebrow" style={{ marginBottom: 10 }}>GBP</div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                    <Stack gap={8}>
                                         {(prospect.gbp_flags ?? []).length === 0 ? (
                                             <span className="micro">None flagged</span>
                                         ) : (
                                             (prospect.gbp_flags ?? []).map((flag, i) => (
-                                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                <Stack key={i} direction="row" gap={8} align="center">
                                                     <span style={{ width: 6, height: 6, background: 'var(--color-stone-400)', borderRadius: '50%' }} />
                                                     <span style={{ fontSize: 13 }}>{flag}</span>
-                                                </div>
+                                                </Stack>
                                             ))
                                         )}
-                                    </div>
+                                    </Stack>
                                 </div>
                                 {showA11y && (
                                     <div>
                                         <div className="eyebrow" style={{ marginBottom: 10 }}>Accessibility</div>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                        <Stack gap={8}>
                                             {auditPending ? (
                                                 <Status kind="pending">{a11yAuditMessage}</Status>
                                             ) : auditSkipped ? (
@@ -291,18 +290,18 @@ export default function ProspectShow({
                                                 <span className="micro">None flagged</span>
                                             ) : (
                                                 (prospect.a11y_flags ?? []).map((flag, i) => (
-                                                    <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                    <Stack key={i} direction="row" justify="between" align="center" gap={8}>
+                                                        <Stack direction="row" gap={8} align="center">
                                                             <span style={{ width: 6, height: 6, background: 'var(--color-sev-serious)', transform: 'rotate(45deg)' }} />
                                                             <span style={{ fontSize: 13 }}>{flag}</span>
-                                                        </div>
-                                                    </div>
+                                                        </Stack>
+                                                    </Stack>
                                                 ))
                                             )}
-                                        </div>
+                                        </Stack>
                                     </div>
                                 )}
-                            </div>
+                            </Grid>
                         </Card>
 
                         <PageSpeedSection pageSpeed={pageSpeed} />
@@ -334,8 +333,9 @@ export default function ProspectShow({
                         {outreachEmails.length > 0 && (
                             <section>
                                 <div className="card-title">Outreach emails</div>
+                                <Stack gap={16}>
                                 {outreachEmails.map((email) => (
-                                    <div key={email.id} style={{ marginBottom: 16 }}>
+                                    <div key={email.id}>
                                         <OutreachEmailCard
                                             email={{ ...email, combined_score: prospect.combined_score }}
                                             reportUrl={report?.public_url}
@@ -343,11 +343,12 @@ export default function ProspectShow({
                                         />
                                     </div>
                                 ))}
+                                </Stack>
                             </section>
                         )}
                     </div>
 
-                    <aside style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    <div>
                         <Card title="Public report">
                             {auditPending && (
                                 <p className="micro" style={{ marginBottom: 8, color: 'var(--color-stone-500)' }}>
@@ -362,14 +363,14 @@ export default function ProspectShow({
                                             Booked · {report.booking.label} · {report.booking.attendee_name}
                                         </p>
                                     )}
-                                    <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                                    <Stack direction="row" gap={8} style={{ marginBottom: 16 }}>
                                         <Button kind="secondary" size="sm" onClick={copyReportLink}>
                                             {copied ? 'Copied' : 'Copy link'}
                                         </Button>
                                         <a href={report.public_url} target="_blank" rel="noopener noreferrer">
                                             <Button kind="ghost" size="sm">Preview</Button>
                                         </a>
-                                    </div>
+                                    </Stack>
                                     <div className="micro" style={{ marginBottom: 8 }}>
                                         {report.view_count === 0
                                             ? 'Not yet opened'
@@ -456,7 +457,7 @@ export default function ProspectShow({
 
                         <Card title="Profile">
                             {editing ? (
-                                <form onSubmit={saveDetails} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                <Stack as="form" gap={10} onSubmit={saveDetails}>
                                     <label className="micro">Business name</label>
                                     <input
                                         className="input"
@@ -484,14 +485,14 @@ export default function ProspectShow({
                                         value={form.address}
                                         onChange={(e) => setForm({ ...form, address: e.target.value })}
                                     />
-                                    <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                                    <Stack direction="row" gap={8} style={{ marginTop: 8 }}>
                                         <Button kind="primary" size="sm" type="submit">Save</Button>
                                         <Button kind="ghost" size="sm" type="button" onClick={() => setEditing(false)}>Cancel</Button>
-                                    </div>
-                                </form>
+                                    </Stack>
+                                </Stack>
                             ) : (
                                 <>
-                                    <dl style={{ fontSize: 13, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                    <Stack as="dl" gap={8} style={{ fontSize: 13 }}>
                                         <div><span className="micro">Angle </span><AnglePill angle={prospect.dominant_angle} /></div>
                                         <div>
                                             <span className="micro">Phone </span>
@@ -527,7 +528,7 @@ export default function ProspectShow({
                                         {prospect.address && (
                                             <div><span className="micro">Address </span>{prospect.address}</div>
                                         )}
-                                    </dl>
+                                    </Stack>
                                     <Button kind="secondary" size="sm" onClick={() => setEditing(true)} className="mt-4">
                                         Edit details
                                     </Button>
@@ -543,7 +544,7 @@ export default function ProspectShow({
                                     Skip this business in future niche and city scans. Use for acquisitions, cold leads, or failed outreach.
                                 </p>
                                 {showIgnoreForm ? (
-                                    <form onSubmit={ignoreProspect} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                    <Stack as="form" gap={10} onSubmit={ignoreProspect}>
                                         <label className="micro">Reason</label>
                                         <select
                                             className="input"
@@ -563,13 +564,13 @@ export default function ProspectShow({
                                             placeholder="e.g. Acquired by Gallagher in 2024"
                                             style={{ width: '100%' }}
                                         />
-                                        <div style={{ display: 'flex', gap: 8 }}>
+                                        <Stack direction="row" gap={8}>
                                             <Button kind="primary" size="sm" type="submit">Ignore from scans</Button>
                                             <Button kind="ghost" size="sm" type="button" onClick={() => setShowIgnoreForm(false)}>
                                                 Cancel
                                             </Button>
-                                        </div>
-                                    </form>
+                                        </Stack>
+                                    </Stack>
                                 ) : (
                                     <Button kind="secondary" size="sm" onClick={() => setShowIgnoreForm(true)}>
                                         Ignore prospect…
@@ -583,14 +584,14 @@ export default function ProspectShow({
                             {notes.length === 0 ? (
                                 <p className="micro" style={{ marginBottom: 12 }}>No notes yet.</p>
                             ) : (
-                                <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                <Stack as="ul" gap={12} className="meta-list" style={{ marginBottom: 16 }}>
                                     {notes.map((n) => (
                                         <li key={n.id} style={{ borderBottom: '1px solid var(--color-stone-200)', paddingBottom: 12 }}>
                                             <p style={{ fontSize: 13, margin: '0 0 4px', whiteSpace: 'pre-wrap' }}>{n.body}</p>
                                             <span className="micro">{n.author} · {n.created_at}</span>
                                         </li>
                                     ))}
-                                </ul>
+                                </Stack>
                             )}
                             <form onSubmit={addNote}>
                                 <textarea
@@ -606,9 +607,9 @@ export default function ProspectShow({
                                 </Button>
                             </form>
                         </Card>
-                    </aside>
-                </div>
-            </main>
+                    </div>
+                </SidebarLayout>
+            </Page>
         </AuthenticatedLayout>
     );
 }
@@ -620,7 +621,7 @@ function ViewSparkline({ viewCount }) {
     });
 
     return (
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 28 }}>
+        <Stack direction="row" align="end" gap={3} style={{ height: 28 }}>
             {bars.map((active, i) => (
                 <span
                     key={i}
@@ -632,6 +633,6 @@ function ViewSparkline({ viewCount }) {
                     }}
                 />
             ))}
-        </div>
+        </Stack>
     );
 }
