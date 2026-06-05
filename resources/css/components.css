@@ -1425,4 +1425,33 @@
   .auth-shell-brand {
     margin-bottom: 28px;
   }
+
+  .micro-medium { font-weight: 500; }
+  .micro-capitalize { text-transform: capitalize; }
+  .micro-uppercase { font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-stone-500); }
+  .text-positive { color: var(--color-positive); }
+  .text-muted { color: var(--color-stone-500); }
+  .text-center { text-align: center; }
+  .m-0 { margin: 0; }
+  .mb-8 { margin-bottom: 8px; }
+  .mb-12 { margin-bottom: 12px; }
+  .mb-16 { margin-bottom: 16px; }
+  .mb-24 { margin-bottom: 24px; }
+  .mt-4 { margin-top: 4px; }
+  .mt-20 { margin-top: 20px; }
+  .pt-4 { padding-top: 4px; }
+  .body-14-medium { font-size: 14px; font-weight: 500; }
+  .banner-positive { background: var(--color-positive-soft); margin-bottom: 20px; }
+  .banner-success {
+    background: var(--color-positive-soft);
+    border-color: oklch(0.58 0.11 145 / 0.25);
+    color: oklch(0.35 0.08 145);
+  }
+  .outreach-layout { display: grid; grid-template-columns: 300px 1fr; gap: 32px; }
+  .queue-list { display: flex; flex-direction: column; gap: 8px; }
+  .queue-link { text-decoration: none; color: inherit; flex: 1; min-width: 0; }
+  .queue-chip-title { font-weight: 500; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .queue-chip-meta { display: flex; gap: 8px; margin-top: 6px; align-items: center; }
+  .queue-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .card-title-flush { margin: 0; }
 }
