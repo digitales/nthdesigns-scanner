@@ -1,4 +1,5 @@
 import { Head, Link, router, useForm } from "@inertiajs/react";
+import { useState } from "react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import OutreachEmailCard from "@/Components/OutreachEmailCard";
 import {
@@ -34,7 +35,18 @@ export default function OutreachIndex({
     router.delete(`/outreach/selections/${prospectId}`);
   };
 
-  const clearQueue = () => router.delete("/outreach/selections");
+  const [clearing, setClearing] = useState(false);
+
+  const clearQueue = () => {
+    if (!window.confirm("Clear all prospects from the outreach queue?")) {
+      return;
+    }
+
+    setClearing(true);
+    router.delete("/outreach/selections", {
+      onFinish: () => setClearing(false),
+    });
+  };
 
   const generateAll = (e) => {
     e.preventDefault();
@@ -96,18 +108,14 @@ export default function OutreachIndex({
                 Queue
               </div>
               {selection.length > 0 && (
-                <button
-                  type="button"
-                  className="micro"
+                <Button
+                  kind="ghost"
+                  size="sm"
+                  disabled={clearing}
                   onClick={clearQueue}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                  }}
                 >
-                  Clear all
-                </button>
+                  {clearing ? "Clearing…" : "Clear all"}
+                </Button>
               )}
             </div>
 

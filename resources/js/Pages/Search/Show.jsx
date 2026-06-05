@@ -12,7 +12,7 @@ import {
     EmptyState,
     Field,
     FilterBar,
-    Icon,
+    IconButton,
     Icons,
     PageHeader,
     RowActions,
@@ -301,45 +301,40 @@ function ProspectRow({
                 </td>
                 <td onClick={(e) => e.stopPropagation()} style={{ textAlign: 'right' }}>
                     <RowActions>
-                        <button type="button" className="btn-icon" title="Expand weaknesses" onClick={onToggleExpand}>
-                            <Icon d={isExpanded ? Icons.ChevronU : Icons.ChevronD} />
-                        </button>
+                        <IconButton
+                            icon={isExpanded ? Icons.ChevronU : Icons.ChevronD}
+                            title="Expand weaknesses"
+                            onClick={onToggleExpand}
+                        />
                         {p.place_id && !p.place_id.startsWith('direct:') && (
-                            <a
-                                className="btn-icon"
+                            <IconButton
+                                icon={Icons.Map}
                                 title="View on Maps"
                                 href={`https://www.google.com/maps/place/?q=place_id:${p.place_id}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={(e) => e.stopPropagation()}
-                            >
-                                <Icon d={Icons.Map} />
-                            </a>
+                            />
                         )}
                         {p.report_url && !isFailed && !isPending ? (
-                            <a
-                                className="btn-icon"
+                            <IconButton
+                                icon={Icons.Eye}
                                 title="Preview report"
                                 href={p.report_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={(e) => e.stopPropagation()}
-                            >
-                                <Icon d={Icons.Eye} />
-                            </a>
+                            />
                         ) : (
-                            <button type="button" className="btn-icon" title="Preview report" disabled>
-                                <Icon d={Icons.Eye} />
-                            </button>
+                            <IconButton icon={Icons.Eye} title="Preview report" disabled />
                         )}
-                        <Link
-                            href={`/prospects/${p.id}`}
-                            className="btn-icon"
+                        <IconButton
+                            as={Link}
+                            icon={Icons.ChevronR}
                             title="Open prospect"
+                            href={`/prospects/${p.id}`}
                             onClick={(e) => e.stopPropagation()}
-                        >
-                            <Icon d={Icons.ChevronR} />
-                        </Link>
+                        />
                     </RowActions>
                 </td>
             </tr>

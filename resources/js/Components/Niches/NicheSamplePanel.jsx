@@ -4,7 +4,7 @@ import { Button, ScoreBadge } from '@/Components/ui';
 const POLL_MS = 2000;
 const MAX_POLLS = 30;
 
-export default function NicheSamplePanel({ scan, onClose, onRunFullScan }) {
+export default function NicheSamplePanel({ scan, scanning = false, onClose, onRunFullScan }) {
     const [state, setState] = useState('loading');
     const [items, setItems] = useState([]);
     const [meta, setMeta] = useState(null);
@@ -130,8 +130,8 @@ export default function NicheSamplePanel({ scan, onClose, onRunFullScan }) {
             </div>
 
             <div className="niches-panel-footer">
-                <Button type="button" onClick={() => onRunFullScan(scan)}>
-                    Run Full Scan
+                <Button type="button" disabled={scanning} onClick={() => onRunFullScan(scan)}>
+                    {scanning ? 'Queuing…' : 'Run Full Scan'}
                 </Button>
             </div>
         </aside>

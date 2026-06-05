@@ -12,6 +12,7 @@ export { default as Field } from './Field';
 export { default as FilterBar } from './FilterBar';
 export { default as FormError } from './FormError';
 export { default as Icon, Icons } from './Icons';
+export { default as IconButton } from './IconButton';
 export { default as Input } from './Input';
 export { default as LinkButton } from './LinkButton';
 export { default as PageHeader } from './PageHeader';

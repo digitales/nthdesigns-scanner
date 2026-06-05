@@ -83,15 +83,48 @@ class BookingAvailabilityService
     {
         $tz = $settings->timezone ?: config('booking.default_timezone');
         $localStart = $startsAt->copy()->timezone($tz);
-        $localEnd = $localStart->copy()->addMinutes($settings->event_duration_minutes);
+        $duration = $settings->event_duration_minutes;
+        $localEnd = $localStart->copy()->addMinutes($duration);
+        $buffer = $settings->buffer_minutes;
+        $minNotice = Carbon::now($tz)->addHours($settings->min_notice_hours);
 
-        foreach ($this->availableSlots($settings, $localStart->copy()->startOfDay(), $localEnd->copy()->endOfDay()) as $slot) {
-            if (Carbon::parse($slot['starts_at'])->utc()->equalTo($localStart->copy()->utc())) {
-                return true;
-            }
+        if ($localStart < $minNotice) {
+            return false;
         }
 
-        return false;
+        $schedule = $settings->workingHoursSchedule();
+        $dayKey = strtolower($localStart->englishDayOfWeek);
+        $day = $schedule[$dayKey] ?? ['enabled' => false];
+
+        if (! ($day['enabled'] ?? false)) {
+            return false;
+        }
+
+        $dayStart = $localStart->copy()->setTimeFromTimeString($day['start'] ?? '09:00');
+        $dayEnd = $localStart->copy()->setTimeFromTimeString($day['end'] ?? '17:00');
+
+        if ($localStart < $dayStart || $localEnd > $dayEnd) {
+            return false;
+        }
+
+        if ($dayStart->diffInMinutes($localStart) % $duration !== 0) {
+            return false;
+        }
+
+        $busyFrom = $localStart->copy()->utc()->subMinutes($buffer);
+        $busyTo = $localEnd->copy()->utc()->addMinutes($buffer);
+
+        $busy = array_map(
+            fn (array $interval) => new TimeInterval(
+                $interval['start']->copy()->utc(),
+                $interval['end']->copy()->utc(),
+            ),
+            $this->calendar->busyIntervals($busyFrom, $busyTo),
+        );
+
+        $candidate = new TimeInterval($localStart->copy()->utc(), $localEnd->copy()->utc());
+
+        return ! $this->overlapsBusy($candidate, $busy, $buffer);
     }
 
     /**
