@@ -7,6 +7,7 @@ use App\Jobs\GenerateProspectReportJob;
 use App\Models\Prospect;
 use App\Models\ProspectReport;
 use App\Models\Search;
+use App\Services\BenchmarkNormalizer;
 use App\Services\GooglePlacesService;
 use App\Services\ReportBuilderService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -61,6 +62,7 @@ class GenerateProspectReportJobTest extends TestCase
         (new GenerateProspectReportJob($prospect))->handle(
             app(GooglePlacesService::class),
             app(ReportBuilderService::class),
+            app(BenchmarkNormalizer::class),
         );
 
         $report = ProspectReport::where('prospect_id', $prospect->id)->firstOrFail();
@@ -124,6 +126,7 @@ class GenerateProspectReportJobTest extends TestCase
         (new GenerateProspectReportJob($prospect))->handle(
             app(GooglePlacesService::class),
             app(ReportBuilderService::class),
+            app(BenchmarkNormalizer::class),
         );
 
         $report = ProspectReport::where('prospect_id', $prospect->id)->firstOrFail();
@@ -159,6 +162,7 @@ class GenerateProspectReportJobTest extends TestCase
         (new GenerateProspectReportJob($prospect))->handle(
             app(GooglePlacesService::class),
             app(ReportBuilderService::class),
+            app(BenchmarkNormalizer::class),
         );
 
         $report = ProspectReport::where('prospect_id', $prospect->id)->firstOrFail();
@@ -186,6 +190,7 @@ class GenerateProspectReportJobTest extends TestCase
         (new GenerateProspectReportJob($prospect))->handle(
             app(GooglePlacesService::class),
             app(ReportBuilderService::class),
+            app(BenchmarkNormalizer::class),
         );
 
         Queue::assertNotPushed(CaptureScreenshotJob::class);
@@ -206,6 +211,7 @@ class GenerateProspectReportJobTest extends TestCase
         (new GenerateProspectReportJob($prospect))->handle(
             app(GooglePlacesService::class),
             app(ReportBuilderService::class),
+            app(BenchmarkNormalizer::class),
         );
 
         $report = ProspectReport::where('prospect_id', $prospect->id)->firstOrFail();

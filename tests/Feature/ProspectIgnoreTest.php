@@ -9,6 +9,7 @@ use App\Models\OutreachSelection;
 use App\Models\Prospect;
 use App\Models\Search;
 use App\Models\User;
+use App\Services\BenchmarkNormalizer;
 use App\Services\GooglePlacesService;
 use App\Services\ProspectExclusionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -233,6 +234,7 @@ class ProspectIgnoreTest extends TestCase
         (new ScrapeProspectsJob($search))->handle(
             app(GooglePlacesService::class),
             app(ProspectExclusionService::class),
+            app(BenchmarkNormalizer::class),
         );
 
         $search->refresh();

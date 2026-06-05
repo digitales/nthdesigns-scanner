@@ -30,6 +30,7 @@ class ScrapeProspectsJob implements ShouldQueue
     public function handle(
         GooglePlacesService $places,
         ProspectExclusionService $exclusions,
+        BenchmarkNormalizer $benchmarks,
     ): void {
         $this->search->update(['status' => 'discovering']);
 
@@ -58,7 +59,7 @@ class ScrapeProspectsJob implements ShouldQueue
             $this->search->update([
                 'total_found' => count($placeIds),
                 'benchmark_snapshot' => $benchmarkPlace
-                    ? (new BenchmarkNormalizer)->fromPlace($benchmarkPlace)
+                    ? $benchmarks->fromPlace($benchmarkPlace)
                     : null,
             ]);
 

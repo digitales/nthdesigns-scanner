@@ -1,38 +1,21 @@
 <?php
 
-$auditDriver = env('AUDIT_DRIVER', 'playwright');
-$auditServiceUrl = env('AUDIT_SERVICE_URL');
+use App\Support\ScannerConfig;
 
-if ($auditServiceUrl) {
-    $auditDriver = 'http';
-} elseif ($auditDriver === 'cloudflare') {
-    $auditDriver = 'skip';
-}
-
-$screenshotDriver = env('SCREENSHOT_DRIVER');
-
-if (! $screenshotDriver) {
-    if ($auditServiceUrl) {
-        $screenshotDriver = 'http';
-    } elseif (env('AUDIT_DRIVER') === 'cloudflare') {
-        $screenshotDriver = 'cloudflare';
-    } else {
-        $screenshotDriver = 'playwright';
-    }
-}
+$drivers = ScannerConfig::driversForConfig();
 
 return [
 
-    'audit_driver' => $auditDriver,
+    'audit_driver' => $drivers['audit_driver'],
 
     /** @var string playwright|http|skip — defaults to audit_driver when unset */
-    'cms_detect_driver' => env('CMS_DETECT_DRIVER') ?: $auditDriver,
+    'cms_detect_driver' => $drivers['cms_detect_driver'],
 
-    'screenshot_driver' => $screenshotDriver,
+    'screenshot_driver' => $drivers['screenshot_driver'],
 
-    'audit_service_url' => $auditServiceUrl,
+    'audit_service_url' => $drivers['audit_service_url'],
 
-    'audit_service_token' => env('AUDIT_SERVICE_TOKEN'),
+    'audit_service_token' => $drivers['audit_service_token'],
 
     'node_binary' => env('NODE_BINARY', 'node'),
 

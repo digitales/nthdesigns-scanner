@@ -160,24 +160,17 @@ export default function ProspectShow({
                 />
 
                 {flash?.success && (
-                    <div className="skip-banner" style={{ background: 'var(--color-positive-soft)', marginBottom: 20 }}>
+                    <div className="skip-banner banner-positive">
                         {flash.success}
                     </div>
                 )}
 
                 {ignored && (
-                    <div
-                        className="skip-banner"
-                        style={{
-                            background: 'var(--color-stone-100)',
-                            border: '1px solid var(--color-stone-300)',
-                            marginBottom: 20,
-                        }}
-                    >
+                    <div className="skip-banner banner-muted">
                         <Stack direction="row" justify="between" align="start" gap={16}>
                             <div>
-                                <strong style={{ fontSize: 13 }}>Ignored from future scans</strong>
-                                <p className="micro" style={{ margin: '4px 0 0' }}>
+                                <strong className="body-13">Ignored from future scans</strong>
+                                <p className="micro mt-4 m-0">
                                     {ignored.reason_label}
                                     {ignored.note ? ` — ${ignored.note}` : ''}
                                     {' · '}
@@ -200,8 +193,7 @@ export default function ProspectShow({
                     <div>
                         <div className="score-card-stack">
                             <div
-                                className="score-card-row score-card-row--primary"
-                                style={!showA11y ? { gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' } : undefined}
+                                className={`score-card-row score-card-row--primary${!showA11y ? ' score-card-row--dual' : ''}`}
                             >
                                 <ScoreCard
                                     label="Combined"
@@ -355,19 +347,19 @@ export default function ProspectShow({
                     <div>
                         <Card title="Public report">
                             {auditPending && (
-                                <p className="micro" style={{ marginBottom: 8, color: 'var(--color-stone-500)' }}>
+                                <p className="micro text-muted mb-8">
                                     Site audit in progress…
                                 </p>
                             )}
                             {report ? (
                                 <>
-                                    <div className="micro" style={{ marginBottom: 8, wordBreak: 'break-all' }}>/r/{report.token}</div>
+                                    <div className="micro mb-8 break-all">/r/{report.token}</div>
                                     {report.booking && (
-                                        <p className="micro" style={{ color: 'var(--color-positive)', marginBottom: 8 }}>
+                                        <p className="micro text-positive mb-8">
                                             Booked · {report.booking.label} · {report.booking.attendee_name}
                                         </p>
                                     )}
-                                    <Stack direction="row" gap={8} style={{ marginBottom: 16 }}>
+                                    <Stack direction="row" gap={8} className="mb-16">
                                         <Button kind="secondary" size="sm" onClick={copyReportLink}>
                                             {copied ? 'Copied' : 'Copy link'}
                                         </Button>
@@ -375,7 +367,7 @@ export default function ProspectShow({
                                             <Button kind="ghost" size="sm">Preview</Button>
                                         </a>
                                     </Stack>
-                                    <div className="micro" style={{ marginBottom: 8 }}>
+                                    <div className="micro mb-8">
                                         {report.view_count === 0
                                             ? 'Not yet opened'
                                             : `${report.view_count} view${report.view_count !== 1 ? 's' : ''}`}
@@ -391,14 +383,14 @@ export default function ProspectShow({
                                         {actionProcessing === 'report' ? 'Queuing…' : 'Regenerate report'}
                                     </Button>
                                     {prospect.audit_status === 'complete' && (
-                                        <p className="micro" style={{ marginTop: 8 }}>
+                                        <p className="micro mt-8">
                                             Regenerate after editing the website to refresh audit results in the report.
                                         </p>
                                     )}
                                 </>
                             ) : (
                                 <>
-                                    <p className="micro" style={{ marginBottom: 12 }}>No report yet.</p>
+                                    <p className="micro mb-12">No report yet.</p>
                                     <Button
                                         kind="primary"
                                         size="sm"
@@ -410,7 +402,7 @@ export default function ProspectShow({
                                 </>
                             )}
                             {prospect.audit_status === 'failed' && (
-                                <p className="micro" style={{ marginTop: 8, color: 'var(--color-sev-serious)' }}>
+                                <p className="micro mt-8 text-serious">
                                     Site audit failed. Use Re-run site audit above, or fix the website URL and save.
                                 </p>
                             )}
@@ -419,14 +411,14 @@ export default function ProspectShow({
                         <Card title="Outreach">
                             {latestOutreach ? (
                                 <>
-                                    <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 4 }}>{latestOutreach.subject_line}</div>
+                                    <div className="body-13-medium mb-4">{latestOutreach.subject_line}</div>
                                     <Status kind={latestOutreach.sent_at ? 'ready' : 'pending'}>
                                         {latestOutreach.sent_at ? 'Sent' : 'Drafted'}
                                     </Status>
                                 </>
                             ) : (
                                 <>
-                                    <p className="micro" style={{ marginBottom: 12 }}>No email drafted.</p>
+                                    <p className="micro mb-12">No email drafted.</p>
                                     <Button
                                         kind="primary"
                                         size="sm"
@@ -442,7 +434,7 @@ export default function ProspectShow({
                         {prospect.place_id && (
                             <Card title="Location">
                                 {prospect.address && (
-                                    <p style={{ fontSize: 13, marginBottom: 8, lineHeight: 1.45 }}>
+                                    <p className="body-13-relaxed">
                                         {prospect.address}
                                     </p>
                                 )}
@@ -489,14 +481,14 @@ export default function ProspectShow({
                                         value={form.address}
                                         onChange={(e) => setForm({ ...form, address: e.target.value })}
                                     />
-                                    <Stack direction="row" gap={8} style={{ marginTop: 8 }}>
+                                    <Stack direction="row" gap={8} className="mt-8">
                                         <Button kind="primary" size="sm" type="submit">Save</Button>
                                         <Button kind="ghost" size="sm" type="button" onClick={() => setEditing(false)}>Cancel</Button>
                                     </Stack>
                                 </Stack>
                             ) : (
                                 <>
-                                    <Stack as="dl" gap={8} style={{ fontSize: 13 }}>
+                                    <Stack as="dl" gap={8} className="stack--font-13">
                                         <div><span className="micro">Angle </span><AnglePill angle={prospect.dominant_angle} /></div>
                                         <div>
                                             <span className="micro">Phone </span>
@@ -510,7 +502,7 @@ export default function ProspectShow({
                                                         {prospect.website_url.replace(/^https?:\/\//, '')}
                                                     </a>
                                                     {(prospect.website_url_source === 'google_cse' || prospect.website_url_source === 'brave') && (
-                                                        <div className="micro" style={{ marginTop: 4, color: 'var(--color-stone-500)' }}>
+                                                        <div className="micro mt-4 text-muted">
                                                             Found via web search
                                                             {prospect.website_discovery_confidence === 'high'
                                                                 ? ' · High confidence'
@@ -520,7 +512,7 @@ export default function ProspectShow({
                                                         </div>
                                                     )}
                                                     {prospect.website_url_source === 'operator' && (
-                                                        <div className="micro" style={{ marginTop: 4, color: 'var(--color-stone-500)' }}>
+                                                        <div className="micro mt-4 text-muted">
                                                             Edited manually
                                                         </div>
                                                     )}
@@ -544,7 +536,7 @@ export default function ProspectShow({
 
                         {!ignored && (
                             <Card title="Ignore prospect">
-                                <p className="micro" style={{ marginBottom: 12 }}>
+                                <p className="micro mb-12">
                                     Skip this business in future niche and city scans. Use for acquisitions, cold leads, or failed outreach.
                                 </p>
                                 {showIgnoreForm ? (
@@ -561,12 +553,11 @@ export default function ProspectShow({
                                         </select>
                                         <label className="micro">Note (optional)</label>
                                         <textarea
-                                            className="textarea"
+                                            className="textarea w-full"
                                             rows={2}
                                             value={ignoreNote}
                                             onChange={(e) => setIgnoreNote(e.target.value)}
                                             placeholder="e.g. Acquired by Gallagher in 2024"
-                                            style={{ width: '100%' }}
                                         />
                                         <Stack direction="row" gap={8}>
                                             <Button kind="primary" size="sm" type="submit">Ignore from scans</Button>
@@ -584,14 +575,14 @@ export default function ProspectShow({
                         )}
 
                         <Card title="Private notes">
-                            <p className="micro" style={{ marginBottom: 12 }}>Not included on public reports.</p>
+                            <p className="micro mb-12">Not included on public reports.</p>
                             {notes.length === 0 ? (
-                                <p className="micro" style={{ marginBottom: 12 }}>No notes yet.</p>
+                                <p className="micro mb-12">No notes yet.</p>
                             ) : (
-                                <Stack as="ul" gap={12} className="meta-list" style={{ marginBottom: 16 }}>
+                                <Stack as="ul" gap={12} className="meta-list mb-16">
                                     {notes.map((n) => (
-                                        <li key={n.id} style={{ borderBottom: '1px solid var(--color-stone-200)', paddingBottom: 12 }}>
-                                            <p style={{ fontSize: 13, margin: '0 0 4px', whiteSpace: 'pre-wrap' }}>{n.body}</p>
+                                        <li key={n.id} className="note-item">
+                                            <p className="note-body">{n.body}</p>
                                             <span className="micro">{n.author} · {n.created_at}</span>
                                         </li>
                                     ))}
@@ -599,12 +590,11 @@ export default function ProspectShow({
                             )}
                             <form onSubmit={addNote}>
                                 <textarea
-                                    className="textarea"
+                                    className="textarea w-full mb-8"
                                     rows={3}
                                     value={noteBody}
                                     onChange={(e) => setNoteBody(e.target.value)}
                                     placeholder="Add a note…"
-                                    style={{ width: '100%', marginBottom: 8 }}
                                 />
                                 <Button kind="secondary" size="sm" type="submit" disabled={!noteBody.trim()}>
                                     Add note
@@ -625,16 +615,11 @@ function ViewSparkline({ viewCount }) {
     });
 
     return (
-        <Stack direction="row" align="end" gap={3} style={{ height: 28 }}>
+        <Stack direction="row" align="end" gap={3} className="sparkline">
             {bars.map((active, i) => (
                 <span
                     key={i}
-                    style={{
-                        width: 6,
-                        height: active ? 20 : 8,
-                        background: active ? 'var(--color-accent)' : 'var(--color-stone-200)',
-                        borderRadius: 1,
-                    }}
+                    className={`sparkline-bar ${active ? 'sparkline-bar--active' : 'sparkline-bar--idle'}`}
                 />
             ))}
         </Stack>

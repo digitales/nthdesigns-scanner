@@ -14,6 +14,7 @@ use App\Models\UserMcpKey;
 use App\Policies\AgencyBookingSettingPolicy;
 use App\Policies\ExportPolicy;
 use App\Policies\IgnoredProspectPolicy;
+use App\Policies\NicheExclusionPolicy;
 use App\Policies\OauthMcpRefreshTokenFamilyPolicy;
 use App\Policies\OutreachEmailPolicy;
 use App\Policies\OutreachSelectionPolicy;
@@ -51,6 +52,8 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(IgnoredProspect::class, IgnoredProspectPolicy::class);
         Gate::policy(Export::class, ExportPolicy::class);
         Gate::policy(AgencyBookingSetting::class, AgencyBookingSettingPolicy::class);
+
+        Gate::define('manageNicheExclusions', [NicheExclusionPolicy::class, 'manage']);
 
         Vite::prefetch(concurrency: 3);
     }

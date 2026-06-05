@@ -12,6 +12,7 @@ class ReportBuilderService
 {
     public function __construct(
         private CombineScoresService $combineScores,
+        private BenchmarkNormalizer $benchmarks,
         private ViolationMapper $violations,
         private OperatorPageSpeedBuilder $pageSpeed,
         private CmsLabelResolver $cms,
@@ -241,7 +242,7 @@ class ReportBuilderService
             return $source;
         }
 
-        return (new BenchmarkNormalizer)->fromPlace($source);
+        return $this->benchmarks->fromPlace($source);
     }
 
     /**
