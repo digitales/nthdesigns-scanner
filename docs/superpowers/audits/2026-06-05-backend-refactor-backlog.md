@@ -1087,6 +1087,91 @@ Cohesive pipeline (ONS fetch, taxonomy filter, Birmingham validation, PHP config
 | REF-S10-04 | Http/Resources underuse | P3 | REF-S1-06, REF-S5-02, REF-S6-06 |
 | REF-S10-05 | Support/ vs Queries/ query object split | P3 | REF-S3-08 |
 ## Frontend light pass (F1)
+
+Scope: `Search/Index`, `Search/Show`, `Prospect/Show`, `Niches/Index`, `Outreach/Index`, `Settings/Index`, `AgencyBookingSettingsCard`.
+
+**Signals:** 7/7 target surfaces import `@/Components/ui`. No `className="btn "` or `className="card "` on scoped pages. Inline `style={{}}` counts: Prospect/Show 55, Settings/Index 33, AgencyBookingSettingsCard 19, Outreach/Index 16. Polling: `setInterval`+`router.reload` on Search/Show (4s) and Prospect/Show (4s); `NicheSamplePanel` uses fetch loop (2s×30).
+
+#### F1-01: Duplicate Inertia reload polling (Search + Prospect)
+
+| Field | Value |
+|-------|-------|
+| Priority | P2 |
+| Evidence | `resources/js/Pages/Search/Show.jsx:36-42`; `resources/js/Pages/Prospect/Show.jsx:114-122` |
+| Gap | Identical `setInterval` → `router.reload({ only: [...] })` at 4s while audit/search running |
+| PR slice | "F1: extract `useProgressReload` hook for Search and Prospect show pages" |
+| Notes | Niches uses a third pattern (`NicheSamplePanel` fetch poll). `usePoll` from Inertia not used anywhere in `Pages/`. |
+
+#### F1-02: Prospect sidebar actions lack in-flight feedback
+
+| Field | Value |
+|-------|-------|
+| Priority | P2 |
+| Evidence | `resources/js/Pages/Prospect/Show.jsx:54-57` — `generateReport`, `reauditSite`, `generateOutreach`, `addToOutreach` call bare `router.post` |
+| Gap | Buttons stay enabled during queue dispatch; no `processing` label unlike Search/Index and Outreach/Index forms |
+| PR slice | "F1: wire Prospect show action buttons to Inertia visit processing state" |
+| Notes | Operator may double-click regenerate/re-audit during slow queue. |
+
+#### F1-03: Niches "Run Full Scan" has no loading state
+
+| Field | Value |
+|-------|-------|
+| Priority | P2 |
+| Evidence | `resources/js/Pages/Niches/Index.jsx:282-288,571-580` — `router.post('/searches', …)` from row action |
+| Gap | No `processing` guard or row-level spinner; operator can spam full GBP scans |
+| PR slice | "F1: disable Run Full Scan while post in flight" |
+| Notes | Contrast Settings niche maintenance forms (`scanForm.processing` → "Queuing…"). |
+
+#### F1-04: Heavy inline layout styles on operator pages
+
+| Field | Value |
+|-------|-------|
+| Priority | P2 |
+| Evidence | `Prospect/Show.jsx` (55× `style={{}}`), `Settings/Index.jsx` (33), `AgencyBookingSettingsCard.jsx` (19), `Outreach/Index.jsx` (16) |
+| Gap | UI refactor spec targets `Components/ui/` primitives; grid/flex spacing still ad hoc per page |
+| PR slice | "F1: extract layout primitives (Stack, Grid, SidebarLayout) for Prospect and Settings" |
+| Notes | Search/Index and Niches/Index are cleaner; Prospect detail is densest debt. |
+
+#### F1-05: Raw form controls outside ui/ primitives
+
+| Field | Value |
+|-------|-------|
+| Priority | P2 |
+| Evidence | `Outreach/Index.jsx:221-227` (CPC `<input type="number">`); `Search/Show.jsx:151-158` (min-score range slider) |
+| Gap | Bypass `Input` / future `Range` components; inconsistent focus and error styling |
+| PR slice | "F1: migrate Outreach CPC and Search min-score controls to ui/ inputs" |
+| Notes | Search/Index scan-type tiles correctly use design-system `scan-type-btn` class. |
+
+#### F1-06: Search/Show row actions use legacy `btn-icon` CSS
+
+| Field | Value |
+|-------|-------|
+| Priority | P2 |
+| Evidence | `resources/js/Pages/Search/Show.jsx:309-347` — five `className="btn-icon"` action buttons |
+| Gap | Table row actions not using `Button`/`IconButton` from `Components/ui/` |
+| PR slice | "F1: replace Search show btn-icon actions with ui/ IconButton" |
+| Notes | Partial ui/ migration — page header and filters are modern; row chrome is legacy CSS. |
+
+#### F1-07: Outreach queue "Clear all" is unstyled text control
+
+| Field | Value |
+|-------|-------|
+| Priority | P2 |
+| Evidence | `resources/js/Pages/Outreach/Index.jsx:99-110` — inline-styled `<button>` with `background: none` |
+| Gap | Destructive bulk action lacks `Button kind="ghost"` pattern and confirm guard |
+| PR slice | "F1: style Clear all as ui/ ghost button; optional confirm dialog" |
+| Notes | Per-item remove uses `.remove` chip styling; asymmetric with generate form polish. |
+
+#### F1-08: AgencyBookingSettingsCard — test success not surfaced inline
+
+| Field | Value |
+|-------|-------|
+| Priority | P2 |
+| Evidence | `AgencyBookingSettingsCard.jsx:70-79,145-154` — `testConnection` sets `testing` state; success only populates `flash.agency_booking_calendars` |
+| Gap | Successful test has no inline confirmation message (only calendar dropdown appears when >1 calendar) |
+| PR slice | "F1: show test-connection success microcopy on AgencyBookingSettingsCard" |
+| Notes | Errors route via `FormError` (`errors.agency_booking`). Save path shows "Saved." — test path is quieter. |
+
 ## Recommended PR schedule
 
 ## Appendix: automated signal sheet
