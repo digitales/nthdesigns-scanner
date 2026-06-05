@@ -21,9 +21,7 @@ class OutreachEmailGeneratorServiceTest extends TestCase
         ]);
         $prospect->setRelation('search', $search);
 
-        $service = new OutreachEmailGeneratorService(
-            new \App\Services\AnthropicService()
-        );
+        $service = app(OutreachEmailGeneratorService::class);
 
         $line = $service->performancePromptInstruction($prospect);
 
@@ -44,9 +42,7 @@ class OutreachEmailGeneratorServiceTest extends TestCase
         ]);
         $prospect->setRelation('search', $search);
 
-        $service = new OutreachEmailGeneratorService(
-            new \App\Services\AnthropicService()
-        );
+        $service = app(OutreachEmailGeneratorService::class);
 
         $this->assertNull($service->performancePromptInstruction($prospect));
     }

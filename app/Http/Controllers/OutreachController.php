@@ -21,7 +21,7 @@ class OutreachController extends Controller
         $user = $request->user();
 
         $selections = $user->outreachSelections()
-            ->with(['prospect.search', 'prospect.report', 'prospect.outreachEmails' => fn ($q) => $q->latest()])
+            ->with(['prospect.search', 'prospect.report.booking', 'prospect.outreachEmails' => fn ($q) => $q->latest()])
             ->orderBy('created_at')
             ->get();
 
@@ -34,30 +34,33 @@ class OutreachController extends Controller
             ->get()
             ->groupBy('prospect_id')
             ->map(fn ($emails) => $emails->map(fn ($e) => [
-                'id'                => $e->id,
-                'pitch_angle'       => $e->pitch_angle,
-                'subject_line'      => $e->subject_line,
-                'email_body'        => $e->email_body,
-                'sent_at'           => $e->sent_at?->toISOString(),
+                'id' => $e->id,
+                'pitch_angle' => $e->pitch_angle,
+                'subject_line' => $e->subject_line,
+                'email_body' => $e->email_body,
+                'sent_at' => $e->sent_at?->toISOString(),
                 'response_received' => $e->response_received,
-                'created_at'        => $e->created_at->diffForHumans(),
+                'created_at' => $e->created_at->diffForHumans(),
             ])->values());
 
         return Inertia::render('Outreach/Index', [
             'selection' => $selections->map(fn (OutreachSelection $s) => [
-                'id'                => $s->id,
-                'prospect_id'       => $s->prospect_id,
-                'business_name'     => $s->prospect->business_name,
-                'dominant_angle'    => $s->prospect->dominant_angle,
-                'combined_score'    => $s->prospect->combined_score,
+                'id' => $s->id,
+                'prospect_id' => $s->prospect_id,
+                'business_name' => $s->prospect->business_name,
+                'dominant_angle' => $s->prospect->dominant_angle,
+                'combined_score' => $s->prospect->combined_score,
                 'performance_score' => $s->prospect->performance_score,
-                'report_ready'      => $s->prospect->report !== null,
-                'report_url'        => $s->prospect->report ? url('/r/'.$s->prospect->report->token) : null,
+                'report_ready' => $s->prospect->report !== null,
+                'report_url' => $s->prospect->report ? url('/r/'.$s->prospect->report->token.'#book') : null,
+                'booked_label' => $s->prospect->report?->booking
+                    ? 'Booked · '.$s->prospect->report->booking->starts_at->format('j M g:ia')
+                    : null,
             ]),
             'emailsByProspect' => $emailsByProspect,
             'defaults' => [
-                'agency_name'   => $this->settings->agencyName($user) ?? '',
-                'pitch_angle'   => 'auto',
+                'agency_name' => $this->settings->agencyName($user) ?? '',
+                'pitch_angle' => 'auto',
                 'cpc_benchmark' => '',
             ],
             'flash' => [
@@ -70,7 +73,7 @@ class OutreachController extends Controller
     public function storeSelection(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'prospect_ids'   => 'required|array',
+            'prospect_ids' => 'required|array',
             'prospect_ids.*' => 'integer|exists:prospects,id',
         ]);
 
@@ -79,7 +82,7 @@ class OutreachController extends Controller
             $this->authorize('view', $prospect);
 
             OutreachSelection::firstOrCreate([
-                'user_id'     => $request->user()->id,
+                'user_id' => $request->user()->id,
                 'prospect_id' => $prospect->id,
             ]);
         }
@@ -109,14 +112,14 @@ class OutreachController extends Controller
     public function generate(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'agency_name'   => 'nullable|string|max:100',
-            'pitch_angle'   => 'required|in:auto,gbp,accessibility,combined',
+            'agency_name' => 'nullable|string|max:100',
+            'pitch_angle' => 'required|in:auto,gbp,accessibility,combined',
             'cpc_benchmark' => 'nullable|numeric|min:0',
         ]);
 
         $options = ['pitch_angle' => $validated['pitch_angle']];
 
-        if (!empty($validated['agency_name'])) {
+        if (! empty($validated['agency_name'])) {
             $options['agency_name'] = $validated['agency_name'];
         }
 
@@ -129,8 +132,9 @@ class OutreachController extends Controller
         $skipped = [];
 
         foreach ($selections as $selection) {
-            if (!$selection->prospect->report) {
+            if (! $selection->prospect->report) {
                 $skipped[] = $selection->prospect->business_name;
+
                 continue;
             }
 

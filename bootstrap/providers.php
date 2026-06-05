@@ -1,6 +1,11 @@
 <?php
 
+use App\Providers\AppServiceProvider;
+use App\Providers\BookingServiceProvider;
+use App\Providers\HorizonServiceProvider;
+
 return [
-    App\Providers\AppServiceProvider::class,
-    App\Providers\HorizonServiceProvider::class,
+    AppServiceProvider::class,
+    BookingServiceProvider::class,
+    HorizonServiceProvider::class,
 ];

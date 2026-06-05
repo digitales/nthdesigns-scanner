@@ -3,13 +3,14 @@
 namespace App\Services;
 
 use App\Models\Prospect;
-use App\Support\TidyCalEmbed;
 use App\Models\ProspectReport;
+use App\Support\TidyCalEmbed;
 
 class OutreachEmailGeneratorService
 {
     public function __construct(
         private AnthropicService $anthropic,
+        private AgencyBookingService $agencyBooking,
     ) {}
 
     /**
@@ -42,12 +43,12 @@ PROMPT;
         $parsed = $this->parseResponse($result['content']);
 
         return [
-            'subject_line'       => $parsed['subject_line'],
-            'email_body'         => $parsed['email_body'],
-            'model_used'         => $result['model'],
-            'prompt_tokens'      => $result['prompt_tokens'],
-            'completion_tokens'  => $result['completion_tokens'],
-            'pitch_angle'        => $pitchAngle,
+            'subject_line' => $parsed['subject_line'],
+            'email_body' => $parsed['email_body'],
+            'model_used' => $result['model'],
+            'prompt_tokens' => $result['prompt_tokens'],
+            'completion_tokens' => $result['completion_tokens'],
+            'pitch_angle' => $pitchAngle,
         ];
     }
 
@@ -55,8 +56,8 @@ PROMPT;
     {
         return match ($prospect->dominant_angle) {
             'accessibility' => 'accessibility',
-            'both'          => 'combined',
-            default         => 'gbp',
+            'both' => 'combined',
+            default => 'gbp',
         };
     }
 
@@ -66,7 +67,7 @@ PROMPT;
         $flags = array_merge($prospect->gbp_flags ?? [], $prospect->a11y_flags ?? []);
 
         $lines = [
-            "Write an outreach email for this prospect.",
+            'Write an outreach email for this prospect.',
             "Business: {$prospect->business_name}",
             "Location: {$search->city}, {$search->country}",
             "Niche: {$search->niche}",
@@ -75,7 +76,7 @@ PROMPT;
             'Key issues: '.(count($flags) ? implode('; ', $flags) : 'General improvement opportunity'),
         ];
 
-        if (!empty($options['agency_name'])) {
+        if (! empty($options['agency_name'])) {
             $lines[] = "Sign the email from: {$options['agency_name']}";
         }
 
@@ -85,10 +86,18 @@ PROMPT;
 
         if ($reportUrl) {
             $lines[] = "Include this audit report link naturally: {$reportUrl}";
+
+            if ($this->agencyBooking->nativeBookingActive()) {
+                $lines[] = 'The report includes inline booking — encourage them to pick a time on the report (Next step section).';
+            }
         }
 
-        if ($bookingUrl = config('scanner.report_booking_url')) {
-            $lines[] = 'Booking link for a call: '.(TidyCalEmbed::bookPageUrl($bookingUrl) ?? $bookingUrl);
+        if (! $this->agencyBooking->nativeBookingActive()) {
+            $bookingUrl = config('scanner.report_booking_url');
+
+            if ($bookingUrl) {
+                $lines[] = 'Booking link for a call: '.(TidyCalEmbed::bookPageUrl($bookingUrl) ?? $bookingUrl);
+            }
         }
 
         if ($instruction = $this->performancePromptInstruction($prospect)) {
@@ -119,7 +128,7 @@ PROMPT;
         if (is_array($json) && isset($json['subject_line'], $json['email_body'])) {
             return [
                 'subject_line' => $json['subject_line'],
-                'email_body'   => $json['email_body'],
+                'email_body' => $json['email_body'],
             ];
         }
 
@@ -129,14 +138,14 @@ PROMPT;
             if (is_array($json) && isset($json['subject_line'], $json['email_body'])) {
                 return [
                     'subject_line' => $json['subject_line'],
-                    'email_body'   => $json['email_body'],
+                    'email_body' => $json['email_body'],
                 ];
             }
         }
 
         return [
             'subject_line' => 'Quick question about your online presence',
-            'email_body'   => trim($content),
+            'email_body' => trim($content),
         ];
     }
 }

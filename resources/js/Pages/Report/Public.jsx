@@ -1,6 +1,7 @@
 import { Head } from '@inertiajs/react';
 import ViolationCard from '@/Components/audit/ViolationCard';
 import LighthouseDial from '@/Components/audit/LighthouseDial';
+import ReportBookingSection from '@/Components/ReportBookingSection';
 import { DataTable, LinkButton, SevChip } from '@/Components/ui';
 import { gradeColor } from '@/Components/ui/scoreBand';
 
@@ -176,8 +177,11 @@ export default function PublicReport({ report }) {
                         </section>
                     )}
 
-                    {report.booking_url && (
-                        <section style={{ padding: '96px 80px', textAlign: 'center', borderBottom: '1px solid var(--color-line)' }}>
+                    {(report.native_booking || report.booking_url) && (
+                        <section
+                            id="book"
+                            style={{ padding: '96px 80px', textAlign: 'center', borderBottom: '1px solid var(--color-line)' }}
+                        >
                             <div className="eyebrow" style={{ marginBottom: 18, color: 'var(--color-accent-deep)' }}>Next step</div>
                             <h2 style={{
                                 fontFamily: 'var(--font-serif)',
@@ -199,22 +203,32 @@ export default function PublicReport({ report }) {
                             }}>
                                 No obligation. We'll go through the audit findings and outline what fixing them would involve.
                             </p>
-                            <LinkButton
-                                href={report.book_cta_url ?? report.booking_url}
-                                kind="accent"
-                                size="lg"
-                                {...(report.book_cta_external
-                                    ? { target: '_blank', rel: 'noopener noreferrer' }
-                                    : {})}
-                            >
-                                Book a free 30-minute review
-                            </LinkButton>
-                            <div className="micro" style={{ marginTop: 20 }}>
-                                {report.book_cta_external
-                                    ? `${report.booking_url.replace(/^https?:\/\//, '')} · `
-                                    : ''}
-                                Typical reply within one working day
-                            </div>
+                            {report.native_booking ? (
+                                <ReportBookingSection
+                                    token={report.token}
+                                    businessName={report.business_name}
+                                    existingBooking={report.booking}
+                                />
+                            ) : (
+                                <>
+                                    <LinkButton
+                                        href={report.book_cta_url ?? report.booking_url}
+                                        kind="accent"
+                                        size="lg"
+                                        {...(report.book_cta_external
+                                            ? { target: '_blank', rel: 'noopener noreferrer' }
+                                            : {})}
+                                    >
+                                        Book a free 30-minute review
+                                    </LinkButton>
+                                    <div className="micro" style={{ marginTop: 20 }}>
+                                        {report.book_cta_external
+                                            ? `${report.booking_url.replace(/^https?:\/\//, '')} · `
+                                            : ''}
+                                        Typical reply within one working day
+                                    </div>
+                                </>
+                            )}
                         </section>
                     )}
 

@@ -22,18 +22,18 @@ class Prospect extends Model
     ];
 
     protected $casts = [
-        'gbp_flags'             => 'array',
-        'a11y_flags'            => 'array',
-        'raw_gbp_payload'       => 'array',
-        'raw_a11y_payload'      => 'array',
-        'raw_lighthouse_payload'=> 'array',
-        'cms_detection'         => 'array',
-        'has_description'       => 'boolean',
-        'hours_complete'        => 'boolean',
-        'rating'                => 'decimal:1',
-        'expires_at'            => 'datetime',
+        'gbp_flags' => 'array',
+        'a11y_flags' => 'array',
+        'raw_gbp_payload' => 'array',
+        'raw_a11y_payload' => 'array',
+        'raw_lighthouse_payload' => 'array',
+        'cms_detection' => 'array',
+        'has_description' => 'boolean',
+        'hours_complete' => 'boolean',
+        'rating' => 'decimal:1',
+        'expires_at' => 'datetime',
         'website_discovered_at' => 'datetime',
-        'suppress_auto_report'  => 'boolean',
+        'suppress_auto_report' => 'boolean',
     ];
 
     public function search(): BelongsTo
@@ -49,6 +49,11 @@ class Prospect extends Model
     public function report(): HasOne
     {
         return $this->hasOne(ProspectReport::class);
+    }
+
+    public function reportBookings(): HasMany
+    {
+        return $this->hasMany(ReportBooking::class);
     }
 
     public function auditJobs(): HasMany

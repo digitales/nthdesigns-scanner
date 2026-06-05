@@ -337,6 +337,11 @@ export default function ProspectShow({
                             {report ? (
                                 <>
                                     <div className="micro" style={{ marginBottom: 8, wordBreak: 'break-all' }}>/r/{report.token}</div>
+                                    {report.booking && (
+                                        <p className="micro" style={{ color: 'var(--color-positive)', marginBottom: 8 }}>
+                                            Booked · {report.booking.label} · {report.booking.attendee_name}
+                                        </p>
+                                    )}
                                     <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
                                         <Button kind="secondary" size="sm" onClick={copyReportLink}>
                                             {copied ? 'Copied' : 'Copy link'}

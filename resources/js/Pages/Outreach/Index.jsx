@@ -163,7 +163,11 @@ export default function OutreachIndex({
                         <AnglePill angle={item.dominant_angle} />
                       </div>
                       <div className="micro" style={{ marginTop: 4 }}>
-                        {item.report_ready ? "Report ready" : "No report"}
+                        {item.booked_label
+                          ? item.booked_label
+                          : item.report_ready
+                            ? "Report ready"
+                            : "No report"}
                       </div>
                     </Link>
                     <button

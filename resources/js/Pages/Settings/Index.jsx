@@ -1,5 +1,6 @@
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import AgencyBookingSettingsCard from '@/Components/AgencyBookingSettingsCard';
 import {
     Button,
     Card,
@@ -11,7 +12,7 @@ import {
     Select,
 } from '@/Components/ui';
 
-export default function SettingsIndex({ settings, nicheMaintenance, health, env }) {
+export default function SettingsIndex({ settings, agencyBooking, nicheMaintenance, health, env }) {
     const { flash } = usePage().props;
     const { data, setData, patch, processing, errors, recentlySuccessful } = useForm({
         default_country: settings.default_country,
@@ -117,7 +118,7 @@ export default function SettingsIndex({ settings, nicheMaintenance, health, env 
                                     />
                                 </Field>
 
-                                <Field label="Booking URL" hint="public report CTA; TidyCal URLs open on /book with your branding; overrides REPORT_BOOKING_URL">
+                                <Field label="Booking URL (fallback)" hint="Used when agency Fastmail booking is disabled; TidyCal URLs open on /book with your branding">
                                     <Input
                                         type="url"
                                         value={data.booking_url}
@@ -140,6 +141,8 @@ export default function SettingsIndex({ settings, nicheMaintenance, health, env 
                             </div>
                         </form>
                     </Card>
+
+                    <AgencyBookingSettingsCard agencyBooking={agencyBooking} />
 
                     <Card title="Niche maintenance">
                         <ul style={{ display: 'flex', flexDirection: 'column', gap: 12, margin: '0 0 24px', padding: 0, listStyle: 'none' }}>

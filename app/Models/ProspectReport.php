@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class ProspectReport extends Model
 {
@@ -17,13 +18,18 @@ class ProspectReport extends Model
 
     protected $casts = [
         'screenshot_paths' => 'array',
-        'report_data'      => 'array',
-        'viewed_at'        => 'datetime',
-        'expires_at'       => 'datetime',
+        'report_data' => 'array',
+        'viewed_at' => 'datetime',
+        'expires_at' => 'datetime',
     ];
 
     public function prospect(): BelongsTo
     {
         return $this->belongsTo(Prospect::class);
+    }
+
+    public function booking(): HasOne
+    {
+        return $this->hasOne(ReportBooking::class);
     }
 }

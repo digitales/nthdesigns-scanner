@@ -1,8 +1,13 @@
 <?php
 
-use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\AgencyBookingSettingsController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\IgnoredProspectController;
+use App\Http\Controllers\NicheIgnoreController;
+use App\Http\Controllers\NicheScanController;
+use App\Http\Controllers\NicheScanSampleController;
+use App\Http\Controllers\OAuthServerController;
+use App\Http\Controllers\OAuthWellKnownController;
 use App\Http\Controllers\OutreachController;
 use App\Http\Controllers\OutreachEmailController;
 use App\Http\Controllers\ProfileController;
@@ -10,17 +15,14 @@ use App\Http\Controllers\ProspectController;
 use App\Http\Controllers\ProspectIgnoreController;
 use App\Http\Controllers\ProspectNoteController;
 use App\Http\Controllers\PublicBookingController;
+use App\Http\Controllers\PublicReportBookingController;
 use App\Http\Controllers\PublicReportController;
 use App\Http\Controllers\ReportDashboardController;
 use App\Http\Controllers\SavedProspectController;
-use App\Http\Controllers\NicheIgnoreController;
-use App\Http\Controllers\NicheScanController;
-use App\Http\Controllers\NicheScanSampleController;
-use App\Http\Controllers\OAuthServerController;
-use App\Http\Controllers\OAuthWellKnownController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\Settings\ConnectedAppsController;
 use App\Http\Controllers\Settings\McpKeyController;
+use App\Http\Controllers\SettingsController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -50,6 +52,12 @@ Route::get('/dashboard', function () {
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::get('/r/{token}', [PublicReportController::class, 'show'])->name('reports.public');
+Route::get('/r/{token}/slots', [PublicReportBookingController::class, 'slots'])
+    ->middleware('throttle:60,1')
+    ->name('reports.public.slots');
+Route::post('/r/{token}/book', [PublicReportBookingController::class, 'store'])
+    ->middleware('throttle:20,1')
+    ->name('reports.public.book');
 Route::get('/book', [PublicBookingController::class, 'show'])->name('book.index');
 
 Route::get('/admin/horizon', function () {
@@ -105,6 +113,8 @@ Route::middleware('auth')->group(function () {
     Route::patch('/settings/mcp-keys/{mcpKey}', [McpKeyController::class, 'update'])->name('settings.mcp-keys.update');
     Route::delete('/settings/mcp-keys/{mcpKey}', [McpKeyController::class, 'destroy'])->name('settings.mcp-keys.destroy');
     Route::patch('/settings', [SettingsController::class, 'update'])->name('settings.update');
+    Route::patch('/settings/agency-booking', [AgencyBookingSettingsController::class, 'update'])->name('settings.agency-booking.update');
+    Route::post('/settings/agency-booking/test', [AgencyBookingSettingsController::class, 'testConnection'])->name('settings.agency-booking.test');
     Route::post('/settings/niches/scan', [SettingsController::class, 'scanNiches'])->name('settings.niches.scan');
     Route::post('/settings/niches/bootstrap', [SettingsController::class, 'bootstrapNiches'])->name('settings.niches.bootstrap');
 });
