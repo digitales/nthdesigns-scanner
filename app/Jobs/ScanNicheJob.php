@@ -53,18 +53,32 @@ class ScanNicheJob implements ShouldQueue
 
     private function pendingScan(): NicheScan
     {
-        return NicheScan::query()->updateOrCreate(
-            [
-                'niche' => $this->niche,
-                'city' => $this->city,
-                'scan_date' => Carbon::parse($this->scanDate)->toDateString(),
-            ],
-            [
+        $scanDate = Carbon::parse($this->scanDate)->toDateString();
+
+        $scan = NicheScan::query()
+            ->where('niche', $this->niche)
+            ->where('city', $this->city)
+            ->whereDate('scan_date', $scanDate)
+            ->first();
+
+        if ($scan) {
+            $scan->update([
                 'niche_query' => $this->nicheQuery,
                 'country' => $this->country,
                 'status' => 'pending',
-            ],
-        );
+            ]);
+
+            return $scan->fresh();
+        }
+
+        return NicheScan::query()->create([
+            'niche' => $this->niche,
+            'niche_query' => $this->nicheQuery,
+            'city' => $this->city,
+            'country' => $this->country,
+            'scan_date' => $scanDate,
+            'status' => 'pending',
+        ]);
     }
 
     public function failed(?Throwable $exception): void
