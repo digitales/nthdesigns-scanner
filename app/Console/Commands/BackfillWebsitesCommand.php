@@ -154,33 +154,31 @@ class BackfillWebsitesCommand extends Command
      */
     private function fetchCandidates(?int $searchId, ?int $prospectId, ?int $limit): Collection
     {
-        $query = $this->baseQuery($searchId, $prospectId);
+        $query = $this->eligibleQuery($searchId, $prospectId)->with('search');
 
         if ($limit !== null) {
-            $query->limit($limit * 3);
+            $query->limit($limit);
         }
 
-        $discovery = app(WebsiteDiscoveryService::class);
-
-        return $query
-            ->with('search')
-            ->get()
-            ->filter(fn (Prospect $prospect) => $prospect->search
-                && $discovery->isBackfillCandidate($prospect, $prospect->search))
-            ->when($limit !== null, fn (Collection $c) => $c->take($limit))
-            ->values();
+        return $query->get();
     }
 
     private function countCandidates(?int $searchId, ?int $prospectId): int
     {
-        $discovery = app(WebsiteDiscoveryService::class);
+        return $this->eligibleQuery($searchId, $prospectId)->count();
+    }
 
+    /**
+     * @return Builder<Prospect>
+     */
+    private function eligibleQuery(?int $searchId, ?int $prospectId): Builder
+    {
         return $this->baseQuery($searchId, $prospectId)
-            ->with('search')
-            ->get()
-            ->filter(fn (Prospect $prospect) => $prospect->search
-                && $discovery->isBackfillCandidate($prospect, $prospect->search))
-            ->count();
+            ->where(function (Builder $query) {
+                $query->whereNull('raw_gbp_payload')
+                    ->orWhereNull('raw_gbp_payload->websiteUri')
+                    ->orWhere('raw_gbp_payload->websiteUri', '');
+            });
     }
 
     /**
