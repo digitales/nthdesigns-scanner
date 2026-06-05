@@ -15,7 +15,7 @@ class ReportBuilderServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new ReportBuilderService();
+        $this->service = app(ReportBuilderService::class);
     }
 
     public function test_builds_prospect_and_benchmark_data(): void
