@@ -154,7 +154,7 @@ class WebsiteDiscoveryService
 
         $prospect->fill([
             'website_url'                  => $match['url'],
-            'website_url_source'           => 'google_cse',
+            'website_url_source'           => $this->provider(),
             'website_discovery_confidence' => $match['confidence'],
             'website_discovered_at'        => $discoveredAt,
             'gbp_score'                    => $scored['score'],

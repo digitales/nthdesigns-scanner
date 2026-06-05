@@ -83,13 +83,71 @@ class ScorePlaceJobWebsiteDiscoveryTest extends TestCase
 
         $this->assertNotNull($prospect);
         $this->assertSame('https://briarwren.co.uk', $prospect->website_url);
-        $this->assertSame('google_cse', $prospect->website_url_source);
+        $this->assertSame('brave', $prospect->website_url_source);
         $this->assertSame('high', $prospect->website_discovery_confidence);
         $this->assertNotNull($prospect->website_discovered_at);
         $this->assertContains(WebsiteDiscoveryService::GBP_FLAG_NOT_ON_PROFILE, $prospect->gbp_flags);
         $this->assertNotContains('No website listed', $prospect->gbp_flags);
 
         Bus::assertDispatched(AuditSiteJob::class);
+    }
+
+    public function test_discovers_website_via_google_cse_provider(): void
+    {
+        config([
+            'scanner.website_discovery_provider' => 'google_cse',
+            'services.google_cse.key' => 'test-key',
+            'services.google_cse.cx' => 'test-cx',
+        ]);
+
+        Bus::fake([AuditSiteJob::class]);
+
+        $user = User::factory()->create();
+        $search = Search::factory()->create([
+            'user_id' => $user->id,
+            'scan_type' => 'combined',
+            'city' => 'Manchester',
+            'niche' => 'solicitor',
+        ]);
+
+        $placePayload = [
+            'id' => 'places/abc',
+            'displayName' => ['text' => 'Briar & Wren Solicitors Ltd'],
+            'formattedAddress' => '1 High St, Manchester',
+            'userRatingCount' => 12,
+            'photos' => [],
+        ];
+
+        $this->mock(GooglePlacesService::class, function ($mock) use ($placePayload) {
+            $mock->shouldIgnoreMissing();
+            $mock->shouldReceive('getPlaceDetails')
+                ->once()
+                ->with('places/abc')
+                ->andReturn($placePayload);
+        });
+
+        Http::fake([
+            'https://www.googleapis.com/customsearch/v1*' => Http::response([
+                'items' => [
+                    [
+                        'link' => 'https://briarwren.co.uk',
+                        'title' => 'Briar & Wren Solicitors — Manchester',
+                        'snippet' => 'Manchester solicitors',
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        (new ScorePlaceJob($search, 'places/abc'))->handle(
+            app(GooglePlacesService::class),
+            app(\App\Services\GbpScoringService::class),
+            app(\App\Services\SearchStatusService::class),
+            app(WebsiteDiscoveryService::class),
+        );
+
+        $prospect = Prospect::where('place_id', 'places/abc')->first();
+
+        $this->assertSame('google_cse', $prospect->website_url_source);
     }
 
     public function test_skips_cse_when_gbp_has_website(): void

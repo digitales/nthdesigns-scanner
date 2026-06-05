@@ -107,7 +107,7 @@ class BackfillWebsitesCommandTest extends TestCase
 
         $prospect->refresh();
         $this->assertSame('https://briarwren.co.uk', $prospect->website_url);
-        $this->assertSame('google_cse', $prospect->website_url_source);
+        $this->assertSame('brave', $prospect->website_url_source);
         $this->assertSame('high', $prospect->website_discovery_confidence);
         $this->assertContains(WebsiteDiscoveryService::GBP_FLAG_NOT_ON_PROFILE, $prospect->gbp_flags);
         $this->assertNotContains('No website listed', $prospect->gbp_flags);

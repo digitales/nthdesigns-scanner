@@ -472,7 +472,7 @@ export default function ProspectShow({
                                                     <a href={prospect.website_url} target="_blank" rel="noopener noreferrer" className="micro">
                                                         {prospect.website_url.replace(/^https?:\/\//, '')}
                                                     </a>
-                                                    {prospect.website_url_source === 'google_cse' && (
+                                                    {(prospect.website_url_source === 'google_cse' || prospect.website_url_source === 'brave') && (
                                                         <div className="micro" style={{ marginTop: 4, color: 'var(--color-stone-500)' }}>
                                                             Found via web search
                                                             {prospect.website_discovery_confidence === 'high'
