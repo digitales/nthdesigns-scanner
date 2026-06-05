@@ -11,7 +11,7 @@ class CmsDetectionRunnerServiceTest extends TestCase
 {
     public function test_run_uses_browser_service_when_audit_driver_is_http(): void
     {
-        Config::set('scanner.audit_driver', 'http');
+        Config::set('scanner.cms_detect_driver', 'http');
         Config::set('scanner.audit_service_url', 'https://browser.example.com');
         Config::set('scanner.audit_service_token', 'secret');
 

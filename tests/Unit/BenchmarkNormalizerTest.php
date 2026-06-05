@@ -19,7 +19,7 @@ class BenchmarkNormalizerTest extends TestCase
             'regularOpeningHours' => ['periods' => [['open' => ['day' => 1]]]],
         ];
 
-        $snapshot = (new BenchmarkNormalizer)->fromPlace($place);
+        $snapshot = app(BenchmarkNormalizer::class)->fromPlace($place);
 
         $this->assertSame('places/ChIJ123', $snapshot['place_id']);
         $this->assertSame('Top Dental', $snapshot['name']);

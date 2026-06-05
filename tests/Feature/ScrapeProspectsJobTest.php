@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Jobs\ScorePlaceJob;
 use App\Jobs\ScrapeProspectsJob;
 use App\Models\Search;
+use App\Services\BenchmarkNormalizer;
 use App\Services\GooglePlacesService;
 use App\Services\ProspectExclusionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -43,6 +44,7 @@ class ScrapeProspectsJobTest extends TestCase
         (new ScrapeProspectsJob($search))->handle(
             app(GooglePlacesService::class),
             app(ProspectExclusionService::class),
+            app(BenchmarkNormalizer::class),
         );
 
         $search->refresh();
