@@ -160,17 +160,17 @@ export default function ProspectShow({
                 />
 
                 {flash?.success && (
-                    <div className="skip-banner banner-positive">
+                    <div className="skip-banner skip-banner--success mb-20">
                         {flash.success}
                     </div>
                 )}
 
                 {ignored && (
-                    <div className="skip-banner banner-muted">
+                    <div className="skip-banner skip-banner--ignored mb-20">
                         <Stack direction="row" justify="between" align="start" gap={16}>
                             <div>
-                                <strong className="body-13">Ignored from future scans</strong>
-                                <p className="micro mt-4 m-0">
+                                <strong className="body-sm-medium">Ignored from future scans</strong>
+                                <p className="micro ignore-banner-copy">
                                     {ignored.reason_label}
                                     {ignored.note ? ` — ${ignored.note}` : ''}
                                     {' · '}
@@ -242,13 +242,13 @@ export default function ProspectShow({
                             && prospect.audit_status === 'complete'
                             && prospect.performance_score > 0
                             && !pageSpeed && (
-                            <p className="micro text-muted mb-28">
+                            <p className="micro audit-hint">
                                 Re-run site audit for Core Web Vitals breakdown
                             </p>
                         )}
 
                         {auditPending && showA11y && (
-                            <p className="micro text-muted mb-28">
+                            <p className="micro audit-hint">
                                 Site audit in progress — scores update automatically when complete.
                             </p>
                         )}
@@ -263,8 +263,8 @@ export default function ProspectShow({
                                         ) : (
                                             (prospect.gbp_flags ?? []).map((flag, i) => (
                                                 <Stack key={i} direction="row" gap={8} align="center">
-                                                    <span className="flag-dot" />
-                                                    <span className="body-13">{flag}</span>
+                                                    <span className="flag-dot flag-dot--gbp" />
+                                                    <span className="body-sm">{flag}</span>
                                                 </Stack>
                                             ))
                                         )}
@@ -288,8 +288,8 @@ export default function ProspectShow({
                                                 (prospect.a11y_flags ?? []).map((flag, i) => (
                                                     <Stack key={i} direction="row" justify="between" align="center" gap={8}>
                                                         <Stack direction="row" gap={8} align="center">
-                                                            <span className="flag-dot flag-dot--serious" />
-                                                            <span className="body-13">{flag}</span>
+                                                            <span className="flag-dot flag-dot--a11y" />
+                                                            <span className="body-sm">{flag}</span>
                                                         </Stack>
                                                     </Stack>
                                                 ))
@@ -316,7 +316,7 @@ export default function ProspectShow({
                                           ? 'Re-run site audit'
                                           : 'Run site audit'}
                                 </Button>
-                                <p className="micro text-muted mt-8">
+                                <p className="micro mt-8 text-stone">
                                     {isGbpOnlySearch && !hasSiteAudit
                                         ? 'This prospect was scanned GBP-only. Run a site audit to upgrade it to a full combined audit (accessibility + page speed).'
                                         : 'Re-audits the website only. GBP scores are unchanged and no Google Places API calls are made.'}
@@ -347,7 +347,7 @@ export default function ProspectShow({
                     <div>
                         <Card title="Public report">
                             {auditPending && (
-                                <p className="micro text-muted mb-8">
+                                <p className="micro mb-8 text-stone">
                                     Site audit in progress…
                                 </p>
                             )}
@@ -402,7 +402,7 @@ export default function ProspectShow({
                                 </>
                             )}
                             {prospect.audit_status === 'failed' && (
-                                <p className="micro mt-8 text-serious">
+                                <p className="micro mt-8 text-critical">
                                     Site audit failed. Use Re-run site audit above, or fix the website URL and save.
                                 </p>
                             )}
@@ -411,7 +411,7 @@ export default function ProspectShow({
                         <Card title="Outreach">
                             {latestOutreach ? (
                                 <>
-                                    <div className="body-13-medium mb-4">{latestOutreach.subject_line}</div>
+                                    <div className="body-sm-medium-tight">{latestOutreach.subject_line}</div>
                                     <Status kind={latestOutreach.sent_at ? 'ready' : 'pending'}>
                                         {latestOutreach.sent_at ? 'Sent' : 'Drafted'}
                                     </Status>
@@ -434,7 +434,7 @@ export default function ProspectShow({
                         {prospect.place_id && (
                             <Card title="Location">
                                 {prospect.address && (
-                                    <p className="body-13-relaxed">
+                                    <p className="body-sm line-height-snug mb-8">
                                         {prospect.address}
                                     </p>
                                 )}
@@ -488,7 +488,7 @@ export default function ProspectShow({
                                 </Stack>
                             ) : (
                                 <>
-                                    <Stack as="dl" gap={8} className="stack--font-13">
+                                    <Stack as="dl" gap={8} className="profile-dl">
                                         <div><span className="micro">Angle </span><AnglePill angle={prospect.dominant_angle} /></div>
                                         <div>
                                             <span className="micro">Phone </span>
@@ -502,7 +502,7 @@ export default function ProspectShow({
                                                         {prospect.website_url.replace(/^https?:\/\//, '')}
                                                     </a>
                                                     {(prospect.website_url_source === 'google_cse' || prospect.website_url_source === 'brave') && (
-                                                        <div className="micro mt-4 text-muted">
+                                                        <div className="micro source-hint">
                                                             Found via web search
                                                             {prospect.website_discovery_confidence === 'high'
                                                                 ? ' · High confidence'
@@ -512,7 +512,7 @@ export default function ProspectShow({
                                                         </div>
                                                     )}
                                                     {prospect.website_url_source === 'operator' && (
-                                                        <div className="micro mt-4 text-muted">
+                                                        <div className="micro source-hint">
                                                             Edited manually
                                                         </div>
                                                     )}
@@ -579,7 +579,7 @@ export default function ProspectShow({
                             {notes.length === 0 ? (
                                 <p className="micro mb-12">No notes yet.</p>
                             ) : (
-                                <Stack as="ul" gap={12} className="meta-list mb-16">
+                                <Stack as="ul" gap={12} className="meta-list meta-list--notes">
                                     {notes.map((n) => (
                                         <li key={n.id} className="note-item">
                                             <p className="note-body">{n.body}</p>
@@ -615,11 +615,11 @@ function ViewSparkline({ viewCount }) {
     });
 
     return (
-        <Stack direction="row" align="end" gap={3} className="sparkline">
+        <Stack direction="row" align="end" gap={3} className="view-sparkline">
             {bars.map((active, i) => (
                 <span
                     key={i}
-                    className={`sparkline-bar ${active ? 'sparkline-bar--active' : 'sparkline-bar--idle'}`}
+                    className={`sparkline-bar ${active ? 'sparkline-bar--active' : 'sparkline-bar--inactive'}`}
                 />
             ))}
         </Stack>

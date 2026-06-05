@@ -839,6 +839,74 @@
   .score-card-row--speed {
     grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
   }
+  .score-card-row--dual {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .text-positive { color: var(--color-positive); }
+  .text-critical { color: var(--color-sev-critical); }
+  .text-stone { color: var(--color-stone-500); }
+  .text-medium { font-weight: 500; }
+  .mb-8 { margin-bottom: 8px; }
+  .mb-12 { margin-bottom: 12px; }
+  .mb-16 { margin-bottom: 16px; }
+  .mb-20 { margin-bottom: 20px; }
+  .mb-24 { margin-bottom: 24px; }
+  .mt-4 { margin-top: 4px; }
+  .mt-8 { margin-top: 8px; }
+  .w-full { width: 100%; }
+  .break-all { word-break: break-all; }
+  .line-height-snug { line-height: 1.45; }
+  .eyebrow-spaced { margin-bottom: 10px; }
+  .audit-hint { margin-top: -16px; margin-bottom: 28px; color: var(--color-stone-500); }
+  .skip-banner--success {
+    background: var(--color-positive-soft);
+    border-color: transparent;
+  }
+  .skip-banner--ignored {
+    background: var(--color-stone-100);
+    border: 1px solid var(--color-stone-300);
+  }
+  .body-sm { font-size: 13px; }
+  .body-sm-medium { font-size: 13px; font-weight: 500; }
+  .body-sm-medium-tight { font-size: 13px; font-weight: 500; margin-bottom: 4px; }
+  .ignore-banner-copy { margin: 4px 0 0; }
+  .flag-dot {
+    width: 6px;
+    height: 6px;
+    flex-shrink: 0;
+  }
+  .flag-dot--gbp {
+    background: var(--color-stone-400);
+    border-radius: 50%;
+  }
+  .flag-dot--a11y {
+    background: var(--color-sev-serious);
+    transform: rotate(45deg);
+  }
+  .section-spaced { margin-bottom: 24px; }
+  .profile-dl { font-size: 13px; }
+  .source-hint { margin-top: 4px; color: var(--color-stone-500); }
+  .meta-list--notes { margin-bottom: 16px; }
+  .note-item {
+    border-bottom: 1px solid var(--color-stone-200);
+    padding-bottom: 12px;
+  }
+  .note-body {
+    font-size: 13px;
+    margin: 0 0 4px;
+    white-space: pre-wrap;
+  }
+  .view-sparkline { height: 28px; }
+  .sparkline-bar { width: 6px; border-radius: 1px; }
+  .sparkline-bar--active {
+    height: 20px;
+    background: var(--color-accent);
+  }
+  .sparkline-bar--inactive {
+    height: 8px;
+    background: var(--color-stone-200);
+  }
 
   .score-card {
     background: var(--color-paper);
