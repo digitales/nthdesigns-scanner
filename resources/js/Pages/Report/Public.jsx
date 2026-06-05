@@ -4,6 +4,7 @@ import LighthouseDial from '@/Components/audit/LighthouseDial';
 import ReportBookingSection from '@/Components/ReportBookingSection';
 import { DataTable, LinkButton, SevChip } from '@/Components/ui';
 import { gradeColor } from '@/Components/ui/scoreBand';
+import { hasA11yAuditContent, hasLighthouseMetrics } from '@/utils/auditVisibility';
 
 export default function PublicReport({ report }) {
     const p = report.prospect ?? {};
@@ -12,11 +13,8 @@ export default function PublicReport({ report }) {
     const lighthouse = report.lighthouse ?? {};
     const grade = report.grade ?? 'C';
     const color = gradeColor(report.combined_score ?? 0);
-    const hasA11y = (summary.total ?? 0) > 0 || (report.top_violations?.length ?? 0) > 0;
-    const hasLighthouse = lighthouse.performance != null
-        || lighthouse.accessibility != null
-        || lighthouse.seo != null
-        || lighthouse.best_practices != null;
+    const hasA11y = hasA11yAuditContent({ summary, topViolations: report.top_violations });
+    const hasLighthouse = hasLighthouseMetrics(lighthouse);
     const hasGbp = benchmark != null;
 
     return (

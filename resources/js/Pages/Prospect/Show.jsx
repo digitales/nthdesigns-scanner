@@ -7,6 +7,7 @@ import SiteAuditSection from '@/Components/audit/SiteAuditSection';
 import TechnologySection from '@/Components/cms/TechnologySection';
 import PageSpeedSection from '@/Components/audit/PageSpeedSection';
 import OutreachEmailCard from '@/Components/OutreachEmailCard';
+import { shouldShowA11yAudit } from '@/utils/auditVisibility';
 import {
     AnglePill,
     Button,
@@ -123,9 +124,12 @@ export default function ProspectShow({
     const hasSiteAudit = Boolean(audit);
     const effectiveScanType = search.effective_scan_type ?? search.scan_type;
     const isGbpOnlySearch = search.scan_type === 'gbp_only';
-    const showA11y = effectiveScanType !== 'gbp_only'
-        || auditPending
-        || Boolean(auditFailure);
+    const showA11y = shouldShowA11yAudit({
+        scanType: search.scan_type,
+        effectiveScanType,
+        auditPending,
+        auditFailure,
+    });
     const a11yAuditMessage = progressFlow.status_message ?? 'Running accessibility audit';
     const canRunSiteAudit = Boolean(prospect.website_url)
         && !auditPending

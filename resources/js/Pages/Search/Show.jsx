@@ -23,13 +23,14 @@ import {
     Status,
 } from '@/Components/ui';
 import { normalizeAngle } from '@/Components/ui/scoreBand';
+import { showA11yForSearch } from '@/utils/auditVisibility';
 
 export default function SearchShow({ search, prospects, outreachProspectIds = [] }) {
     const inQueue = new Set(outreachProspectIds);
     const flow = search.progress_flow ?? {};
     const phase = flow.phase ?? 'queued';
     const isRunning = ['queued', 'discovering', 'auditing'].includes(phase);
-    const showA11y = search.scan_type !== 'gbp_only';
+    const showA11y = showA11yForSearch(search.scan_type);
 
     const [selected, setSelected] = useState({});
     const [expanded, setExpanded] = useState(null);

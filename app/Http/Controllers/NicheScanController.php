@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\NicheScan;
+use App\Queries\LatestNicheScanQuery;
 use App\Services\NicheExclusionService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -17,15 +18,7 @@ class NicheScanController extends Controller
         $hideIgnored = $request->string('hide_ignored', '1') !== '0';
         $ignoredLabels = collect($exclusions->ignoredLabels());
 
-        $latestIds = NicheScan::query()
-            ->fromSub(
-                NicheScan::query()
-                    ->select('*')
-                    ->selectRaw('ROW_NUMBER() OVER (PARTITION BY niche, city ORDER BY ran_at DESC, id DESC) AS row_num'),
-                'ranked',
-            )
-            ->where('row_num', 1)
-            ->pluck('id');
+        $latestIds = LatestNicheScanQuery::ids();
 
         $paginator = NicheScan::query()
             ->when($latestIds->isNotEmpty(), fn ($q) => $q->whereIn('id', $latestIds), fn ($q) => $q->whereRaw('0 = 1'))

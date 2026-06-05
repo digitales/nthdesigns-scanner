@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\IgnoredNiche;
 use App\Models\NicheInclusionOverride;
 use App\Models\NicheScan;
+use App\Queries\LatestNicheScanQuery;
 
 final class NicheExclusionService
 {
@@ -141,17 +142,9 @@ final class NicheExclusionService
 
     private function maxLatestResultCount(string $niche): ?int
     {
-        $latestIds = NicheScan::query()
-            ->fromSub(
-                NicheScan::query()
-                    ->select('*')
-                    ->selectRaw('ROW_NUMBER() OVER (PARTITION BY niche, city ORDER BY ran_at DESC, id DESC) AS row_num')
-                    ->where('niche', $niche)
-                    ->where('status', 'complete'),
-                'ranked',
-            )
-            ->where('row_num', 1)
-            ->pluck('result_count');
+        $latestIds = LatestNicheScanQuery::ranked(
+            fn ($query) => $query->where('niche', $niche)->where('status', 'complete'),
+        )->pluck('result_count');
 
         if ($latestIds->isEmpty()) {
             return null;
