@@ -102,7 +102,9 @@ export default function ApiUsageQuotasCard({ apiUsage }) {
             </Stack>
 
             <details className="api-quota-adjust mt-24">
-                <summary className="micro text-medium">Adjust limits</summary>
+                <summary className="btn btn-secondary btn-sm api-quota-adjust-trigger">
+                    Adjust limits
+                </summary>
                 <form onSubmit={submit} className="mt-16">
                     <Stack gap={16}>
                         {apiUsage.operations.map((operation) => (

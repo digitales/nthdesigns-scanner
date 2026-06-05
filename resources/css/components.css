@@ -1345,11 +1345,10 @@
   .api-quota-status { margin-top: 4px; }
   .api-quota-status--warning { color: var(--color-warning, #b45309); }
   .api-quota-status--blocked { color: var(--color-critical, #b91c1c); }
-  .api-quota-adjust summary {
-    cursor: pointer;
+  .api-quota-adjust-trigger {
     list-style: none;
   }
-  .api-quota-adjust summary::-webkit-details-marker { display: none; }
+  .api-quota-adjust-trigger::-webkit-details-marker { display: none; }
   .api-quota-limit-group + .api-quota-limit-group {
     padding-top: 12px;
     border-top: 1px solid var(--color-line);
