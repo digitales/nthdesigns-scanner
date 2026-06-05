@@ -55,6 +55,12 @@ class CaptureScreenshotJob implements ShouldQueue
             return;
         }
 
+        $paths = $report->screenshot_paths ?? [];
+
+        if (! empty($paths['desktop'])) {
+            return;
+        }
+
         $auditJob = AuditJob::create([
             'prospect_id' => $report->prospect_id,
             'job_type'    => 'screenshot',
@@ -90,6 +96,8 @@ class CaptureScreenshotJob implements ShouldQueue
             ]);
 
             $errorRecorder->recordFailure($auditJob, $errorRecorder->formatThrowable($e));
+
+            throw $e;
         } finally {
             File::deleteDirectory($localDir);
         }

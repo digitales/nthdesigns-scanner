@@ -41,6 +41,8 @@ class CmsDetectionIntegrationTest extends TestCase
 
     public function test_audit_site_job_stores_cms_from_payload(): void
     {
+        Queue::fake();
+
         $search = Search::factory()->create(['scan_type' => 'combined']);
         $prospect = Prospect::factory()->create([
             'search_id' => $search->id,
