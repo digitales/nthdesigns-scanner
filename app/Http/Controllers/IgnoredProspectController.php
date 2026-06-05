@@ -6,7 +6,6 @@ use App\Http\Requests\FilterIgnoredProspectsRequest;
 use App\Models\IgnoredProspect;
 use App\Services\ProspectExclusionService;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -15,14 +14,13 @@ class IgnoredProspectController extends Controller
     public function index(FilterIgnoredProspectsRequest $request, ProspectExclusionService $exclusions): Response
     {
         $filters = $request->validated();
-        $paginator = $exclusions->paginateForUser(
-            $request->user(),
-            $filters['reason'] ?? null,
-        );
+        $reason = $filters['reason'] ?? null;
+
+        $paginator = $exclusions->paginateForUser($request->user(), $reason);
 
         return Inertia::render('Ignored/Index', [
-            'entries' => $paginator->items(),
-            'filters' => ['reason' => $filters['reason'] ?? null],
+            'entries' => collect($paginator->items())->values(),
+            'filters' => ['reason' => $reason],
             'pagination' => [
                 'total' => $paginator->total(),
                 'current_page' => $paginator->currentPage(),
@@ -39,7 +37,7 @@ class IgnoredProspectController extends Controller
         ]);
     }
 
-    public function destroy(Request $request, IgnoredProspect $ignoredProspect): RedirectResponse
+    public function destroy(IgnoredProspect $ignoredProspect): RedirectResponse
     {
         $this->authorize('delete', $ignoredProspect);
 

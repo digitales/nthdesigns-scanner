@@ -152,6 +152,35 @@ class ProspectIgnoreTest extends TestCase
                 ->where('entries.0.prospect_id', $prospect->id));
     }
 
+    public function test_ignored_index_paginates_entries(): void
+    {
+        $user = User::factory()->create();
+
+        for ($i = 0; $i < 25; $i++) {
+            IgnoredProspect::create([
+                'user_id' => $user->id,
+                'place_id' => "places/page-{$i}",
+                'reason' => IgnoredProspect::REASON_COLD,
+            ]);
+        }
+
+        $this->actingAs($user)
+            ->get('/ignored')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('entries', 20)
+                ->where('pagination.current_page', 1)
+                ->where('pagination.last_page', 2)
+                ->where('pagination.total', 25));
+
+        $this->actingAs($user)
+            ->get('/ignored?page=2')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('entries', 5)
+                ->where('pagination.current_page', 2));
+    }
+
     public function test_ignored_index_can_filter_by_reason(): void
     {
         $user = User::factory()->create();
