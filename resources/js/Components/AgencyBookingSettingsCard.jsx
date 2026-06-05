@@ -91,7 +91,7 @@ export default function AgencyBookingSettingsCard({ agencyBooking }) {
 
     return (
         <Card title="Report booking (Fastmail)">
-            <Stack direction="row" justify="between" align="start" gap={16} className="mb-12">
+            <Stack direction="row" justify="between" align="start" gap={16} className="booking-intro">
                 <p className="micro stack--grow m-0">
                     Prospects book 30-minute review calls inline on public reports. Slots sync from your shared Fastmail calendar via CalDAV.
                 </p>
@@ -109,7 +109,7 @@ export default function AgencyBookingSettingsCard({ agencyBooking }) {
                     </Stack>
 
                     {!data.enabled && (
-                        <p className="micro m-0 text-muted">
+                        <p className="micro m-0 text-stone">
                             When off, report CTAs use the Booking URL fallback in Defaults below.
                         </p>
                     )}
@@ -147,7 +147,7 @@ export default function AgencyBookingSettingsCard({ agencyBooking }) {
                                         {testing ? 'Testing…' : 'Test connection'}
                                     </Button>
                                     {!agencyBooking.has_app_password && !data.fastmail_app_password && (
-                                        <span className="micro text-muted">
+                                        <span className="micro text-stone">
                                             Enter an app password to test.
                                         </span>
                                     )}
@@ -232,13 +232,13 @@ export default function AgencyBookingSettingsCard({ agencyBooking }) {
                                 </Grid>
 
                                 <div>
-                                    <div className="micro micro-medium mb-8">Working hours</div>
+                                    <div className="micro text-medium mb-8">Working hours</div>
                                     <Grid cols="hours">
                                         {DAYS.map((day) => {
                                             const enabled = data.working_hours[day]?.enabled ?? false;
                                             return (
                                                 <div key={day} className="grid--contents">
-                                                    <label className="micro micro-capitalize">
+                                                    <label className="micro capitalize">
                                                         {day.slice(0, 3)}
                                                     </label>
                                                     <Checkbox
@@ -252,7 +252,7 @@ export default function AgencyBookingSettingsCard({ agencyBooking }) {
                                                         onChange={(e) => setDay(day, 'start', e.target.value)}
                                                         disabled={!enabled}
                                                     />
-                                                    <span className="micro text-center">–</span>
+                                                    <span className="micro text-center hours-sep">–</span>
                                                     <Input
                                                         type="time"
                                                         value={data.working_hours[day]?.end ?? '17:00'}

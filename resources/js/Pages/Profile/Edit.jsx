@@ -1,6 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
-import { Card, Page, PageHeader } from '@/Components/ui';
+import { Card, Page, PageHeader, Stack } from '@/Components/ui';
 import DeleteUserForm from './Partials/DeleteUserForm';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm';
 import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm';
@@ -13,12 +13,12 @@ export default function Edit({ mustVerifyEmail, status }) {
             <Page width="narrow">
                 <PageHeader eyebrow="Account" title="Profile & security." />
 
-                <p className="micro" style={{ marginBottom: 16, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                <p className="micro profile-nav-links">
                     <Link href="/settings/connected-apps">Connected apps</Link>
                     <Link href="/settings/mcp-keys">MCP keys</Link>
                 </p>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                <Stack gap={24}>
                     <Card>
                         <UpdateProfileInformationForm
                             mustVerifyEmail={mustVerifyEmail}
@@ -31,7 +31,7 @@ export default function Edit({ mustVerifyEmail, status }) {
                     <Card>
                         <DeleteUserForm />
                     </Card>
-                </div>
+                </Stack>
             </Page>
         </AuthenticatedLayout>
     );

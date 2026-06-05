@@ -1,4 +1,4 @@
-import { Button, Field, FormError, Input } from '@/Components/ui';
+import { Button, Field, FormError, Input, Stack } from '@/Components/ui';
 import { Transition } from '@headlessui/react';
 import { Link, useForm, usePage } from '@inertiajs/react';
 
@@ -17,13 +17,13 @@ export default function UpdateProfileInformationForm({ mustVerifyEmail, status }
 
     return (
         <section>
-            <div className="card-title" style={{ marginTop: 0 }}>Profile information</div>
-            <p className="micro" style={{ marginTop: 8, marginBottom: 20 }}>
+            <div className="card-title card-title-flush">Profile information</div>
+            <p className="micro section-intro">
                 Update your account&apos;s profile information and email address.
             </p>
 
             <form onSubmit={submit}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <Stack gap={16}>
                     <Field label="Name">
                         <Input
                             id="name"
@@ -56,29 +56,21 @@ export default function UpdateProfileInformationForm({ mustVerifyEmail, status }
                                     href={route('verification.send')}
                                     method="post"
                                     as="button"
-                                    className="micro"
-                                    style={{
-                                        background: 'none',
-                                        border: 'none',
-                                        padding: 0,
-                                        cursor: 'pointer',
-                                        textDecoration: 'underline',
-                                        color: 'inherit',
-                                    }}
+                                    className="micro btn-link-inline"
                                 >
                                     Click here to re-send the verification email.
                                 </Link>
                             </p>
 
                             {status === 'verification-link-sent' && (
-                                <p className="micro" style={{ color: 'var(--color-positive)', marginTop: 8 }}>
+                                <p className="micro text-positive mt-8">
                                     A new verification link has been sent to your email address.
                                 </p>
                             )}
                         </div>
                     )}
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div className="form-actions">
                         <Button kind="primary" type="submit" disabled={processing}>
                             Save
                         </Button>
@@ -90,12 +82,12 @@ export default function UpdateProfileInformationForm({ mustVerifyEmail, status }
                             leave="transition ease-in-out"
                             leaveTo="opacity-0"
                         >
-                            <p className="micro" style={{ color: 'var(--color-positive)' }}>
+                            <p className="micro text-positive">
                                 Saved.
                             </p>
                         </Transition>
                     </div>
-                </div>
+                </Stack>
             </form>
         </section>
     );

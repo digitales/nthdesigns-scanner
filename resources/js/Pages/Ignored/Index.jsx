@@ -8,7 +8,6 @@ import {
   FilterBar,
   Icons,
   PageHeader,
-  Pagination,
   RowActions,
   ScoreBadge,
   Select,
@@ -18,7 +17,7 @@ import {
 export default function IgnoredIndex({
   entries,
   filters,
-  pagination,
+  meta,
   reasonOptions,
 }) {
   const submitFilters = (e) => {
@@ -39,8 +38,6 @@ export default function IgnoredIndex({
     router.delete(`/ignored/${row.id}`, { preserveScroll: true });
   };
 
-  const filterQuery = filters.reason ? { reason: filters.reason } : {};
-
   return (
     <AuthenticatedLayout>
       <Head title="Ignored prospects" />
@@ -48,7 +45,7 @@ export default function IgnoredIndex({
       <main className="page page-wide">
         <PageHeader
           eyebrow="Ignored prospects"
-          title={`${pagination.total} ignored`}
+          title={`${meta.total} ignored`}
           sub="Businesses you have excluded from future scans. Open a row to review details or undo ignore."
         />
 
@@ -79,88 +76,79 @@ export default function IgnoredIndex({
             sub="Ignore a business from its prospect page when it should not appear in future scans."
           />
         ) : (
-          <>
-            <DataTable>
-              <thead>
-                <tr>
-                  <th>Business</th>
-                  <th>Reason</th>
-                  <th>Note</th>
-                  <th>Last seen</th>
-                  <th>Ignored</th>
-                  <th className="text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {entries.map((row) => (
-                  <tr
-                    key={row.id}
-                    className={row.prospect_id ? "clickable" : ""}
-                    onClick={() =>
-                      row.prospect_id &&
-                      router.visit(`/prospects/${row.prospect_id}`)
-                    }
+          <DataTable>
+            <thead>
+              <tr>
+                <th>Business</th>
+                <th>Reason</th>
+                <th>Note</th>
+                <th>Last seen</th>
+                <th>Ignored</th>
+                <th className="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {entries.map((row) => (
+                <tr
+                  key={row.id}
+                  className={row.prospect_id ? "clickable" : ""}
+                  onClick={() =>
+                    row.prospect_id &&
+                    router.visit(`/prospects/${row.prospect_id}`)
+                  }
+                >
+                  <td className="biz">
+                    {row.business_name ?? (
+                      <span className="micro" title={row.place_id}>
+                        Unknown business
+                      </span>
+                    )}
+                    {row.niche && row.city && (
+                      <div className="micro">
+                        {row.niche} · {row.city}
+                      </div>
+                    )}
+                  </td>
+                  <td>
+                    <Status kind="pending">{row.reason_label}</Status>
+                  </td>
+                  <td className="micro note-cell">
+                    {row.note ?? "—"}
+                  </td>
+                  <td>
+                    {row.combined_score != null ? (
+                      <ScoreBadge value={row.combined_score} withBar={false} />
+                    ) : (
+                      <span className="micro">—</span>
+                    )}
+                  </td>
+                  <td className="micro">{row.ignored_at}</td>
+                  <td
+                    className="text-right"
+                    onClick={(e) => e.stopPropagation()}
                   >
-                    <td className="biz">
-                      {row.business_name ?? (
-                        <span className="micro" title={row.place_id}>
-                          Unknown business
-                        </span>
-                      )}
-                      {row.niche && row.city && (
-                        <div className="micro">
-                          {row.niche} · {row.city}
-                        </div>
-                      )}
-                    </td>
-                    <td>
-                      <Status kind="pending">{row.reason_label}</Status>
-                    </td>
-                    <td className="micro note-cell">
-                      {row.note ?? "—"}
-                    </td>
-                    <td>
-                      {row.combined_score != null ? (
-                        <ScoreBadge value={row.combined_score} withBar={false} />
-                      ) : (
-                        <span className="micro">—</span>
-                      )}
-                    </td>
-                    <td className="micro">{row.ignored_at}</td>
-                    <td
-                      className="text-right"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <RowActions>
-                        {row.prospect_id && (
-                          <Link
-                            href={`/prospects/${row.prospect_id}`}
-                            className="btn-ghost btn-xs"
-                          >
-                            View
-                          </Link>
-                        )}
-                        <button
-                          type="button"
+                    <RowActions>
+                      {row.prospect_id && (
+                        <Link
+                          href={`/prospects/${row.prospect_id}`}
                           className="btn-ghost btn-xs"
-                          onClick={() => unignore(row)}
                         >
-                          Undo ignore
-                        </button>
-                      </RowActions>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </DataTable>
-            {pagination?.last_page > 1 && (
-              <Pagination
-                pagination={pagination}
-                href="/ignored"
-                query={filterQuery}
-              />
-            )}
-          </>
+                          View
+                        </Link>
+                      )}
+                      <button
+                        type="button"
+                        className="btn-ghost btn-xs"
+                        onClick={() => unignore(row)}
+                      >
+                        Undo ignore
+                      </button>
+                    </RowActions>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </DataTable>
         )}
       </main>
     </AuthenticatedLayout>

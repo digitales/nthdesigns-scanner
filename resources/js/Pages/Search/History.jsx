@@ -1,7 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import SearchHistoryCard from '@/Components/Search/SearchHistoryCard';
-import { Button, EmptyState, Icons, Page, PageHeader, Pagination } from '@/Components/ui';
+import { Button, EmptyState, Icons, Page, PageHeader, Pagination, Stack } from '@/Components/ui';
 
 export default function SearchHistory({ searches, pagination }) {
     return (
@@ -30,13 +30,13 @@ export default function SearchHistory({ searches, pagination }) {
                     />
                 ) : (
                     <>
-                        <ul style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <Stack as="ul" gap={8} className="history-list">
                             {searches.map((search) => (
                                 <li key={search.id}>
                                     <SearchHistoryCard search={search} showFound />
                                 </li>
                             ))}
-                        </ul>
+                        </Stack>
                         <Pagination pagination={pagination} href="/searches" />
                     </>
                 )}

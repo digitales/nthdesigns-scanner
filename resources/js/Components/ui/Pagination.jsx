@@ -45,33 +45,24 @@ export default function Pagination({ pagination, href = '/searches', query = {} 
     };
 
     return (
-        <nav
-            aria-label="Pagination"
-            style={{
-                marginTop: 24,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 12,
-            }}
-        >
+        <nav aria-label="Pagination" className="pagination-nav">
             <p className="micro">
                 Showing {from}–{to} of {total}
             </p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <div className="pagination-links">
                 {current_page > 1 ? (
                     <Link href={pageHref(current_page - 1)} className="btn btn-secondary btn-xs" preserveState>
                         Previous
                     </Link>
                 ) : (
-                    <span className="btn btn-secondary btn-xs" style={{ opacity: 0.45, pointerEvents: 'none' }}>
+                    <span className="btn btn-secondary btn-xs pagination-disabled">
                         Previous
                     </span>
                 )}
 
                 {pages.map((page, index) =>
                     page === '…' ? (
-                        <span key={`gap-${index}`} className="micro" style={{ padding: '0 4px' }}>
+                        <span key={`gap-${index}`} className="micro pagination-gap">
                             …
                         </span>
                     ) : (
@@ -92,7 +83,7 @@ export default function Pagination({ pagination, href = '/searches', query = {} 
                         Next
                     </Link>
                 ) : (
-                    <span className="btn btn-secondary btn-xs" style={{ opacity: 0.45, pointerEvents: 'none' }}>
+                    <span className="btn btn-secondary btn-xs pagination-disabled">
                         Next
                     </span>
                 )}
