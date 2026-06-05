@@ -501,12 +501,7 @@ export default function NichesIndex({
               <div ref={tableScrollRef} className="niches-table-scroll">
                 <div ref={tableWrapRef}>
                   <DataTable
-                    className="niches-table"
-                    style={{
-                      borderTop: 0,
-                      borderRadius: "0 0 6px 6px",
-                      overflow: "visible",
-                    }}
+                    className="niches-table data-table--flush-top"
                   >
                     <thead>
                       <tr>
@@ -518,7 +513,7 @@ export default function NichesIndex({
                         <th>Low reviews</th>
                         <th>Opportunity</th>
                         <th>Last scanned</th>
-                        <th style={{ textAlign: "right" }}>Actions</th>
+                        <th className="text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -532,12 +527,12 @@ export default function NichesIndex({
                           <td className="biz">
                             {row.niche}
                             {row.is_ignored && (
-                              <div style={{ marginTop: 4 }}>
+                              <div className="mt-4">
                                 <Status kind="pending">Ignored</Status>
                               </div>
                             )}
                             {row.status !== "complete" && (
-                              <div style={{ marginTop: 4 }}>
+                              <div className="mt-4">
                                 <Status
                                   kind={
                                     row.status === "failed"
@@ -579,7 +574,7 @@ export default function NichesIndex({
                             />
                           </td>
                           <td className="micro">{row.ran_at_human}</td>
-                          <td style={{ textAlign: "right" }}>
+                          <td className="text-right">
                             <RowActions>
                               <Button
                                 kind="ghost"
@@ -602,18 +597,14 @@ export default function NichesIndex({
                         <tr>
                           <td
                             colSpan={9}
-                            className="micro"
-                            style={{ textAlign: "center" }}
+                            className="micro text-center"
                           >
                             Loading more…
                           </td>
                         </tr>
                       )}
                       <tr ref={sentinelRef}>
-                        <td
-                          colSpan={9}
-                          style={{ height: 1, padding: 0, border: 0 }}
-                        />
+                        <td colSpan={9} className="table-sentinel" />
                       </tr>
                     </tbody>
                   </DataTable>

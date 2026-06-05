@@ -113,7 +113,7 @@ export default function ReportsIndex({ reports, filters, stats }) {
                 <th>Views</th>
                 <th>Last viewed</th>
                 <th>Viewer</th>
-                <th style={{ textAlign: "right" }}>Actions</th>
+                <th className="text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -125,7 +125,7 @@ export default function ReportsIndex({ reports, filters, stats }) {
                   <td className="biz">
                     {r.business_name}
                     {r.is_engaged_badge && (
-                      <div style={{ marginTop: 4 }}>
+                      <div className="mt-4">
                         <Status kind="warm">Warm</Status>
                       </div>
                     )}
@@ -135,23 +135,11 @@ export default function ReportsIndex({ reports, filters, stats }) {
                   </td>
                   <td className="micro">{r.created_at}</td>
                   <td
-                    className="tabular"
-                    style={{
-                      color:
-                        r.view_count === 0
-                          ? "var(--color-stone-400)"
-                          : undefined,
-                    }}
+                    className={`tabular${r.view_count === 0 ? " text-stone-muted" : ""}`}
                   >
                     {r.view_count}
                     {r.is_engaged_badge && r.view_count > 0 && (
-                      <span
-                        style={{
-                          color: "var(--color-accent-deep)",
-                          fontSize: 10,
-                          marginLeft: 6,
-                        }}
-                      >
+                      <span className="view-new-badge">
                         ● new
                       </span>
                     )}
@@ -163,8 +151,8 @@ export default function ReportsIndex({ reports, filters, stats }) {
                   </td>
                   <td className="micro">{r.viewer_ip ?? "—"}</td>
                   <td
+                    className="text-right"
                     onClick={(e) => e.stopPropagation()}
-                    style={{ textAlign: "right" }}
                   >
                     <RowActions>
                       <button

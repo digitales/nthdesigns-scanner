@@ -44,41 +44,32 @@ export default function McpKeys({ keys, newKey, mcpUrl }) {
                     sub="Personal API keys for Cursor, Claude, or other clients that cannot use OAuth. Revoke anytime."
                 />
 
-                <p className="micro" style={{ marginBottom: 16 }}>
+                <p className="micro mb-16">
                     <Link href="/settings">← Back to settings</Link>
                     {' · '}
                     <Link href="/settings/connected-apps">Connected apps (OAuth)</Link>
                 </p>
 
                 {flash?.success && (
-                    <p className="micro" style={{ color: 'var(--color-positive)', marginBottom: 16 }}>
+                    <p className="micro text-positive mb-16">
                         {flash.success}
                     </p>
                 )}
 
                 {newKey && (
-                    <Card title="Your new MCP key — copy it now" className="mb-6">
-                        <p className="micro" style={{ marginBottom: 12 }}>
+                    <Card title="Your new MCP key — copy it now" className="mb-24">
+                        <p className="micro mb-12">
                             This is the only time you will see it. Store it in a password manager.
                         </p>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-                            <code
-                                style={{
-                                    flex: 1,
-                                    minWidth: 200,
-                                    padding: '8px 12px',
-                                    borderRadius: 8,
-                                    background: 'var(--color-surface-muted)',
-                                    wordBreak: 'break-all',
-                                }}
-                            >
+                        <div className="input-row">
+                            <code className="code-block">
                                 {newKey}
                             </code>
                             <Button type="button" kind="primary" size="sm" onClick={copyNewKey}>
                                 {copied ? 'Copied' : 'Copy'}
                             </Button>
                         </div>
-                        <p className="micro" style={{ marginTop: 12 }}>
+                        <p className="micro mt-12">
                             Header: <code>x-scanner-key: {newKey}</code>
                         </p>
                     </Card>
@@ -88,14 +79,14 @@ export default function McpKeys({ keys, newKey, mcpUrl }) {
                     {keys.length === 0 ? (
                         <p className="micro">No keys yet. Create one to connect clients that use header auth.</p>
                     ) : (
-                        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                        <ul className="settings-list">
                             {keys.map((key) => (
                                 <KeyRow key={key.id} keyData={key} onUpdate={updateLabel} onRevoke={revokeKey} />
                             ))}
                         </ul>
                     )}
 
-                    <form onSubmit={createKey} style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--color-border)' }}>
+                    <form onSubmit={createKey} className="settings-form-divider">
                         <Field label="Label (optional)">
                             <Input
                                 type="text"
@@ -106,7 +97,7 @@ export default function McpKeys({ keys, newKey, mcpUrl }) {
                             />
                             <FormError message={createForm.errors.label} />
                         </Field>
-                        <div style={{ marginTop: 12 }}>
+                        <div className="mt-12">
                             <Button type="submit" kind="primary" disabled={createForm.processing}>
                                 {keys.length === 0 ? 'Create MCP key' : 'Create another key'}
                             </Button>
@@ -114,11 +105,11 @@ export default function McpKeys({ keys, newKey, mcpUrl }) {
                     </form>
                 </Card>
 
-                <Card title="Endpoint" className="mt-6">
-                    <code className="micro" style={{ wordBreak: 'break-all' }}>
+                <Card title="Endpoint" className="mt-24">
+                    <code className="micro break-all">
                         {mcpUrl}
                     </code>
-                    <p className="micro" style={{ marginTop: 8 }}>
+                    <p className="micro mt-8">
                         Send your key in the <code>x-scanner-key</code> header (preferred). OAuth is recommended when your
                         client supports it — use Connected apps to revoke OAuth sessions.
                     </p>
@@ -132,32 +123,23 @@ function KeyRow({ keyData, onUpdate, onRevoke }) {
     const [label, setLabel] = useState(keyData.label);
 
     return (
-        <li
-            style={{
-                padding: '12px 0',
-                borderBottom: '1px solid var(--color-border)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'flex-start',
-                gap: 16,
-            }}
-        >
-            <div style={{ flex: 1 }}>
+        <li className="settings-row">
+            <div className="settings-row-body">
                 <Field label="Label">
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <div className="input-row">
                         <Input
                             type="text"
                             value={label}
                             onChange={(e) => setLabel(e.target.value)}
                             maxLength={64}
-                            style={{ flex: 1, minWidth: 160 }}
+                            className="input-grow"
                         />
                         <Button type="button" kind="secondary" size="sm" onClick={() => onUpdate(keyData.id, label)}>
                             Update label
                         </Button>
                     </div>
                 </Field>
-                <p className="micro" style={{ marginTop: 8 }}>
+                <p className="micro mt-8">
                     Key: <code>scanner_••••••••••••••••••••••••••••••••</code>
                 </p>
                 {keyData.last_used_at && (
