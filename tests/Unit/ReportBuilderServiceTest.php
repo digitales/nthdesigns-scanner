@@ -58,6 +58,7 @@ class ReportBuilderServiceTest extends TestCase
         $this->assertEquals(110, $report['comparison']['review_gap']);
         $this->assertEquals(13, $report['comparison']['photo_gap']);
         $this->assertArrayHasKey('grade', $report);
+        $this->assertSame(50, $report['combined_score']);
         $this->assertArrayNotHasKey('combined_score', $report['prospect']);
     }
 

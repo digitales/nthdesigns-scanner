@@ -11,4 +11,9 @@ class OauthMcpRefreshTokenFamilyPolicy
     {
         return $user->id === $family->user_id;
     }
+
+    public function deleteAny(User $user): bool
+    {
+        return $user !== null;
+    }
 }
