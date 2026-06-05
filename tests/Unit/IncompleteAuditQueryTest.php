@@ -5,7 +5,7 @@ namespace Tests\Unit;
 use App\Models\Prospect;
 use App\Models\Search;
 use App\Models\User;
-use App\Support\IncompleteAuditQuery;
+use App\Queries\IncompleteAuditQuery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Tests\TestCase;

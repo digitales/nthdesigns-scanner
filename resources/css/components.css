@@ -424,14 +424,34 @@
     font-size: 12px;
     color: var(--color-stone-600);
   }
-  .input-with-prefix input {
+  .input-with-prefix input,
+  .input-with-prefix .input {
     border: 0;
+    border-radius: 0;
     padding: 9px 12px;
     background: transparent;
     font-family: var(--font-sans);
     font-size: 13.5px;
     color: var(--color-ink);
     flex: 1;
+    outline: none;
+    box-shadow: none;
+  }
+  .input-with-prefix:focus-within {
+    border-color: var(--color-accent-deep);
+    box-shadow: 0 0 0 3px var(--color-accent-soft);
+  }
+  .input-range {
+    width: 140px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    accent-color: var(--color-ink);
+    box-shadow: none;
+  }
+  .input-range:focus {
+    border-color: transparent;
+    box-shadow: none;
     outline: none;
   }
 

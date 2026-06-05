@@ -226,7 +226,7 @@ export default function OutreachIndex({
                 <Field label="CPC benchmark" hint="optional">
                   <div className="input-with-prefix">
                     <span className="prefix">£</span>
-                    <input
+                    <Input
                       type="number"
                       min="0"
                       step="0.01"

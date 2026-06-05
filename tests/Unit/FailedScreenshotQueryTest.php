@@ -8,7 +8,7 @@ use App\Models\Prospect;
 use App\Models\ProspectReport;
 use App\Models\Search;
 use App\Models\User;
-use App\Support\FailedScreenshotQuery;
+use App\Queries\FailedScreenshotQuery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Tests\TestCase;

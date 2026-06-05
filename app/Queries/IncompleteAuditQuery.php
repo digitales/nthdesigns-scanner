@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Support;
+namespace App\Queries;
 
 use App\Models\Prospect;
 use Illuminate\Database\Eloquent\Builder;

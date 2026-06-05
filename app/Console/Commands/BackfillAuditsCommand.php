@@ -4,7 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\Prospect;
 use App\Services\ProspectAuditService;
-use App\Support\IncompleteAuditQuery;
+use App\Queries\IncompleteAuditQuery;
 use App\Support\QueueDispatchDelay;
 use Illuminate\Console\Command;
 

@@ -1,8 +1,9 @@
 <?php
 
-namespace App\Support;
+namespace App\Queries;
 
 use App\Models\AuditJob;
+use App\Support\AuditingQueuePresence;
 use App\Models\ProspectReport;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;

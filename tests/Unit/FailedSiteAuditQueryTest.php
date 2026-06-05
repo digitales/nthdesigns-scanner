@@ -6,7 +6,7 @@ use App\Models\AuditJob;
 use App\Models\Prospect;
 use App\Models\Search;
 use App\Models\User;
-use App\Support\FailedSiteAuditQuery;
+use App\Queries\FailedSiteAuditQuery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Tests\TestCase;

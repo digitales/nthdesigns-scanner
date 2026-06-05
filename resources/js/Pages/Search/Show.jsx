@@ -14,6 +14,7 @@ import {
     FilterBar,
     IconButton,
     Icons,
+    Input,
     PageHeader,
     RowActions,
     ScoreBadge,
@@ -143,14 +144,14 @@ export default function SearchShow({ search, prospects, outreachProspectIds = []
                     </Field>
                     <Field label="Min combined score">
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 6 }}>
-                            <input
+                            <Input
                                 type="range"
+                                className="input-range"
                                 min="0"
                                 max="100"
                                 step="5"
                                 value={minScore}
                                 onChange={(e) => setMinScore(+e.target.value)}
-                                style={{ width: 140, accentColor: 'var(--color-ink)' }}
                             />
                             <span className="micro tabular" style={{ minWidth: 36 }}>{minScore}+</span>
                         </div>

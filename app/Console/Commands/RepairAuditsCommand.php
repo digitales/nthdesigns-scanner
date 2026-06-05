@@ -7,11 +7,11 @@ use App\Models\Prospect;
 use App\Models\ProspectReport;
 use App\Services\ProspectAuditService;
 use App\Support\AuditingQueuePresence;
-use App\Support\FailedScreenshotQuery;
-use App\Support\FailedSiteAuditQuery;
+use App\Queries\FailedScreenshotQuery;
+use App\Queries\FailedSiteAuditQuery;
+use App\Queries\StuckSiteAuditQuery;
 use App\Support\QueueDispatchDelay;
 use App\Support\StaleAuditJobCloser;
-use App\Support\StuckSiteAuditQuery;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
 
