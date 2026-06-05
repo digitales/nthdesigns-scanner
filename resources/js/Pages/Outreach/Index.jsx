@@ -1,4 +1,4 @@
-import { Head, Link, router, useForm, usePage } from "@inertiajs/react";
+import { Head, Link, router, useForm } from "@inertiajs/react";
 import { useState } from "react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import OutreachEmailCard from "@/Components/OutreachEmailCard";
@@ -16,15 +16,14 @@ import {
   ScoreBadge,
   Page,
   Segmented,
-  Stack,
 } from "@/Components/ui";
 
 export default function OutreachIndex({
   selection,
   emailsByProspect,
   defaults,
+  flash,
 }) {
-  const { flash } = usePage().props;
   const { data, setData, post, processing } = useForm({
     agency_name: defaults.agency_name,
     pitch_angle: defaults.pitch_angle,
@@ -68,7 +67,7 @@ export default function OutreachIndex({
         />
 
         {flash?.success && (
-          <div className="skip-banner banner-success">
+          <div className="skip-banner banner-positive banner-success">
             {flash.success}
           </div>
         )}
