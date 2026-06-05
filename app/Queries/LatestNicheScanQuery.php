@@ -12,7 +12,7 @@ final class LatestNicheScanQuery
     /**
      * Latest completed scan row per niche+city (window rank = 1).
      */
-    public static function ranked(Closure|null $filter = null): Builder
+    public static function ranked(?Closure $filter = null): Builder
     {
         $inner = NicheScan::query()
             ->select('*')
@@ -30,7 +30,7 @@ final class LatestNicheScanQuery
     /**
      * @return Collection<int, int>
      */
-    public static function ids(Closure|null $filter = null): Collection
+    public static function ids(?Closure $filter = null): Collection
     {
         return self::ranked($filter)->pluck('id');
     }

@@ -21,13 +21,13 @@ class PurgeExpiredProspectDataTest extends TestCase
         $user = User::factory()->create();
         $search = Search::factory()->create(['user_id' => $user->id]);
         $prospect = Prospect::factory()->create([
-            'search_id'       => $search->id,
-            'expires_at'      => now()->subDay(),
+            'search_id' => $search->id,
+            'expires_at' => now()->subDay(),
             'raw_gbp_payload' => ['test' => true],
         ]);
         $report = ProspectReport::factory()->create([
             'prospect_id' => $prospect->id,
-            'expires_at'  => now()->subDay(),
+            'expires_at' => now()->subDay(),
         ]);
 
         Artisan::call('scanner:purge-expired');
@@ -45,23 +45,23 @@ class PurgeExpiredProspectDataTest extends TestCase
         $search = Search::factory()->create(['user_id' => $user->id]);
         $prospect = Prospect::factory()->create(['search_id' => $search->id]);
         $job = AuditJob::create([
-            'prospect_id'   => $prospect->id,
-            'job_type'      => 'accessibility',
-            'status'        => 'failed',
+            'prospect_id' => $prospect->id,
+            'job_type' => 'accessibility',
+            'status' => 'failed',
             'error_message' => 'Summary kept',
-            'completed_at'  => now(),
+            'completed_at' => now(),
         ]);
         $detail = AuditJobErrorDetail::create([
             'audit_job_id' => $job->id,
-            'body'         => 'Full diagnostic body',
-            'created_at'   => now()->subDays(91),
+            'body' => 'Full diagnostic body',
+            'created_at' => now()->subDays(91),
         ]);
 
         Artisan::call('scanner:purge-expired');
 
         $this->assertDatabaseMissing('audit_job_error_details', ['id' => $detail->id]);
         $this->assertDatabaseHas('audit_jobs', [
-            'id'            => $job->id,
+            'id' => $job->id,
             'error_message' => 'Summary kept',
         ]);
     }

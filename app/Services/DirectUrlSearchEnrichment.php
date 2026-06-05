@@ -55,8 +55,8 @@ class DirectUrlSearchEnrichment
         if (! $benchmarkPlace) {
             Log::warning('DirectUrlSearchEnrichment: no benchmark place returned', [
                 'search_id' => $search->id,
-                'niche'     => $niche,
-                'city'      => $city,
+                'niche' => $niche,
+                'city' => $city,
             ]);
 
             return $updates;

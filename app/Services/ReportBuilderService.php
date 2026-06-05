@@ -6,6 +6,7 @@ use App\Models\Prospect;
 use App\Services\Reports\CmsLabelResolver;
 use App\Services\Reports\OperatorPageSpeedBuilder;
 use App\Services\Reports\ViolationMapper;
+use Illuminate\Support\Carbon;
 
 class ReportBuilderService
 {
@@ -240,7 +241,7 @@ class ReportBuilderService
             return $source;
         }
 
-        return (new BenchmarkNormalizer())->fromPlace($source);
+        return (new BenchmarkNormalizer)->fromPlace($source);
     }
 
     /**
@@ -260,7 +261,7 @@ class ReportBuilderService
         ];
     }
 
-    private function auditedAt(Prospect $prospect): ?\Illuminate\Support\Carbon
+    private function auditedAt(Prospect $prospect): ?Carbon
     {
         $completedJob = $prospect->relationLoaded('auditJobs')
             ? $prospect->auditJobs

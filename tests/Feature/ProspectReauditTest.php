@@ -22,15 +22,15 @@ class ProspectReauditTest extends TestCase
         $user = User::factory()->create();
         $search = Search::factory()->create(['user_id' => $user->id, 'scan_type' => 'combined']);
         $prospect = Prospect::factory()->create([
-            'search_id'            => $search->id,
-            'website_url'          => 'https://goodfabrics.example',
-            'audit_status'         => 'complete',
-            'gbp_score'            => 72,
-            'gbp_flags'            => ['Under 20 reviews'],
-            'raw_gbp_payload'      => ['displayName' => ['text' => 'Good Fabrics']],
-            'raw_a11y_payload'     => ['error' => 'page.goto: Timeout', 'violations' => []],
-            'a11y_flags'           => ['Site audit failed to load'],
-            'a11y_score'           => 50,
+            'search_id' => $search->id,
+            'website_url' => 'https://goodfabrics.example',
+            'audit_status' => 'complete',
+            'gbp_score' => 72,
+            'gbp_flags' => ['Under 20 reviews'],
+            'raw_gbp_payload' => ['displayName' => ['text' => 'Good Fabrics']],
+            'raw_a11y_payload' => ['error' => 'page.goto: Timeout', 'violations' => []],
+            'a11y_flags' => ['Site audit failed to load'],
+            'a11y_score' => 50,
             'suppress_auto_report' => false,
         ]);
 
@@ -54,8 +54,8 @@ class ProspectReauditTest extends TestCase
     {
         $user = User::factory()->create();
         $prospect = Prospect::factory()->create([
-            'search_id'    => Search::factory()->create(['user_id' => $user->id, 'scan_type' => 'combined'])->id,
-            'website_url'  => 'https://example.com',
+            'search_id' => Search::factory()->create(['user_id' => $user->id, 'scan_type' => 'combined'])->id,
+            'website_url' => 'https://example.com',
             'audit_status' => 'pending',
         ]);
 
@@ -69,7 +69,7 @@ class ProspectReauditTest extends TestCase
         $owner = User::factory()->create();
         $other = User::factory()->create();
         $prospect = Prospect::factory()->create([
-            'search_id'   => Search::factory()->create(['user_id' => $owner->id, 'scan_type' => 'combined'])->id,
+            'search_id' => Search::factory()->create(['user_id' => $owner->id, 'scan_type' => 'combined'])->id,
             'website_url' => 'https://example.com',
         ]);
 
@@ -85,11 +85,11 @@ class ProspectReauditTest extends TestCase
         $user = User::factory()->create();
         $search = Search::factory()->create(['user_id' => $user->id, 'scan_type' => 'gbp_only']);
         $prospect = Prospect::factory()->create([
-            'search_id'        => $search->id,
-            'website_url'      => 'https://sustainable-health.example',
-            'audit_status'     => 'complete',
-            'gbp_score'        => 68,
-            'combined_score'   => 68,
+            'search_id' => $search->id,
+            'website_url' => 'https://sustainable-health.example',
+            'audit_status' => 'complete',
+            'gbp_score' => 68,
+            'combined_score' => 68,
             'raw_a11y_payload' => null,
         ]);
 

@@ -25,37 +25,37 @@ class GenerateProspectReportJobTest extends TestCase
         Http::fake([
             'https://places.googleapis.com/v1/places:searchText' => Http::response([
                 'places' => [[
-                    'id'              => 'places/good-fabric',
-                    'displayName'     => ['text' => 'Good Fabric'],
+                    'id' => 'places/good-fabric',
+                    'displayName' => ['text' => 'Good Fabric'],
                     'userRatingCount' => 19,
-                    'photos'          => array_fill(0, 10, []),
-                    'rating'          => 5.0,
+                    'photos' => array_fill(0, 10, []),
+                    'rating' => 5.0,
                 ]],
             ], 200),
         ]);
 
         $search = Search::factory()->create([
-            'niche'   => 'fabric shop',
-            'city'    => 'Wimbledon',
+            'niche' => 'fabric shop',
+            'city' => 'Wimbledon',
             'country' => 'GB',
             'benchmark_snapshot' => [
-                'place_id'        => 'places/top-listing',
-                'name'            => 'Wimbledon Fabrics',
-                'review_count'    => 97,
-                'photo_count'     => 42,
-                'rating'          => 4.9,
+                'place_id' => 'places/top-listing',
+                'name' => 'Wimbledon Fabrics',
+                'review_count' => 97,
+                'photo_count' => 42,
+                'rating' => 4.9,
                 'has_description' => true,
-                'hours_complete'  => true,
+                'hours_complete' => true,
             ],
         ]);
 
         $prospect = Prospect::factory()->create([
-            'search_id'     => $search->id,
-            'place_id'      => 'places/good-fabric',
+            'search_id' => $search->id,
+            'place_id' => 'places/good-fabric',
             'business_name' => 'Good Fabric',
-            'review_count'  => 19,
-            'photo_count'   => 10,
-            'rating'        => 5.0,
+            'review_count' => 19,
+            'photo_count' => 10,
+            'rating' => 5.0,
         ]);
 
         (new GenerateProspectReportJob($prospect))->handle(
@@ -78,18 +78,18 @@ class GenerateProspectReportJobTest extends TestCase
             'https://places.googleapis.com/v1/places:searchText' => Http::response([
                 'places' => [
                     [
-                        'id'              => 'places/good-fabric',
-                        'displayName'     => ['text' => 'Good Fabric'],
+                        'id' => 'places/good-fabric',
+                        'displayName' => ['text' => 'Good Fabric'],
                         'userRatingCount' => 19,
-                        'photos'          => array_fill(0, 10, []),
-                        'rating'          => 5.0,
+                        'photos' => array_fill(0, 10, []),
+                        'rating' => 5.0,
                     ],
                     [
-                        'id'              => 'places/top-listing',
-                        'displayName'     => ['text' => 'Wimbledon Fabrics'],
+                        'id' => 'places/top-listing',
+                        'displayName' => ['text' => 'Wimbledon Fabrics'],
                         'userRatingCount' => 97,
-                        'photos'          => array_fill(0, 42, []),
-                        'rating'          => 4.9,
+                        'photos' => array_fill(0, 42, []),
+                        'rating' => 4.9,
                         'editorialSummary' => ['text' => 'Local fabric shop'],
                         'regularOpeningHours' => ['periods' => [['open' => ['day' => 1]]]],
                     ],
@@ -98,27 +98,27 @@ class GenerateProspectReportJobTest extends TestCase
         ]);
 
         $search = Search::factory()->create([
-            'niche'   => 'fabric shop',
-            'city'    => 'Wimbledon',
+            'niche' => 'fabric shop',
+            'city' => 'Wimbledon',
             'country' => 'GB',
             'benchmark_snapshot' => [
-                'place_id'        => 'places/good-fabric',
-                'name'            => 'Good Fabric',
-                'review_count'    => 19,
-                'photo_count'     => 10,
-                'rating'          => 5.0,
+                'place_id' => 'places/good-fabric',
+                'name' => 'Good Fabric',
+                'review_count' => 19,
+                'photo_count' => 10,
+                'rating' => 5.0,
                 'has_description' => false,
-                'hours_complete'  => false,
+                'hours_complete' => false,
             ],
         ]);
 
         $prospect = Prospect::factory()->create([
-            'search_id'     => $search->id,
-            'place_id'      => 'places/good-fabric',
+            'search_id' => $search->id,
+            'place_id' => 'places/good-fabric',
             'business_name' => 'Good Fabric',
-            'review_count'  => 19,
-            'photo_count'   => 10,
-            'rating'        => 5.0,
+            'review_count' => 19,
+            'photo_count' => 10,
+            'rating' => 5.0,
         ]);
 
         (new GenerateProspectReportJob($prospect))->handle(
@@ -136,23 +136,23 @@ class GenerateProspectReportJobTest extends TestCase
     public function test_direct_url_search_uses_enriched_benchmark_snapshot(): void
     {
         $search = Search::factory()->directUrl('https://example.com')->create([
-            'niche'  => 'dentist',
-            'city'   => 'Wimbledon',
-            'country'=> 'GB',
+            'niche' => 'dentist',
+            'city' => 'Wimbledon',
+            'country' => 'GB',
             'benchmark_snapshot' => [
-                'place_id'        => 'places/leader',
-                'name'            => 'Top Dentist',
-                'review_count'    => 90,
-                'photo_count'     => 15,
-                'rating'          => 4.8,
+                'place_id' => 'places/leader',
+                'name' => 'Top Dentist',
+                'review_count' => 90,
+                'photo_count' => 15,
+                'rating' => 4.8,
                 'has_description' => true,
-                'hours_complete'  => true,
+                'hours_complete' => true,
             ],
         ]);
 
         $prospect = Prospect::factory()->create([
-            'search_id'     => $search->id,
-            'place_id'      => 'places/prospect',
+            'search_id' => $search->id,
+            'place_id' => 'places/prospect',
             'business_name' => 'Example Dental',
         ]);
 
@@ -198,8 +198,8 @@ class GenerateProspectReportJobTest extends TestCase
         ]);
 
         $prospect = Prospect::factory()->create([
-            'search_id'     => $search->id,
-            'place_id'      => 'places/example',
+            'search_id' => $search->id,
+            'place_id' => 'places/example',
             'business_name' => 'Example Ltd',
         ]);
 

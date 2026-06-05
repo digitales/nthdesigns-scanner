@@ -2,12 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\DirectUrlScanJob;
 use App\Models\Prospect;
 use App\Models\Search;
 use App\Models\User;
 use App\Services\OAuthMcpJwtService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -38,7 +40,7 @@ class McpScanToolsTest extends TestCase
     /**
      * @param  array<string, mixed>  $params
      */
-    private function mcpCall(User $user, string $method, array $params = [], mixed $id = 1): \Illuminate\Testing\TestResponse
+    private function mcpCall(User $user, string $method, array $params = [], mixed $id = 1): TestResponse
     {
         $this->mockOAuthFor($user);
 
@@ -56,7 +58,7 @@ class McpScanToolsTest extends TestCase
     /**
      * @param  array<string, mixed>  $body
      */
-    private function mcpStreamableCall(User $user, array $body, ?string $sessionId = null): \Illuminate\Testing\TestResponse
+    private function mcpStreamableCall(User $user, array $body, ?string $sessionId = null): TestResponse
     {
         $this->mockOAuthFor($user);
 
@@ -154,7 +156,7 @@ class McpScanToolsTest extends TestCase
         $this->assertSame('direct_url', $search->source);
         $this->assertSame('https://example.com/path', $search->submitted_url);
 
-        Queue::assertPushed(\App\Jobs\DirectUrlScanJob::class);
+        Queue::assertPushed(DirectUrlScanJob::class);
     }
 
     #[Test]

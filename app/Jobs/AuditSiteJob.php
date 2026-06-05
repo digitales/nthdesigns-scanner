@@ -4,13 +4,13 @@ namespace App\Jobs;
 
 use App\Models\AuditJob;
 use App\Models\Prospect;
-use App\Support\AuditingQueue;
 use App\Services\A11yScoringService;
 use App\Services\AuditErrorRecorder;
 use App\Services\AuditRunnerService;
 use App\Services\CmsDetectionRunnerService;
 use App\Services\ScreenshotStorageService;
 use App\Services\SearchStatusService;
+use App\Support\AuditingQueue;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -24,7 +24,9 @@ class AuditSiteJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 2;
+
     public int $backoff = 60;
+
     public int $timeout = 240;
 
     public function __construct(public Prospect $prospect)
@@ -42,7 +44,7 @@ class AuditSiteJob implements ShouldQueue
     ): void {
         $prospect = $this->prospect->fresh();
 
-        if (!$prospect || !$prospect->website_url) {
+        if (! $prospect || ! $prospect->website_url) {
             return;
         }
 
@@ -59,10 +61,10 @@ class AuditSiteJob implements ShouldQueue
 
         $auditJob = AuditJob::create([
             'prospect_id' => $prospect->id,
-            'job_type'    => 'accessibility',
-            'status'      => 'running',
-            'attempts'    => $this->attempts(),
-            'started_at'  => now(),
+            'job_type' => 'accessibility',
+            'status' => 'running',
+            'attempts' => $this->attempts(),
+            'started_at' => now(),
         ]);
 
         $screenshotDir = storage_path('app/temp/audit/'.$prospect->id);
@@ -80,11 +82,11 @@ class AuditSiteJob implements ShouldQueue
             $scored = $scorer->score($payload);
 
             $updates = [
-                'a11y_score'              => $scored['score'],
-                'a11y_flags'              => $scored['flags'],
-                'performance_score'       => $scorer->extractPerformanceScore($payload),
-                'raw_a11y_payload'        => $payload,
-                'raw_lighthouse_payload'  => $payload['lighthouse'] ?? null,
+                'a11y_score' => $scored['score'],
+                'a11y_flags' => $scored['flags'],
+                'performance_score' => $scorer->extractPerformanceScore($payload),
+                'raw_a11y_payload' => $payload,
+                'raw_lighthouse_payload' => $payload['lighthouse'] ?? null,
             ];
 
             try {
@@ -100,7 +102,7 @@ class AuditSiteJob implements ShouldQueue
             $prospect->update($updates);
 
             $auditJob->update([
-                'status'       => 'complete',
+                'status' => 'complete',
                 'completed_at' => now(),
             ]);
 
@@ -108,12 +110,12 @@ class AuditSiteJob implements ShouldQueue
         } catch (\Throwable $e) {
             Log::error('AuditSiteJob failed', [
                 'prospect_id' => $prospect->id,
-                'url'         => $prospect->website_url,
-                'error'       => $e->getMessage(),
+                'url' => $prospect->website_url,
+                'error' => $e->getMessage(),
             ]);
 
             $auditJob->update([
-                'status'       => 'failed',
+                'status' => 'failed',
                 'completed_at' => now(),
             ]);
 
@@ -129,5 +131,4 @@ class AuditSiteJob implements ShouldQueue
             File::deleteDirectory($screenshotDir);
         }
     }
-
 }

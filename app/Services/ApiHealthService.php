@@ -20,8 +20,8 @@ class ApiHealthService
     {
         $checks = [
             'google_places' => $this->checkGooglePlaces(),
-            'anthropic'     => $this->checkAnthropic(),
-            'storage'       => $this->checkStorage(),
+            'anthropic' => $this->checkAnthropic(),
+            'storage' => $this->checkStorage(),
         ];
 
         if (config('scanner.screenshot_driver') === 'cloudflare') {
@@ -52,13 +52,13 @@ class ApiHealthService
         }
 
         $response = Http::withHeaders([
-            'Content-Type'     => 'application/json',
-            'X-Goog-Api-Key'   => $key,
+            'Content-Type' => 'application/json',
+            'X-Goog-Api-Key' => $key,
             'X-Goog-FieldMask' => 'places.id',
         ])->post('https://places.googleapis.com/v1/places:searchText', [
-            'textQuery'      => 'coffee shop in London, GB',
+            'textQuery' => 'coffee shop in London, GB',
             'maxResultCount' => 1,
-            'regionCode'     => 'gb',
+            'regionCode' => 'gb',
         ]);
 
         if ($response->successful()) {
@@ -70,7 +70,7 @@ class ApiHealthService
 
         if ($reason === 'API_KEY_HTTP_REFERRER_BLOCKED') {
             return [
-                'ok'      => false,
+                'ok' => false,
                 'message' => 'API key uses HTTP referrer restrictions — server requests have no referer. In Google Cloud, use Application restriction "IP addresses" (production) or "None" (local dev), not "Websites".',
             ];
         }
@@ -140,7 +140,7 @@ class ApiHealthService
 
         if ($probe->successful()) {
             return [
-                'ok'      => true,
+                'ok' => true,
                 'message' => 'Node '.trim($probe->output()).' ('.$binary.')',
             ];
         }
@@ -148,7 +148,7 @@ class ApiHealthService
         $which = trim(Process::run(['which', 'node'])->output());
 
         return [
-            'ok'      => false,
+            'ok' => false,
             'message' => 'NODE_BINARY ('.$binary.') is missing or not executable'.
                 ($which !== '' ? " — try NODE_BINARY={$which}" : ' — set NODE_BINARY=node in .env'),
         ];
@@ -163,7 +163,7 @@ class ApiHealthService
 
         if ($browsersPath === null || $browsersPath === '') {
             return [
-                'ok'      => false,
+                'ok' => false,
                 'message' => 'Chromium not installed — add Playwright build commands (see docs/deployment/laravel-cloud.md)',
             ];
         }
@@ -172,9 +172,9 @@ class ApiHealthService
             return ['ok' => true, 'message' => 'Bundled Chromium (scripts/node_modules)'];
         }
 
-        if (!PlaywrightBrowsers::hasInstalledBrowsers($browsersPath)) {
+        if (! PlaywrightBrowsers::hasInstalledBrowsers($browsersPath)) {
             return [
-                'ok'      => false,
+                'ok' => false,
                 'message' => 'PLAYWRIGHT_BROWSERS_PATH directory is empty or missing: '.$browsersPath,
             ];
         }

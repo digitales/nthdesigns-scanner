@@ -7,9 +7,12 @@ use App\Jobs\CombineScoresJob;
 use App\Models\Prospect;
 use App\Models\Search;
 use App\Models\User;
+use App\Services\A11yScoringService;
 use App\Services\AuditErrorRecorder;
 use App\Services\AuditRunnerService;
 use App\Services\CmsDetectionRunnerService;
+use App\Services\CombineScoresService;
+use App\Services\ScreenshotStorageService;
 use App\Services\SearchStatusService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
@@ -27,21 +30,21 @@ class AuditDriverTest extends TestCase
 
         $user = User::factory()->create();
         $search = Search::factory()->create([
-            'user_id'   => $user->id,
+            'user_id' => $user->id,
             'scan_type' => 'combined',
         ]);
         $prospect = Prospect::factory()->create([
-            'search_id'    => $search->id,
-            'website_url'  => 'https://example.com',
+            'search_id' => $search->id,
+            'website_url' => 'https://example.com',
             'audit_status' => 'pending',
         ]);
 
         $job = new AuditSiteJob($prospect);
         $job->handle(
             app(AuditRunnerService::class),
-            app(\App\Services\A11yScoringService::class),
+            app(A11yScoringService::class),
             app(SearchStatusService::class),
-            app(\App\Services\ScreenshotStorageService::class),
+            app(ScreenshotStorageService::class),
             app(AuditErrorRecorder::class),
             app(CmsDetectionRunnerService::class),
         );
@@ -49,7 +52,7 @@ class AuditDriverTest extends TestCase
         Bus::assertDispatched(CombineScoresJob::class);
         $this->assertDatabaseMissing('audit_jobs', [
             'prospect_id' => $prospect->id,
-            'job_type'    => 'accessibility',
+            'job_type' => 'accessibility',
         ]);
     }
 
@@ -60,19 +63,19 @@ class AuditDriverTest extends TestCase
 
         $user = User::factory()->create();
         $search = Search::factory()->create([
-            'user_id'   => $user->id,
+            'user_id' => $user->id,
             'scan_type' => 'combined',
         ]);
         $prospect = Prospect::factory()->create([
-            'search_id'    => $search->id,
-            'website_url'  => 'https://example.com',
-            'gbp_score'    => 40,
+            'search_id' => $search->id,
+            'website_url' => 'https://example.com',
+            'gbp_score' => 40,
             'audit_status' => 'pending',
         ]);
 
         $job = new CombineScoresJob($prospect);
         $job->handle(
-            app(\App\Services\CombineScoresService::class),
+            app(CombineScoresService::class),
             app(SearchStatusService::class),
         );
 

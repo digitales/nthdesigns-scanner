@@ -7,6 +7,7 @@ use App\Jobs\CombineScoresJob;
 use App\Models\Prospect;
 use App\Models\Search;
 use App\Models\User;
+use App\Services\A11yScoringService;
 use App\Services\AuditErrorRecorder;
 use App\Services\AuditRunnerService;
 use App\Services\CmsDetectionRunnerService;
@@ -56,7 +57,7 @@ class AuditSiteJobTest extends TestCase
         try {
             $job->handle(
                 app(AuditRunnerService::class),
-                app(\App\Services\A11yScoringService::class),
+                app(A11yScoringService::class),
                 app(SearchStatusService::class),
                 app(ScreenshotStorageService::class),
                 app(AuditErrorRecorder::class),
@@ -90,7 +91,7 @@ class AuditSiteJobTest extends TestCase
         try {
             $job->handle(
                 app(AuditRunnerService::class),
-                app(\App\Services\A11yScoringService::class),
+                app(A11yScoringService::class),
                 app(SearchStatusService::class),
                 app(ScreenshotStorageService::class),
                 app(AuditErrorRecorder::class),

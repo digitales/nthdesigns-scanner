@@ -76,7 +76,7 @@ final class FailedScreenshotQuery
         $cutoff = now()->subMinutes($stuckAfterMinutes);
         $latestJobs = self::latestScreenshotJobsForProspects($reports->pluck('prospect_id')->unique()->all());
 
-        return $reports->filter(function (ProspectReport $report) use ($cutoff, $stuckAfterMinutes, $latestJobs) {
+        return $reports->filter(function (ProspectReport $report) use ($cutoff, $latestJobs) {
             $latest = $latestJobs->get($report->prospect_id);
 
             if (! $latest || ! in_array($latest->status, ['failed', 'running'], true)) {

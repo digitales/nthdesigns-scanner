@@ -12,7 +12,7 @@ class ProspectNoteController extends Controller
     {
         $prospect->notes()->create([
             'user_id' => $request->user()->id,
-            'body'    => $request->validated('body'),
+            'body' => $request->validated('body'),
         ]);
 
         return back()->with('success', 'Note added.');

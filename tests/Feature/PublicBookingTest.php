@@ -33,7 +33,7 @@ class PublicBookingTest extends TestCase
         $prospect = Prospect::factory()->create(['search_id' => $search->id]);
         $report = ProspectReport::factory()->create([
             'prospect_id' => $prospect->id,
-            'token'       => 'test-token-abc',
+            'token' => 'test-token-abc',
             'report_data' => [
                 'booking_url' => 'https://tidycal.com/from-report',
             ],
@@ -94,11 +94,11 @@ class PublicBookingTest extends TestCase
         $prospect = Prospect::factory()->create(['search_id' => $search->id]);
         $report = ProspectReport::factory()->create([
             'prospect_id' => $prospect->id,
-            'token'       => 'cta-token',
+            'token' => 'cta-token',
             'report_data' => [
-                'prospect'      => ['business_name' => 'Acme Ltd'],
-                'booking_url'   => 'https://tidycal.com/368j4y9',
-                'generated_at'  => now()->toISOString(),
+                'prospect' => ['business_name' => 'Acme Ltd'],
+                'booking_url' => 'https://tidycal.com/368j4y9',
+                'generated_at' => now()->toISOString(),
             ],
         ]);
 

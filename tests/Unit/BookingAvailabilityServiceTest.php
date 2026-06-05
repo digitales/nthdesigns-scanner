@@ -6,6 +6,7 @@ use App\Models\AgencyBookingSetting;
 use App\Services\Calendar\BookingAvailabilityService;
 use App\Services\Calendar\FakeCalendarProvider;
 use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -56,11 +57,11 @@ class BookingAvailabilityServiceTest extends TestCase
 
         $fake = new class extends FakeCalendarProvider
         {
-            public ?\Carbon\CarbonInterface $busyFrom = null;
+            public ?CarbonInterface $busyFrom = null;
 
-            public ?\Carbon\CarbonInterface $busyTo = null;
+            public ?CarbonInterface $busyTo = null;
 
-            public function busyIntervals(\Carbon\CarbonInterface $from, \Carbon\CarbonInterface $to): array
+            public function busyIntervals(CarbonInterface $from, CarbonInterface $to): array
             {
                 $this->busyFrom = $from;
                 $this->busyTo = $to;

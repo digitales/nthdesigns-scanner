@@ -22,9 +22,9 @@ class BackfillWebsitesCommandTest extends TestCase
         parent::setUp();
 
         config([
-            'services.brave_search.api_key'     => 'test-brave',
+            'services.brave_search.api_key' => 'test-brave',
             'scanner.website_discovery_enabled' => true,
-            'scanner.website_discovery_provider'=> 'brave',
+            'scanner.website_discovery_provider' => 'brave',
         ]);
     }
 
@@ -32,24 +32,24 @@ class BackfillWebsitesCommandTest extends TestCase
     {
         $user = User::factory()->create();
         $search = Search::factory()->create(array_merge([
-            'user_id'   => $user->id,
+            'user_id' => $user->id,
             'scan_type' => 'combined',
-            'city'      => 'Manchester',
-            'country'   => 'GB',
-            'status'    => 'complete',
+            'city' => 'Manchester',
+            'country' => 'GB',
+            'status' => 'complete',
         ], $searchAttrs));
 
         return Prospect::factory()->create(array_merge([
-            'search_id'       => $search->id,
-            'business_name'   => 'Briar & Wren Solicitors Ltd',
-            'website_url'     => null,
-            'audit_status'    => 'skipped',
-            'gbp_flags'       => ['No website listed'],
+            'search_id' => $search->id,
+            'business_name' => 'Briar & Wren Solicitors Ltd',
+            'website_url' => null,
+            'audit_status' => 'skipped',
+            'gbp_flags' => ['No website listed'],
             'raw_gbp_payload' => [
-                'id'              => 'places/test',
-                'displayName'     => ['text' => 'Briar & Wren Solicitors Ltd'],
+                'id' => 'places/test',
+                'displayName' => ['text' => 'Briar & Wren Solicitors Ltd'],
                 'userRatingCount' => 10,
-                'photos'          => [],
+                'photos' => [],
             ],
         ], $prospectAttrs));
     }
@@ -90,8 +90,8 @@ class BackfillWebsitesCommandTest extends TestCase
                 'web' => [
                     'results' => [
                         [
-                            'url'         => 'https://briarwren.co.uk',
-                            'title'       => 'Briar & Wren Solicitors — Manchester',
+                            'url' => 'https://briarwren.co.uk',
+                            'title' => 'Briar & Wren Solicitors — Manchester',
                             'description' => 'Manchester solicitors',
                         ],
                     ],
@@ -130,8 +130,8 @@ class BackfillWebsitesCommandTest extends TestCase
                 'web' => [
                     'results' => [
                         [
-                            'url'         => 'https://briarwren.co.uk',
-                            'title'       => 'Briar & Wren Solicitors — Manchester',
+                            'url' => 'https://briarwren.co.uk',
+                            'title' => 'Briar & Wren Solicitors — Manchester',
                             'description' => 'Manchester',
                         ],
                     ],

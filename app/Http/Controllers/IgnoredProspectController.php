@@ -32,7 +32,7 @@ class IgnoredProspectController extends Controller
         return Inertia::render('Ignored/Index', [
             'entries' => $entries->values(),
             'filters' => $filters,
-            'meta'    => ['total' => $entries->count()],
+            'meta' => ['total' => $entries->count()],
             'reasonOptions' => [
                 ['value' => '', 'label' => 'All reasons'],
                 ['value' => IgnoredProspect::REASON_ACQUIRED, 'label' => 'Company acquired'],

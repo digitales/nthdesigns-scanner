@@ -29,8 +29,8 @@ class PurgeExpiredProspectData extends Command
             ->chunkById(100, function ($prospects) use (&$prospectCount, $storage) {
                 foreach ($prospects as $prospect) {
                     $prospect->update([
-                        'raw_gbp_payload'        => null,
-                        'raw_a11y_payload'       => null,
+                        'raw_gbp_payload' => null,
+                        'raw_a11y_payload' => null,
                         'raw_lighthouse_payload' => null,
                     ]);
 

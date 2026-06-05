@@ -2,14 +2,15 @@
 
 namespace Tests\Feature;
 
-use App\Jobs\ScrapeProspectsJob;
 use App\Jobs\ScorePlaceJob;
+use App\Jobs\ScrapeProspectsJob;
 use App\Models\IgnoredProspect;
 use App\Models\OutreachSelection;
 use App\Models\Prospect;
 use App\Models\Search;
 use App\Models\User;
 use App\Services\GooglePlacesService;
+use App\Services\ProspectExclusionService;
 use App\Services\SearchStatusService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
@@ -25,22 +26,22 @@ class ProspectIgnoreTest extends TestCase
         $user = User::factory()->create();
         $prospect = Prospect::factory()->create([
             'search_id' => Search::factory()->create(['user_id' => $user->id])->id,
-            'place_id'  => 'places/stackhouse',
+            'place_id' => 'places/stackhouse',
         ]);
 
         $this->actingAs($user)
             ->post("/prospects/{$prospect->id}/ignore", [
                 'reason' => IgnoredProspect::REASON_ACQUIRED,
-                'note'   => 'Acquired by Gallagher',
+                'note' => 'Acquired by Gallagher',
             ])
             ->assertRedirect()
             ->assertSessionHas('success');
 
         $this->assertDatabaseHas('ignored_prospects', [
-            'user_id'  => $user->id,
+            'user_id' => $user->id,
             'place_id' => 'places/stackhouse',
-            'reason'   => IgnoredProspect::REASON_ACQUIRED,
-            'note'     => 'Acquired by Gallagher',
+            'reason' => IgnoredProspect::REASON_ACQUIRED,
+            'note' => 'Acquired by Gallagher',
         ]);
     }
 
@@ -49,11 +50,11 @@ class ProspectIgnoreTest extends TestCase
         $user = User::factory()->create();
         $prospect = Prospect::factory()->create([
             'search_id' => Search::factory()->create(['user_id' => $user->id])->id,
-            'place_id'  => 'places/foo',
+            'place_id' => 'places/foo',
         ]);
 
         OutreachSelection::create([
-            'user_id'     => $user->id,
+            'user_id' => $user->id,
             'prospect_id' => $prospect->id,
         ]);
 
@@ -63,7 +64,7 @@ class ProspectIgnoreTest extends TestCase
             ]);
 
         $this->assertDatabaseMissing('outreach_selections', [
-            'user_id'     => $user->id,
+            'user_id' => $user->id,
             'prospect_id' => $prospect->id,
         ]);
     }
@@ -73,13 +74,13 @@ class ProspectIgnoreTest extends TestCase
         $user = User::factory()->create();
         $prospect = Prospect::factory()->create([
             'search_id' => Search::factory()->create(['user_id' => $user->id])->id,
-            'place_id'  => 'places/foo',
+            'place_id' => 'places/foo',
         ]);
 
         IgnoredProspect::create([
-            'user_id'  => $user->id,
+            'user_id' => $user->id,
             'place_id' => 'places/foo',
-            'reason'   => IgnoredProspect::REASON_COLD,
+            'reason' => IgnoredProspect::REASON_COLD,
         ]);
 
         $this->actingAs($user)
@@ -88,7 +89,7 @@ class ProspectIgnoreTest extends TestCase
             ->assertSessionHas('success');
 
         $this->assertDatabaseMissing('ignored_prospects', [
-            'user_id'  => $user->id,
+            'user_id' => $user->id,
             'place_id' => 'places/foo',
         ]);
     }
@@ -98,14 +99,14 @@ class ProspectIgnoreTest extends TestCase
         $user = User::factory()->create();
         $prospect = Prospect::factory()->create([
             'search_id' => Search::factory()->create(['user_id' => $user->id])->id,
-            'place_id'  => 'places/foo',
+            'place_id' => 'places/foo',
         ]);
 
         IgnoredProspect::create([
-            'user_id'  => $user->id,
+            'user_id' => $user->id,
             'place_id' => 'places/foo',
-            'reason'   => IgnoredProspect::REASON_ACQUIRED,
-            'note'     => 'Merged',
+            'reason' => IgnoredProspect::REASON_ACQUIRED,
+            'note' => 'Merged',
         ]);
 
         $this->actingAs($user)
@@ -122,22 +123,22 @@ class ProspectIgnoreTest extends TestCase
         $user = User::factory()->create();
         $other = User::factory()->create();
         $prospect = Prospect::factory()->create([
-            'search_id'     => Search::factory()->create(['user_id' => $user->id, 'niche' => 'Insurance', 'city' => 'Liverpool'])->id,
-            'place_id'      => 'places/foo',
+            'search_id' => Search::factory()->create(['user_id' => $user->id, 'niche' => 'Insurance', 'city' => 'Liverpool'])->id,
+            'place_id' => 'places/foo',
             'business_name' => 'Stackhouse Poland',
         ]);
 
         IgnoredProspect::create([
-            'user_id'  => $user->id,
+            'user_id' => $user->id,
             'place_id' => 'places/foo',
-            'reason'   => IgnoredProspect::REASON_ACQUIRED,
-            'note'     => 'Acquired',
+            'reason' => IgnoredProspect::REASON_ACQUIRED,
+            'note' => 'Acquired',
         ]);
 
         IgnoredProspect::create([
-            'user_id'  => $other->id,
+            'user_id' => $other->id,
             'place_id' => 'places/bar',
-            'reason'   => IgnoredProspect::REASON_COLD,
+            'reason' => IgnoredProspect::REASON_COLD,
         ]);
 
         $this->actingAs($user)
@@ -156,14 +157,14 @@ class ProspectIgnoreTest extends TestCase
         $user = User::factory()->create();
 
         IgnoredProspect::create([
-            'user_id'  => $user->id,
+            'user_id' => $user->id,
             'place_id' => 'places/a',
-            'reason'   => IgnoredProspect::REASON_COLD,
+            'reason' => IgnoredProspect::REASON_COLD,
         ]);
         IgnoredProspect::create([
-            'user_id'  => $user->id,
+            'user_id' => $user->id,
             'place_id' => 'places/b',
-            'reason'   => IgnoredProspect::REASON_ACQUIRED,
+            'reason' => IgnoredProspect::REASON_ACQUIRED,
         ]);
 
         $this->actingAs($user)
@@ -176,9 +177,9 @@ class ProspectIgnoreTest extends TestCase
     {
         $user = User::factory()->create();
         $ignored = IgnoredProspect::create([
-            'user_id'  => $user->id,
+            'user_id' => $user->id,
             'place_id' => 'places/orphan',
-            'reason'   => IgnoredProspect::REASON_OTHER,
+            'reason' => IgnoredProspect::REASON_OTHER,
         ]);
 
         $this->actingAs($user)
@@ -194,9 +195,9 @@ class ProspectIgnoreTest extends TestCase
         $owner = User::factory()->create();
         $other = User::factory()->create();
         $ignored = IgnoredProspect::create([
-            'user_id'  => $owner->id,
+            'user_id' => $owner->id,
             'place_id' => 'places/private',
-            'reason'   => IgnoredProspect::REASON_OTHER,
+            'reason' => IgnoredProspect::REASON_OTHER,
         ]);
 
         $this->actingAs($other)
@@ -225,15 +226,15 @@ class ProspectIgnoreTest extends TestCase
         $search = Search::factory()->create(['status' => 'pending', 'user_id' => $user->id]);
 
         IgnoredProspect::create([
-            'user_id'  => $user->id,
+            'user_id' => $user->id,
             'place_id' => 'places/ignored1',
-            'reason'   => IgnoredProspect::REASON_ACQUIRED,
+            'reason' => IgnoredProspect::REASON_ACQUIRED,
         ]);
 
         (new ScrapeProspectsJob($search))->handle(
             app(GooglePlacesService::class),
             app(SearchStatusService::class),
-            app(\App\Services\ProspectExclusionService::class),
+            app(ProspectExclusionService::class),
         );
 
         $search->refresh();

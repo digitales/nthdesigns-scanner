@@ -4,9 +4,9 @@ namespace App\Jobs;
 
 use App\Models\Prospect;
 use App\Models\ProspectReport;
-use App\Support\AuditingQueue;
 use App\Services\CombineScoresService;
 use App\Services\SearchStatusService;
+use App\Support\AuditingQueue;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -30,7 +30,7 @@ class CombineScoresJob implements ShouldQueue
     ): void {
         $prospect = $this->prospect->fresh();
 
-        if (!$prospect) {
+        if (! $prospect) {
             return;
         }
 
@@ -45,7 +45,7 @@ class CombineScoresJob implements ShouldQueue
 
         $auditStatus = match (true) {
             $prospect->audit_status === 'failed' => 'failed',
-            config('scanner.audit_driver') === 'skip' && !empty($prospect->website_url) => 'skipped',
+            config('scanner.audit_driver') === 'skip' && ! empty($prospect->website_url) => 'skipped',
             empty($prospect->website_url) && in_array($search->scan_type, ['accessibility_only', 'combined'], true) => 'skipped',
             default => 'complete',
         };
@@ -66,5 +66,4 @@ class CombineScoresJob implements ShouldQueue
 
         $searchStatus->refresh($search);
     }
-
 }

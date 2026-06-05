@@ -7,7 +7,9 @@ use App\Jobs\ScorePlaceJob;
 use App\Models\Prospect;
 use App\Models\Search;
 use App\Models\User;
+use App\Services\GbpScoringService;
 use App\Services\GooglePlacesService;
+use App\Services\SearchStatusService;
 use App\Services\WebsiteDiscoveryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
@@ -23,10 +25,10 @@ class ScorePlaceJobWebsiteDiscoveryTest extends TestCase
         parent::setUp();
 
         config([
-            'services.google_places.key'        => 'test-places',
-            'services.brave_search.api_key'     => 'test-brave',
+            'services.google_places.key' => 'test-places',
+            'services.brave_search.api_key' => 'test-brave',
             'scanner.website_discovery_enabled' => true,
-            'scanner.website_discovery_provider'=> 'brave',
+            'scanner.website_discovery_provider' => 'brave',
         ]);
     }
 
@@ -36,18 +38,18 @@ class ScorePlaceJobWebsiteDiscoveryTest extends TestCase
 
         $user = User::factory()->create();
         $search = Search::factory()->create([
-            'user_id'   => $user->id,
+            'user_id' => $user->id,
             'scan_type' => 'combined',
-            'city'      => 'Manchester',
-            'niche'     => 'solicitor',
+            'city' => 'Manchester',
+            'niche' => 'solicitor',
         ]);
 
         $placePayload = [
-            'id'              => 'places/abc',
-            'displayName'     => ['text' => 'Briar & Wren Solicitors Ltd'],
-            'formattedAddress'=> '1 High St, Manchester',
+            'id' => 'places/abc',
+            'displayName' => ['text' => 'Briar & Wren Solicitors Ltd'],
+            'formattedAddress' => '1 High St, Manchester',
             'userRatingCount' => 12,
-            'photos'          => [],
+            'photos' => [],
         ];
 
         $this->mock(GooglePlacesService::class, function ($mock) use ($placePayload) {
@@ -63,8 +65,8 @@ class ScorePlaceJobWebsiteDiscoveryTest extends TestCase
                 'web' => [
                     'results' => [
                         [
-                            'url'         => 'https://briarwren.co.uk',
-                            'title'       => 'Briar & Wren Solicitors — Manchester',
+                            'url' => 'https://briarwren.co.uk',
+                            'title' => 'Briar & Wren Solicitors — Manchester',
                             'description' => 'Manchester solicitors',
                         ],
                     ],
@@ -74,8 +76,8 @@ class ScorePlaceJobWebsiteDiscoveryTest extends TestCase
 
         (new ScorePlaceJob($search, 'places/abc'))->handle(
             app(GooglePlacesService::class),
-            app(\App\Services\GbpScoringService::class),
-            app(\App\Services\SearchStatusService::class),
+            app(GbpScoringService::class),
+            app(SearchStatusService::class),
             app(WebsiteDiscoveryService::class),
         );
 
@@ -140,8 +142,8 @@ class ScorePlaceJobWebsiteDiscoveryTest extends TestCase
 
         (new ScorePlaceJob($search, 'places/abc'))->handle(
             app(GooglePlacesService::class),
-            app(\App\Services\GbpScoringService::class),
-            app(\App\Services\SearchStatusService::class),
+            app(GbpScoringService::class),
+            app(SearchStatusService::class),
             app(WebsiteDiscoveryService::class),
         );
 
@@ -156,17 +158,17 @@ class ScorePlaceJobWebsiteDiscoveryTest extends TestCase
 
         $user = User::factory()->create();
         $search = Search::factory()->create([
-            'user_id'   => $user->id,
+            'user_id' => $user->id,
             'scan_type' => 'combined',
-            'city'      => 'Manchester',
+            'city' => 'Manchester',
         ]);
 
         $placePayload = [
-            'id'              => 'places/abc',
-            'displayName'     => ['text' => 'Example Ltd'],
-            'websiteUri'      => 'https://example.com',
+            'id' => 'places/abc',
+            'displayName' => ['text' => 'Example Ltd'],
+            'websiteUri' => 'https://example.com',
             'userRatingCount' => 12,
-            'photos'          => [],
+            'photos' => [],
         ];
 
         $this->mock(GooglePlacesService::class, function ($mock) use ($placePayload) {
@@ -180,8 +182,8 @@ class ScorePlaceJobWebsiteDiscoveryTest extends TestCase
 
         (new ScorePlaceJob($search, 'places/abc'))->handle(
             app(GooglePlacesService::class),
-            app(\App\Services\GbpScoringService::class),
-            app(\App\Services\SearchStatusService::class),
+            app(GbpScoringService::class),
+            app(SearchStatusService::class),
             app(WebsiteDiscoveryService::class),
         );
 
@@ -216,8 +218,8 @@ class ScorePlaceJobWebsiteDiscoveryTest extends TestCase
 
         (new ScorePlaceJob($search, 'places/abc'))->handle(
             app(GooglePlacesService::class),
-            app(\App\Services\GbpScoringService::class),
-            app(\App\Services\SearchStatusService::class),
+            app(GbpScoringService::class),
+            app(SearchStatusService::class),
             app(WebsiteDiscoveryService::class),
         );
 
@@ -231,16 +233,16 @@ class ScorePlaceJobWebsiteDiscoveryTest extends TestCase
 
         $user = User::factory()->create();
         $search = Search::factory()->create([
-            'user_id'   => $user->id,
+            'user_id' => $user->id,
             'scan_type' => 'combined',
-            'city'      => 'Manchester',
+            'city' => 'Manchester',
         ]);
 
         $placePayload = [
-            'id'              => 'places/abc',
-            'displayName'     => ['text' => 'No Site Co'],
+            'id' => 'places/abc',
+            'displayName' => ['text' => 'No Site Co'],
             'userRatingCount' => 5,
-            'photos'          => [],
+            'photos' => [],
         ];
 
         $this->mock(GooglePlacesService::class, function ($mock) use ($placePayload) {
@@ -254,8 +256,8 @@ class ScorePlaceJobWebsiteDiscoveryTest extends TestCase
 
         (new ScorePlaceJob($search, 'places/abc'))->handle(
             app(GooglePlacesService::class),
-            app(\App\Services\GbpScoringService::class),
-            app(\App\Services\SearchStatusService::class),
+            app(GbpScoringService::class),
+            app(SearchStatusService::class),
             app(WebsiteDiscoveryService::class),
         );
 

@@ -6,6 +6,7 @@ use App\Models\NicheScan;
 use App\Queries\LatestNicheScanQuery;
 use App\Services\NicheExclusionService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -51,7 +52,7 @@ class NicheScanController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function mapScan(NicheScan $s, \Illuminate\Support\Collection $ignoredLabels): array
+    private function mapScan(NicheScan $s, Collection $ignoredLabels): array
     {
         return [
             'id' => $s->id,

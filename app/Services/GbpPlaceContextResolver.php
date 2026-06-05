@@ -22,8 +22,8 @@ class GbpPlaceContextResolver
     public function resolve(array $payload, string $defaultCountry = 'GB'): array
     {
         return [
-            'niche'   => $this->nicheQuery($payload),
-            'city'    => $this->city($payload),
+            'niche' => $this->nicheQuery($payload),
+            'city' => $this->city($payload),
             'country' => $this->country($payload) ?? strtoupper($defaultCountry),
         ];
     }

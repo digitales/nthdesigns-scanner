@@ -57,7 +57,7 @@ class OAuthMcpRefreshTokenService
     /**
      * Validate + rotate a refresh token. Revokes the family on replay.
      *
-     * @return array{user: \App\Models\User, resource: string, scope: ?string, raw: string}
+     * @return array{user: User, resource: string, scope: ?string, raw: string}
      */
     public function rotate(
         string $rawToken,

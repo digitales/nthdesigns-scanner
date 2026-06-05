@@ -25,9 +25,9 @@ class SearchRateLimitTest extends TestCase
         RateLimiter::clear('search-submit:'.$user->id);
 
         $payload = [
-            'niche'     => 'dental',
-            'city'      => 'Leeds',
-            'country'   => 'GB',
+            'niche' => 'dental',
+            'city' => 'Leeds',
+            'country' => 'GB',
             'scan_type' => 'combined',
         ];
 
@@ -48,9 +48,9 @@ class SearchRateLimitTest extends TestCase
         RateLimiter::clear('search-submit:'.$user->id);
 
         $this->actingAs($user)->post('/searches', [
-            'niche'     => 'dental',
-            'city'      => 'Leeds',
-            'country'   => 'GB',
+            'niche' => 'dental',
+            'city' => 'Leeds',
+            'country' => 'GB',
             'scan_type' => 'combined',
         ])->assertRedirect();
 

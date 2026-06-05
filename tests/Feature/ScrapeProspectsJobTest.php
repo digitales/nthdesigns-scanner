@@ -6,6 +6,7 @@ use App\Jobs\ScorePlaceJob;
 use App\Jobs\ScrapeProspectsJob;
 use App\Models\Search;
 use App\Services\GooglePlacesService;
+use App\Services\ProspectExclusionService;
 use App\Services\SearchStatusService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
@@ -43,7 +44,7 @@ class ScrapeProspectsJobTest extends TestCase
         (new ScrapeProspectsJob($search))->handle(
             app(GooglePlacesService::class),
             app(SearchStatusService::class),
-            app(\App\Services\ProspectExclusionService::class),
+            app(ProspectExclusionService::class),
         );
 
         $search->refresh();

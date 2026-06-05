@@ -33,9 +33,9 @@ class AuditErrorRecorderTest extends TestCase
         ]);
         $job = AuditJob::create([
             'prospect_id' => $prospect->id,
-            'job_type'    => 'accessibility',
-            'status'      => 'failed',
-            'completed_at'  => now(),
+            'job_type' => 'accessibility',
+            'status' => 'failed',
+            'completed_at' => now(),
         ]);
 
         $full = "page.goto: Timeout\nCall log:\n  - waiting";
@@ -46,7 +46,7 @@ class AuditErrorRecorderTest extends TestCase
         $this->assertSame('page.goto: Timeout', $job->error_message);
         $this->assertDatabaseHas('audit_job_error_details', [
             'audit_job_id' => $job->id,
-            'body'         => $full,
+            'body' => $full,
         ]);
     }
 
@@ -80,8 +80,8 @@ class AuditErrorRecorderTest extends TestCase
         ]);
         $job = AuditJob::create([
             'prospect_id' => $prospect->id,
-            'job_type'    => 'accessibility',
-            'status'      => 'failed',
+            'job_type' => 'accessibility',
+            'status' => 'failed',
         ]);
 
         app(AuditErrorRecorder::class)->recordFailure($job, str_repeat('z', 40_000));

@@ -15,9 +15,9 @@ final class StaleAuditJobCloser
             ->where('job_type', $jobType)
             ->where('status', 'running')
             ->update([
-                'status'        => 'failed',
+                'status' => 'failed',
                 'error_message' => self::MESSAGE,
-                'completed_at'  => now(),
+                'completed_at' => now(),
             ]);
     }
 }

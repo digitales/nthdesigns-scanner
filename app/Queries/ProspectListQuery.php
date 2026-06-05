@@ -22,25 +22,25 @@ class ProspectListQuery
 
     public function apply(array $filters): self
     {
-        if (!empty($filters['from'])) {
+        if (! empty($filters['from'])) {
             $this->query->whereDate('prospects.created_at', '>=', $filters['from']);
         }
 
-        if (!empty($filters['to'])) {
+        if (! empty($filters['to'])) {
             $this->query->whereDate('prospects.created_at', '<=', $filters['to']);
         }
 
-        if (!empty($filters['niche'])) {
+        if (! empty($filters['niche'])) {
             $this->query->whereHas('search', fn (Builder $q) => $q
                 ->where('niche', 'like', '%'.$filters['niche'].'%'));
         }
 
-        if (!empty($filters['city'])) {
+        if (! empty($filters['city'])) {
             $this->query->whereHas('search', fn (Builder $q) => $q
                 ->where('city', 'like', '%'.$filters['city'].'%'));
         }
 
-        if (!empty($filters['scan_type'])) {
+        if (! empty($filters['scan_type'])) {
             $this->query->whereHas('search', fn (Builder $q) => $q
                 ->where('scan_type', $filters['scan_type']));
         }
@@ -49,11 +49,11 @@ class ProspectListQuery
             $this->query->where('combined_score', '>=', (int) $filters['min_score']);
         }
 
-        if (!empty($filters['dominant_angle'])) {
+        if (! empty($filters['dominant_angle'])) {
             $this->query->where('dominant_angle', $filters['dominant_angle']);
         }
 
-        if (!empty($filters['warm'])) {
+        if (! empty($filters['warm'])) {
             $this->applyWarmScope();
         }
 

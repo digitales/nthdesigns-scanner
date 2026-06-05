@@ -12,7 +12,7 @@ class A11yScoringServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new A11yScoringService();
+        $this->service = new A11yScoringService;
     }
 
     public function test_critical_violations_score_high(): void

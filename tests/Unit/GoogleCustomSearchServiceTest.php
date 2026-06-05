@@ -12,15 +12,15 @@ class GoogleCustomSearchServiceTest extends TestCase
     {
         config([
             'services.google_cse.key' => 'test-key',
-            'services.google_cse.cx'  => 'test-cx',
+            'services.google_cse.cx' => 'test-cx',
         ]);
 
         Http::fake([
             'https://www.googleapis.com/customsearch/v1*' => Http::response([
                 'items' => [
                     [
-                        'link'    => 'https://example.com/page',
-                        'title'   => 'Example Co',
+                        'link' => 'https://example.com/page',
+                        'title' => 'Example Co',
                         'snippet' => 'An example business',
                     ],
                 ],
@@ -38,7 +38,7 @@ class GoogleCustomSearchServiceTest extends TestCase
     {
         config([
             'services.google_cse.key' => 'test-key',
-            'services.google_cse.cx'  => 'test-cx',
+            'services.google_cse.cx' => 'test-cx',
         ]);
 
         Http::fake([

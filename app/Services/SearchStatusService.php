@@ -14,7 +14,7 @@ class SearchStatusService
     {
         $search = $search->fresh();
 
-        if (!$search || $search->status === 'complete' || $search->status === 'failed') {
+        if (! $search || $search->status === 'complete' || $search->status === 'failed') {
             return;
         }
 

@@ -16,9 +16,9 @@ class UpdateProspectRequest extends FormRequest
     {
         return [
             'business_name' => ['sometimes', 'required', 'string', 'max:255'],
-            'phone'         => ['sometimes', 'nullable', 'string', 'max:50'],
-            'website_url'   => ['sometimes', 'nullable', 'url', 'max:500'],
-            'address'       => ['sometimes', 'nullable', 'string', 'max:500'],
+            'phone' => ['sometimes', 'nullable', 'string', 'max:50'],
+            'website_url' => ['sometimes', 'nullable', 'url', 'max:500'],
+            'address' => ['sometimes', 'nullable', 'string', 'max:500'],
         ];
     }
 

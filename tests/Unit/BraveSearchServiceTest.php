@@ -17,8 +17,8 @@ class BraveSearchServiceTest extends TestCase
                 'web' => [
                     'results' => [
                         [
-                            'url'         => 'https://example.com/page',
-                            'title'       => 'Example Co',
+                            'url' => 'https://example.com/page',
+                            'title' => 'Example Co',
                             'description' => 'An example business in London',
                         ],
                     ],

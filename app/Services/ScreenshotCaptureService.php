@@ -40,14 +40,14 @@ class ScreenshotCaptureService
 
         $output = $this->parseScriptOutput($result->output(), $result->errorOutput());
 
-        if (!is_array($output) || !empty($output['error'])) {
+        if (! is_array($output) || ! empty($output['error'])) {
             throw new \RuntimeException($output['error'] ?? 'Screenshot script failed');
         }
 
         $filename = $output['desktop'] ?? 'desktop.png';
         $absolutePath = $localDir.'/'.basename($filename);
 
-        if (!is_file($absolutePath)) {
+        if (! is_file($absolutePath)) {
             throw new \RuntimeException('Screenshot file was not created');
         }
 

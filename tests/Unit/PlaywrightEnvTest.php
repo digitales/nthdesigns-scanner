@@ -34,7 +34,7 @@ class PlaywrightEnvTest extends TestCase
 
     public function test_for_process_falls_back_to_bundled_browsers_when_config_null(): void
     {
-        if (!is_dir(base_path('scripts/node_modules/.cache/ms-playwright'))) {
+        if (! is_dir(base_path('scripts/node_modules/.cache/ms-playwright'))) {
             $this->markTestSkipped('Bundled Playwright browsers not installed');
         }
 

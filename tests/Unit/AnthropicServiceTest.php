@@ -17,18 +17,18 @@ class AnthropicServiceTest extends TestCase
 
         Http::fake([
             'openrouter.ai/*' => Http::response([
-                'model'   => 'anthropic/claude-sonnet-4',
+                'model' => 'anthropic/claude-sonnet-4',
                 'choices' => [
                     ['message' => ['role' => 'assistant', 'content' => '{"subject_line":"Hi","email_body":"Body"}']],
                 ],
                 'usage' => [
-                    'prompt_tokens'     => 100,
+                    'prompt_tokens' => 100,
                     'completion_tokens' => 50,
                 ],
             ]),
         ]);
 
-        $result = (new AnthropicService())->complete('system', 'user');
+        $result = (new AnthropicService)->complete('system', 'user');
 
         $this->assertSame('{"subject_line":"Hi","email_body":"Body"}', $result['content']);
         $this->assertSame('anthropic/claude-sonnet-4', $result['model']);
@@ -53,6 +53,6 @@ class AnthropicServiceTest extends TestCase
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('OPENROUTER_API_KEY is not configured');
 
-        (new AnthropicService())->complete('system', 'user');
+        (new AnthropicService)->complete('system', 'user');
     }
 }

@@ -26,22 +26,22 @@ class BraveSearchService
 
         $response = Http::timeout($timeout)
             ->withHeaders([
-                'Accept'              => 'application/json',
-                'Accept-Encoding'     => 'gzip',
-                'X-Subscription-Token'=> $token,
+                'Accept' => 'application/json',
+                'Accept-Encoding' => 'gzip',
+                'X-Subscription-Token' => $token,
             ])
             ->get(self::ENDPOINT, [
-                'q'           => $query,
-                'count'       => $count,
-                'country'     => $country,
+                'q' => $query,
+                'count' => $count,
+                'country' => $country,
                 'search_lang' => 'en',
-                'safesearch'  => 'moderate',
+                'safesearch' => 'moderate',
             ]);
 
         if ($response->failed()) {
             Log::warning('Brave Search request failed', [
                 'status' => $response->status(),
-                'body'   => $response->body(),
+                'body' => $response->body(),
             ]);
 
             return [];
@@ -57,8 +57,8 @@ class BraveSearchService
             }
 
             $items[] = [
-                'url'     => $url,
-                'title'   => (string) ($result['title'] ?? ''),
+                'url' => $url,
+                'title' => (string) ($result['title'] ?? ''),
                 'snippet' => (string) ($result['description'] ?? ''),
             ];
         }

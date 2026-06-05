@@ -3,12 +3,12 @@
 namespace App\Jobs;
 
 use App\Models\Prospect;
-use App\Models\Search;
-use App\Support\AuditingQueue;
 use App\Models\ProspectReport;
+use App\Models\Search;
 use App\Services\BenchmarkNormalizer;
 use App\Services\GooglePlacesService;
 use App\Services\ReportBuilderService;
+use App\Support\AuditingQueue;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -21,6 +21,7 @@ class GenerateProspectReportJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 2;
+
     public int $timeout = 120;
 
     public function __construct(public Prospect $prospect)
@@ -34,7 +35,7 @@ class GenerateProspectReportJob implements ShouldQueue
     ): void {
         $prospect = $this->prospect->fresh(['search.user.setting']);
 
-        if (!$prospect) {
+        if (! $prospect) {
             return;
         }
 
@@ -49,10 +50,10 @@ class GenerateProspectReportJob implements ShouldQueue
         $report = ProspectReport::updateOrCreate(
             ['prospect_id' => $prospect->id],
             [
-                'token'              => $existing?->token ?? (string) Str::uuid(),
+                'token' => $existing?->token ?? (string) Str::uuid(),
                 'benchmark_place_id' => $benchmark['place_id'] ?? null,
-                'report_data'        => $reportData,
-                'expires_at'         => now()->addDays($expiryDays),
+                'report_data' => $reportData,
+                'expires_at' => now()->addDays($expiryDays),
             ]
         );
 
@@ -90,7 +91,6 @@ class GenerateProspectReportJob implements ShouldQueue
             $prospect->place_id,
         );
 
-        return $place ? (new BenchmarkNormalizer())->fromPlace($place) : null;
+        return $place ? (new BenchmarkNormalizer)->fromPlace($place) : null;
     }
-
 }

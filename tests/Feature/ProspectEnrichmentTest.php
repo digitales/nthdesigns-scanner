@@ -19,16 +19,16 @@ class ProspectEnrichmentTest extends TestCase
         $user = User::factory()->create();
         $search = Search::factory()->create(['user_id' => $user->id, 'scan_type' => 'gbp_only']);
         $prospect = Prospect::factory()->create([
-            'search_id'       => $search->id,
-            'phone'           => null,
-            'website_url'     => null,
-            'gbp_flags'       => ['No phone number listed', 'No website listed'],
+            'search_id' => $search->id,
+            'phone' => null,
+            'website_url' => null,
+            'gbp_flags' => ['No phone number listed', 'No website listed'],
             'raw_gbp_payload' => [],
         ]);
 
         $this->actingAs($user)
             ->patch("/prospects/{$prospect->id}", [
-                'phone'       => '+441234567890',
+                'phone' => '+441234567890',
                 'website_url' => 'https://example.com',
             ])
             ->assertRedirect();
@@ -62,11 +62,11 @@ class ProspectEnrichmentTest extends TestCase
         $user = User::factory()->create();
         $search = Search::factory()->create(['user_id' => $user->id, 'scan_type' => 'combined']);
         $prospect = Prospect::factory()->create([
-            'search_id'        => $search->id,
-            'website_url'      => null,
-            'audit_status'     => 'skipped',
+            'search_id' => $search->id,
+            'website_url' => null,
+            'audit_status' => 'skipped',
             'raw_a11y_payload' => ['violations' => []],
-            'a11y_score'       => 50,
+            'a11y_score' => 50,
         ]);
 
         $this->actingAs($user)
@@ -86,7 +86,7 @@ class ProspectEnrichmentTest extends TestCase
     {
         $user = User::factory()->create();
         $prospect = Prospect::factory()->create([
-            'search_id'    => Search::factory()->create(['user_id' => $user->id])->id,
+            'search_id' => Search::factory()->create(['user_id' => $user->id])->id,
             'audit_status' => 'pending',
         ]);
 
@@ -108,8 +108,8 @@ class ProspectEnrichmentTest extends TestCase
 
         $this->assertDatabaseHas('prospect_notes', [
             'prospect_id' => $prospect->id,
-            'user_id'     => $user->id,
-            'body'        => 'Called — no answer',
+            'user_id' => $user->id,
+            'body' => 'Called — no answer',
         ]);
     }
 

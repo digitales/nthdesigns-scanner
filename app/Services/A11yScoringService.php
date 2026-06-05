@@ -14,7 +14,7 @@ class A11yScoringService
         $score = 0;
         $flags = [];
 
-        if (!empty($payload['error'])) {
+        if (! empty($payload['error'])) {
             return [
                 'score' => 50,
                 'flags' => ['Site audit failed to load'],

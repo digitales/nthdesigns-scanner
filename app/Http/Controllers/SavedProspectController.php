@@ -26,8 +26,8 @@ class SavedProspectController extends Controller
         return Inertia::render('Saved/Index', [
             'prospects' => $prospects->map(fn ($p) => ProspectListResource::format($p)),
             'warmLeads' => $warmLeads->map(fn ($p) => ProspectListResource::format($p)),
-            'filters'   => $filters,
-            'meta'      => ['total' => $prospects->count()],
+            'filters' => $filters,
+            'meta' => ['total' => $prospects->count()],
         ]);
     }
 }

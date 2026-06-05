@@ -23,14 +23,14 @@ class RepairAuditsCommandTest extends TestCase
     {
         $user = User::factory()->create();
         $search = Search::factory()->create([
-            'user_id'   => $user->id,
+            'user_id' => $user->id,
             'scan_type' => 'combined',
-            'status'    => 'auditing',
+            'status' => 'auditing',
         ]);
 
         return Prospect::factory()->create(array_merge([
-            'search_id'    => $search->id,
-            'website_url'  => 'https://example.com',
+            'search_id' => $search->id,
+            'website_url' => 'https://example.com',
             'audit_status' => $auditStatus,
         ], $extra));
     }
@@ -47,9 +47,9 @@ class RepairAuditsCommandTest extends TestCase
 
         $report = ProspectReport::factory()->create(['prospect_id' => $failed->id]);
         AuditJob::create([
-            'prospect_id'  => $failed->id,
-            'job_type'     => 'screenshot',
-            'status'       => 'failed',
+            'prospect_id' => $failed->id,
+            'job_type' => 'screenshot',
+            'status' => 'failed',
             'completed_at' => now(),
         ]);
 
@@ -72,16 +72,16 @@ class RepairAuditsCommandTest extends TestCase
 
         $running = AuditJob::create([
             'prospect_id' => $prospect->id,
-            'job_type'    => 'accessibility',
-            'status'      => 'running',
-            'started_at'  => now()->subMinutes(20),
+            'job_type' => 'accessibility',
+            'status' => 'running',
+            'started_at' => now()->subMinutes(20),
         ]);
 
         $this->artisan('scanner:repair-audits', [
-            '--execute'    => true,
-            '--only'       => 'stuck',
-            '--stuck-after'=> 15,
-            '--delay'      => 0,
+            '--execute' => true,
+            '--only' => 'stuck',
+            '--stuck-after' => 15,
+            '--delay' => 0,
         ])->assertExitCode(0);
 
         $running->refresh();
@@ -96,15 +96,15 @@ class RepairAuditsCommandTest extends TestCase
         Queue::fake();
 
         $prospect = $this->searchProspect('failed', [
-            'raw_a11y_payload'       => ['violations' => []],
+            'raw_a11y_payload' => ['violations' => []],
             'raw_lighthouse_payload' => ['performance' => 90],
-            'performance_score'      => 90,
+            'performance_score' => 90,
         ]);
 
         $this->artisan('scanner:repair-audits', [
             '--execute' => true,
-            '--only'    => 'failed',
-            '--delay'   => 0,
+            '--only' => 'failed',
+            '--delay' => 0,
         ])->assertExitCode(0);
 
         $prospect->refresh();
@@ -122,16 +122,16 @@ class RepairAuditsCommandTest extends TestCase
         $report = ProspectReport::factory()->create(['prospect_id' => $prospect->id]);
 
         AuditJob::create([
-            'prospect_id'  => $prospect->id,
-            'job_type'     => 'screenshot',
-            'status'       => 'failed',
+            'prospect_id' => $prospect->id,
+            'job_type' => 'screenshot',
+            'status' => 'failed',
             'completed_at' => now(),
         ]);
 
         $this->artisan('scanner:repair-audits', [
             '--execute' => true,
-            '--only'    => 'screenshots',
-            '--delay'   => 0,
+            '--only' => 'screenshots',
+            '--delay' => 0,
         ])->assertExitCode(0);
 
         $prospect->refresh();

@@ -23,12 +23,12 @@ class ProspectListQueryTest extends TestCase
         $warm = Prospect::factory()->create(['search_id' => $search->id, 'business_name' => 'Warm Co']);
         ProspectReport::factory()->create([
             'prospect_id' => $warm->id,
-            'viewed_at'   => now(),
+            'viewed_at' => now(),
         ]);
         OutreachEmail::factory()->create([
-            'prospect_id'       => $warm->id,
-            'user_id'           => $user->id,
-            'sent_at'           => now(),
+            'prospect_id' => $warm->id,
+            'user_id' => $user->id,
+            'sent_at' => now(),
             'response_received' => false,
         ]);
 
@@ -38,9 +38,9 @@ class ProspectListQueryTest extends TestCase
         $responded = Prospect::factory()->create(['search_id' => $search->id, 'business_name' => 'Done Co']);
         ProspectReport::factory()->create(['prospect_id' => $responded->id, 'viewed_at' => now()]);
         OutreachEmail::factory()->create([
-            'prospect_id'       => $responded->id,
-            'user_id'           => $user->id,
-            'sent_at'           => now(),
+            'prospect_id' => $responded->id,
+            'user_id' => $user->id,
+            'sent_at' => now(),
             'response_received' => true,
         ]);
 

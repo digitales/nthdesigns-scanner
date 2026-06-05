@@ -25,7 +25,7 @@ class OutreachSelectionTest extends TestCase
             ->assertRedirect();
 
         $this->assertDatabaseHas('outreach_selections', [
-            'user_id'     => $user->id,
+            'user_id' => $user->id,
             'prospect_id' => $prospect->id,
         ]);
     }
@@ -56,7 +56,7 @@ class OutreachSelectionTest extends TestCase
             ->assertRedirect();
 
         $this->assertDatabaseMissing('outreach_selections', [
-            'user_id'     => $user->id,
+            'user_id' => $user->id,
             'prospect_id' => $prospect->id,
         ]);
     }

@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Services\GooglePlacesService;
 use Illuminate\Console\Command;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Throwable;
@@ -125,11 +126,11 @@ class NichesBootstrapCommand extends Command
     private function fetchCities(): array
     {
         $response = Http::timeout(15)->get(self::ONS_QUERY_URL, [
-            'where'              => '1=1',
-            'outFields'          => 'TCITY15NM',
-            'returnGeometry'     => 'false',
-            'resultRecordCount'  => 2000,
-            'f'                  => 'json',
+            'where' => '1=1',
+            'outFields' => 'TCITY15NM',
+            'returnGeometry' => 'false',
+            'resultRecordCount' => 2000,
+            'f' => 'json',
         ]);
 
         if ($this->onsFetchFailed($response)) {
@@ -158,7 +159,7 @@ class NichesBootstrapCommand extends Command
         return $this->sortCities($names);
     }
 
-    private function onsFetchFailed(\Illuminate\Http\Client\Response $response): bool
+    private function onsFetchFailed(Response $response): bool
     {
         if ($response->failed()) {
             return true;
@@ -201,8 +202,8 @@ class NichesBootstrapCommand extends Command
             ->filter(fn (string $type) => $this->typePassesFilter($type))
             ->map(fn (string $type) => [
                 'primary_type' => $type,
-                'label'        => Str::title(str_replace('_', ' ', $type)),
-                'query'        => str_replace('_', ' ', $type),
+                'label' => Str::title(str_replace('_', ' ', $type)),
+                'query' => str_replace('_', ' ', $type),
             ])
             ->values()
             ->all();

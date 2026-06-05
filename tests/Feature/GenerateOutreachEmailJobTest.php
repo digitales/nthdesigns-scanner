@@ -9,12 +9,26 @@ use App\Models\ProspectReport;
 use App\Models\Search;
 use App\Models\User;
 use App\Services\OutreachEmailGeneratorService;
+use App\Support\SearchQueue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class GenerateOutreachEmailJobTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_routes_to_searches_queue(): void
+    {
+        $user = User::factory()->create();
+        $prospect = Prospect::factory()->create([
+            'search_id' => Search::factory()->create(['user_id' => $user->id])->id,
+        ]);
+
+        $job = new GenerateOutreachEmailJob($prospect, $user);
+
+        $this->assertSame(SearchQueue::NAME, $job->queue);
+        $this->assertSame(SearchQueue::connection(), $job->connection);
+    }
 
     public function test_skips_when_matching_email_already_exists(): void
     {

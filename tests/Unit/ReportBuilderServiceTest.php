@@ -21,24 +21,24 @@ class ReportBuilderServiceTest extends TestCase
     public function test_builds_prospect_and_benchmark_data(): void
     {
         $search = new Search([
-            'niche'     => 'dental practice',
-            'city'      => 'Birmingham',
-            'country'   => 'GB',
+            'niche' => 'dental practice',
+            'city' => 'Birmingham',
+            'country' => 'GB',
             'scan_type' => 'combined',
         ]);
 
         $prospect = new Prospect([
-            'search_id'     => 1,
+            'search_id' => 1,
             'business_name' => 'Test Dental',
-            'review_count'  => 10,
-            'photo_count'   => 2,
-            'rating'        => 4.0,
-            'gbp_score'     => 60,
-            'a11y_score'    => 40,
-            'combined_score'=> 50,
-            'gbp_flags'     => ['Under 20 reviews'],
-            'a11y_flags'    => [],
-            'dominant_angle'=> 'gbp',
+            'review_count' => 10,
+            'photo_count' => 2,
+            'rating' => 4.0,
+            'gbp_score' => 60,
+            'a11y_score' => 40,
+            'combined_score' => 50,
+            'gbp_flags' => ['Under 20 reviews'],
+            'a11y_flags' => [],
+            'dominant_angle' => 'gbp',
         ]);
         $prospect->setRelation('search', $search);
 
@@ -65,10 +65,10 @@ class ReportBuilderServiceTest extends TestCase
     {
         $search = new Search(['niche' => 'test', 'city' => 'Leeds', 'country' => 'GB', 'scan_type' => 'combined']);
         $prospect = new Prospect([
-            'business_name'  => 'Acme',
+            'business_name' => 'Acme',
             'combined_score' => 80,
-            'gbp_score'      => 70,
-            'a11y_score'     => 90,
+            'gbp_score' => 70,
+            'a11y_score' => 90,
             'raw_a11y_payload' => [
                 'violations' => [
                     [

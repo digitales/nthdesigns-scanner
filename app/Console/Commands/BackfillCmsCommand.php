@@ -7,6 +7,7 @@ use App\Models\Prospect;
 use App\Support\QueueDispatchDelay;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 
 class BackfillCmsCommand extends Command
 {
@@ -107,7 +108,7 @@ class BackfillCmsCommand extends Command
     }
 
     /**
-     * @return \Illuminate\Database\Eloquent\Collection<int, Prospect>
+     * @return Collection<int, Prospect>
      */
     private function fetch(?int $searchId, ?int $prospectId, ?int $limit, bool $force = false)
     {
@@ -132,8 +133,8 @@ class BackfillCmsCommand extends Command
     }
 
     /**
-     * @param  \Illuminate\Database\Eloquent\Collection<int, Prospect>  $prospects
-     * @return array{0: \Illuminate\Database\Eloquent\Collection<int, Prospect>, 1: int}
+     * @param  Collection<int, Prospect>  $prospects
+     * @return array{0: Collection<int, Prospect>, 1: int}
      */
     private function applySqsBatchLimit($prospects, int $delay): array
     {

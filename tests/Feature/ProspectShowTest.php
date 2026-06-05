@@ -86,16 +86,16 @@ class ProspectShowTest extends TestCase
             'website_url' => 'https://example.com',
         ]);
         $job = AuditJob::create([
-            'prospect_id'   => $prospect->id,
-            'job_type'      => 'accessibility',
-            'status'        => 'failed',
+            'prospect_id' => $prospect->id,
+            'job_type' => 'accessibility',
+            'status' => 'failed',
             'error_message' => 'page.goto: Timeout',
-            'completed_at'  => now(),
+            'completed_at' => now(),
         ]);
         AuditJobErrorDetail::create([
             'audit_job_id' => $job->id,
-            'body'         => "page.goto: Timeout\nCall log:\n  - navigating",
-            'created_at'   => now(),
+            'body' => "page.goto: Timeout\nCall log:\n  - navigating",
+            'created_at' => now(),
         ]);
 
         $this->actingAs($user)
@@ -117,11 +117,11 @@ class ProspectShowTest extends TestCase
             'audit_status' => 'failed',
         ]);
         AuditJob::create([
-            'prospect_id'   => $prospect->id,
-            'job_type'      => 'accessibility',
-            'status'        => 'failed',
+            'prospect_id' => $prospect->id,
+            'job_type' => 'accessibility',
+            'status' => 'failed',
             'error_message' => 'Audit script failed',
-            'completed_at'  => now(),
+            'completed_at' => now(),
         ]);
 
         $this->actingAs($user)

@@ -9,6 +9,7 @@ use App\Support\QueueDispatchDelay;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Validation\ValidationException;
 
 class BackfillWebsitesCommand extends Command
 {
@@ -129,7 +130,7 @@ class BackfillWebsitesCommand extends Command
                 $auditDelay = QueueDispatchDelay::forIndex($auditsQueued, $delay);
                 $audits->queueSiteAudit($prospect, suppressAutoReport: true, delaySeconds: $auditDelay);
                 $auditsQueued++;
-            } catch (\Illuminate\Validation\ValidationException $e) {
+            } catch (ValidationException $e) {
                 $this->warn("  [audit skip] #{$prospect->id}: ".collect($e->errors())->flatten()->first());
             }
         }

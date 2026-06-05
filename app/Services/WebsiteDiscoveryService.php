@@ -107,10 +107,10 @@ class WebsiteDiscoveryService
         }
 
         Log::info('website_discovery.matched', [
-            'search_id'  => $search->id,
-            'place_id'   => $prospect->place_id,
+            'search_id' => $search->id,
+            'place_id' => $prospect->place_id,
             'confidence' => $match['confidence'],
-            'host'       => $this->normalizer->host($match['url']),
+            'host' => $this->normalizer->host($match['url']),
         ]);
 
         return $match;
@@ -153,12 +153,12 @@ class WebsiteDiscoveryService
         }
 
         $prospect->fill([
-            'website_url'                  => $match['url'],
-            'website_url_source'           => $this->provider(),
+            'website_url' => $match['url'],
+            'website_url_source' => $this->provider(),
             'website_discovery_confidence' => $match['confidence'],
-            'website_discovered_at'        => $discoveredAt,
-            'gbp_score'                    => $scored['score'],
-            'gbp_flags'                    => $flags,
+            'website_discovered_at' => $discoveredAt,
+            'gbp_score' => $scored['score'],
+            'gbp_flags' => $flags,
         ]);
 
         $combined = app(CombineScoresService::class)->combineForProspect($prospect, $search->scan_type);
@@ -309,8 +309,8 @@ class WebsiteDiscoveryService
     {
         Log::info('website_discovery.skipped', array_merge([
             'search_id' => $search->id,
-            'place_id'  => $prospect->place_id,
-            'reason'    => $reason,
+            'place_id' => $prospect->place_id,
+            'reason' => $reason,
         ], $extra));
     }
 }

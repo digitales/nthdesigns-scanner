@@ -3,8 +3,8 @@
 namespace App\Queries;
 
 use App\Models\AuditJob;
-use App\Support\RepairAuditScope;
 use App\Models\Prospect;
+use App\Support\RepairAuditScope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 

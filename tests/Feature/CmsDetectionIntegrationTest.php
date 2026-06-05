@@ -7,8 +7,12 @@ use App\Jobs\DetectCmsJob;
 use App\Models\Prospect;
 use App\Models\Search;
 use App\Models\User;
+use App\Services\A11yScoringService;
+use App\Services\AuditErrorRecorder;
 use App\Services\AuditRunnerService;
 use App\Services\CmsDetectionRunnerService;
+use App\Services\ScreenshotStorageService;
+use App\Services\SearchStatusService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
@@ -63,7 +67,7 @@ class CmsDetectionIntegrationTest extends TestCase
             ]);
         });
 
-        $this->mock(\App\Services\ScreenshotStorageService::class, function ($mock) {
+        $this->mock(ScreenshotStorageService::class, function ($mock) {
             $mock->shouldReceive('storeViolationScreenshots')->andReturn([]);
         });
 
@@ -80,10 +84,10 @@ class CmsDetectionIntegrationTest extends TestCase
 
         (new AuditSiteJob($prospect))->handle(
             app(AuditRunnerService::class),
-            app(\App\Services\A11yScoringService::class),
-            app(\App\Services\SearchStatusService::class),
-            app(\App\Services\ScreenshotStorageService::class),
-            app(\App\Services\AuditErrorRecorder::class),
+            app(A11yScoringService::class),
+            app(SearchStatusService::class),
+            app(ScreenshotStorageService::class),
+            app(AuditErrorRecorder::class),
             app(CmsDetectionRunnerService::class),
         );
 

@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\IgnoredNiche;
 use App\Models\NicheInclusionOverride;
-use App\Models\NicheScan;
 use App\Queries\LatestNicheScanQuery;
 
 final class NicheExclusionService

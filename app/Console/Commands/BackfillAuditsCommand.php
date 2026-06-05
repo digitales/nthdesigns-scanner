@@ -3,8 +3,8 @@
 namespace App\Console\Commands;
 
 use App\Models\Prospect;
-use App\Services\ProspectAuditService;
 use App\Queries\IncompleteAuditQuery;
+use App\Services\ProspectAuditService;
 use App\Support\QueueDispatchDelay;
 use Illuminate\Console\Command;
 
@@ -65,7 +65,7 @@ class BackfillAuditsCommand extends Command
             $this->warn("With --delay={$delay}, each run can queue at most {$maxPerBatch} job(s) on SQS (".QueueDispatchDelay::MAX_SECONDS.'s cap). Re-run until none remain.');
         }
 
-        if (!$this->option('execute')) {
+        if (! $this->option('execute')) {
             $this->comment('Dry run — no changes made. Pass --execute to reset and dispatch jobs.');
 
             return self::SUCCESS;
