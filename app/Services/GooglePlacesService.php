@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Services\ApiUsage\ApiUsageGate;
 use App\Services\GooglePlaces\PlacesTextSearchClient;
 use App\Support\WebsiteUrlNormalizer;
 use Illuminate\Support\Facades\Cache;
@@ -16,8 +17,9 @@ class GooglePlacesService
 
     private const DETAILS_FIELD_MASK_VERSION = 'v1';
 
-    public function __construct()
-    {
+    public function __construct(
+        private ApiUsageGate $usageGate,
+    ) {
         $this->apiKey = config('services.google_places.key');
     }
 
@@ -29,7 +31,7 @@ class GooglePlacesService
     {
         $query = "{$niche} in {$city}, {$country}";
 
-        return (new PlacesTextSearchClient($this->apiKey, $this->baseUrl))
+        return (new PlacesTextSearchClient($this->apiKey, $this->usageGate, $this->baseUrl))
             ->searchPlaceIds($query, strtolower($country));
     }
 
@@ -50,11 +52,15 @@ class GooglePlacesService
             }
         }
 
+        $this->usageGate->assertWithinQuota('google_places', 'place_details');
+
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
             'X-Goog-Api-Key' => $this->apiKey,
             'X-Goog-FieldMask' => $fieldMask,
         ])->get("{$this->baseUrl}/{$placeId}");
+
+        $this->usageGate->recordCompletedRequest('google_places', 'place_details');
 
         if ($response->failed()) {
             Log::error('GooglePlaces getPlaceDetails failed', [
@@ -107,11 +113,15 @@ class GooglePlacesService
             'places.editorialSummary',
         ]);
 
+        $this->usageGate->assertWithinQuota('google_places', 'text_search');
+
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
             'X-Goog-Api-Key' => $this->apiKey,
             'X-Goog-FieldMask' => $fieldMask,
         ])->post("{$this->baseUrl}:searchText", $payload);
+
+        $this->usageGate->recordCompletedRequest('google_places', 'text_search');
 
         if ($response->failed()) {
             return null;
@@ -133,6 +143,8 @@ class GooglePlacesService
         $normalizer = app(WebsiteUrlNormalizer::class);
         $targetHost = $normalizer->host($url);
 
+        $this->usageGate->assertWithinQuota('google_places', 'text_search');
+
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
             'X-Goog-Api-Key' => $this->apiKey,
@@ -141,6 +153,8 @@ class GooglePlacesService
             'textQuery' => $targetHost,
             'maxResultCount' => 20,
         ]);
+
+        $this->usageGate->recordCompletedRequest('google_places', 'text_search');
 
         if ($response->failed()) {
             Log::warning('GooglePlaces findByWebsiteUrl searchText failed', [

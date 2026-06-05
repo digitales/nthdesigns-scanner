@@ -3,11 +3,13 @@
 namespace Tests\Unit;
 
 use App\Services\BraveSearchService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class BraveSearchServiceTest extends TestCase
 {
+    use RefreshDatabase;
     public function test_search_returns_normalised_items(): void
     {
         config(['services.brave_search.api_key' => 'test-token']);

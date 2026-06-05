@@ -1317,6 +1317,44 @@
     text-align: right;
   }
 
+  /* API quota usage (Settings) */
+  .api-quota-group + .api-quota-group {
+    padding-top: 16px;
+    border-top: 1px solid var(--color-line);
+  }
+  .api-quota-period-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+  .api-quota-track {
+    height: 4px;
+    background: var(--color-stone-200);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .api-quota-fill {
+    height: 100%;
+    background: var(--color-ink);
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+  .api-quota-fill--warning { background: var(--color-warning, #b45309); }
+  .api-quota-fill--blocked { background: var(--color-critical, #b91c1c); }
+  .api-quota-status { margin-top: 4px; }
+  .api-quota-status--warning { color: var(--color-warning, #b45309); }
+  .api-quota-status--blocked { color: var(--color-critical, #b91c1c); }
+  .api-quota-adjust summary {
+    cursor: pointer;
+    list-style: none;
+  }
+  .api-quota-adjust summary::-webkit-details-marker { display: none; }
+  .api-quota-limit-group + .api-quota-limit-group {
+    padding-top: 12px;
+    border-top: 1px solid var(--color-line);
+  }
+
   .spinner {
     width: 12px;
     height: 12px;
