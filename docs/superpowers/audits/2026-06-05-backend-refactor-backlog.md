@@ -11,7 +11,56 @@ _TBD after Task 14_
 _TBD after Task 14_
 
 ## Spec gap register
-_TBD after Task 12_
+
+### Spec inventory (25 specs, excl. lean-audit design)
+
+| Spec | Status | Spot-check |
+|------|--------|------------|
+| `2026-05-26-operator-ui-design.md` | Draft | not checked |
+| `2026-05-26-plan-completion-design.md` | Implemented | not checked |
+| `2026-05-27-audit-backfill-design.md` | Implemented | not checked |
+| `2026-05-27-gbp-scoring-flags-design.md` | Approved (awaiting plan) | match — flags in `GbpScoringService` |
+| `2026-05-27-niche-opportunity-scanner-design.md` | Approved | not checked |
+| `2026-05-27-niches-bootstrap-design.md` | Approved | not checked |
+| `2026-05-27-prospect-detail-view-on-maps-design.md` | Implemented | not checked |
+| `2026-05-27-prospect-site-audit-detail-design.md` | Approved (brainstorming) | not checked |
+| `2026-05-27-ui-component-refactor-design.md` | Implemented | **match** — `Components/ui/` adopted; no Breeze imports |
+| `2026-05-28-niche-opportunity-confidence-design.md` | Approved | match — `ScanNicheJob::opportunityScore()` tiers + `niches:recalculate-scores` |
+| `2026-05-28-niches-pagination-sample-panel-design.md` | Implemented | drift — sample backfill re-dispatch (REF-S2-02, REF-S2-03) |
+| `2026-05-28-production-lighthouse-performance-design.md` | Approved | partial — `lighthouse_binary` config + `lighthouse-detail.js`; deploy plan open |
+| `2026-05-28-prospect-enrichment-design.md` | Implemented | not checked |
+| `2026-05-28-single-site-url-audit-design.md` | Approved | drift — `DirectUrlScanJobTest` handle() DI (GAP-01) |
+| `2026-05-29-niche-settings-maintenance-design.md` | Implemented | not checked |
+| `2026-05-29-outreach-queue-clickable-prospects-design.md` | Implemented | not checked |
+| `2026-05-29-prospect-page-speed-detail-design.md` | Approved (brainstorming) | match — `PageSpeedSection`, `buildOperatorPageSpeed` |
+| `2026-05-29-search-history-index-design.md` | Approved | match — `Search/History.jsx`, `SearchController::history` |
+| `2026-06-01-cms-detection-design.md` | Implemented | not checked |
+| `2026-06-01-mcp-scan-monitoring-design.md` | Approved (brainstorming) | not checked — prod OAuth checklist open |
+| `2026-06-02-audit-job-error-details-design.md` | Approved for implementation | not checked |
+| `2026-06-02-audit-repair-design.md` | Approved for implementation | **match** — `RepairAuditsCommand`, `ProspectAuditService::repairSiteAudit()` |
+| `2026-06-02-mcp-progress-flow-design.md` | Approved (brainstorming) | **match** — `ProgressFlowService` wired in `SearchController`, `McpSearchService`, `ProspectController`; MCP tools present |
+| `2026-06-04-report-booking-fastmail-design.md` | Implemented (v1) | **match** — `FastmailCalDavClient`, `ReportBookingService`, `AgencyBookingSettingsCard` |
+| `2026-06-04-website-discovery-design.md` | Implemented | **drift** — `WebsiteDiscoveryService`, `BackfillWebsitesCommand` exist; Brave default + `google_cse` source hardcode (GAP-03) |
+
+### Gaps
+
+| ID | Source | Gap | Severity | Notes |
+|----|--------|-----|----------|-------|
+| GAP-01 | `tests/Feature/DirectUrlScanJobTest.php` | Job `handle()` signature drift — 5 deps passed, 6 expected (`ProspectExclusionService`) | P1 | 3 errors; `dispatchSync` path passes. Spec: `2026-05-28-single-site-url-audit-design.md` |
+| GAP-02 | `tests/Feature/ScanNichesCommandTest.php` | Hardcoded `scan_date => '2026-05-29'` vs `travelTo` → 2026-06-05; skip logic never hits | P1 | 1 failure. Spec skip semantics match `2026-05-27-niche-opportunity-scanner-design.md`; test data drift only |
+| GAP-03 | `2026-06-04-website-discovery-design.md` | `WebsiteDiscoveryService::applyMatch()` always sets `website_url_source = 'google_cse'`; config defaults `website_discovery_provider` to `brave` | P2 | Enum documents `gbp`/`google_cse`/`operator` only. Cross-ref REF-S1-03 |
+| GAP-04 | `git log` `762c35e` (Brave Search) | Brave as website-discovery provider has no dedicated design spec | P3 | Predates/amends `2026-06-04-website-discovery`; behaviour only in code + `config/scanner.php` |
+| GAP-05 | `git log` `ff36760` (GBP-only site audit) | On-demand site audit for `gbp_only` searches not covered by a standalone spec | P3 | Partially overlaps `2026-05-28-prospect-enrichment` / operator UX; no explicit decision record |
+| GAP-06 | `docs/superpowers/plans/2026-06-02-mcp-progress-flow.md` | All 21 plan checkboxes unchecked despite shipped code (`ProgressFlowService`, MCP tools, streamable watch) | P3 | `McpScanToolsTest` passes (14). Plan doc stale, not a code gap |
+| GAP-07 | `docs/superpowers/plans/2026-06-02-audit-repair.md` | All 40+ plan checkboxes unchecked despite shipped repair command + query objects | P3 | `RepairAuditsCommandTest` passes. Plan doc stale |
+| GAP-08 | `docs/superpowers/plans/2026-06-01-cms-detection.md` | 50+ plan checkboxes unchecked; spec status **Implemented** | P3 | `CmsDetectionIntegrationTest` + `DetectCmsJobTest` pass. Plan doc stale |
+| GAP-09 | `docs/superpowers/plans/2026-06-05-lean-audit-refactor.md` | Tasks 1–11 execution steps still `[ ]` though backlog appendix populated | P3 | Meta — this audit session; expected until Task 14 |
+| GAP-10 | `app/Services/ProgressFlowService.php` | No dedicated unit tests; coverage only via MCP integration + one `ProspectShowTest` field | P2 | Spec documents phase/step semantics. Cross-ref REF-S7-04 |
+| GAP-11 | `2026-05-28-niches-pagination-sample-panel-design.md` | `NicheScanSampleController` re-dispatches `ScanNicheJob` on every poll when `sample_preview` null | P2 | Up to 30 duplicate jobs per panel open. Cross-ref REF-S2-02 (P1 backend) |
+| GAP-12 | `2026-06-01-mcp-scan-monitoring-design.md` | Production deployment checklist (OAuth keys, migrations, Cursor remote MCP) still open in plan | P3 | Code shipped; operator/integration steps not verified in repo |
+| GAP-13 | `2026-05-28-production-lighthouse-performance-design.md` | Fly deploy + production backfill smoke steps unchecked in plan | P3 | `lighthouse-detail.js` and config present locally; ops verification pending |
+| GAP-14 | `2026-05-26-operator-ui-design.md` | Parent operator UI spec remains **Draft** while downstream specs implemented | P3 | Navigation/shell decisions undocumented at parent level |
+| GAP-15 | `2026-06-02-audit-job-error-details-design.md` | `CaptureScreenshotJob` swallows exceptions — retry semantics undocumented and behaviour diverges from `AuditSiteJob` | P2 | Cross-ref REF-S3-01. Error recording exists; screenshot retry path untested |
 
 ## Findings by subsystem
 ### S1 — Search & prospecting
