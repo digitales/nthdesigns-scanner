@@ -2,18 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\FilterReportDashboardRequest;
 use App\Http\Resources\ReportDashboardResource;
 use App\Models\ProspectReport;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class ReportDashboardController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(FilterReportDashboardRequest $request): Response
     {
-        $filters = $request->only(['niche', 'viewed', 'warm']);
+        $filters = $request->validated();
 
         $baseQuery = ProspectReport::query()
             ->whereHas('prospect.search', fn (Builder $q) => $q->where('user_id', $request->user()->id));

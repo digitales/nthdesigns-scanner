@@ -27,4 +27,13 @@ class ReportDashboardTest extends TestCase
 
         $this->actingAs($user)->get('/reports')->assertOk();
     }
+
+    public function test_reports_page_rejects_invalid_viewed_filter(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get('/reports?viewed=maybe')
+            ->assertSessionHasErrors('viewed');
+    }
 }
