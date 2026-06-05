@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ProspectReport;
+use App\Services\AgencyBookingService;
 use App\Support\TidyCalEmbed;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -12,8 +13,22 @@ use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 class PublicBookingController extends Controller
 {
-    public function show(Request $request): Response|RedirectResponse|HttpResponse
+    public function show(Request $request, AgencyBookingService $agencyBooking): Response|RedirectResponse|HttpResponse
     {
+        $token = $request->query('report');
+
+        if (is_string($token) && $token !== '' && $agencyBooking->nativeBookingActive()) {
+            $report = ProspectReport::query()->where('token', $token)->first();
+
+            if ($report) {
+                if ($report->expires_at && $report->expires_at->isPast()) {
+                    abort(410, 'This report has expired.');
+                }
+
+                return redirect()->to(url('/r/'.$token).'#book');
+            }
+        }
+
         $bookingUrl = $this->resolveBookingUrl($request);
 
         if ($bookingUrl === null || $bookingUrl === '') {

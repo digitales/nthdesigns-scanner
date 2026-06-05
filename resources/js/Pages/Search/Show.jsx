@@ -1,5 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
+import { useProgressReload } from '@/hooks/useProgressReload';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import CmsBadge from '@/Components/cms/CmsBadge';
 import {
@@ -33,13 +34,7 @@ export default function SearchShow({ search, prospects, outreachProspectIds = []
     const [angleFilter, setAngleFilter] = useState('all');
     const [minScore, setMinScore] = useState(0);
 
-    useEffect(() => {
-        if (!isRunning) return;
-        const timer = setInterval(() => {
-            router.reload({ only: ['search', 'prospects'] });
-        }, 4000);
-        return () => clearInterval(timer);
-    }, [isRunning]);
+    useProgressReload(isRunning, ['search', 'prospects']);
 
     const visible = useMemo(() => {
         return prospects.filter((p) => {

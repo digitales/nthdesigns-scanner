@@ -1,5 +1,6 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useProgressReload } from '@/hooks/useProgressReload';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import AuditFailureSection from '@/Components/audit/AuditFailureSection';
 import SiteAuditSection from '@/Components/audit/SiteAuditSection';
@@ -50,11 +51,26 @@ export default function ProspectShow({
         address: prospect.address ?? '',
     });
     const [noteBody, setNoteBody] = useState('');
+    const [actionProcessing, setActionProcessing] = useState(null);
 
-    const generateReport = () => router.post(`/prospects/${prospect.id}/report`);
-    const reauditSite = () => router.post(`/prospects/${prospect.id}/audit`, {}, { preserveScroll: true });
-    const generateOutreach = () => router.post(`/prospects/${prospect.id}/outreach`);
-    const addToOutreach = () => router.post('/outreach/selections', { prospect_ids: [prospect.id] });
+    const postAction = (key, url, options = {}) => {
+        if (actionProcessing) {
+            return;
+        }
+
+        setActionProcessing(key);
+        router.post(url, options.data ?? {}, {
+            preserveScroll: options.preserveScroll ?? false,
+            onFinish: () => setActionProcessing(null),
+        });
+    };
+
+    const generateReport = () => postAction('report', `/prospects/${prospect.id}/report`);
+    const reauditSite = () => postAction('audit', `/prospects/${prospect.id}/audit`, { preserveScroll: true });
+    const generateOutreach = () => postAction('outreach', `/prospects/${prospect.id}/outreach`);
+    const addToOutreach = () => postAction('selection', '/outreach/selections', {
+        data: { prospect_ids: [prospect.id] },
+    });
 
     const copyReportLink = () => {
         if (!report?.public_url) return;
@@ -111,15 +127,10 @@ export default function ProspectShow({
         && !auditPending
         && ['accessibility_only', 'combined', 'gbp_only'].includes(search.scan_type);
 
-    useEffect(() => {
-        if (!auditPending || !showA11y) return;
-        const timer = setInterval(() => {
-            router.reload({
-                only: ['prospect', 'audit', 'auditFailure', 'lighthouse', 'pageSpeed', 'progress_flow', 'report'],
-            });
-        }, 4000);
-        return () => clearInterval(timer);
-    }, [auditPending, showA11y]);
+    useProgressReload(
+        auditPending && showA11y,
+        ['prospect', 'audit', 'auditFailure', 'lighthouse', 'pageSpeed', 'progress_flow', 'report'],
+    );
     const latestOutreach = outreachEmails[0] ?? null;
     const isDirectUrl = search.source === 'direct_url';
     const directHost = search.submitted_url?.replace(/^https?:\/\//, '') ?? 'Single site';
@@ -298,8 +309,17 @@ export default function ProspectShow({
 
                         {canRunSiteAudit && (
                             <div style={{ marginBottom: 24 }}>
-                                <Button kind="secondary" size="sm" onClick={reauditSite}>
-                                    {hasSiteAudit ? 'Re-run site audit' : 'Run site audit'}
+                                <Button
+                                    kind="secondary"
+                                    size="sm"
+                                    onClick={reauditSite}
+                                    disabled={actionProcessing === 'audit'}
+                                >
+                                    {actionProcessing === 'audit'
+                                        ? 'Queuing…'
+                                        : hasSiteAudit
+                                          ? 'Re-run site audit'
+                                          : 'Run site audit'}
                                 </Button>
                                 <p className="micro" style={{ marginTop: 8, color: 'var(--color-stone-500)' }}>
                                     {isGbpOnlySearch && !hasSiteAudit
@@ -361,9 +381,9 @@ export default function ProspectShow({
                                         size="sm"
                                         onClick={generateReport}
                                         className="mt-4"
-                                        disabled={auditPending}
+                                        disabled={auditPending || actionProcessing === 'report'}
                                     >
-                                        Regenerate report
+                                        {actionProcessing === 'report' ? 'Queuing…' : 'Regenerate report'}
                                     </Button>
                                     {prospect.audit_status === 'complete' && (
                                         <p className="micro" style={{ marginTop: 8 }}>
@@ -374,8 +394,13 @@ export default function ProspectShow({
                             ) : (
                                 <>
                                     <p className="micro" style={{ marginBottom: 12 }}>No report yet.</p>
-                                    <Button kind="primary" size="sm" onClick={generateReport} disabled={auditPending}>
-                                        Generate report
+                                    <Button
+                                        kind="primary"
+                                        size="sm"
+                                        onClick={generateReport}
+                                        disabled={auditPending || actionProcessing === 'report'}
+                                    >
+                                        {actionProcessing === 'report' ? 'Queuing…' : 'Generate report'}
                                     </Button>
                                 </>
                             )}
@@ -397,7 +422,14 @@ export default function ProspectShow({
                             ) : (
                                 <>
                                     <p className="micro" style={{ marginBottom: 12 }}>No email drafted.</p>
-                                    <Button kind="primary" size="sm" onClick={addToOutreach}>Add to outreach</Button>
+                                    <Button
+                                        kind="primary"
+                                        size="sm"
+                                        onClick={addToOutreach}
+                                        disabled={actionProcessing === 'selection'}
+                                    >
+                                        {actionProcessing === 'selection' ? 'Adding…' : 'Add to outreach'}
+                                    </Button>
                                 </>
                             )}
                         </Card>

@@ -6,6 +6,7 @@ use App\Http\Requests\StorePublicReportBookingRequest;
 use App\Models\ProspectReport;
 use App\Services\AgencyBookingService;
 use App\Services\ReportBookingService;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\JsonResponse;
 
 class PublicReportBookingController extends Controller
@@ -28,7 +29,13 @@ class PublicReportBookingController extends Controller
     {
         $report = $this->resolveReport($token);
 
-        $booking = $bookings->book($report, $request->validated());
+        try {
+            $bookings->book($report, $request->validated());
+        } catch (RequestException) {
+            return response()->json([
+                'message' => 'Booking is temporarily unavailable. Please try again shortly.',
+            ], 503);
+        }
 
         return response()->json([
             'booking' => $this->bookingPayload($report->fresh(['booking'])),

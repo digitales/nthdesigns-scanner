@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\AgencyBookingSetting;
 use App\Models\Prospect;
 use App\Models\ProspectReport;
 use App\Models\Search;
@@ -51,6 +52,31 @@ class PublicBookingTest extends TestCase
 
         $this->get(route('book.index'))
             ->assertRedirect('https://calendly.com/acme/30min');
+    }
+
+    public function test_book_page_redirects_to_native_report_picker_when_enabled(): void
+    {
+        AgencyBookingSetting::current()->update([
+            'enabled' => true,
+            'fastmail_username' => 'bookings@example.com',
+            'fastmail_app_password' => 'test-app-password',
+            'caldav_calendar_url' => 'https://caldav.fastmail.com/dav/calendars/user/bookings%40example.com/primary/',
+        ]);
+
+        config(['scanner.report_booking_url' => 'https://tidycal.com/legacy']);
+
+        $search = Search::factory()->create();
+        $prospect = Prospect::factory()->create(['search_id' => $search->id]);
+        $report = ProspectReport::factory()->create([
+            'prospect_id' => $prospect->id,
+            'token' => 'native-token',
+            'report_data' => [
+                'booking_url' => 'https://tidycal.com/from-report',
+            ],
+        ]);
+
+        $this->get(route('book.index', ['report' => $report->token]))
+            ->assertRedirect(url('/r/'.$report->token).'#book');
     }
 
     public function test_book_page_returns_404_when_not_configured(): void

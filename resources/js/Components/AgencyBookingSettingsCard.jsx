@@ -151,6 +151,11 @@ export default function AgencyBookingSettingsCard({ agencyBooking }) {
                                             Enter an app password to test.
                                         </span>
                                     )}
+                                    {Array.isArray(flash?.agency_booking_calendars) && flash?.success && !recentlySuccessful && (
+                                        <span className="micro" style={{ color: 'var(--color-positive)' }}>
+                                            {flash.success}
+                                        </span>
+                                    )}
                                 </div>
 
                                 {discoveredCalendars.length > 1 ? (

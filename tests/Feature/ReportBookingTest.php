@@ -9,6 +9,9 @@ use App\Models\ProspectReport;
 use App\Services\Calendar\FakeCalendarProvider;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use GuzzleHttp\Psr7\Response as PsrResponse;
+use Illuminate\Http\Client\RequestException;
+use Illuminate\Http\Client\Response as HttpResponse;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
@@ -100,6 +103,29 @@ class ReportBookingTest extends TestCase
             'attendee_name' => 'Other Person',
             'attendee_email' => 'other@example.com',
         ])->assertStatus(409);
+    }
+
+    public function test_book_returns_503_when_calendar_provider_fails(): void
+    {
+        $report = ProspectReport::factory()->create();
+        $slot = $this->getJson('/r/'.$report->token.'/slots')->json('slots.0');
+
+        $this->calendar->failOnCreate(
+            new RequestException(new HttpResponse(new PsrResponse(503)))
+        );
+
+        $this->postJson('/r/'.$report->token.'/book', [
+            'starts_at' => $slot['starts_at'],
+            'attendee_name' => 'Jane Smith',
+            'attendee_email' => 'jane@example.com',
+        ])
+            ->assertStatus(503)
+            ->assertJsonPath('message', 'Booking is temporarily unavailable. Please try again shortly.');
+
+        $this->assertDatabaseMissing('report_bookings', [
+            'prospect_report_id' => $report->id,
+        ]);
+        $this->assertCount(0, $this->calendar->createdEvents());
     }
 
     public function test_public_report_shows_native_booking_when_enabled(): void
