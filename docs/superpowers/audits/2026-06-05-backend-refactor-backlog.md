@@ -272,6 +272,121 @@ Cohesive pipeline (ONS fetch, taxonomy filter, Birmingham validation, PHP config
 `store()` and `destroy()` both inline `$request->validate(['niche' => ...])`. Matches cross-cutting Form Request gap pattern (6 requests vs 18 store/update controllers).
 
 ### S3 — Audit pipeline
+
+> **Keep candidates (not scored — for Task 14):** `RepairAuditsCommand` dry-run / `--execute` gate with category table and SQS batch warnings; `AuditingQueuePresence` connection-aware queue check (age-only when `cloud`); `ProspectAuditService::repairSiteAudit()` distinct from `queueSiteAudit()` (allows re-dispatch on stuck pending).
+
+#### REF-S3-01: CaptureScreenshotJob swallows exceptions — Laravel retries never fire
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S3 Audit pipeline |
+| Scores | M=2 R=1 L=2 O=3 → Total 8 (P2) |
+| Evidence | `app/Jobs/CaptureScreenshotJob.php:24-25,81-95` — `tries = 3` but `catch` logs and returns without rethrow |
+| Spec gap | [2026-06-02-audit-job-error-details-design.md](../specs/2026-06-02-audit-job-error-details-design.md) — error recording exists; retry semantics not documented for screenshot path |
+| PR slice | Medium — "S3: rethrow CaptureScreenshotJob failures to honour tries/backoff" |
+| Risk | Medium — transient Fly/browser errors recorded as terminal failed jobs with no automatic retry |
+| Effort | ~1 hour |
+| Notes | `AuditErrorRecorder` runs in catch; job exits successfully from queue worker perspective. Contrast `AuditSiteJob` rethrows after recording (line 118). |
+
+#### REF-S3-02: CaptureScreenshotJob lacks idempotency guard on retry or repair redispatch
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S3 Audit pipeline |
+| Scores | M=2 R=2 L=2 O=2 → Total 8 (P2) |
+| Evidence | `app/Jobs/CaptureScreenshotJob.php:52-75`; contrast `app/Jobs/AuditSiteJob.php:47-49` |
+| Spec gap | [2026-06-02-audit-repair-design.md](../specs/2026-06-02-audit-repair-design.md) — screenshot repair dispatches job; no skip-when-complete rule |
+| PR slice | Medium — "S3: add CaptureScreenshotJob idempotency guard (skip when desktop path stored)" |
+| Risk | Medium — repair or manual re-dispatch creates duplicate `audit_jobs` rows and redundant Fly captures |
+| Effort | ~1–2 hours |
+| Notes | Creates a new `AuditJob` (`screenshot`, `running`) on every handle. No check of `screenshot_paths['desktop']`. |
+
+#### REF-S3-03: AuditSiteJob sets `audit_status = failed` then rethrows — queue retry is dead code
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S3 Audit pipeline |
+| Scores | M=2 R=1 L=2 O=3 → Total 8 (P2) |
+| Evidence | `app/Jobs/AuditSiteJob.php:25-26,47-49,107-118` |
+| Spec gap | None — [2026-06-02-audit-job-error-details-design.md](../specs/2026-06-02-audit-job-error-details-design.md) covers recording; retry interaction undocumented |
+| PR slice | Medium — "S3: align AuditSiteJob retry with audit_status (defer failed until tries exhausted)" |
+| Risk | Medium — `tries = 2` never re-runs audit; operator must use `scanner:repair-audits` for transient failures |
+| Effort | ~2 hours |
+| Notes | Second attempt early-returns because `audit_status !== 'pending'`. Repair command is the intended recovery path; job-level retry config is misleading. |
+
+#### REF-S3-04: No dedicated CaptureScreenshotJob test — behaviour covered only indirectly
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S3 Audit pipeline |
+| Scores | M=2 R=1 L=2 O=2 → Total 7 (P2) |
+| Evidence | `tests/Feature/RepairAuditsCommandTest.php:140`; no `CaptureScreenshotJobTest.php` in `tests/` |
+| Spec gap | None |
+| PR slice | Medium — "S3: add CaptureScreenshotJobTest (success, failure recording, idempotency)" |
+| Risk | Low — repair command test asserts dispatch only; swallow-rethrow and storage paths untested |
+| Effort | ~2 hours |
+
+#### REF-S3-05: FailedScreenshotQuery N+1 — `latestScreenshotJob` per candidate in PHP filter
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S3 Audit pipeline |
+| Scores | M=1 R=2 L=2 O=1 → Total 6 (P3) |
+| Evidence | `app/Support/FailedScreenshotQuery.php:65-95,88-95` — `filterEligible()` calls `latestScreenshotJob()` per report |
+| Spec gap | None |
+| PR slice | Medium — "S3: batch latest screenshot audit_jobs in FailedScreenshotQuery" |
+| Risk | Low — operator repair command, not request hot path |
+| Effort | ~1–2 hours |
+| Notes | `reasonFor()` repeats the same query. Repair dry-run table can materialise hundreds of rows. |
+
+#### REF-S3-06: StuckSiteAuditQuery post-filter runs extra AuditJob query per prospect
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S3 Audit pipeline |
+| Scores | M=1 R=2 L=2 O=1 → Total 6 (P3) |
+| Evidence | `app/Support/StuckSiteAuditQuery.php:79-99,61-66` — `filterByQueuePresence()` and `reasonFor()` each query `audit_jobs` |
+| Spec gap | None |
+| PR slice | Medium — "S3: consolidate StuckSiteAuditQuery AuditJob lookups" |
+| Risk | Low — repair command batch path |
+| Effort | ~1–2 hours |
+
+#### REF-S3-07: Dual CMS detection paths — audit payload vs standalone DetectCmsJob
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S3 Audit pipeline |
+| Scores | M=2 R=1 L=2 O=2 → Total 7 (P2) |
+| Evidence | `app/Jobs/AuditSiteJob.php:88-90`; `app/Jobs/ScorePlaceJob.php:114-116,121-123` |
+| Spec gap | [2026-06-01-cms-detection-design.md](../specs/2026-06-01-cms-detection-design.md) — standalone job documented; inline audit payload path not in spec |
+| PR slice | Medium — "S3/S4: single CMS detection path after site audit" |
+| Risk | Medium — race or overwrite when audit embeds `cms` and `DetectCmsJob` runs in parallel (`audit_driver = skip` path) |
+| Effort | ~2–3 hours |
+
+#### REF-S3-08: Audit repair query objects live under `Support/` not `Queries/`
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S3 Audit pipeline |
+| Scores | M=2 R=1 L=2 O=1 → Total 6 (P3) |
+| Evidence | `app/Support/StuckSiteAuditQuery.php`, `FailedSiteAuditQuery.php`, `FailedScreenshotQuery.php`, `IncompleteAuditQuery.php`; contrast `app/Queries/ProspectListQuery.php` |
+| Spec gap | None — appendix Support vs Queries overlap |
+| PR slice | Medium — "S10/S3: move audit query objects to app/Queries/" |
+| Risk | Low — navigation consistency; behaviour unchanged |
+| Effort | ~1–2 hours |
+
+#### REF-S3-09: CaptureScreenshotJob WithoutOverlapping uses global key for all reports
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S3 Audit pipeline |
+| Scores | M=1 R=2 L=1 O=2 → Total 6 (P3) |
+| Evidence | `app/Jobs/CaptureScreenshotJob.php:38-44` — key `'fly-browser-screenshot'` not scoped to report/prospect |
+| Spec gap | None |
+| PR slice | Medium — "S3: scope CaptureScreenshotJob WithoutOverlapping per report or document global serialization" |
+| Risk | Low — may be intentional Fly single-browser constraint; repair batch serialises all captures |
+| Effort | ~1 hour |
+
 ### S4 — Scoring & enrichment
 ### S5 — Reports & public surfaces
 ### S6 — Outreach
