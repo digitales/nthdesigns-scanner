@@ -10,6 +10,8 @@ class NicheIgnoreController extends Controller
 {
     public function store(StoreNicheIgnoreRequest $request, NicheExclusionService $exclusions): RedirectResponse
     {
+        $this->authorize('manageNicheExclusions');
+
         $niche = $request->validated('niche');
 
         $exclusions->ignoreManually($niche);
@@ -19,6 +21,8 @@ class NicheIgnoreController extends Controller
 
     public function destroy(StoreNicheIgnoreRequest $request, NicheExclusionService $exclusions): RedirectResponse
     {
+        $this->authorize('manageNicheExclusions');
+
         $niche = $request->validated('niche');
 
         $exclusions->includeInScans($niche);

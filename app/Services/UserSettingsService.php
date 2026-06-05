@@ -30,4 +30,15 @@ class UserSettingsService
     {
         return $user->setting?->default_country ?? 'GB';
     }
+
+    /**
+     * @param  array{default_country?: string, agency_name?: string|null, booking_url?: string|null}  $attributes
+     */
+    public function update(User $user, array $attributes): UserSetting
+    {
+        $setting = $this->forUser($user);
+        $setting->update($attributes);
+
+        return $setting->fresh();
+    }
 }

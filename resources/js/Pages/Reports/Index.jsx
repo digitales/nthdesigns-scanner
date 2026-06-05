@@ -10,6 +10,7 @@ import {
   Icons,
   Input,
   PageHeader,
+  Pagination,
   RowActions,
   Segmented,
   StatTile,
@@ -18,7 +19,7 @@ import {
   Toast,
 } from "@/Components/ui";
 
-export default function ReportsIndex({ reports, filters, stats }) {
+export default function ReportsIndex({ reports, filters, stats, pagination }) {
   const [toast, setToast] = useState(null);
   const [viewFilter, setViewFilter] = useState(() => {
     if (filters.warm) return "warm";
@@ -176,6 +177,10 @@ export default function ReportsIndex({ reports, filters, stats }) {
               ))}
             </tbody>
           </DataTable>
+        )}
+
+        {pagination?.last_page > 1 && (
+          <Pagination pagination={pagination} href="/reports" />
         )}
 
         {toast && (

@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Support\OAuthMcpPemLoader;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
+use Illuminate\Support\Facades\Cache;
 
 class OAuthMcpJwtService
 {
@@ -64,8 +65,24 @@ class OAuthMcpJwtService
      *
      * @throws \Exception
      */
+    public function revokeAccessToken(string $token): void
+    {
+        try {
+            $publicKey = new Key(OAuthMcpPemLoader::publicKey(), self::ALG);
+            $decoded = JWT::decode($token, $publicKey);
+            $ttl = max(1, (int) ($decoded->exp ?? time()) - time());
+            Cache::put($this->revocationCacheKey($token), true, $ttl);
+        } catch (\Throwable) {
+            // RFC 7009 — invalid tokens are treated as already revoked.
+        }
+    }
+
     public function verifyAccessToken(string $token): array
     {
+        if (Cache::has($this->revocationCacheKey($token))) {
+            throw new \Exception('Token revoked');
+        }
+
         $publicKey = new Key(OAuthMcpPemLoader::publicKey(), self::ALG);
 
         $previousLeeway = JWT::$leeway;
@@ -115,5 +132,10 @@ class OAuthMcpJwtService
             'user_id' => (int) $decoded->sub,
             'aud' => $decoded->aud,
         ];
+    }
+
+    private function revocationCacheKey(string $token): string
+    {
+        return 'oauth_mcp_revoked:'.hash('sha256', $token);
     }
 }

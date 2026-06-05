@@ -12,6 +12,7 @@ class AgencyBookingSettingsController extends Controller
     public function update(UpdateAgencyBookingSettingsRequest $request, AgencyBookingService $agencyBooking): RedirectResponse
     {
         $settings = $agencyBooking->settings();
+        $this->authorize('update', $settings);
 
         $validated = $request->validated();
 
@@ -27,6 +28,7 @@ class AgencyBookingSettingsController extends Controller
     public function testConnection(TestAgencyBookingConnectionRequest $request, AgencyBookingService $agencyBooking): RedirectResponse
     {
         $settings = $agencyBooking->settings();
+        $this->authorize('testConnection', $settings);
 
         $validated = $request->validated();
 

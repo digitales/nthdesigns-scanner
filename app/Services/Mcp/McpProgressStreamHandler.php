@@ -190,7 +190,11 @@ class McpProgressStreamHandler
                     return;
                 }
 
-                sleep(2);
+                if (connection_aborted()) {
+                    return;
+                }
+
+                sleep(max(1, (int) config('scanner.mcp_progress_poll_seconds', 2)));
             } while ((microtime(true) - $startedAt) < $timeout);
 
             $result = $name === 'get_search'
