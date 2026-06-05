@@ -94,6 +94,8 @@ export default function SettingsIndex({ settings, agencyBooking, nicheMaintenanc
                         </ul>
                     </Card>
 
+                    <AgencyBookingSettingsCard agencyBooking={agencyBooking} />
+
                     <Card title="Defaults">
                         <form onSubmit={submit}>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -118,7 +120,7 @@ export default function SettingsIndex({ settings, agencyBooking, nicheMaintenanc
                                     />
                                 </Field>
 
-                                <Field label="Booking URL (fallback)" hint="Used when agency Fastmail booking is disabled; TidyCal URLs open on /book with your branding">
+                                <Field label="Booking URL (fallback)" hint="Used when Fastmail inline booking is off; TidyCal URLs open on /book with your branding">
                                     <Input
                                         type="url"
                                         value={data.booking_url}
@@ -141,8 +143,6 @@ export default function SettingsIndex({ settings, agencyBooking, nicheMaintenanc
                             </div>
                         </form>
                     </Card>
-
-                    <AgencyBookingSettingsCard agencyBooking={agencyBooking} />
 
                     <Card title="Niche maintenance">
                         <ul style={{ display: 'flex', flexDirection: 'column', gap: 12, margin: '0 0 24px', padding: 0, listStyle: 'none' }}>
