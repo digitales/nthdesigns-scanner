@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreDirectUrlSearchRequest;
+use App\Http\Requests\StoreSearchRequest;
 use App\Jobs\DirectUrlScanJob;
 use App\Jobs\ScrapeProspectsJob;
 use App\Models\Search;
@@ -59,7 +60,7 @@ class SearchController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(StoreSearchRequest $request): RedirectResponse
     {
         $user = $request->user();
         $rateKey = 'search-submit:'.$user->id;
@@ -73,12 +74,7 @@ class SearchController extends Controller
             ]);
         }
 
-        $validated = $request->validate([
-            'niche'     => 'required|string|max:100',
-            'city'      => 'required|string|max:100',
-            'country'   => 'required|string|size:2',
-            'scan_type' => 'required|in:gbp_only,accessibility_only,combined',
-        ]);
+        $validated = $request->validated();
 
         RateLimiter::hit($rateKey, $decay);
 

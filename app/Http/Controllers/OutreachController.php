@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\GenerateOutreachEmailRequest;
+use App\Http\Requests\StoreOutreachSelectionRequest;
 use App\Jobs\GenerateOutreachEmailJob;
 use App\Models\OutreachEmail;
 use App\Models\OutreachSelection;
@@ -70,12 +72,9 @@ class OutreachController extends Controller
         ]);
     }
 
-    public function storeSelection(Request $request): RedirectResponse
+    public function storeSelection(StoreOutreachSelectionRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'prospect_ids' => 'required|array',
-            'prospect_ids.*' => 'integer|exists:prospects,id',
-        ]);
+        $validated = $request->validated();
 
         foreach ($validated['prospect_ids'] as $prospectId) {
             $prospect = Prospect::findOrFail($prospectId);
@@ -109,13 +108,9 @@ class OutreachController extends Controller
         return back();
     }
 
-    public function generate(Request $request): RedirectResponse
+    public function generate(GenerateOutreachEmailRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'agency_name' => 'nullable|string|max:100',
-            'pitch_angle' => 'required|in:auto,gbp,accessibility,combined',
-            'cpc_benchmark' => 'nullable|numeric|min:0',
-        ]);
+        $validated = $request->validated();
 
         $options = ['pitch_angle' => $validated['pitch_angle']];
 

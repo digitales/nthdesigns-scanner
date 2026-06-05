@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StorePublicReportBookingRequest;
 use App\Models\ProspectReport;
 use App\Services\AgencyBookingService;
 use App\Services\ReportBookingService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class PublicReportBookingController extends Controller
 {
@@ -24,19 +24,11 @@ class PublicReportBookingController extends Controller
         ]);
     }
 
-    public function store(Request $request, string $token, ReportBookingService $bookings): JsonResponse
+    public function store(StorePublicReportBookingRequest $request, string $token, ReportBookingService $bookings): JsonResponse
     {
         $report = $this->resolveReport($token);
 
-        $validated = $request->validate([
-            'starts_at' => 'required|date',
-            'attendee_name' => 'required|string|max:120',
-            'attendee_email' => 'required|email|max:255',
-            'attendee_phone' => 'nullable|string|max:40',
-            'note' => 'nullable|string|max:500',
-        ]);
-
-        $booking = $bookings->book($report, $validated);
+        $booking = $bookings->book($report, $request->validated());
 
         return response()->json([
             'booking' => $this->bookingPayload($report->fresh(['booking'])),

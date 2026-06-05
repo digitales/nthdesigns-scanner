@@ -2,6 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\OAuthAuthorizeRequest;
+use App\Http\Requests\OAuthRegisterClientRequest;
+use App\Http\Requests\OAuthRevokeTokenRequest;
+use App\Http\Requests\OAuthTokenRequest;
 use App\Models\OauthMcpAuthorizationCode;
 use App\Models\OauthMcpClient;
 use App\Services\OAuthMcpJwtService;
@@ -22,12 +26,9 @@ class OAuthServerController extends Controller
     /**
      * Dynamic client registration (RFC 7591).
      */
-    public function register(Request $request): Response
+    public function register(OAuthRegisterClientRequest $request): Response
     {
-        $validated = $request->validate([
-            'redirect_uris' => 'required|array',
-            'redirect_uris.*' => 'required|url',
-        ]);
+        $validated = $request->validated();
 
         $redirectUris = $this->normalizeRedirectUris($validated['redirect_uris']);
         if (empty($redirectUris)) {
@@ -47,27 +48,8 @@ class OAuthServerController extends Controller
     /**
      * Authorization endpoint — show consent or redirect to login.
      */
-    public function showConsent(Request $request): View|RedirectResponse
+    public function showConsent(OAuthAuthorizeRequest $request): View|RedirectResponse
     {
-        // MCP clients (e.g. Codex CLI) sometimes omit `resource` on the authorize URL; RFC 8707-style
-        // resource indicators are still satisfied using the server default audience for this MCP.
-        if (! $request->filled('resource')) {
-            $request->merge([
-                'resource' => config('oauth-mcp.resource'),
-            ]);
-        }
-
-        $request->validate([
-            'response_type' => 'required|in:code',
-            'client_id' => 'required|string',
-            'redirect_uri' => 'required|url',
-            'scope' => 'nullable|string',
-            'state' => 'nullable|string',
-            'code_challenge' => 'required|string',
-            'code_challenge_method' => 'required|in:S256',
-            'resource' => 'required|url',
-        ]);
-
         $client = OauthMcpClient::find($request->client_id);
         if (! $client || ! in_array($request->redirect_uri, $client->redirect_uris, true)) {
             return redirect()->route('login')->with('error', 'Invalid OAuth client or redirect URI.');
@@ -104,21 +86,14 @@ class OAuthServerController extends Controller
      */
     public function token(Request $request): Response
     {
-        // Match authorize + PKCE: some MCP clients omit `resource` on token exchange; default to MCP audience.
-        if (! $request->filled('resource')) {
-            $request->merge([
-                'resource' => config('oauth-mcp.resource'),
-            ]);
-        }
-
         $grantType = (string) $request->input('grant_type');
 
         if ($grantType === 'authorization_code') {
-            return $this->tokenAuthorizationCode($request);
+            return $this->tokenAuthorizationCode($this->resolveOAuthTokenRequest($request));
         }
 
         if ($grantType === 'refresh_token') {
-            return $this->tokenRefresh($request);
+            return $this->tokenRefresh($this->resolveOAuthTokenRequest($request));
         }
 
         return response()->json([
@@ -130,14 +105,8 @@ class OAuthServerController extends Controller
      * RFC 7009 OAuth 2.0 Token Revocation.
      * Always returns 200 regardless of whether the token existed.
      */
-    public function revoke(Request $request): Response
+    public function revoke(OAuthRevokeTokenRequest $request): Response
     {
-        $request->validate([
-            'token' => 'required|string',
-            'client_id' => 'required|string',
-            'token_type_hint' => 'nullable|in:refresh_token,access_token',
-        ]);
-
         $hint = (string) $request->input('token_type_hint', 'refresh_token');
         if ($hint === 'refresh_token') {
             $this->refreshTokens->revokeByRawToken(
@@ -150,17 +119,8 @@ class OAuthServerController extends Controller
         return response()->json([], 200);
     }
 
-    private function tokenAuthorizationCode(Request $request): Response
+    private function tokenAuthorizationCode(OAuthTokenRequest $request): Response
     {
-        $request->validate([
-            'grant_type' => 'required|in:authorization_code',
-            'code' => 'required|string',
-            'redirect_uri' => 'required|url',
-            'client_id' => 'required|string',
-            'code_verifier' => 'required|string',
-            'resource' => 'required|url',
-        ]);
-
         $code = OauthMcpAuthorizationCode::query()
             ->where('code', $request->code)
             ->whereNull('used_at')
@@ -207,16 +167,8 @@ class OAuthServerController extends Controller
         ]);
     }
 
-    private function tokenRefresh(Request $request): Response
+    private function tokenRefresh(OAuthTokenRequest $request): Response
     {
-        $request->validate([
-            'grant_type' => 'required|in:refresh_token',
-            'refresh_token' => 'required|string',
-            'client_id' => 'required|string',
-            'resource' => 'required|url',
-            'scope' => 'nullable|string',
-        ]);
-
         try {
             $result = $this->refreshTokens->rotate(
                 (string) $request->input('refresh_token'),
@@ -243,6 +195,15 @@ class OAuthServerController extends Controller
             'refresh_token' => $result['raw'],
             'scope' => $result['scope'] ?? config('oauth-mcp.scope'),
         ]);
+    }
+
+    private function resolveOAuthTokenRequest(Request $request): OAuthTokenRequest
+    {
+        $form = OAuthTokenRequest::createFrom($request);
+        $form->setContainer(app())->setRedirector(app('redirector'));
+        $form->validateResolved();
+
+        return $form;
     }
 
     private function normalizeRedirectUris(array $uris): array
