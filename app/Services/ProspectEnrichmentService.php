@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Jobs\AuditSiteJob;
 use App\Jobs\DetectCmsJob;
 use App\Models\Prospect;
 use Illuminate\Support\Str;
@@ -50,27 +49,21 @@ class ProspectEnrichmentService
             ],
         );
 
-        $auditQueued = false;
-
         if ($websiteChanged) {
             $updates['cms_detection'] = null;
             $updates['website_url_source'] = 'operator';
             $updates['website_discovery_confidence'] = null;
             $updates['website_discovered_at'] = null;
-
-            if ($this->shouldAudit($prospect)) {
-                $updates = array_merge($updates, $this->audits->auditResetFields(), [
-                    'suppress_auto_report' => true,
-                ]);
-                $auditQueued = true;
-            }
         }
 
         $prospect->update($updates);
         $prospect->refresh();
 
-        if ($auditQueued) {
-            AuditSiteJob::dispatch($prospect);
+        $auditQueued = false;
+
+        if ($websiteChanged && $this->shouldAudit($prospect)) {
+            $this->audits->queueSiteAudit($prospect, suppressAutoReport: true);
+            $auditQueued = true;
         } elseif ($websiteChanged && ! empty($prospect->website_url)) {
             DetectCmsJob::dispatch($prospect);
         }
