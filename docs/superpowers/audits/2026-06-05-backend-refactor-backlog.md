@@ -388,6 +388,108 @@ Cohesive pipeline (ONS fetch, taxonomy filter, Birmingham validation, PHP config
 | Effort | ~1 hour |
 
 ### S4 — Scoring & enrichment
+
+#### REF-S4-01: ScorePlaceJob re-runs Places API while prospect audit is pending
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S4 Scoring & enrichment |
+| Scores | M=2 R=2 L=2 O=3 → Total 9 (P2) |
+| Evidence | `app/Jobs/ScorePlaceJob.php:39-45,66-80` — idempotency guard returns only when audit is **not** pending |
+| Spec gap | [2026-05-27-gbp-scoring-flags-design.md](../specs/2026-05-27-gbp-scoring-flags-design.md) — retry semantics not documented |
+| PR slice | Medium — "S4: skip ScorePlaceJob when prospect exists (match pending guard inversion)" |
+| Risk | Medium — duplicate Places calls and `updateOrCreate` during active site audit; may reset fields mid-pipeline |
+| Effort | ~1–2 hours |
+| Notes | Guard comment implies early return when prospect exists; condition only skips when audit is complete/failed/skipped. |
+
+#### REF-S4-02: GbpScoringService decomposition candidate (292 lines)
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S4 Scoring & enrichment |
+| Scores | M=2 R=1 L=2 O=1 → Total 6 (P3) |
+| Evidence | `app/Services/GbpScoringService.php` (292 lines); appendix file-size signal #5 |
+| Spec gap | None |
+| PR slice | Medium — "S4: extract GbpRelativeScorer from GbpScoringService" |
+| Risk | Low — covered by `GbpScoringServiceTest` and `ScorePlaceJobWebsiteDiscoveryTest` |
+| Effort | ~3–4 hours |
+| Notes | Cohesive but dense: absolute scoring, relative benchmark scoring, flag dedup in `mergeScores`, `overlayProspectFields`, weak-host detection. Natural split: absolute vs relative scorers. |
+
+#### REF-S4-03: ProspectEnrichmentService bypasses ProspectAuditService for audit dispatch
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S4 Scoring & enrichment |
+| Scores | M=2 R=1 L=2 O=2 → Total 7 (P2) |
+| Evidence | `app/Services/ProspectEnrichmentService.php:62-73`; contrast `app/Services/ProspectAuditService.php:15-39` |
+| Spec gap | [2026-05-28-prospect-enrichment-design.md](../specs/2026-05-28-prospect-enrichment-design.md) — enrichment triggers audit; does not mandate service entry point |
+| PR slice | Medium — "S4: route ProspectEnrichmentService audit queue through ProspectAuditService" |
+| Risk | Medium — duplicated reset/dispatch logic; future guard changes must be applied in two places |
+| Effort | ~1 hour |
+| Notes | Inlines `auditResetFields()` merge and direct `AuditSiteJob::dispatch` instead of `queueSiteAudit()`. Pending guard duplicated at lines 25–28. |
+
+#### REF-S4-04: CombineScoresJob retry can re-dispatch GenerateProspectReportJob
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S4 Scoring & enrichment |
+| Scores | M=2 R=2 L=2 O=2 → Total 8 (P2) |
+| Evidence | `app/Jobs/CombineScoresJob.php:36-38,56-61` — early return only when `audit_status === 'complete'`; report dispatch is not idempotent |
+| Spec gap | None |
+| PR slice | Medium — "S4: guard CombineScoresJob report dispatch (idempotent completion marker)" |
+| Risk | Medium — queue retry after report dispatch but before status persist could duplicate reports/screenshots |
+| Effort | ~1–2 hours |
+| Notes | Job chain coupling: `ScorePlaceJob` → `AuditSiteJob` → `CombineScoresJob` → `GenerateProspectReportJob`. Failure propagation to search status is correct via `SearchStatusService`. |
+
+#### REF-S4-05: CmsDetectionRunnerService uses `audit_driver` not a CMS-specific config seam
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S4 Scoring & enrichment |
+| Scores | M=2 R=1 L=2 O=2 → Total 7 (P2) |
+| Evidence | `app/Services/CmsDetectionRunnerService.php:19-22`; contrast `app/Services/ScreenshotCaptureService.php:22-30` (`screenshot_driver`) |
+| Spec gap | [2026-06-01-cms-detection-design.md](../specs/2026-06-01-cms-detection-design.md) — driver routing not specified separately from audit |
+| PR slice | Medium — "S4: add scanner.cms_detect_driver config (http vs playwright)" |
+| Risk | Medium — local Playwright audit + Fly HTTP CMS (or vice versa) cannot be configured independently |
+| Effort | ~2 hours |
+
+#### REF-S4-06: DetectCmsJob failures log only — no operator-visible error surface
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S4 Scoring & enrichment |
+| Scores | M=1 R=1 L=2 O=2 → Total 6 (P3) |
+| Evidence | `app/Jobs/DetectCmsJob.php:49-56`; contrast `app/Services/AuditErrorRecorder.php` used by audit jobs |
+| Spec gap | [2026-06-01-cms-detection-design.md](../specs/2026-06-01-cms-detection-design.md) — pending CMS UI state documented; failure state not |
+| PR slice | Medium — "S4: persist DetectCmsJob failure on prospect or audit_jobs row" |
+| Risk | Low — operator sees `cms.pending = true` indefinitely after silent job failure |
+| Effort | ~2 hours |
+| Notes | `DetectCmsJobTest` covers success/skip paths. `BackfillCmsCommand` dry-run pattern is good (matches repair commands). |
+
+#### REF-S4-07: Violation impact counting duplicated in A11yScoringService and ReportBuilderService
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S4 Scoring & enrichment |
+| Scores | M=2 R=1 L=2 O=1 → Total 6 (P3) |
+| Evidence | `app/Services/A11yScoringService.php:24-32`; `app/Services/ReportBuilderService.php:351-364` (`summarizeViolations`) |
+| Spec gap | None |
+| PR slice | Medium — "S4/S5: extract shared ViolationCounter from scoring and report builders" |
+| Risk | Low — drift if impact weights change in one path only |
+| Effort | ~1–2 hours |
+
+#### REF-S4-08: BenchmarkNormalizer field extraction overlaps GbpScoringService::extractFields
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S4 Scoring & enrichment |
+| Scores | M=2 R=1 L=2 O=1 → Total 6 (P3) |
+| Evidence | `app/Services/BenchmarkNormalizer.php:18-28`; `app/Services/GbpScoringService.php:42-54` |
+| Spec gap | None |
+| PR slice | Medium — "S4: share Places field normalisation between benchmark and scoring" |
+| Risk | Low — `GenerateProspectReportJob` and `GbpScoringService` could drift on new Places fields |
+| Effort | ~1–2 hours |
+
 ### S5 — Reports & public surfaces
 ### S6 — Outreach
 ### S7 — OAuth & MCP
