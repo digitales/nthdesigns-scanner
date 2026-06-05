@@ -13,6 +13,7 @@ import {
   Input,
   PageHeader,
   ScoreBadge,
+  Page,
   Segmented,
 } from "@/Components/ui";
 
@@ -57,7 +58,7 @@ export default function OutreachIndex({
     <AuthenticatedLayout>
       <Head title="Outreach" />
 
-      <main className="page page-wide">
+      <Page width="wide" className="page-wide">
         <PageHeader
           eyebrow="Outreach workspace"
           title={`${selection.length} prospect${selection.length !== 1 ? "s" : ""} in queue.`}
@@ -279,7 +280,7 @@ export default function OutreachIndex({
             })}
           </section>
         </div>
-      </main>
+      </Page>
     </AuthenticatedLayout>
   );
 }
