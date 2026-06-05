@@ -939,7 +939,104 @@ Cohesive pipeline (ONS fetch, taxonomy filter, Birmingham validation, PHP config
 
 ### S10 — Shared infrastructure
 
+#### REF-S10-01: Form Request coverage gap — 6 requests vs 13 controllers with inline validation
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S10 Shared infrastructure |
+| Scores | M=2 R=1 L=3 O=1 → Total 7 (P2) |
+| Evidence | Appendix Form Request gap; `find app/Http/Requests` → 6 files; 18 `store`/`update` controllers; 13 controllers with `$request->validate(` (22 call sites) |
+| Spec gap | None — [2026-06-05-lean-audit-refactor-design.md](../specs/2026-06-05-lean-audit-refactor-design.md) flags as cross-cutting |
+| PR slice | Medium — "S10: add Form Requests for Search, Outreach, Settings, OAuth, Booking mutations" |
+| Risk | Low — rules are present inline; gap is consistency and reuse |
+| Effort | ~4–6 hours |
+| Notes | Highest-impact targets: `OAuthServerController` (5 sites), `SettingsController` (3), `OutreachController` (2), `AgencyBookingSettingsController` (2). Referenced by REF-S1-05, REF-S2-08, REF-S6-01, REF-S7-03, REF-S8-01, REF-S9-01. |
+
+#### REF-S10-02: Seven models still use legacy `protected $casts` instead of `casts()` method
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S10 Shared infrastructure |
+| Scores | M=1 R=1 L=3 O=1 → Total 6 (P3) |
+| Evidence | Appendix casts migration; `rg "protected \$casts" app/Models` → 7 files: `AuditJobErrorDetail`, `OutreachEmail`, `AuditJob`, `ReportBooking`, `Prospect`, `AgencyBookingSetting`, `ProspectReport`; 8 models already on `casts()` |
+| Spec gap | None — Laravel 11+ `casts()` method is project norm for newer models |
+| PR slice | Medium — "S10: migrate remaining models to casts() method" |
+| Risk | Low — mechanical refactor |
+| Effort | ~2 hours |
+| Notes | Referenced by REF-S6-07, REF-S8-06. Seven models with no explicit casts are fine. |
+
+#### REF-S10-03: Policy coverage gaps on mutating routes
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S10 Shared infrastructure |
+| Scores | M=2 R=2 L=2 O=2 → Total 8 (P2) |
+| Evidence | `app/Policies/` — 4 policies; `AppServiceProvider.php:33-35` registers 3 (`OutreachSelectionPolicy` omitted); `rg "authorize\(" app/Http/Controllers` — 14 call sites across 6 controllers |
+| Spec gap | None |
+| PR slice | Medium — "S10: expand policy coverage for mutating routes" |
+| Risk | Medium — several routes rely on query scoping or manual `user_id` checks |
+| Effort | ~3–4 hours |
+| Notes | **Routes without policy:** `ExportController::store` (user-scoped query only); `AgencyBookingSettingsController` update/test (singleton agency settings); `NicheIgnoreController` store/destroy (inline validate); `OutreachController::clearSelections` (relationship scope); `SettingsController` update/scan/bootstrap (auth middleware only); `ConnectedAppsController` destroy (manual check, REF-S7-07); `IgnoredProspectController` destroy (`abort_unless`, REF-S9-04); `OutreachEmailController` (prospect view only, REF-S6-03). **Dead policy:** `OutreachSelectionPolicy` (REF-S6-02). |
+
+#### REF-S10-04: Http/Resources underuse — only ProspectListResource
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S10 Shared infrastructure |
+| Scores | M=2 R=1 L=2 O=1 → Total 6 (P3) |
+| Evidence | `app/Http/Resources/ProspectListResource.php` — sole Resource; used in `SavedProspectController.php:27-28` only; `rg "Inertia::render" app/Http/Controllers` → 19 controllers with manual array mapping |
+| Spec gap | None |
+| PR slice | Medium — "S10: adopt Resources for Search show, Outreach index, Report dashboard payloads" |
+| Risk | Low — presentation drift across pages |
+| Effort | ~4–6 hours |
+| Notes | `ProspectListResource` is a static formatter, not `JsonResource` subclass — pattern is ad hoc. Cross-ref REF-S1-06, REF-S5-02, REF-S6-06. |
+
+#### REF-S10-05: Query-builder classes split across Support/ and Queries/
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S10 Shared infrastructure |
+| Scores | M=2 R=1 L=2 O=1 → Total 6 (P3) |
+| Evidence | Appendix Support vs Queries overlap; `app/Support/` has 4 audit-repair query objects; `app/Queries/ProspectListQuery.php` alone in Queries/ |
+| Spec gap | None |
+| PR slice | Medium — "S10: consolidate query objects under app/Queries/" |
+| Risk | Low — navigation consistency |
+| Effort | ~1–2 hours |
+| Notes | Cross-ref REF-S3-08. `ProspectListQuery` correctly used by `ExportController` and `SavedProspectController`. |
+
+#### REF-S10-06: ScannerConfig runtime overrides in AppServiceProvider boot
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S10 Shared infrastructure |
+| Scores | M=1 R=1 L=2 O=2 → Total 6 (P3) |
+| Evidence | `app/Providers/AppServiceProvider.php:31` — `ScannerConfig::applyRuntimeOverrides()`; `app/Support/ScannerConfig.php` |
+| Spec gap | None |
+| PR slice | Medium — "S10: document ScannerConfig override semantics in config/scanner.php header" |
+| Risk | Low — env-driven driver coercion (`config/scanner.php:3-22`) is non-obvious at boot |
+| Effort | ~1 hour |
+
+#### REF-S10-07: config/scanner.php env coercion logic is dense at file top
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S10 Shared infrastructure |
+| Scores | M=1 R=1 L=2 O=2 → Total 6 (P3) |
+| Evidence | `config/scanner.php:3-22` — `$auditDriver` / `$screenshotDriver` derived from `AUDIT_SERVICE_URL` and legacy `cloudflare` alias |
+| Spec gap | None |
+| PR slice | Small — "S10: extract driver resolution to ScannerConfig::drivers()" |
+| Risk | Low — misconfiguration affects all audit/screenshot paths |
+| Effort | ~1–2 hours |
+
 ## Cross-cutting findings (S10)
+
+| ID | Title | Priority | Referenced from |
+|----|-------|----------|-----------------|
+| REF-S10-01 | Form Request coverage gap (6 vs 13 inline validate controllers) | P2 | REF-S1-05, REF-S2-08, REF-S6-01, REF-S7-03, REF-S8-01, REF-S9-01 |
+| REF-S10-02 | Legacy `$casts` → `casts()` migration (7 models) | P3 | REF-S6-07, REF-S8-06 |
+| REF-S10-03 | Policy coverage on mutating routes | P2 | REF-S6-02, REF-S6-03, REF-S7-07, REF-S9-04 |
+| REF-S10-04 | Http/Resources underuse | P3 | REF-S1-06, REF-S5-02, REF-S6-06 |
+| REF-S10-05 | Support/ vs Queries/ query object split | P3 | REF-S3-08 |
 ## Frontend light pass (F1)
 ## Recommended PR schedule
 
