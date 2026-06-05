@@ -19,7 +19,7 @@ function pageNumbers(current, last) {
     return result;
 }
 
-export default function Pagination({ pagination, href = '/searches' }) {
+export default function Pagination({ pagination, href = '/searches', query = {} }) {
     const { current_page, last_page, total, per_page } = pagination;
 
     if (!last_page || last_page <= 1) {
@@ -30,7 +30,19 @@ export default function Pagination({ pagination, href = '/searches' }) {
     const to = Math.min(current_page * per_page, total);
     const pages = pageNumbers(current_page, last_page);
 
-    const pageHref = (page) => (page === 1 ? href : `${href}?page=${page}`);
+    const pageHref = (page) => {
+        const params = new URLSearchParams();
+        Object.entries(query).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== '') {
+                params.set(key, String(value));
+            }
+        });
+        if (page > 1) {
+            params.set('page', String(page));
+        }
+        const qs = params.toString();
+        return qs ? `${href}?${qs}` : href;
+    };
 
     return (
         <nav

@@ -1,4 +1,4 @@
-import { Head, Link, router, useForm } from "@inertiajs/react";
+import { Head, Link, router, useForm, usePage } from "@inertiajs/react";
 import { useState } from "react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import OutreachEmailCard from "@/Components/OutreachEmailCard";
@@ -8,6 +8,7 @@ import {
   Card,
   EmptyState,
   Field,
+  Grid,
   Icon,
   Icons,
   Input,
@@ -15,14 +16,15 @@ import {
   ScoreBadge,
   Page,
   Segmented,
+  Stack,
 } from "@/Components/ui";
 
 export default function OutreachIndex({
   selection,
   emailsByProspect,
   defaults,
-  flash,
 }) {
+  const { flash } = usePage().props;
   const { data, setData, post, processing } = useForm({
     agency_name: defaults.agency_name,
     pitch_angle: defaults.pitch_angle,
@@ -66,14 +68,7 @@ export default function OutreachIndex({
         />
 
         {flash?.success && (
-          <div
-            className="skip-banner"
-            style={{
-              background: "var(--color-positive-soft)",
-              borderColor: "oklch(0.58 0.11 145 / 0.25)",
-              color: "oklch(0.35 0.08 145)",
-            }}
-          >
+          <div className="skip-banner banner-success">
             {flash.success}
           </div>
         )}
@@ -93,21 +88,10 @@ export default function OutreachIndex({
           </div>
         )}
 
-        <div
-          style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 32 }}
-        >
+        <div className="outreach-layout">
           <section>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: 12,
-              }}
-            >
-              <div className="card-title" style={{ margin: 0 }}>
-                Queue
-              </div>
+            <div className="queue-header">
+              <div className="card-title card-title-flush">Queue</div>
               {selection.length > 0 && (
                 <Button
                   kind="ghost"
@@ -134,44 +118,24 @@ export default function OutreachIndex({
                 }
               />
             ) : (
-              <ul style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <ul className="queue-list">
                 {selection.map((item) => (
                   <li key={item.id} className="queue-chip">
                     <Link
                       href={`/prospects/${item.prospect_id}?from=outreach`}
-                      style={{
-                        textDecoration: "none",
-                        color: "inherit",
-                        flex: 1,
-                        minWidth: 0,
-                      }}
+                      className="queue-link"
                     >
-                      <div
-                        style={{
-                          fontWeight: 500,
-                          fontSize: 13,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
+                      <div className="queue-chip-title">
                         {item.business_name}
                       </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: 8,
-                          marginTop: 6,
-                          alignItems: "center",
-                        }}
-                      >
+                      <div className="queue-chip-meta">
                         <ScoreBadge
                           value={item.combined_score}
                           withBar={false}
                         />
                         <AnglePill angle={item.dominant_angle} />
                       </div>
-                      <div className="micro" style={{ marginTop: 4 }}>
+                      <div className="micro mt-4">
                         {item.booked_label
                           ? item.booked_label
                           : item.report_ready
@@ -194,16 +158,9 @@ export default function OutreachIndex({
           </section>
 
           <section>
-            <Card title="Generate emails" style={{ marginBottom: 24 }}>
+            <Card title="Generate emails" className="mb-24">
               <form onSubmit={generateAll}>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: 16,
-                    marginBottom: 16,
-                  }}
-                >
+                <Grid cols={2} gap={16} className="mb-16">
                   <Field label="Pitch angle">
                     <Segmented
                       value={data.pitch_angle}
@@ -223,7 +180,7 @@ export default function OutreachIndex({
                       placeholder="nthdesigns"
                     />
                   </Field>
-                </div>
+                </Grid>
                 <Field label="CPC benchmark" hint="optional">
                   <div className="input-with-prefix">
                     <span className="prefix">£</span>
@@ -236,7 +193,7 @@ export default function OutreachIndex({
                     />
                   </div>
                 </Field>
-                <div style={{ marginTop: 20 }}>
+                <div className="mt-20">
                   <Button
                     kind="primary"
                     size="lg"
@@ -257,14 +214,12 @@ export default function OutreachIndex({
               const emails = emailsByProspect[item.prospect_id] ?? [];
               if (emails.length === 0) return null;
               return (
-                <div key={item.prospect_id} style={{ marginBottom: 24 }}>
-                  <h3
-                    style={{ fontSize: 14, fontWeight: 500, marginBottom: 12 }}
-                  >
+                <div key={item.prospect_id} className="mb-24">
+                  <h3 className="body-14-medium mb-12">
                     {item.business_name}
                   </h3>
                   {emails.map((email) => (
-                    <div key={email.id} style={{ marginBottom: 16 }}>
+                    <div key={email.id} className="mb-16">
                       <OutreachEmailCard
                         email={{
                           ...email,

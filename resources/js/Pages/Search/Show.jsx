@@ -145,7 +145,7 @@ export default function SearchShow({ search, prospects, outreachProspectIds = []
                         />
                     </Field>
                     <Field label="Min combined score">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 6 }}>
+                        <div className="filter-range-row">
                             <Input
                                 type="range"
                                 className="input-range"
@@ -155,7 +155,7 @@ export default function SearchShow({ search, prospects, outreachProspectIds = []
                                 value={minScore}
                                 onChange={(e) => setMinScore(+e.target.value)}
                             />
-                            <span className="micro tabular" style={{ minWidth: 36 }}>{minScore}+</span>
+                            <span className="micro tabular min-w-36">{minScore}+</span>
                         </div>
                     </Field>
                     <div className="filter-action">
@@ -170,29 +170,29 @@ export default function SearchShow({ search, prospects, outreachProspectIds = []
                         sub="Try lowering the minimum score or clearing the angle filter."
                     />
                 ) : (
-                    <DataTable tableClassName="ptable--prospects" style={{ background: 'var(--color-paper)' }}>
+                    <DataTable tableClassName="ptable--prospects ptable--paper">
                             <thead>
                                 <tr>
-                                    <th style={{ width: 36 }}>
+                                    <th className="col-check">
                                         <Checkbox
                                             checked={selectedIds.length > 0 && selectedIds.length === visible.length}
                                             indeterminate={selectedIds.length > 0 && selectedIds.length < visible.length}
                                             onChange={toggleAll}
                                         />
                                     </th>
-                                    <th style={{ width: '28%' }}>Business</th>
-                                    <th style={{ width: '9%' }}>Combined</th>
+                                    <th className="col-biz">Business</th>
+                                    <th className="col-combined">Combined</th>
                                     {showA11y && (
                                         <>
-                                            <th style={{ width: '6%' }}>GBP</th>
-                                            <th style={{ width: '6%' }}>A11y</th>
-                                            <th style={{ width: '6%' }}>Perf</th>
+                                            <th className="col-score-sm">GBP</th>
+                                            <th className="col-score-sm">A11y</th>
+                                            <th className="col-score-sm">Perf</th>
                                         </>
                                     )}
-                                    <th style={{ width: '8%' }}>CMS</th>
-                                    <th style={{ width: '11%' }}>Angle</th>
-                                    <th style={{ width: '14%' }}>Report status</th>
-                                    <th style={{ width: '14%', textAlign: 'right' }}>Actions</th>
+                                    <th className="col-cms">CMS</th>
+                                    <th className="col-angle">Angle</th>
+                                    <th className="col-report">Report status</th>
+                                    <th className="col-actions">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -211,8 +211,8 @@ export default function SearchShow({ search, prospects, outreachProspectIds = []
                                 {isRunning &&
                                     Array.from({ length: Math.max(0, 3) }).map((_, i) => (
                                         <tr key={`skel-${i}`}>
-                                            <td colSpan={showA11y ? 10 : 7} style={{ padding: '14px 20px' }}>
-                                                <span className="skel" style={{ width: '60%', display: 'block' }} />
+                                            <td colSpan={showA11y ? 10 : 7} className="skel-row">
+                                                <span className="skel skel-block" />
                                             </td>
                                         </tr>
                                     ))}
@@ -257,18 +257,15 @@ function ProspectRow({
                     <Checkbox checked={isSelected} onChange={onToggleSelect} />
                 </td>
                 <td className="biz">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div className="biz-title-row">
                         {p.business_name}
-                                        {inQueue && (
-                                            <span className="badge" style={{ fontSize: 10, background: 'var(--color-stone-200)' }}>
-                                                In outreach
-                                            </span>
-                                        )}
+                        {inQueue && (
+                            <span className="badge badge--queue">In outreach</span>
+                        )}
                     </div>
                     <span
-                        className="url"
+                        className={`url${isFailed ? ' text-critical' : ''}`}
                         title={isFailed ? undefined : urlDisplay}
-                        style={isFailed ? { color: 'var(--color-sev-critical)' } : {}}
                     >
                         {isFailed ? (p.audit_error ?? 'Audit failed') : urlDisplay}
                     </span>
@@ -302,7 +299,7 @@ function ProspectRow({
                         <Status kind="ready">Report ready</Status>
                     )}
                 </td>
-                <td onClick={(e) => e.stopPropagation()} style={{ textAlign: 'right' }}>
+                <td className="col-actions" onClick={(e) => e.stopPropagation()}>
                     <RowActions>
                         <IconButton
                             icon={isExpanded ? Icons.ChevronU : Icons.ChevronD}
@@ -345,10 +342,10 @@ function ProspectRow({
                 <tr className="expanded-row">
                     <td colSpan={showA11y ? 9 : 6}>
                         <div className="ex-inner">
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
+                            <div className="detail-grid-2">
                                 <div>
-                                    <div className="eyebrow" style={{ marginBottom: 10 }}>GBP weaknesses</div>
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                    <div className="eyebrow eyebrow-spaced">GBP weaknesses</div>
+                                    <div className="flag-wrap">
                                         {(p.gbp_flags ?? []).length === 0 ? (
                                             <span className="micro">None flagged</span>
                                         ) : (
@@ -359,8 +356,8 @@ function ProspectRow({
                                     </div>
                                 </div>
                                 <div>
-                                    <div className="eyebrow" style={{ marginBottom: 10 }}>Accessibility weaknesses</div>
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                    <div className="eyebrow eyebrow-spaced">Accessibility weaknesses</div>
+                                    <div className="flag-wrap">
                                         {(p.a11y_flags ?? []).length === 0 ? (
                                             <span className="micro">None flagged</span>
                                         ) : (
@@ -372,7 +369,7 @@ function ProspectRow({
                                 </div>
                             </div>
                             {!inQueue && (
-                                <div style={{ marginTop: 16 }}>
+                                <div className="mt-16">
                                     <Button
                                         kind="secondary"
                                         size="sm"
@@ -395,13 +392,13 @@ function PerfScore({ value, auditStatus: _auditStatus }) {
         return '—';
     }
 
-    const color =
-        value < 50 ? 'var(--color-sev-critical)' :
-        value < 70 ? 'var(--color-sev-serious)' :
-                     'var(--color-positive)';
+    const tone =
+        value < 50 ? 'text-critical' :
+        value < 70 ? 'text-serious' :
+                     'text-positive';
 
     return (
-        <span className="tabular" style={{ color, fontWeight: 500 }}>
+        <span className={`tabular text-medium ${tone}`}>
             {value}
         </span>
     );

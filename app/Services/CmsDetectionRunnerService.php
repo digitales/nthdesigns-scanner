@@ -16,7 +16,7 @@ class CmsDetectionRunnerService
      */
     public function run(string $url): array
     {
-        return match (config('scanner.audit_driver')) {
+        return match (config('scanner.cms_detect_driver')) {
             'http' => $this->browserService->fetchCmsDetection($url),
             default => $this->runPlaywright($url),
         };

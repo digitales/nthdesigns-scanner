@@ -2,11 +2,7 @@
 
 namespace Tests\Unit;
 
-use App\Services\BraveSearchService;
-use App\Services\GbpScoringService;
-use App\Services\GoogleCustomSearchService;
 use App\Services\WebsiteDiscoveryService;
-use App\Support\WebsiteUrlNormalizer;
 use Tests\TestCase;
 
 class WebsiteDiscoveryServiceTest extends TestCase
@@ -17,12 +13,7 @@ class WebsiteDiscoveryServiceTest extends TestCase
     {
         parent::setUp();
 
-        $this->service = new WebsiteDiscoveryService(
-            new BraveSearchService,
-            new GoogleCustomSearchService,
-            new GbpScoringService,
-            new WebsiteUrlNormalizer,
-        );
+        $this->service = app(WebsiteDiscoveryService::class);
     }
 
     public function test_high_confidence_match_requires_name_and_city(): void
