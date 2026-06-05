@@ -16,12 +16,12 @@ export default function WhyNow() {
 
       <div className="why-now">
         <div>
-          <p style={{ fontFamily: "var(--serif)", fontSize: 20, lineHeight: 1.5, color: "var(--stone-700)", margin: 0 }}>
+          <p className="why-now-copy">
             Public-sector bodies have been on this hook since 2018. From this year, professional
             service firms — dentists, solicitors, optometrists, accountants — are too. The first
             wave of EHRC notices went out in March; we've audited eleven of the firms that received them.
           </p>
-          <p style={{ fontFamily: "var(--serif)", fontSize: 20, lineHeight: 1.5, color: "var(--stone-700)", marginTop: 24, marginBottom: 0 }}>
+          <p className="why-now-copy">
             None of this is theoretical. The cost of a single notice is roughly six months
             of our largest retainer. The cost of fixing it before one arrives is usually under
             half a day.

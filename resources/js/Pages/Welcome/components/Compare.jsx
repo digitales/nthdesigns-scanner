@@ -33,7 +33,7 @@ export default function Compare() {
             <div className="name">Lighthouse / SEMrush / Ahrefs</div>
           </div>
           <div className="us">
-            <span className="eyebrow no-rule" style={{ color: "var(--accent-ink)" }}><span>Us</span></span>
+            <span className="eyebrow no-rule"><span>Us</span></span>
             <div className="name">nthdesigns Prospect Scanner</div>
           </div>
         </div>
@@ -44,10 +44,10 @@ export default function Compare() {
               {r.note && <div className="note">{r.note}</div>}
             </div>
             <div className="cell">
-              {r.them === true ? <span className="check">✓</span> : r.them === false ? <span className="nope">—</span> : <span style={{ color: "var(--stone-700)", fontSize: 12.5 }}>{r.them}</span>}
+              {r.them === true ? <span className="check">✓</span> : r.them === false ? <span className="nope">—</span> : <span className="compare-cell-text">{r.them}</span>}
             </div>
             <div className="cell us">
-              {r.us === true ? <span className="check" style={{ color: "var(--accent-deep)" }}>✓</span> : r.us === false ? <span className="nope">—</span> : <span style={{ color: "var(--accent-ink)", fontSize: 12.5 }}>{r.us}</span>}
+              {r.us === true ? <span className="check us">✓</span> : r.us === false ? <span className="nope">—</span> : <span className="compare-cell-text us">{r.us}</span>}
             </div>
           </div>
         ))}

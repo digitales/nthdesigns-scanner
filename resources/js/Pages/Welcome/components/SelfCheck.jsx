@@ -55,15 +55,15 @@ export default function SelfCheck() {
               <div className="sc-stat">
                 <div className="sl">Images / no alt</div>
                 <div className={`sv tabular ${results.imgsNoAlt > 0 ? "warn" : ""}`}>
-                  {results.imgsTotal}<span style={{ fontSize: 18, color: "oklch(0.72 0.01 60)" }}> / </span>
-                  <span style={{ color: results.imgsNoAlt > 0 ? "var(--accent)" : "var(--paper)" }}>{results.imgsNoAlt}</span>
+                  {results.imgsTotal}<span className="sv-divider"> / </span>
+                  <span className={results.imgsNoAlt > 0 ? "sv-count-warn" : "sv-count-ok"}>{results.imgsNoAlt}</span>
                 </div>
                 <div className="sn">{results.imgsNoAlt === 0 ? "all images described" : "some without alt"}</div>
               </div>
               <div className="sc-stat">
                 <div className="sl">Heading order</div>
-                <div className={`sv tabular`} style={{ fontSize: 28, paddingTop: 8 }}>
-                  {results.headingOrderOk ? "✓" : "✗"} <span style={{ fontSize: 18, color: "oklch(0.72 0.01 60)" }}>· {results.headingsTotal}</span>
+                <div className="sv tabular sv-heading">
+                  {results.headingOrderOk ? "✓" : "✗"} <span className="sv-sub">· {results.headingsTotal}</span>
                 </div>
                 <div className="sn">{results.headingOrderOk ? `${results.h1Count} h1 · order intact` : "skipped a level"}</div>
               </div>
@@ -77,7 +77,7 @@ export default function SelfCheck() {
             Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="sc-stat">
                 <div className="sl">Scanning…</div>
-                <div className="sv ticking" style={{ color: "oklch(0.72 0.01 60)" }}>—</div>
+                <div className="sv ticking sv-ticking">—</div>
               </div>
             ))
           )}

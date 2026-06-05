@@ -21,7 +21,7 @@ export default function Nav({ scrollTo, canLogin, canRegister }) {
       </div>
       <div className="nav-cta">
         {canLogin ? (
-          <Link href={route('login')} className="secondary" style={{ fontSize: 13, color: 'var(--stone-700)', padding: '6px 10px' }}>
+          <Link href={route('login')} className="secondary nav-sign-in">
             Sign in
           </Link>
         ) : null}
