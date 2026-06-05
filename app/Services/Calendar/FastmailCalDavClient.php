@@ -3,7 +3,6 @@
 namespace App\Services\Calendar;
 
 use App\Contracts\Calendar\CalendarEventDraft;
-use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
@@ -86,30 +85,7 @@ class FastmailCalDavClient
         CalendarEventDraft $draft,
         string $organizerEmail,
     ): string {
-        $dtStamp = Carbon::now('UTC')->format('Ymd\THis\Z');
-        $dtStart = $draft->startsAt->copy()->utc()->format('Ymd\THis\Z');
-        $dtEnd = $draft->endsAt->copy()->utc()->format('Ymd\THis\Z');
-        $summary = $this->escapeIcsText($draft->summary);
-        $description = $this->escapeIcsText($draft->description);
-        $attendeeName = $this->escapeIcsText($draft->attendeeName);
-
-        return implode("\r\n", [
-            'BEGIN:VCALENDAR',
-            'VERSION:2.0',
-            'PRODID:-//nthdesigns//scanner//EN',
-            'CALSCALE:GREGORIAN',
-            'BEGIN:VEVENT',
-            'UID:'.$draft->uid,
-            'DTSTAMP:'.$dtStamp,
-            'DTSTART:'.$dtStart,
-            'DTEND:'.$dtEnd,
-            'SUMMARY:'.$summary,
-            'DESCRIPTION:'.$description,
-            'ORGANIZER;CN=nthdesigns:mailto:'.$organizerEmail,
-            'ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE;CN='.$attendeeName.':mailto:'.$draft->attendeeEmail,
-            'END:VEVENT',
-            'END:VCALENDAR',
-        ])."\r\n";
+        return (new IcsEventBuilder)->build($draft, $organizerEmail);
     }
 
     private function propfindCalendarsBody(): string
@@ -163,14 +139,5 @@ XML;
         }
 
         return $response->body();
-    }
-
-    private function escapeIcsText(string $value): string
-    {
-        return str_replace(
-            ["\r\n", "\n", "\r", ',', ';'],
-            ['\\n', '\\n', '\\n', '\\,', '\\;'],
-            $value,
-        );
     }
 }

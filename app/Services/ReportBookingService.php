@@ -10,6 +10,7 @@ use App\Models\ReportBooking;
 use App\Services\Calendar\BookingAvailabilityService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
@@ -66,32 +67,32 @@ class ReportBookingService
             startsAt: $startsAt,
             endsAt: $endsAt,
             summary: 'Review call — '.$businessName,
-            description: implode("\n", [
+            description: implode("\n", array_filter([
                 'Audit report: '.$reportUrl,
                 'Prospect #'.$report->prospect_id,
                 filled($input['note'] ?? null) ? 'Note: '.$input['note'] : null,
-            ]),
+            ])),
             attendeeEmail: $input['attendee_email'],
             attendeeName: $input['attendee_name'],
             uid: $uid,
         );
 
-        return DB::transaction(function () use ($report, $input, $settings, $draft, $startsAt, $endsAt, $uid, $businessName, $reportUrl) {
-            $this->calendar->createEvent($draft);
+        $this->calendar->createEvent($draft);
 
-            $booking = ReportBooking::create([
-                'prospect_report_id' => $report->id,
-                'prospect_id' => $report->prospect_id,
-                'starts_at' => $startsAt,
-                'ends_at' => $endsAt,
-                'attendee_name' => $input['attendee_name'],
-                'attendee_email' => $input['attendee_email'],
-                'attendee_phone' => $input['attendee_phone'] ?? null,
-                'note' => $input['note'] ?? null,
-                'calendar_event_uid' => $uid,
-                'status' => 'confirmed',
-            ]);
+        $booking = DB::transaction(fn () => ReportBooking::create([
+            'prospect_report_id' => $report->id,
+            'prospect_id' => $report->prospect_id,
+            'starts_at' => $startsAt,
+            'ends_at' => $endsAt,
+            'attendee_name' => $input['attendee_name'],
+            'attendee_email' => $input['attendee_email'],
+            'attendee_phone' => $input['attendee_phone'] ?? null,
+            'note' => $input['note'] ?? null,
+            'calendar_event_uid' => $uid,
+            'status' => 'confirmed',
+        ]));
 
+        try {
             Mail::to($booking->attendee_email)->send(new ReportBookingConfirmed(
                 booking: $booking,
                 businessName: $businessName,
@@ -100,8 +101,14 @@ class ReportBookingService
             ));
 
             $booking->update(['confirmation_sent_at' => now()]);
+        } catch (\Throwable $e) {
+            Log::warning('ReportBookingConfirmed mail failed', [
+                'booking_id' => $booking->id,
+                'report_id' => $report->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
-            return $booking->fresh();
-        });
+        return $booking->fresh();
     }
 }
