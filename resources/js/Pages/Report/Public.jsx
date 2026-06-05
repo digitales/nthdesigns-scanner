@@ -23,75 +23,55 @@ export default function PublicReport({ report }) {
 
             <div className="public-report-wrap">
                 <article className="public-report">
-                    <header style={{ padding: '56px 80px 40px', borderBottom: '1px solid var(--color-line)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 48 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                <span className="brand-mark" style={{ width: 22, height: 22 }} />
-                                <span style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 17 }}>nthdesigns</span>
+                    <header>
+                        <div className="public-report-header-bar">
+                            <div className="public-report-brand">
+                                <span className="brand-mark brand-mark--md" />
+                                <span className="public-report-brand-name">nthdesigns</span>
                             </div>
-                            <div className="micro" style={{ textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                            <div className="micro micro--upper">
                                 Audit · {new Date(report.generated_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
                             </div>
                         </div>
 
-                        <div className="eyebrow" style={{ marginBottom: 14 }}>Independent audit · WCAG 2.2 + Google Business Profile</div>
-                        <h1 style={{
-                            fontFamily: 'var(--font-serif)',
-                            fontWeight: 400,
-                            fontSize: 56,
-                            lineHeight: 1.05,
-                            letterSpacing: '-0.022em',
-                            margin: '0 0 18px',
-                        }}>
+                        <div className="eyebrow eyebrow--spaced">Independent audit · WCAG 2.2 + Google Business Profile</div>
+                        <h1 className="public-report-title">
                             {report.business_name}
                         </h1>
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap', color: 'var(--color-stone-600)', fontSize: 14 }}>
+                        <div className="public-report-meta">
                             {report.website_url && (
-                                <span className="micro" style={{ fontSize: 13, color: 'var(--color-stone-700)' }}>
+                                <span className="micro public-report-meta-url">
                                     {report.website_url.replace(/^https?:\/\//, '')}
                                 </span>
                             )}
                             {report.address && (
                                 <>
-                                    <span style={{ color: 'var(--color-stone-400)' }}>·</span>
+                                    <span className="public-report-meta-sep">·</span>
                                     <span>{report.address}</span>
                                 </>
                             )}
                         </div>
                     </header>
 
-                    <section style={{ padding: '64px 80px', borderBottom: '1px solid var(--color-line)' }}>
-                        <div className="eyebrow" style={{ marginBottom: 14 }}>Overall grade</div>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 48, alignItems: 'center' }}>
+                    <section className="public-report-section">
+                        <div className="eyebrow eyebrow--spaced">Overall grade</div>
+                        <div className="public-report-grade-grid">
                             <div>
-                                <div style={{
-                                    fontFamily: 'var(--font-serif)',
-                                    fontSize: 160,
-                                    lineHeight: 0.85,
-                                    fontWeight: 400,
-                                    color,
-                                    letterSpacing: '-0.04em',
-                                }}>
+                                <div className="public-report-grade-letter" style={{ color }}>
                                     {grade}
                                 </div>
-                                <div className="micro" style={{ textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: 8 }}>
+                                <div className="micro public-report-grade-label">
                                     {report.grade_label}
                                 </div>
                             </div>
                             <div>
-                                <p style={{
-                                    fontFamily: 'var(--font-serif)',
-                                    fontSize: 22,
-                                    lineHeight: 1.5,
-                                    color: 'var(--color-stone-700)',
-                                    margin: 0,
-                                }}>
+                                <p className="public-report-lede">
                                     We audited your website and Google Business Profile against WCAG 2.2 and local competitors in {report.city}.
                                     {summary.total > 0 && (
-                                        <> The audit found <strong style={{ fontWeight: 400, color: 'var(--color-ink)' }}>{summary.total} issues</strong> worth addressing.</>
+                                        <> The audit found <strong>{summary.total} issues</strong> worth addressing.</>
                                     )}
                                 </p>
-                                <div style={{ marginTop: 24, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                                <div className="public-report-chips">
                                     {summary.critical > 0 && <SevChip level="critical" count={summary.critical} />}
                                     {summary.serious > 0 && <SevChip level="serious" count={summary.serious} />}
                                     {summary.moderate > 0 && <SevChip level="moderate" count={summary.moderate} />}
@@ -101,22 +81,15 @@ export default function PublicReport({ report }) {
                     </section>
 
                     {hasA11y && (
-                        <section style={{ padding: '72px 80px', borderBottom: '1px solid var(--color-line)' }}>
-                            <div className="eyebrow" style={{ marginBottom: 10 }}>Section 1 · Accessibility</div>
-                            <h2 style={{
-                                fontFamily: 'var(--font-serif)',
-                                fontWeight: 500,
-                                fontSize: 38,
-                                letterSpacing: '-0.018em',
-                                margin: '0 0 16px',
-                                lineHeight: 1.15,
-                            }}>
+                        <section className="public-report-section public-report-section--lg">
+                            <div className="eyebrow eyebrow--section">Section 1 · Accessibility</div>
+                            <h2 className="public-report-h2">
                                 The issues to fix first.
                             </h2>
-                            <p style={{ color: 'var(--color-stone-600)', fontSize: 15, lineHeight: 1.6, maxWidth: 620, margin: '0 0 36px' }}>
+                            <p className="public-report-prose">
                                 Every issue is mapped to a WCAG 2.2 success criterion. The fixes are usually a few lines of HTML or CSS — but the consequence of leaving them is a visitor who cannot complete a booking or enquiry.
                             </p>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 36 }}>
+                            <div className="public-report-violations">
                                 {(report.top_violations ?? []).map((v, i) => (
                                     <ViolationCard key={i} violation={v} screenshotUrl={v.screenshot_url} />
                                 ))}
@@ -125,16 +98,9 @@ export default function PublicReport({ report }) {
                     )}
 
                     {hasGbp && (
-                        <section style={{ padding: '72px 80px', borderBottom: '1px solid var(--color-line)', background: 'var(--color-paper-2)' }}>
-                            <div className="eyebrow" style={{ marginBottom: 10 }}>Section 2 · Google Business Profile</div>
-                            <h2 style={{
-                                fontFamily: 'var(--font-serif)',
-                                fontWeight: 500,
-                                fontSize: 38,
-                                letterSpacing: '-0.018em',
-                                margin: '0 0 16px',
-                                lineHeight: 1.15,
-                            }}>
+                        <section className="public-report-section public-report-section--lg public-report-section--alt">
+                            <div className="eyebrow eyebrow--section">Section 2 · Google Business Profile</div>
+                            <h2 className="public-report-h2">
                                 You, next to the top-ranking practice in {report.city}.
                             </h2>
                             <ComparisonTable
@@ -146,19 +112,12 @@ export default function PublicReport({ report }) {
                     )}
 
                     {hasLighthouse && (
-                        <section style={{ padding: '72px 80px', borderBottom: '1px solid var(--color-line)' }}>
-                            <div className="eyebrow" style={{ marginBottom: 10 }}>Section 3 · Site performance</div>
-                            <h2 style={{
-                                fontFamily: 'var(--font-serif)',
-                                fontWeight: 500,
-                                fontSize: 38,
-                                letterSpacing: '-0.018em',
-                                margin: '0 0 28px',
-                                lineHeight: 1.15,
-                            }}>
+                        <section className="public-report-section public-report-section--lg">
+                            <div className="eyebrow eyebrow--section">Section 3 · Site performance</div>
+                            <h2 className="public-report-h2 public-report-h2--perf">
                                 How the site loads, for real users.
                             </h2>
-                            <p style={{ color: 'var(--color-stone-600)', fontSize: 15, lineHeight: 1.6, maxWidth: 620, margin: '0 0 36px' }}>
+                            <p className="public-report-prose">
                                 Measured via Google Lighthouse on a mid-range mobile connection. Below 50 in any dial is where Google starts penalising the site in mobile search.
                             </p>
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-8">
@@ -176,29 +135,12 @@ export default function PublicReport({ report }) {
                     )}
 
                     {(report.native_booking || report.booking_url) && (
-                        <section
-                            id="book"
-                            style={{ padding: '96px 80px', textAlign: 'center', borderBottom: '1px solid var(--color-line)' }}
-                        >
-                            <div className="eyebrow" style={{ marginBottom: 18, color: 'var(--color-accent-deep)' }}>Next step</div>
-                            <h2 style={{
-                                fontFamily: 'var(--font-serif)',
-                                fontWeight: 400,
-                                fontSize: 48,
-                                letterSpacing: '-0.02em',
-                                margin: '0 0 18px',
-                                lineHeight: 1.1,
-                            }}>
+                        <section id="book" className="public-report-section public-report-section--cta">
+                            <div className="eyebrow eyebrow--cta">Next step</div>
+                            <h2 className="public-report-cta-title">
                                 A free 30-minute call to walk you through every fix.
                             </h2>
-                            <p style={{
-                                fontFamily: 'var(--font-serif)',
-                                fontSize: 18,
-                                color: 'var(--color-stone-600)',
-                                maxWidth: 480,
-                                margin: '0 auto 32px',
-                                lineHeight: 1.55,
-                            }}>
+                            <p className="public-report-cta-copy">
                                 No obligation. We'll go through the audit findings and outline what fixing them would involve.
                             </p>
                             {report.native_booking ? (
@@ -219,7 +161,7 @@ export default function PublicReport({ report }) {
                                     >
                                         Book a free 30-minute review
                                     </LinkButton>
-                                    <div className="micro" style={{ marginTop: 20 }}>
+                                    <div className="micro public-report-cta-note">
                                         {report.book_cta_external
                                             ? `${report.booking_url.replace(/^https?:\/\//, '')} · `
                                             : ''}
@@ -230,9 +172,9 @@ export default function PublicReport({ report }) {
                         </section>
                     )}
 
-                    <footer style={{ padding: '32px 80px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span className="brand-mark" style={{ width: 14, height: 14 }} />
+                    <footer>
+                        <div className="public-report-footer-brand">
+                            <span className="brand-mark brand-mark--sm" />
                             <span className="micro">nthdesigns · Digital consultancy</span>
                         </div>
                         <div className="micro">
@@ -266,29 +208,28 @@ function ComparisonTable({ businessName, you, benchmark }) {
     ];
 
     return (
-        <DataTable tableClassName="ptable--comparison" style={{ background: 'var(--color-paper)' }}>
+        <DataTable tableClassName="ptable--comparison" className="public-report-table-wrap">
             <colgroup>
-                <col style={{ width: '33.33%' }} />
-                <col style={{ width: '33.33%' }} />
-                <col style={{ width: '33.33%' }} />
+                <col className="col-signal" />
+                <col className="col-you" />
+                <col className="col-benchmark" />
             </colgroup>
             <thead>
                 <tr>
                     <th>Signal</th>
                     <th>You</th>
-                    <th style={{ background: 'var(--color-accent-soft)' }}>{benchmark.name}</th>
+                    <th className="col-benchmark">{benchmark.name}</th>
                 </tr>
             </thead>
             <tbody>
                 {rows.map((row) => (
                     <tr key={row.label}>
-                        <td style={{ color: 'var(--color-stone-600)' }}>{row.label}</td>
-                        <td style={{ fontFamily: 'var(--font-serif)', fontSize: 28 }}>{row.you}</td>
-                        <td style={{ fontFamily: 'var(--font-serif)', fontSize: 28, background: 'var(--color-accent-soft)' }}>{row.them}</td>
+                        <td className="comparison-label">{row.label}</td>
+                        <td className="comparison-value">{row.you}</td>
+                        <td className="comparison-value col-benchmark">{row.them}</td>
                     </tr>
                 ))}
             </tbody>
         </DataTable>
     );
 }
-
