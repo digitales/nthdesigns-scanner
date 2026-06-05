@@ -15,6 +15,148 @@ _TBD after Task 12_
 
 ## Findings by subsystem
 ### S1 — Search & prospecting
+
+#### REF-S1-01: DirectUrlScanJob test drift — missing sixth DI argument
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S1 Search & prospecting |
+| Scores | M=3 R=1 L=2 O=3 → Total 9 (P2) |
+| Evidence | `tests/Feature/DirectUrlScanJobTest.php:44,78,158`; `app/Jobs/DirectUrlScanJob.php:39` |
+| Spec gap | [2026-05-28-single-site-url-audit-design.md](../specs/2026-05-28-single-site-url-audit-design.md) — `ProspectExclusionService` added to job handle signature; tests not updated |
+| PR slice | Medium — "S1: fix DirectUrlScanJobTest handle() DI (ProspectExclusionService)" |
+| Risk | Low — test-only; production job resolves via container |
+| Effort | ~0.5 hours |
+| Notes | `php artisan test --filter=DirectUrlScanJobTest` → 3 errors, 1 pass. Manual `handle()` calls pass 5 deps; `handle()` expects 6. `dispatchSync` path (line 113) passes. Appendix baseline confirms same failures. |
+
+#### REF-S1-02: DirectUrlScanJob lacks idempotency guard on queue retry
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S1 Search & prospecting |
+| Scores | M=2 R=2 L=2 O=3 → Total 9 (P2) |
+| Evidence | `app/Jobs/DirectUrlScanJob.php:77,88`; contrast `app/Jobs/ScorePlaceJob.php:39-45,66-80` |
+| Spec gap | [2026-05-28-single-site-url-audit-design.md](../specs/2026-05-28-single-site-url-audit-design.md) — no retry/idempotency semantics documented |
+| PR slice | Medium — "S1: add DirectUrlScanJob idempotency guard (match ScorePlaceJob pattern)" |
+| Risk | Medium — retry hits `unique(search_id, place_id)` and marks search `failed` |
+| Effort | ~1–2 hours |
+| Notes | Uses `Prospect::create` with no pre-check. Sibling `ScorePlaceJob` early-returns when prospect exists and audit is not pending. |
+
+#### REF-S1-03: WebsiteDiscoveryService hardcodes `google_cse` source when Brave is default provider
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S1 Search & prospecting |
+| Scores | M=2 R=1 L=2 O=2 → Total 7 (P2) |
+| Evidence | `app/Services/WebsiteDiscoveryService.php:157`; `config/scanner.php` `website_discovery_provider` defaults to `brave` |
+| Spec gap | [2026-06-04-website-discovery-design.md](../specs/2026-06-04-website-discovery-design.md) — enum documents `gbp`/`google_cse`/`operator` only; spec predates Brave as default |
+| PR slice | Medium — "S1: align website_url_source with active discovery provider" |
+| Risk | Medium — operator UI shows wrong provenance; may need enum/migration extension |
+| Effort | ~2 hours |
+| Notes | `applyMatch()` always sets `website_url_source = 'google_cse'` regardless of `scanner.website_discovery_provider`. Tests assert `google_cse` even for Brave mocks. |
+
+#### REF-S1-04: WebsiteDiscoveryService decomposition candidate (316 lines)
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S1 Search & prospecting |
+| Scores | M=2 R=1 L=2 O=1 → Total 6 (P3) |
+| Evidence | `app/Services/WebsiteDiscoveryService.php` (316 lines); appendix file-size signal #3 |
+| Spec gap | None |
+| PR slice | Medium — "S1: extract WebsiteDiscoveryMatcher from WebsiteDiscoveryService" |
+| Risk | Low — covered by `WebsiteDiscoveryServiceTest` and `ScorePlaceJobWebsiteDiscoveryTest` |
+| Effort | ~3–4 hours |
+| Notes | Cohesive but dense: provider routing, two-tier `matchCandidates`, `applyMatch` rescoring, logging. Natural split: matcher (tokens/tiers) vs applicator (persist + rescore). |
+
+#### REF-S1-05: SearchController `store()` uses inline validation; `storeDirectUrl` uses Form Request
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S1 Search & prospecting |
+| Scores | M=2 R=1 L=2 O=1 → Total 6 (P3) |
+| Evidence | `app/Http/Controllers/SearchController.php:76-81`; `app/Http/Requests/StoreDirectUrlSearchRequest.php` |
+| Spec gap | None — appendix Form Request gap already flags `SearchController.php:76` |
+| PR slice | Medium — "S1: add StoreSearchRequest for niche area-scan form" |
+| Risk | Low |
+| Effort | ~1 hour |
+| Notes | Asymmetric validation: direct-URL path is idiomatic; niche `store()` inline. Rate-limit logic also duplicated across both methods (lines 65–74 vs 95–104). |
+
+#### REF-S1-06: SearchController `show()` fat prospect serialization in controller
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S1 Search & prospecting |
+| Scores | M=2 R=1 L=2 O=1 → Total 6 (P3) |
+| Evidence | `app/Http/Controllers/SearchController.php:124-201` (220-line controller) |
+| Spec gap | None |
+| PR slice | Medium — "S1: extract Search show prospect payload builder" |
+| Risk | Low — F1 may overlap on Inertia prop bloat |
+| Effort | ~2–3 hours |
+| Notes | ~60 lines of prospect mapping (scores, audit, report, CMS, progress flow) inline in `show()`. Eager-loading is correct (`with` on lines 133–137); boundary is the issue. |
+
+#### REF-S1-07: ScrapeProspectsJob injects unused SearchStatusService
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S1 Search & prospecting |
+| Scores | M=2 R=1 L=2 O=1 → Total 6 (P3) |
+| Evidence | `app/Jobs/ScrapeProspectsJob.php:32-33` — `$searchStatus` never referenced in `handle()` body |
+| Spec gap | None |
+| PR slice | Medium — "S1: remove dead SearchStatusService injection from ScrapeProspectsJob" |
+| Risk | Low — update `ScrapeProspectsJobTest` mock list |
+| Effort | ~0.5 hours |
+
+#### REF-S1-08: GooglePlacesService blocking `sleep(2)` in queue worker pagination loop
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S1 Search & prospecting |
+| Scores | M=1 R=2 L=2 O=2 → Total 7 (P2) |
+| Evidence | `app/Services/GooglePlacesService.php:72-73` |
+| Spec gap | None |
+| PR slice | Medium — "S1: remove blocking sleep from Places pagination (config/async chunk)" |
+| Risk | Low — Places API requires delay; worker occupancy is the cost |
+| Effort | ~2 hours |
+| Notes | Up to 4s blocked per `searchByNicheAndCity` call on `searches` queue worker. Called from `ScrapeProspectsJob`. |
+
+#### REF-S1-09: SearchStatusService runs three separate prospect count queries per refresh
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S1 Search & prospecting |
+| Scores | M=1 R=2 L=2 O=1 → Total 6 (P3) |
+| Evidence | `app/Services/SearchStatusService.php:27-47` |
+| Spec gap | None |
+| PR slice | Medium — "S1: consolidate SearchStatusService refresh into single aggregate query" |
+| Risk | Low |
+| Effort | ~1 hour |
+| Notes | Hot path after every `ScorePlaceJob`, `DirectUrlScanJob`, `AuditSiteJob`, `CombineScoresJob` completion. |
+
+#### REF-S1-10: BackfillWebsitesCommand loads full candidate set into memory for count/filter
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S1 Search & prospecting |
+| Scores | M=2 R=2 L=2 O=1 → Total 7 (P2) |
+| Evidence | `app/Console/Commands/BackfillWebsitesCommand.php:164-182` (`get()->filter()` for count and fetch) |
+| Spec gap | None — dry-run pattern matches spec (`--execute` gate on line 73) |
+| PR slice | Medium — "S1: push backfill eligibility into SQL for BackfillWebsitesCommand" |
+| Risk | Low — command is operator-batch, not hot path |
+| Effort | ~2–3 hours |
+| Notes | Dry-run support is good. `countCandidates()` materialises all matching prospects then filters in PHP via `isBackfillCandidate()`. `fetchCandidates()` over-fetches `limit * 3` for same reason. |
+
+#### REF-S1-11: `mapSearchSummary` duplicated between SearchController and McpSearchService
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S1 Search & prospecting |
+| Scores | M=2 R=1 L=2 O=1 → Total 6 (P3) |
+| Evidence | `app/Http/Controllers/SearchController.php:207-218`; `app/Services/Mcp/McpSearchService.php:143-154` |
+| Spec gap | None |
+| PR slice | Medium — "S1: share SearchSummaryMapper between web and MCP surfaces" |
+| Risk | Low — intentional `created_at` format difference (human vs ISO) needs preserving |
+| Effort | ~1–2 hours |
+
 ### S2 — Niche scanning
 ### S3 — Audit pipeline
 ### S4 — Scoring & enrichment
