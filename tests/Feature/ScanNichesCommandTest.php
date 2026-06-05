@@ -68,7 +68,7 @@ class ScanNichesCommandTest extends TestCase
             'niche_query' => 'dental practice',
             'city' => 'Birmingham',
             'country' => 'GB',
-            'scan_date' => '2026-05-29',
+            'scan_date' => now('Europe/London')->toDateString(),
             'result_count' => 10,
             'sampled_count' => 5,
             'status' => 'complete',

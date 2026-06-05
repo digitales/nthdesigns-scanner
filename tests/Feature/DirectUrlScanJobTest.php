@@ -9,6 +9,7 @@ use App\Models\Prospect;
 use App\Models\Search;
 use App\Models\User;
 use App\Services\GooglePlacesService;
+use App\Services\ProspectExclusionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Config;
@@ -47,6 +48,7 @@ class DirectUrlScanJobTest extends TestCase
             app(\App\Services\SearchStatusService::class),
             app(\App\Support\WebsiteUrlNormalizer::class),
             app(\App\Services\DirectUrlSearchEnrichment::class),
+            app(ProspectExclusionService::class),
         );
 
         $prospect = Prospect::where('search_id', $search->id)->first();
@@ -81,6 +83,7 @@ class DirectUrlScanJobTest extends TestCase
             app(\App\Services\SearchStatusService::class),
             app(\App\Support\WebsiteUrlNormalizer::class),
             app(\App\Services\DirectUrlSearchEnrichment::class),
+            app(ProspectExclusionService::class),
         );
 
         $prospect = Prospect::where('search_id', $search->id)->first();
@@ -161,6 +164,7 @@ class DirectUrlScanJobTest extends TestCase
             app(\App\Services\SearchStatusService::class),
             app(\App\Support\WebsiteUrlNormalizer::class),
             app(\App\Services\DirectUrlSearchEnrichment::class),
+            app(ProspectExclusionService::class),
         );
 
         $search->refresh();

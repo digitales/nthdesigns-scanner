@@ -33,14 +33,24 @@ class NicheScanSampleController extends Controller
             ]);
         }
 
-        if ($nicheScan->status !== 'pending') {
+        if ($nicheScan->status === 'pending') {
+            return response()->json(['status' => 'loading'], 202);
+        }
+
+        $claimed = NicheScan::query()
+            ->whereKey($nicheScan->id)
+            ->whereNull('sample_preview')
+            ->where('status', 'complete')
+            ->update(['status' => 'pending']);
+
+        if ($claimed) {
             NicheQueue::dispatch(new ScanNicheJob(
                 niche: $nicheScan->niche,
                 nicheQuery: $nicheScan->niche_query,
                 city: $nicheScan->city,
                 country: $nicheScan->country,
-                sample: (int) config('niches.sample_size', 5),
-                scanDate: now('Europe/London')->toDateString(),
+                sample: max(1, (int) ($nicheScan->sampled_count ?: config('niches.sample_size', 5))),
+                scanDate: $nicheScan->scan_date->toDateString(),
             ));
         }
 
