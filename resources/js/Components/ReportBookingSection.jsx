@@ -1,7 +1,21 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Button, Field, Input } from '@/Components/ui';
+import { Button, Field, Input, Textarea } from '@/Components/ui';
 
-export default function ReportBookingSection({ token, businessName, existingBooking }) {
+function bookingErrorMessage(status, data) {
+    if (status === 409) {
+        return data.message ?? 'That time was just taken. Please choose another slot.';
+    }
+    if (status === 503) {
+        return data.message ?? 'Booking is temporarily unavailable. Please try again shortly.';
+    }
+    if (status === 422) {
+        return data.message ?? 'Please check your details and try again.';
+    }
+
+    return data.message ?? 'Booking failed. Please try another time.';
+}
+
+export default function ReportBookingSection({ token, businessName, existingBooking, timezoneLabel = 'UK (London)' }) {
     const [slots, setSlots] = useState([]);
     const [loadingSlots, setLoadingSlots] = useState(true);
     const [selected, setSelected] = useState(null);
@@ -9,6 +23,7 @@ export default function ReportBookingSection({ token, businessName, existingBook
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState(null);
     const [confirmed, setConfirmed] = useState(existingBooking ?? null);
+    const [resolvedTimezoneLabel, setResolvedTimezoneLabel] = useState(timezoneLabel);
 
     const loadSlots = useCallback(async () => {
         setLoadingSlots(true);
@@ -16,10 +31,16 @@ export default function ReportBookingSection({ token, businessName, existingBook
 
         try {
             const res = await fetch(`/r/${token}/slots`, { headers: { Accept: 'application/json' } });
+            const data = await res.json().catch(() => ({}));
+
             if (!res.ok) {
-                throw new Error('Could not load available times.');
+                throw new Error(bookingErrorMessage(res.status, data));
             }
-            const data = await res.json();
+
+            if (data.timezone_label) {
+                setResolvedTimezoneLabel(data.timezone_label);
+            }
+
             if (data.booking) {
                 setConfirmed(data.booking);
             } else {
@@ -64,7 +85,7 @@ export default function ReportBookingSection({ token, businessName, existingBook
             const data = await res.json().catch(() => ({}));
 
             if (!res.ok) {
-                throw new Error(data.message ?? 'Booking failed. Please try another time.');
+                throw new Error(bookingErrorMessage(res.status, data));
             }
 
             setConfirmed(data.booking);
@@ -83,8 +104,30 @@ export default function ReportBookingSection({ token, businessName, existingBook
                     You&apos;re booked for {confirmed.label}.
                 </p>
                 <p className="micro m-0">
-                    Confirmation sent to {confirmed.attendee_name}. We&apos;ll walk through the findings for {businessName} on the call.
+                    {confirmed.confirmation_sent
+                        ? `Confirmation sent to ${confirmed.attendee_name}.`
+                        : `You're confirmed, ${confirmed.attendee_name}. We'll email you shortly.`}
+                    {' '}We&apos;ll walk through the findings for {businessName} on the call.
                 </p>
+                {(confirmed.google_calendar_url || confirmed.ics_url) && (
+                    <div className="booking-add-to-calendar">
+                        {confirmed.google_calendar_url && (
+                            <a
+                                href={confirmed.google_calendar_url}
+                                className="btn btn-secondary btn-sm"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                Add to Google Calendar
+                            </a>
+                        )}
+                        {confirmed.ics_url && (
+                            <a href={confirmed.ics_url} className="btn btn-ghost btn-sm">
+                                Download .ics
+                            </a>
+                        )}
+                    </div>
+                )}
             </div>
         );
     }
@@ -93,7 +136,7 @@ export default function ReportBookingSection({ token, businessName, existingBook
         <div className="booking-panel">
             {loadingSlots && <p className="micro">Loading available times…</p>}
             {error && (
-                <p className="micro text-critical mb-16">
+                <p className="micro text-critical mb-16" role="alert">
                     {error}
                 </p>
             )}
@@ -104,12 +147,14 @@ export default function ReportBookingSection({ token, businessName, existingBook
 
             {slots.length > 0 && (
                 <>
-                    <p className="micro mb-12">Choose a time (UK)</p>
-                    <div className="booking-slots-grid">
+                    <p className="micro mb-12">Choose a time ({resolvedTimezoneLabel})</p>
+                    <div className="booking-slots-grid" role="listbox" aria-label="Available times">
                         {slots.map((slot) => (
                             <button
                                 key={slot.starts_at}
                                 type="button"
+                                role="option"
+                                aria-selected={selected?.starts_at === slot.starts_at}
                                 onClick={() => setSelected(slot)}
                                 className={`booking-slot${selected?.starts_at === slot.starts_at ? ' booking-slot--selected' : ''}`}
                             >
@@ -120,29 +165,33 @@ export default function ReportBookingSection({ token, businessName, existingBook
 
                     {selected && (
                         <form onSubmit={submit} className="booking-form">
-                            <Field label="Your name">
+                            <Field label="Your name" htmlFor="booking-attendee-name">
                                 <Input
+                                    id="booking-attendee-name"
                                     required
                                     value={form.attendee_name}
                                     onChange={(e) => setForm((f) => ({ ...f, attendee_name: e.target.value }))}
                                 />
                             </Field>
-                            <Field label="Email">
+                            <Field label="Email" htmlFor="booking-attendee-email">
                                 <Input
+                                    id="booking-attendee-email"
                                     type="email"
                                     required
                                     value={form.attendee_email}
                                     onChange={(e) => setForm((f) => ({ ...f, attendee_email: e.target.value }))}
                                 />
                             </Field>
-                            <Field label="Phone (optional)">
+                            <Field label="Phone (optional)" htmlFor="booking-attendee-phone">
                                 <Input
+                                    id="booking-attendee-phone"
                                     value={form.attendee_phone}
                                     onChange={(e) => setForm((f) => ({ ...f, attendee_phone: e.target.value }))}
                                 />
                             </Field>
-                            <Field label="Anything we should know? (optional)">
-                                <Input
+                            <Field label="Anything we should know? (optional)" htmlFor="booking-note">
+                                <Textarea
+                                    id="booking-note"
                                     value={form.note}
                                     onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
                                 />

@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StorePublicReportBookingRequest;
 use App\Models\ProspectReport;
 use App\Services\AgencyBookingService;
+use App\Services\Booking\BookingPresentation;
 use App\Services\ReportBookingService;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\JsonResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 class PublicReportBookingController extends Controller
 {
@@ -19,9 +21,21 @@ class PublicReportBookingController extends Controller
             return response()->json(['slots' => []]);
         }
 
+        $settings = $agencyBooking->settings();
+
+        try {
+            $slots = $bookings->slotsForReport($report);
+        } catch (RequestException) {
+            return response()->json([
+                'message' => 'Booking is temporarily unavailable. Please try again shortly.',
+                'slots' => [],
+            ], 503);
+        }
+
         return response()->json([
-            'slots' => $bookings->slotsForReport($report),
-            'booking' => $this->bookingPayload($report),
+            'slots' => $slots,
+            'booking' => $this->bookingPayload($report, $agencyBooking),
+            'timezone_label' => BookingPresentation::timezoneLabel($settings->timezone),
         ]);
     }
 
@@ -38,8 +52,25 @@ class PublicReportBookingController extends Controller
         }
 
         return response()->json([
-            'booking' => $this->bookingPayload($report->fresh(['booking'])),
+            'booking' => $this->bookingPayload($report->fresh(['booking']), app(AgencyBookingService::class)),
         ], 201);
+    }
+
+    public function ics(string $token, AgencyBookingService $agencyBooking): Response
+    {
+        $report = $this->resolveReport($token);
+        $booking = $report->booking;
+
+        if (! $booking) {
+            abort(404);
+        }
+
+        $ics = BookingPresentation::icsForBooking($booking, $report, $agencyBooking->settings());
+
+        return response($ics, 200, [
+            'Content-Type' => 'text/calendar; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="review-call.ics"',
+        ]);
     }
 
     private function resolveReport(string $token): ProspectReport
@@ -62,7 +93,7 @@ class PublicReportBookingController extends Controller
     /**
      * @return array<string, mixed>|null
      */
-    private function bookingPayload(ProspectReport $report): ?array
+    private function bookingPayload(ProspectReport $report, AgencyBookingService $agencyBooking): ?array
     {
         $booking = $report->booking;
 
@@ -70,13 +101,10 @@ class PublicReportBookingController extends Controller
             return null;
         }
 
-        $settings = app(AgencyBookingService::class)->settings();
-
-        return [
-            'starts_at' => $booking->starts_at->toIso8601String(),
-            'ends_at' => $booking->ends_at->toIso8601String(),
-            'label' => $booking->starts_at->timezone($settings->timezone)->format('l j F Y, g:i A'),
-            'attendee_name' => $booking->attendee_name,
-        ];
+        return BookingPresentation::publicBookingPayload(
+            $booking,
+            $agencyBooking->settings(),
+            $report->token,
+        );
     }
 }

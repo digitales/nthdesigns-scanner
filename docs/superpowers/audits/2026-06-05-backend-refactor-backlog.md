@@ -29,7 +29,8 @@ The lean audit refactor programme is **closed**. All P1 items, the recommended f
 | [#27](https://github.com/digitales/nthdesigns-scanner/pull/27) | `refactor/f1-welcome-auth` | Welcome marketing + Auth shell inline-style migration (`homepage.css`, `auth-login-*`) |
 | [#28](https://github.com/digitales/nthdesigns-scanner/pull/28) | `refactor/backend-audit-wave-12` | Public report snapshot consistency, `StoreExportRequest`, connected-apps `deleteAny` policy |
 | [#29](https://github.com/digitales/nthdesigns-scanner/pull/29) | `refactor/backend-audit-wave-13` | `FilterProspectListRequest`, `FilterReportDashboardRequest`, index filter validation |
-| #30 (pending) | `refactor/backend-audit-wave-14-booking` | S8 booking hardening: CalDAV-before-DB transaction order, resilient confirmation mail, `IcsEventBuilder`, slot/disabled coverage tests, public note field |
+| [#30](https://github.com/digitales/nthdesigns-scanner/pull/30) | `refactor/backend-audit-wave-14-booking` | S8 booking hardening: CalDAV-before-DB transaction order, resilient confirmation mail, `IcsEventBuilder`, slot/disabled coverage tests, public note field |
+| #31 (pending) | `polish/booking-and-deferred-backlog` | Booking polish: slots 503, queued confirmations + retry, bookings index, operator/resend, add-to-calendar, service decomposition, outreach booked filter |
 
 ### F1 light pass — resolved
 

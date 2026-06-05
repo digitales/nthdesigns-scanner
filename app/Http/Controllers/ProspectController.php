@@ -7,6 +7,8 @@ use App\Jobs\GenerateOutreachEmailJob;
 use App\Jobs\GenerateProspectReportJob;
 use App\Models\AuditJob;
 use App\Models\Prospect;
+use App\Services\AgencyBookingService;
+use App\Services\Booking\BookingPresentation;
 use App\Services\CombineScoresService;
 use App\Services\ProgressFlowService;
 use App\Services\ProspectAuditService;
@@ -88,11 +90,12 @@ class ProspectController extends Controller
                 'screenshot_paths' => $prospect->report->screenshot_paths ?? [],
                 'view_count' => $prospect->report->view_count,
                 'expires_at' => $prospect->report->expires_at?->toISOString(),
-                'booking' => $prospect->report->booking ? [
-                    'label' => $prospect->report->booking->starts_at->format('l j M Y, g:ia'),
-                    'attendee_name' => $prospect->report->booking->attendee_name,
-                    'attendee_email' => $prospect->report->booking->attendee_email,
-                ] : null,
+                'booking' => $prospect->report->booking
+                    ? BookingPresentation::operatorBookingPayload(
+                        $prospect->report->booking,
+                        app(AgencyBookingService::class)->settings(),
+                    )
+                    : null,
             ] : null,
             'outreachEmails' => $prospect->outreachEmails->map(fn ($e) => [
                 'id' => $e->id,

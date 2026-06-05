@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Services\GooglePlaces\PlacesTextSearchClient;
 use App\Support\WebsiteUrlNormalizer;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -27,56 +28,9 @@ class GooglePlacesService
     public function searchByNicheAndCity(string $niche, string $city, string $country = 'GB'): array
     {
         $query = "{$niche} in {$city}, {$country}";
-        $placeIds = [];
-        $pageToken = null;
 
-        for ($page = 0; $page < 3; $page++) {
-            $payload = [
-                'textQuery' => $query,
-                'maxResultCount' => 20,
-                'regionCode' => strtolower($country),
-            ];
-
-            if ($pageToken) {
-                $payload['pageToken'] = $pageToken;
-            }
-
-            $response = Http::withHeaders([
-                'Content-Type' => 'application/json',
-                'X-Goog-Api-Key' => $this->apiKey,
-                'X-Goog-FieldMask' => 'places.id,nextPageToken',
-            ])->post("{$this->baseUrl}:searchText", $payload);
-
-            if ($response->failed()) {
-                Log::error('GooglePlaces searchText failed', [
-                    'status' => $response->status(),
-                    'body' => $response->body(),
-                    'query' => $query,
-                ]);
-                break;
-            }
-
-            $data = $response->json();
-
-            foreach ($data['places'] ?? [] as $place) {
-                if (! empty($place['id'])) {
-                    $placeIds[] = $place['id'];
-                }
-            }
-
-            $pageToken = $data['nextPageToken'] ?? null;
-
-            if (! $pageToken) {
-                break;
-            }
-
-            $delay = (int) config('scanner.places_pagination_delay_seconds', 2);
-            if ($delay > 0) {
-                sleep($delay);
-            }
-        }
-
-        return array_unique($placeIds);
+        return (new PlacesTextSearchClient($this->apiKey, $this->baseUrl))
+            ->searchPlaceIds($query, strtolower($country));
     }
 
     /**

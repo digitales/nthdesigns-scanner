@@ -9,3 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('scanner:purge-expired')->daily();
+Schedule::command('booking:retry-unsent-confirmations')->everyFifteenMinutes();

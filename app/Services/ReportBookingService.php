@@ -4,14 +4,13 @@ namespace App\Services;
 
 use App\Contracts\Calendar\CalendarEventDraft;
 use App\Contracts\Calendar\CalendarProvider;
-use App\Mail\ReportBookingConfirmed;
+use App\Jobs\SendReportBookingConfirmationJob;
 use App\Models\ProspectReport;
 use App\Models\ReportBooking;
 use App\Services\Calendar\BookingAvailabilityService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 class ReportBookingService
@@ -61,14 +60,13 @@ class ReportBookingService
         $report->loadMissing('prospect.search');
         $businessName = $report->report_data['prospect']['business_name'] ?? $report->prospect->business_name;
         $uid = 'scanner-'.Str::uuid().'@nthdesigns.co.uk';
-        $reportUrl = url('/r/'.$report->token);
 
         $draft = new CalendarEventDraft(
             startsAt: $startsAt,
             endsAt: $endsAt,
             summary: 'Review call — '.$businessName,
             description: implode("\n", array_filter([
-                'Audit report: '.$reportUrl,
+                'Audit report: '.url('/r/'.$report->token),
                 'Prospect #'.$report->prospect_id,
                 filled($input['note'] ?? null) ? 'Note: '.$input['note'] : null,
             ])),
@@ -79,36 +77,45 @@ class ReportBookingService
 
         $this->calendar->createEvent($draft);
 
-        $booking = DB::transaction(fn () => ReportBooking::create([
-            'prospect_report_id' => $report->id,
-            'prospect_id' => $report->prospect_id,
-            'starts_at' => $startsAt,
-            'ends_at' => $endsAt,
-            'attendee_name' => $input['attendee_name'],
-            'attendee_email' => $input['attendee_email'],
-            'attendee_phone' => $input['attendee_phone'] ?? null,
-            'note' => $input['note'] ?? null,
-            'calendar_event_uid' => $uid,
-            'status' => 'confirmed',
-        ]));
-
         try {
-            Mail::to($booking->attendee_email)->send(new ReportBookingConfirmed(
-                booking: $booking,
-                businessName: $businessName,
-                reportUrl: $reportUrl,
-                settings: $settings,
-            ));
-
-            $booking->update(['confirmation_sent_at' => now()]);
+            $booking = DB::transaction(fn () => ReportBooking::create([
+                'prospect_report_id' => $report->id,
+                'prospect_id' => $report->prospect_id,
+                'starts_at' => $startsAt,
+                'ends_at' => $endsAt,
+                'attendee_name' => $input['attendee_name'],
+                'attendee_email' => $input['attendee_email'],
+                'attendee_phone' => $input['attendee_phone'] ?? null,
+                'note' => $input['note'] ?? null,
+                'calendar_event_uid' => $uid,
+                'status' => 'confirmed',
+            ]));
         } catch (\Throwable $e) {
-            Log::warning('ReportBookingConfirmed mail failed', [
-                'booking_id' => $booking->id,
-                'report_id' => $report->id,
-                'error' => $e->getMessage(),
-            ]);
+            $this->rollbackCalendarEvent($uid, $report->id);
+
+            throw $e;
         }
 
+        SendReportBookingConfirmationJob::dispatch($booking->id);
+
         return $booking->fresh();
+    }
+
+    public function queueConfirmation(ReportBooking $booking): void
+    {
+        SendReportBookingConfirmationJob::dispatch($booking->id);
+    }
+
+    private function rollbackCalendarEvent(string $uid, int $reportId): void
+    {
+        try {
+            $this->calendar->deleteEvent($uid);
+        } catch (\Throwable $cleanup) {
+            Log::warning('Failed to roll back calendar event after booking persistence failed', [
+                'report_id' => $reportId,
+                'calendar_event_uid' => $uid,
+                'error' => $cleanup->getMessage(),
+            ]);
+        }
     }
 }

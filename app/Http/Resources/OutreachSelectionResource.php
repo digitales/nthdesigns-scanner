@@ -20,9 +20,12 @@ class OutreachSelectionResource
             'performance_score' => $prospect->performance_score,
             'report_ready' => $report !== null,
             'report_url' => $report ? url('/r/'.$report->token.'#book') : null,
+            'booked' => $report?->booking !== null,
             'booked_label' => $report?->booking
-                ? 'Booked · '.$report->booking->starts_at->format('j M g:ia')
+                ? 'Booked · '.$report->booking->starts_at->format('j M g:ia').' · '.$report->booking->attendee_name
                 : null,
+            'booked_note' => $report?->booking?->note,
+            'booked_confirmation_sent' => $report?->booking?->confirmation_sent_at !== null,
         ];
     }
 }

@@ -16,6 +16,11 @@ class FakeCalendarProvider implements CalendarProvider
 
     private ?\Throwable $createException = null;
 
+    private ?\Throwable $busyException = null;
+
+    /** @var list<string> */
+    private array $deletedUids = [];
+
     /**
      * @param  list<array{start: CarbonInterface, end: CarbonInterface}>  $busy
      */
@@ -24,8 +29,17 @@ class FakeCalendarProvider implements CalendarProvider
         $this->busy = $busy;
     }
 
+    public function failOnBusy(\Throwable $exception): void
+    {
+        $this->busyException = $exception;
+    }
+
     public function busyIntervals(CarbonInterface $from, CarbonInterface $to): array
     {
+        if ($this->busyException) {
+            throw $this->busyException;
+        }
+
         return array_values(array_filter(
             $this->busy,
             fn (array $interval) => $interval['start'] < $to && $interval['end'] > $from,
@@ -50,6 +64,33 @@ class FakeCalendarProvider implements CalendarProvider
         ];
 
         return $draft->uid;
+    }
+
+    public function deleteEvent(string $uid): void
+    {
+        $this->deletedUids[] = $uid;
+
+        foreach ($this->created as $index => $draft) {
+            if ($draft->uid !== $uid) {
+                continue;
+            }
+
+            unset($this->created[$index]);
+            $this->busy = array_values(array_filter(
+                $this->busy,
+                fn (array $interval) => ! ($interval['start']->eq($draft->startsAt) && $interval['end']->eq($draft->endsAt)),
+            ));
+
+            break;
+        }
+
+        $this->created = array_values($this->created);
+    }
+
+    /** @return list<string> */
+    public function deletedUids(): array
+    {
+        return $this->deletedUids;
     }
 
     /** @return list<CalendarEventDraft> */

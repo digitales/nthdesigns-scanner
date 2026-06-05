@@ -23,11 +23,17 @@ class OutreachController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
+        $bookedOnly = $request->boolean('booked');
 
-        $selections = $user->outreachSelections()
+        $selectionsQuery = $user->outreachSelections()
             ->with(['prospect.search', 'prospect.report.booking', 'prospect.outreachEmails' => fn ($q) => $q->latest()])
-            ->orderBy('created_at')
-            ->get();
+            ->orderBy('created_at');
+
+        if ($bookedOnly) {
+            $selectionsQuery->whereHas('prospect.report.booking');
+        }
+
+        $selections = $selectionsQuery->get();
 
         $prospectIds = $selections->pluck('prospect_id');
 
@@ -45,6 +51,7 @@ class OutreachController extends Controller
             'selection' => $selections
                 ->map(fn (OutreachSelection $selection) => OutreachSelectionResource::format($selection))
                 ->values(),
+            'filters' => ['booked' => $bookedOnly],
             'emailsByProspect' => $emailsByProspect,
             'defaults' => [
                 'agency_name' => $this->settings->agencyName($user) ?? '',

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AgencyBookingSettingsController;
+use App\Http\Controllers\BookingDashboardController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\IgnoredProspectController;
 use App\Http\Controllers\NicheIgnoreController;
@@ -11,6 +12,7 @@ use App\Http\Controllers\OAuthWellKnownController;
 use App\Http\Controllers\OutreachController;
 use App\Http\Controllers\OutreachEmailController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ProspectBookingController;
 use App\Http\Controllers\ProspectController;
 use App\Http\Controllers\ProspectIgnoreController;
 use App\Http\Controllers\ProspectNoteController;
@@ -58,6 +60,9 @@ Route::get('/r/{token}/slots', [PublicReportBookingController::class, 'slots'])
 Route::post('/r/{token}/book', [PublicReportBookingController::class, 'store'])
     ->middleware('throttle:20,1')
     ->name('reports.public.book');
+Route::get('/r/{token}/booking.ics', [PublicReportBookingController::class, 'ics'])
+    ->middleware('throttle:60,1')
+    ->name('reports.public.booking.ics');
 Route::get('/book', [PublicBookingController::class, 'show'])->name('book.index');
 
 Route::get('/admin/horizon', function () {
@@ -84,6 +89,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/ignored', [IgnoredProspectController::class, 'index'])->name('ignored.index');
     Route::delete('/ignored/{ignoredProspect}', [IgnoredProspectController::class, 'destroy'])->name('ignored.destroy');
     Route::get('/reports', [ReportDashboardController::class, 'index'])->name('reports.index');
+    Route::get('/bookings', [BookingDashboardController::class, 'index'])->name('bookings.index');
     Route::post('/exports', [ExportController::class, 'store'])->name('exports.store');
 
     Route::get('/outreach', [OutreachController::class, 'index'])->name('outreach.index');
@@ -100,6 +106,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/prospects/{prospect}/audit', [ProspectController::class, 'reauditSite'])->name('prospects.audit');
     Route::post('/prospects/{prospect}/report', [ProspectController::class, 'generateReport'])->name('prospects.report');
     Route::post('/prospects/{prospect}/outreach', [ProspectController::class, 'generateOutreach'])->name('prospects.outreach');
+    Route::post('/prospects/{prospect}/booking/resend-confirmation', [ProspectBookingController::class, 'resendConfirmation'])->name('prospects.booking.resend');
 
     Route::patch('/outreach-emails/{outreachEmail}/sent', [OutreachEmailController::class, 'markSent'])->name('outreach.sent');
     Route::patch('/outreach-emails/{outreachEmail}/response', [OutreachEmailController::class, 'markResponse'])->name('outreach.response');

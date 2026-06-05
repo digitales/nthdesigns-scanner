@@ -13,6 +13,13 @@ We'll walk through the audit findings from your report and outline what fixing t
 View your audit report
 </x-mail::button>
 
+@php
+    $icsUrl = url('/r/'.$booking->report->token.'/booking.ics');
+    $googleUrl = \App\Services\Booking\BookingPresentation::googleCalendarUrl($booking, $settings, $booking->report->token);
+@endphp
+
+[Add to Google Calendar]({{ $googleUrl }}) · [Download .ics]({{ $icsUrl }})
+
 If you need to change the time, reply to this email.
 
 Thanks,<br>

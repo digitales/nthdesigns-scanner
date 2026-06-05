@@ -73,12 +73,22 @@ class FastmailCalDavClient
 
     public function createEvent(string $calendarUrl, string $icsBody, string $uid): void
     {
-        $eventUrl = rtrim($calendarUrl, '/').'/'.rawurlencode($uid).'.ics';
+        $eventUrl = $this->eventUrl($calendarUrl, $uid);
 
         $this->request('PUT', $eventUrl, $icsBody, [
             'Content-Type' => 'text/calendar; charset=utf-8',
             'If-None-Match' => '*',
         ]);
+    }
+
+    public function deleteEvent(string $calendarUrl, string $uid): void
+    {
+        $this->request('DELETE', $this->eventUrl($calendarUrl, $uid), '');
+    }
+
+    private function eventUrl(string $calendarUrl, string $uid): string
+    {
+        return rtrim($calendarUrl, '/').'/'.rawurlencode($uid).'.ics';
     }
 
     public function buildEventIcs(

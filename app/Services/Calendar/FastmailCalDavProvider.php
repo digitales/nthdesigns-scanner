@@ -30,6 +30,12 @@ class FastmailCalDavProvider implements CalendarProvider
         return $draft->uid;
     }
 
+    public function deleteEvent(string $uid): void
+    {
+        $settings = AgencyBookingSetting::current();
+        $this->client($settings)->deleteEvent($settings->caldav_calendar_url, $uid);
+    }
+
     private function client(AgencyBookingSetting $settings): FastmailCalDavClient
     {
         return new FastmailCalDavClient(

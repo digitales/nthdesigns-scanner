@@ -20,6 +20,7 @@ import {
 
 export default function OutreachIndex({
   selection,
+  filters = { booked: false },
   emailsByProspect,
   defaults,
   flash,
@@ -32,6 +33,11 @@ export default function OutreachIndex({
 
   const skippedCount = selection.filter((s) => !s.report_ready).length;
   const eligibleCount = selection.filter((s) => s.report_ready).length;
+  const bookedCount = selection.filter((s) => s.booked).length;
+
+  const setBookedFilter = (booked) => {
+    router.get("/outreach", booked ? { booked: 1 } : {}, { preserveState: true });
+  };
 
   const removeFromQueue = (prospectId) => {
     router.delete(`/outreach/selections/${prospectId}`);
@@ -91,6 +97,14 @@ export default function OutreachIndex({
           <section>
             <div className="queue-header">
               <div className="card-title card-title-flush">Queue</div>
+              <Segmented
+                value={filters.booked ? "booked" : "all"}
+                onChange={(value) => setBookedFilter(value === "booked")}
+                options={[
+                  { value: "all", label: "All" },
+                  { value: "booked", label: `Booked${bookedCount ? ` (${bookedCount})` : ""}` },
+                ]}
+              />
               {selection.length > 0 && (
                 <Button
                   kind="ghost"
@@ -141,6 +155,12 @@ export default function OutreachIndex({
                             ? "Report ready"
                             : "No report"}
                       </div>
+                      {item.booked_note && (
+                        <div className="micro text-stone mt-4">Note: {item.booked_note}</div>
+                      )}
+                      {item.booked && !item.booked_confirmation_sent && (
+                        <div className="micro text-stone mt-4">Confirmation mail pending</div>
+                      )}
                     </Link>
                     <button
                       type="button"
