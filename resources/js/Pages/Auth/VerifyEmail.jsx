@@ -23,7 +23,7 @@ export default function VerifyEmail({ status }) {
             </p>
 
             {status === 'verification-link-sent' && (
-                <p className="micro mb-4" style={{ color: 'var(--color-positive)' }}>
+                <p className="micro mb-4 text-positive">
                     A new verification link has been sent to the email address
                     you provided during registration.
                 </p>

@@ -24,7 +24,7 @@ export default function ForgotPassword({ status }) {
             </p>
 
             {status && (
-                <p className="micro mb-4" style={{ color: 'var(--color-positive)' }}>
+                <p className="micro mb-4 text-positive">
                     {status}
                 </p>
             )}

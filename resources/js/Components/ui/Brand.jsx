@@ -17,7 +17,7 @@ export default function Brand({ href = '/', product = 'Prospect Scanner', classN
     const cls = `app-brand ${className}`.trim();
 
     return href ? (
-        <Link href={href} className={cls} style={{ textDecoration: 'none', color: 'inherit' }}>
+        <Link href={href} className={`${cls} no-underline text-inherit`}>
             {inner}
         </Link>
     ) : (

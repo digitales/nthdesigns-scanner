@@ -55,12 +55,9 @@ export default function Login({ status, canResetPassword }) {
     return (
         <>
             <Head title="Sign in — Prospect Scanner" />
-            <main
-                className="min-h-screen grid"
-                style={{ gridTemplateColumns: '1fr 1.05fr' }}
-            >
+            <main className="auth-login-main">
                 {/* ── LEFT: form ── */}
-                <section className="bg-paper flex flex-col px-14 py-8 border-r border-line">
+                <section className="auth-login-form-section bg-paper flex flex-col px-14 py-8 border-r border-line">
 
                     {/* topbar */}
                     <div className="flex justify-between items-center mb-auto">
@@ -130,8 +127,7 @@ export default function Login({ status, canResetPassword }) {
                                     placeholder="alex@nthdesigns.co.uk"
                                     autoComplete="username"
                                     required
-                                    style={{ fontFamily: 'var(--font-sans)' }}
-                                    className="text-sm text-ink bg-paper border border-line-strong rounded-[4px] px-3 py-2.5 w-full transition-[border-color,box-shadow] duration-100 placeholder:text-stone-400 focus:outline-none focus:border-accent-deep focus:[box-shadow:0_0_0_3px_var(--color-accent-soft)]"
+                                    className="font-sans text-sm text-ink bg-paper border border-line-strong rounded-[4px] px-3 py-2.5 w-full transition-[border-color,box-shadow] duration-100 placeholder:text-stone-400 focus:outline-none focus:border-accent-deep focus:[box-shadow:0_0_0_3px_var(--color-accent-soft)]"
                                 />
                             </div>
 
@@ -160,8 +156,7 @@ export default function Login({ status, canResetPassword }) {
                                         placeholder="••••••••••••"
                                         autoComplete="current-password"
                                         required
-                                        style={{ fontFamily: 'var(--font-sans)' }}
-                                        className="text-sm text-ink bg-paper border border-line-strong rounded-[4px] px-3 py-2.5 pr-16 w-full transition-[border-color,box-shadow] duration-100 placeholder:text-stone-400 focus:outline-none focus:border-accent-deep focus:[box-shadow:0_0_0_3px_var(--color-accent-soft)]"
+                                        className="font-sans text-sm text-ink bg-paper border border-line-strong rounded-[4px] px-3 py-2.5 pr-16 w-full transition-[border-color,box-shadow] duration-100 placeholder:text-stone-400 focus:outline-none focus:border-accent-deep focus:[box-shadow:0_0_0_3px_var(--color-accent-soft)]"
                                     />
                                     <button
                                         type="button"
@@ -183,8 +178,7 @@ export default function Login({ status, canResetPassword }) {
                                         name="remember"
                                         checked={data.remember}
                                         onChange={(e) => setData('remember', e.target.checked)}
-                                        className="w-[15px] h-[15px] flex-shrink-0 cursor-pointer accent-ink"
-                                        style={{ accentColor: 'var(--color-ink)' }}
+                                        className="auth-login-checkbox w-[15px] h-[15px] flex-shrink-0 cursor-pointer accent-ink"
                                     />
                                     Keep me signed in for 30 days
                                 </label>
@@ -233,24 +227,9 @@ export default function Login({ status, canResetPassword }) {
                 </section>
 
                 {/* ── RIGHT: editorial ── */}
-                <aside
-                    className="flex-col px-14 py-8 relative overflow-hidden hidden sm:flex"
-                    style={{
-                        background: 'radial-gradient(1200px 600px at 100% 0%, oklch(0.95 0.025 75) 0%, transparent 70%), var(--color-paper-2)',
-                    }}
-                >
+                <aside className="auth-login-aside flex-col px-14 py-8 relative overflow-hidden hidden sm:flex">
                     {/* subtle grid overlay */}
-                    <div
-                        className="absolute inset-0 pointer-events-none"
-                        style={{
-                            backgroundImage: `
-                                repeating-linear-gradient(0deg, transparent 0, transparent 39px, oklch(0 0 0 / 0.025) 39px, oklch(0 0 0 / 0.025) 40px),
-                                repeating-linear-gradient(90deg, transparent 0, transparent 39px, oklch(0 0 0 / 0.025) 39px, oklch(0 0 0 / 0.025) 40px)
-                            `,
-                            maskImage: 'linear-gradient(180deg, black 0%, transparent 70%)',
-                            WebkitMaskImage: 'linear-gradient(180deg, black 0%, transparent 70%)',
-                        }}
-                    />
+                    <div className="auth-login-grid-overlay absolute inset-0 pointer-events-none" />
 
                     <div className="my-auto max-w-[460px] relative z-10">
                         <Eyebrow>From last week's audits</Eyebrow>
@@ -295,14 +274,6 @@ export default function Login({ status, canResetPassword }) {
                 </aside>
 
             </main>
-
-            <style>{`
-                @media (max-width: 900px) {
-                    main { grid-template-columns: 1fr !important; }
-                    aside { display: none !important; }
-                    section { padding-left: 24px; padding-right: 24px; }
-                }
-            `}</style>
         </>
     );
 }

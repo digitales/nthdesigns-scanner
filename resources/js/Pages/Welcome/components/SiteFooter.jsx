@@ -3,7 +3,7 @@ export default function SiteFooter({ scrollTo }) {
     <footer className="site">
       <div className="inner">
         <div className="pillar">
-          <div className="nav-brand" style={{ marginBottom: 14 }}>
+          <div className="nav-brand footer-brand">
             <span className="brand-mark" />
             <span className="brand-name">nthdesigns</span>
           </div>
@@ -11,7 +11,7 @@ export default function SiteFooter({ scrollTo }) {
             An independent design and accessibility consultancy in the UK.<br />
             We work with three new clients a quarter. We don't take retainers under £900/mo.
           </p>
-          <p className="mono" style={{ fontSize: 11, color: "var(--stone-500)", letterSpacing: "0.02em" }}>
+          <p className="mono footer-location">
             Birmingham · Manchester · remote across the UK
           </p>
         </div>

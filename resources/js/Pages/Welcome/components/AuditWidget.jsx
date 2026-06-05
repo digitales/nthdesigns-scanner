@@ -65,8 +65,8 @@ export default function AuditWidget({ kind = "primary", autoStart = false }) {
       </div>
 
       {phase === "running" && (
-        <div className="fade-in" style={{ marginTop: 22, paddingTop: 22, borderTop: "1px solid var(--line)" }}>
-          <div className="mono" style={{ fontSize: 12, color: "var(--stone-600)", lineHeight: 1.7 }}>
+        <div className="fade-in audit-phase-panel">
+          <div className="mono audit-progress-mono">
             <div>{tick > 0  ? "✓" : "·"} Discovered profile on Google Places</div>
             <div>{tick > 3  ? "✓" : "·"} Fetched 12 page sample from your site</div>
             <div>{tick > 6  ? "✓" : "·"} Running axe-core + Lighthouse</div>
@@ -77,7 +77,7 @@ export default function AuditWidget({ kind = "primary", autoStart = false }) {
       )}
 
       {phase === "complete" && (
-        <div className="fade-in" style={{ marginTop: 22, paddingTop: 22, borderTop: "1px solid var(--line)" }}>
+        <div className="fade-in audit-phase-panel">
           <CompleteAuditCard result={result} url={url || "your-business.co.uk"} />
         </div>
       )}
@@ -86,25 +86,26 @@ export default function AuditWidget({ kind = "primary", autoStart = false }) {
 }
 
 function CompleteAuditCard({ result, url }) {
-  const gradeColor = result.combined >= 85 ? "var(--sev-critical)" : result.combined >= 70 ? "oklch(0.55 0.14 50)" : "var(--positive)";
+  const gradeClass = result.combined >= 85 ? "grade-critical" : result.combined >= 70 ? "grade-warm" : "grade-positive";
+
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, gap: 14, flexWrap: "wrap" }}>
+      <div className="audit-complete-header">
         <div>
-          <div className="mono" style={{ fontSize: 11, color: "var(--stone-500)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>{url}</div>
-          <div style={{ fontFamily: "var(--serif)", fontSize: 22, letterSpacing: "-0.01em" }}>
-            Grade <em style={{ fontStyle: "italic", color: gradeColor, fontWeight: 500 }}>{result.grade}</em> · {result.combined}/100 opportunity
+          <div className="mono audit-complete-url">{url}</div>
+          <div className="audit-complete-grade">
+            Grade <em className={gradeClass}>{result.grade}</em> · {result.combined}/100 opportunity
           </div>
         </div>
         <Button kind="accent" size="sm">View full report <Arrow /></Button>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
+      <div className="audit-complete-scores">
         <MiniScore label="A11y" value={result.a11y} kind={result.a11y < 50 ? "crit" : result.a11y > 70 ? "warm" : ""} />
         <MiniScore label="GBP" value={result.gbp} kind={result.gbp < 50 ? "crit" : result.gbp > 70 ? "warm" : ""} />
         <MiniScore label="Perf" value={result.perf} kind={result.perf < 30 ? "crit" : ""} />
         <MiniScore label="Issues" value={Math.round(result.combined / 7)} kind={result.combined > 80 ? "crit" : ""} suffix=" found" />
       </div>
-      <div className="mono" style={{ fontSize: 11, color: "var(--stone-500)", marginTop: 16, letterSpacing: "0.02em" }}>
+      <div className="mono audit-complete-footnote">
         Live demo · numbers generated from a deterministic hash. Real audits take ~90 seconds and run server-side.
       </div>
     </div>
@@ -113,7 +114,7 @@ function CompleteAuditCard({ result, url }) {
 
 function MiniScore({ label, value, kind, suffix }) {
   return (
-    <div className="mini-score" style={kind === "warm" ? { background: "var(--accent-soft)", borderColor: "oklch(0.85 0.08 65)" } : kind === "crit" ? { background: "var(--sev-critical-soft)", borderColor: "oklch(0.515 0.180 28 / 0.18)" } : {}}>
+    <div className={`mini-score${kind ? ` ${kind}` : ''}`}>
       <div className="ms-label">{label}</div>
       <div className={`ms-value ${kind || ""}`}>{value}{suffix || ""}</div>
     </div>

@@ -22,7 +22,7 @@ export default function SampleReportExcerpt() {
             <span className="dot" />
             <span className="dot" />
             <span className="dot" />
-            <span style={{ marginLeft: 12 }}>report.nthdesigns.co.uk/r/sample-bx7-9k2m</span>
+            <span className="sr-url">report.nthdesigns.co.uk/r/sample-bx7-9k2m</span>
           </div>
           <div className="sr-pad">
             <div className="sr-eyebrow">Independent audit · WCAG 2.2 + Google Business Profile</div>
@@ -39,7 +39,7 @@ export default function SampleReportExcerpt() {
               </p>
             </div>
 
-            <div style={{ display: "flex", gap: 8, marginBottom: 36, flexWrap: "wrap" }}>
+            <div className="sr-sev-chips">
               <SevChip level="critical" count={4} />
               <SevChip level="serious" count={11} />
               <SevChip level="moderate" count={8} />
@@ -56,7 +56,7 @@ export default function SampleReportExcerpt() {
               />
             </div>
 
-            <div style={{ textAlign: "center", paddingTop: 36, marginTop: 36, borderTop: "1px solid var(--line)" }}>
+            <div className="sr-cta-row">
               <Button kind="secondary">Read the full sample report <Arrow /></Button>
             </div>
           </div>
@@ -70,22 +70,22 @@ function SampleViol({ n, sev, wcag, title, impact, fix }) {
   return (
     <article className="sr-viol">
       <div className="ss">
-        <div className="ss-bar" style={{ top: 10, left: 10, right: 10, height: 32 }} />
-        <div className="ss-tag" style={{ top: -1, right: 8 }}>{sev === "critical" ? "2.1:1" : "issue"}</div>
-        <div style={{ height: 40, background: "oklch(0.78 0.04 70)", borderRadius: 2, padding: 6, marginTop: 4 }}>
-          <div style={{ color: "oklch(0.88 0.02 70)", fontFamily: "var(--serif)", fontSize: 10, lineHeight: 1.2 }}>
+        <div className="ss-bar demo" />
+        <div className="ss-tag demo">{sev === "critical" ? "2.1:1" : "issue"}</div>
+        <div className="sr-viol-demo">
+          <div className="sr-viol-demo-text">
             Modern dentistry in<br />the heart of Birmingham
           </div>
         </div>
-        <div style={{ marginTop: 6, display: "flex", gap: 4 }}>
-          <div style={{ flex: 1, height: 4, background: "var(--stone-200)", borderRadius: 1 }} />
-          <div style={{ flex: 1, height: 4, background: "var(--stone-200)", borderRadius: 1 }} />
+        <div className="sr-viol-skeleton">
+          <span />
+          <span />
         </div>
       </div>
       <div>
         <div className="header">
           <SevChip level={sev} />
-          <span className="mono" style={{ fontSize: 10.5, color: "var(--stone-500)", letterSpacing: "0.06em", textTransform: "uppercase" }}>{wcag}</span>
+          <span className="mono sr-viol-wcag">{wcag}</span>
         </div>
         <h4>{n}. {title}</h4>
         <p>{impact}</p>
