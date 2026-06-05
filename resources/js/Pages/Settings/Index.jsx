@@ -52,14 +52,14 @@ export default function SettingsIndex({ settings, agencyBooking, nicheMaintenanc
 
                 <Stack gap={24}>
                     <Card title="AI client access">
-                        <p className="micro m-0 mb-8">
+                        <p className="micro mb-8">
                             Connect Cursor, Claude, or ChatGPT to monitor scans and start single-site audits from chat.
                         </p>
                         <Stack as="p" className="micro m-0" gap={4}>
-                            <Link href="/settings/connected-apps" className="micro micro-medium">
+                            <Link href="/settings/connected-apps" className="micro text-medium">
                                 Connected apps (OAuth) →
                             </Link>
-                            <Link href="/settings/mcp-keys" className="micro micro-medium">
+                            <Link href="/settings/mcp-keys" className="micro text-medium">
                                 MCP keys (header auth) →
                             </Link>
                         </Stack>
@@ -69,26 +69,24 @@ export default function SettingsIndex({ settings, agencyBooking, nicheMaintenanc
                         <MetaList>
                             {Object.entries(health).map(([key, status]) => (
                                 <SplitRow key={key}>
-                                    <span className="micro micro-medium micro-capitalize">
+                                    <span className="micro text-medium capitalize">
                                         {formatKey(key)}
                                     </span>
-                                    <span
-                                        className={`micro${status.ok ? '' : ' text-critical'}`}
-                                    >
+                                    <span className={`micro${status.ok ? '' : ' text-critical'}`}>
                                         {status.message}
                                     </span>
                                 </SplitRow>
                             ))}
                             <SplitRow>
-                                <span className="micro micro-medium">Reports disk</span>
+                                <span className="micro text-medium">Reports disk</span>
                                 <span className="micro">{env.reports_disk}</span>
                             </SplitRow>
                             <SplitRow>
-                                <span className="micro micro-medium">Audit driver</span>
+                                <span className="micro text-medium">Audit driver</span>
                                 <span className="micro">{env.audit_driver}</span>
                             </SplitRow>
                             <SplitRow>
-                                <span className="micro micro-medium">Screenshot driver</span>
+                                <span className="micro text-medium">Screenshot driver</span>
                                 <span className="micro">{env.screenshot_driver}</span>
                             </SplitRow>
                         </MetaList>
@@ -147,19 +145,19 @@ export default function SettingsIndex({ settings, agencyBooking, nicheMaintenanc
                     <Card title="Niche maintenance">
                         <MetaList className="meta-list--spaced">
                             <SplitRow className="split-row--center">
-                                <span className="micro micro-medium">Niches configured</span>
+                                <span className="micro text-medium">Niches configured</span>
                                 <span className="micro">{nicheMaintenance.niche_count}</span>
                             </SplitRow>
                             <SplitRow className="split-row--center">
-                                <span className="micro micro-medium">Cities configured</span>
+                                <span className="micro text-medium">Cities configured</span>
                                 <span className="micro">{nicheMaintenance.city_count}</span>
                             </SplitRow>
                             <SplitRow className="split-row--center">
-                                <span className="micro micro-medium">Last market scan</span>
+                                <span className="micro text-medium">Last market scan</span>
                                 <span className="micro">{nicheMaintenance.last_scan_human}</span>
                             </SplitRow>
                             <SplitRow className="split-row--center">
-                                <span className="micro micro-medium">Config generated</span>
+                                <span className="micro text-medium">Config generated</span>
                                 <span className="micro">{nicheMaintenance.config_generated ?? 'Unknown'}</span>
                             </SplitRow>
                         </MetaList>

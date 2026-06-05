@@ -9,6 +9,7 @@ import {
   EmptyState,
   Field,
   FilterBar,
+  Grid,
   IconButton,
   Icons,
   Input,
@@ -16,10 +17,9 @@ import {
   RowActions,
   ScoreBadge,
   Select,
-  Status,
+  Stack,
   Toast,
 } from "@/Components/ui";
-import { normalizeAngle } from "@/Components/ui/scoreBand";
 
 export default function SavedIndex({ prospects, warmLeads, filters, meta }) {
   const [toast, setToast] = useState(null);
@@ -90,52 +90,31 @@ export default function SavedIndex({ prospects, warmLeads, filters, meta }) {
 
         {warmLeads.length > 0 && !filters.warm && (
           <section className="warm-panel">
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: 16,
-              }}
-            >
-              <div className="card-title" style={{ margin: 0 }}>
-                Warm leads
-              </div>
-              <Link
-                href="/saved?warm=1"
-                className="micro"
-                style={{ color: "var(--color-accent-deep)" }}
-              >
+            <Stack direction="row" justify="between" align="center" className="mb-16">
+              <div className="card-title card-title--flush">Warm leads</div>
+              <Link href="/saved?warm=1" className="micro text-accent-deep">
                 Filter to warm →
               </Link>
-            </div>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(3, 1fr)",
-                gap: 12,
-              }}
-            >
+            </Stack>
+            <Grid cols={3} gap={12}>
               {warmLeads.slice(0, 3).map((p) => (
                 <Link
                   key={p.id}
                   href={`/prospects/${p.id}`}
-                  style={{ textDecoration: "none", color: "inherit" }}
+                  className="warm-lead-link"
                 >
-                  <Card pad style={{ padding: "14px 16px" }}>
-                    <div style={{ fontWeight: 500, fontSize: 13 }}>
-                      {p.business_name}
-                    </div>
-                    <div className="micro" style={{ marginTop: 4 }}>
+                  <Card pad className="card--compact">
+                    <div className="warm-lead-name">{p.business_name}</div>
+                    <div className="micro mt-4">
                       {p.niche} · {p.city}
                     </div>
-                    <div style={{ marginTop: 10 }}>
+                    <div className="mt-10">
                       <ScoreBadge value={p.combined_score} withBar={false} />
                     </div>
                   </Card>
                 </Link>
               ))}
-            </div>
+            </Grid>
           </section>
         )}
 
@@ -185,17 +164,10 @@ export default function SavedIndex({ prospects, warmLeads, filters, meta }) {
             />
           </Field>
           <Field label="Warm">
-            <label
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                fontSize: 13,
-                paddingTop: 8,
-              }}
-            >
+            <label className="filter-checkbox-label">
               <input
                 type="checkbox"
+                className="checkbox"
                 name="warm"
                 value="1"
                 defaultChecked={!!filters.warm}
@@ -230,7 +202,7 @@ export default function SavedIndex({ prospects, warmLeads, filters, meta }) {
                 <th>A11y</th>
                 <th>Angle</th>
                 <th>Outreach history</th>
-                <th style={{ textAlign: "right" }}>Actions</th>
+                <th className="text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -257,12 +229,7 @@ export default function SavedIndex({ prospects, warmLeads, filters, meta }) {
                       <div className="micro">
                         Sent {p.outreach_sent_label}
                         {p.report_viewed_label && (
-                          <div
-                            style={{
-                              color: "var(--color-accent-ink)",
-                              marginTop: 2,
-                            }}
-                          >
+                          <div className="text-accent-ink mt-4">
                             Viewed {p.report_viewed_label}
                           </div>
                         )}
@@ -272,8 +239,8 @@ export default function SavedIndex({ prospects, warmLeads, filters, meta }) {
                     )}
                   </td>
                   <td
+                    className="text-right"
                     onClick={(e) => e.stopPropagation()}
-                    style={{ textAlign: "right" }}
                   >
                     <RowActions>
                       {p.report_url && (

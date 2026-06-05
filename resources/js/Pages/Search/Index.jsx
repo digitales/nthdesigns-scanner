@@ -6,10 +6,13 @@ import {
   Card,
   Field,
   FormError,
+  Grid,
   Input,
   Page,
   PageHeader,
   Select,
+  SidebarLayout,
+  Stack,
 } from "@/Components/ui";
 
 const SCAN_TYPES = [
@@ -65,20 +68,11 @@ export default function SearchIndex({
           sub="We'll discover up to 25 businesses on Google, score their Google Business Profile, then audit their websites for WCAG 2.2 accessibility violations."
         />
 
-        <div
-          style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 40 }}
-        >
+        <SidebarLayout>
           <div>
             <Card title="Parameters">
               <form onSubmit={submit}>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: 16,
-                    marginBottom: 18,
-                  }}
-                >
+                <Grid cols={2} gap={16} className="mb-18">
                   <Field label="Niche" hint="local trade or profession">
                     <Input
                       value={data.niche}
@@ -97,9 +91,9 @@ export default function SearchIndex({
                     />
                     <FormError message={errors.city} />
                   </Field>
-                </div>
+                </Grid>
 
-                <div style={{ marginBottom: 24 }}>
+                <div className="mb-24">
                   <Field label="Country">
                     <Select
                       value={data.country}
@@ -113,14 +107,7 @@ export default function SearchIndex({
                 </div>
 
                 <Field label="Scan type">
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(3, 1fr)",
-                      gap: 10,
-                      marginTop: 4,
-                    }}
-                  >
+                  <Grid cols={3} gap={10} className="mt-4">
                     {SCAN_TYPES.map((o) => (
                       <button
                         key={o.value}
@@ -128,37 +115,18 @@ export default function SearchIndex({
                         className={`scan-type-btn${data.scan_type === o.value ? " active" : ""}`}
                         onClick={() => setData("scan_type", o.value)}
                       >
-                        <div
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 500,
-                            marginBottom: 4,
-                          }}
-                        >
-                          {o.title}
-                        </div>
+                        <div className="title">{o.title}</div>
                         <div className="sub">{o.sub}</div>
                       </button>
                     ))}
-                  </div>
+                  </Grid>
                 </Field>
 
-                <div
-                  style={{
-                    marginTop: 24,
-                    padding: "14px 16px",
-                    background: "var(--color-paper-2)",
-                    borderRadius: 4,
-                    border: "1px solid var(--color-line)",
-                    fontSize: 13,
-                    color: "var(--color-stone-600)",
-                    lineHeight: 1.55,
-                  }}
-                >
+                <div className="scan-info-panel">
                   {SCAN_INFO[data.scan_type]}
                 </div>
 
-                <div style={{ marginTop: 24 }}>
+                <div className="mt-24">
                   <Button
                     kind="primary"
                     size="lg"
@@ -172,11 +140,8 @@ export default function SearchIndex({
               </form>
             </Card>
 
-            <Card title="Single site audit" style={{ marginTop: 24 }}>
-              <p
-                className="micro"
-                style={{ marginBottom: 16, lineHeight: 1.55 }}
-              >
+            <Card title="Single site audit" className="card--spaced">
+              <p className="micro mb-16 line-height-relaxed">
                 Paste a website URL to look up its Google Business Profile and
                 run a WCAG 2.2 audit. Takes about 90 seconds.
               </p>
@@ -192,7 +157,7 @@ export default function SearchIndex({
                   />
                   <FormError message={directForm.errors.website_url} />
                 </Field>
-                <div style={{ marginTop: 16 }}>
+                <div className="mt-16">
                   <Button
                     kind="secondary"
                     size="lg"
@@ -209,15 +174,8 @@ export default function SearchIndex({
             </Card>
           </div>
 
-          <aside>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "baseline",
-                marginBottom: 12,
-              }}
-            >
+          <div>
+            <div className="aside-header">
               <div className="card-title">Recent searches</div>
               <Link href="/searches" className="micro">
                 View all
@@ -226,16 +184,16 @@ export default function SearchIndex({
             {recentSearches.length === 0 ? (
               <p className="micro">No searches yet.</p>
             ) : (
-              <ul style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <Stack as="ul" gap={8}>
                 {recentSearches.map((s) => (
                   <li key={s.id}>
                     <SearchHistoryCard search={s} />
                   </li>
                 ))}
-              </ul>
+              </Stack>
             )}
-          </aside>
-        </div>
+          </div>
+        </SidebarLayout>
       </Page>
     </AuthenticatedLayout>
   );
