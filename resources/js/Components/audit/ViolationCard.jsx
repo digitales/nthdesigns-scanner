@@ -8,57 +8,36 @@ export default function ViolationCard({ violation: v, screenshotUrl }) {
     }[v.impact] ?? 'var(--color-sev-moderate)';
 
     return (
-        <article style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: 28 }}>
-            <div style={{
-                background: 'var(--color-stone-100)',
-                borderRadius: 4,
-                border: '1px solid var(--color-line)',
-                height: 160,
-                position: 'relative',
-                overflow: 'hidden',
-            }}>
+        <article className="violation-card">
+            <div className="violation-card-media">
                 {screenshotUrl ? (
-                    <img src={screenshotUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={screenshotUrl} alt="" className="violation-card-img" />
                 ) : (
-                    <div style={{
-                        position: 'absolute',
-                        top: '30%',
-                        left: '20%',
-                        width: '60%',
-                        height: '40%',
-                        border: `2px solid ${sevColor}`,
-                        borderRadius: 2,
-                    }} />
+                    <div className="violation-card-placeholder" style={{ borderColor: sevColor }} />
                 )}
             </div>
             <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <div className="violation-card-header">
                     <SevChip level={v.impact === 'minor' ? 'moderate' : v.impact} />
                     {v.wcag && <span className="micro">{v.wcag}</span>}
                 </div>
-                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 500, margin: '0 0 10px' }}>
+                <h3 className="violation-card-title">
                     {v.description}
                 </h3>
                 {v.help && v.help !== v.description && (
-                    <p style={{ fontSize: 14, color: 'var(--color-stone-600)', lineHeight: 1.6, margin: '0 0 14px' }}>{v.help}</p>
+                    <p className="violation-card-copy">{v.help}</p>
                 )}
                 {v.user_impact && (
-                    <p style={{ fontSize: 14, color: 'var(--color-stone-600)', lineHeight: 1.6, margin: '8px 0 0' }}>{v.user_impact}</p>
+                    <p className="violation-card-copy violation-card-copy--tight">{v.user_impact}</p>
                 )}
                 {v.fix_hint && (
-                    <p style={{ fontSize: 14, color: 'var(--color-accent-deep)', lineHeight: 1.6, margin: '4px 0 0' }}>
-                        <strong style={{ fontWeight: 500 }}>Fix:</strong> {v.fix_hint}
+                    <p className="violation-card-copy violation-card-copy--fix-lead">
+                        <strong className="text-medium">Fix:</strong> {v.fix_hint}
                     </p>
                 )}
                 {v.fix && (
-                    <div style={{
-                        borderLeft: '3px solid var(--color-accent)',
-                        paddingLeft: 14,
-                        fontSize: 14,
-                        color: 'var(--color-stone-700)',
-                        lineHeight: 1.55,
-                    }}>
-                        <strong style={{ fontWeight: 500, color: 'var(--color-ink)' }}>Fix · </strong>
+                    <div className="violation-card-fix">
+                        <strong className="text-medium">Fix · </strong>
                         {v.fix}
                     </div>
                 )}

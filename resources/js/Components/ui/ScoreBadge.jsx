@@ -3,7 +3,7 @@ import { scoreBand } from './scoreBand';
 export default function ScoreBadge({ value, withBar = true, weakPip = false }) {
     if (value == null || value === '—') {
         return (
-            <span className="score-badge low" style={{ opacity: 0.5 }}>
+            <span className="score-badge low score-badge--empty">
                 <span className="num">—</span>
             </span>
         );
@@ -17,13 +17,8 @@ export default function ScoreBadge({ value, withBar = true, weakPip = false }) {
             {withBar && (
                 <span className="bar">
                     <span
-                        style={{
-                            position: 'absolute',
-                            inset: 0,
-                            background: 'currentColor',
-                            opacity: 0.7,
-                            right: `${100 - barPct}%`,
-                        }}
+                        className="score-bar-fill"
+                        style={{ '--score-bar-right': `${100 - barPct}%` }}
                     />
                 </span>
             )}

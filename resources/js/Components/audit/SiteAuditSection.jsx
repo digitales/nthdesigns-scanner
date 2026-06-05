@@ -11,10 +11,11 @@ export default function SiteAuditSection({ audit }) {
     const auditedLabel = audit.audited_at
         ? new Date(audit.audited_at).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })
         : null;
+
     return (
-        <Card title="Site audit" style={{ marginBottom: 24 }}>
-            <div style={{ marginBottom: 20 }}>
-                {auditedLabel && <div className="micro" style={{ marginBottom: 6 }}>Audited {auditedLabel}</div>}
+        <Card title="Site audit" className="audit-section-card">
+            <div className="audit-section-intro">
+                {auditedLabel && <div className="micro audit-section-meta">Audited {auditedLabel}</div>}
                 {audit.url && (
                     <a href={audit.url} target="_blank" rel="noopener noreferrer" className="micro">
                         {audit.url.replace(/^https?:\/\//, '')}
@@ -22,9 +23,9 @@ export default function SiteAuditSection({ audit }) {
                 )}
             </div>
 
-            <div style={{ marginBottom: 24 }}>
-                <div className="eyebrow" style={{ marginBottom: 10 }}>Summary</div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+            <div className="audit-block">
+                <div className="eyebrow audit-eyebrow-spaced">Summary</div>
+                <div className="audit-chips">
                     {summary.critical > 0 && <SevChip level="critical" count={summary.critical} />}
                     {summary.serious > 0 && <SevChip level="serious" count={summary.serious} />}
                     {summary.moderate > 0 && <SevChip level="moderate" count={summary.moderate} />}
@@ -37,9 +38,9 @@ export default function SiteAuditSection({ audit }) {
             </div>
 
             {(audit.top_violations ?? []).length > 0 && (
-                <div style={{ marginBottom: 28 }}>
-                    <div className="eyebrow" style={{ marginBottom: 16 }}>Priority issues</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                <div className="audit-block--lg">
+                    <div className="eyebrow audit-eyebrow-spaced-xl">Priority issues</div>
+                    <div className="audit-stack">
                         {audit.top_violations.map((v) => (
                             <ViolationCard key={v.id} violation={v} screenshotUrl={v.screenshot_url} />
                         ))}
@@ -48,7 +49,7 @@ export default function SiteAuditSection({ audit }) {
             )}
 
             <div>
-                <div className="eyebrow" style={{ marginBottom: 12 }}>All violations</div>
+                <div className="eyebrow audit-eyebrow-spaced-lg">All violations</div>
                 <ViolationsTable violations={audit.all_violations ?? []} />
             </div>
         </Card>

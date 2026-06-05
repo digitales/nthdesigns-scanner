@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { SevChip } from '@/Components/ui';
+import { Checkbox, SevChip } from '@/Components/ui';
 
 const IMPACT_ORDER = { critical: 0, serious: 1, moderate: 2, minor: 3 };
 
@@ -24,33 +24,32 @@ export default function ViolationsTable({ violations = [] }) {
     return (
         <div>
             {showFilter && (
-                <label className="micro" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                    <input
-                        type="checkbox"
+                <label className="micro violations-filter">
+                    <Checkbox
                         checked={hideModerateMinor}
-                        onChange={(e) => setHideModerateMinor(e.target.checked)}
+                        onChange={(checked) => setHideModerateMinor(checked)}
                     />
                     Hide moderate &amp; minor
                 </label>
             )}
-            <table className="data-table" style={{ width: '100%', fontSize: 13 }}>
+            <table className="data-table violations-table">
                 <thead>
                     <tr>
-                        <th style={{ width: 100 }}>Impact</th>
-                        <th style={{ width: 140 }}>Rule</th>
+                        <th className="col-impact">Impact</th>
+                        <th className="col-rule">Rule</th>
                         <th>Description</th>
-                        <th style={{ width: 80 }}>WCAG</th>
-                        <th style={{ width: 56, textAlign: 'right' }}>Nodes</th>
+                        <th className="col-wcag">WCAG</th>
+                        <th className="col-nodes">Nodes</th>
                     </tr>
                 </thead>
                 <tbody>
                     {rows.map((v) => (
                         <tr key={v.id}>
                             <td><SevChip level={v.impact === 'minor' ? 'moderate' : v.impact} /></td>
-                            <td className="mono" style={{ fontSize: 11 }}>{v.id}</td>
+                            <td className="mono col-rule">{v.id}</td>
                             <td>{v.description}</td>
                             <td className="micro">{v.wcag ?? '—'}</td>
-                            <td style={{ textAlign: 'right' }} className="num">{v.nodes}</td>
+                            <td className="num col-nodes">{v.nodes}</td>
                         </tr>
                     ))}
                 </tbody>

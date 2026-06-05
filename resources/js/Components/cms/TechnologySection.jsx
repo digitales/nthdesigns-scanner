@@ -13,13 +13,13 @@ export default function TechnologySection({ cms }) {
 
     return (
         <Card>
-            <div className="eyebrow" style={{ marginBottom: 12 }}>Technology</div>
+            <div className="eyebrow audit-eyebrow-spaced-lg">Technology</div>
             {cms.pending ? (
                 <p className="micro">Detecting platform…</p>
             ) : (
                 <>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                        <span style={{ fontSize: 15, fontWeight: 500 }}>{cms.label}</span>
+                    <div className="tech-row">
+                        <span className="tech-label">{cms.label}</span>
                         {cms.confidence && (
                             <span className={`badge cms-confidence cms-confidence--${cms.confidence}`}>
                                 {confidenceLabels[cms.confidence] ?? cms.confidence}
@@ -28,7 +28,7 @@ export default function TechnologySection({ cms }) {
                     </div>
                     {(cms.signals?.length ?? 0) > 0 && (
                         <details>
-                            <summary className="micro" style={{ cursor: 'pointer', marginBottom: 8 }}>
+                            <summary className="micro tech-summary">
                                 Detection signals
                             </summary>
                             <ul className="cms-signals-list">
