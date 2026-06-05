@@ -62,10 +62,7 @@ class SettingsController extends Controller
 
     public function update(UpdateUserSettingsRequest $request, UserSettingsService $settings): RedirectResponse
     {
-        $validated = $request->validated();
-
-        $setting = $settings->forUser($request->user());
-        $setting->update($validated);
+        $settings->update($request->user(), $request->validated());
 
         return back()->with('success', 'Settings saved.');
     }
