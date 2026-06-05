@@ -1,6 +1,6 @@
 import { router, useForm, usePage } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
-import { Button, Card, Checkbox, Field, FormError, Input, Select, Status } from '@/Components/ui';
+import { Button, Card, Checkbox, Field, FormError, Grid, Input, Select, Stack, Status } from '@/Components/ui';
 
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
@@ -15,12 +15,12 @@ const TIMEZONES = [
 
 function Subsection({ title, children }) {
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 20, borderTop: '1px solid var(--color-line)' }}>
+        <Stack gap={16} className="stack--section">
             <div className="micro" style={{ fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-stone-500)' }}>
                 {title}
             </div>
             {children}
-        </div>
+        </Stack>
     );
 }
 
@@ -91,22 +91,22 @@ export default function AgencyBookingSettingsCard({ agencyBooking }) {
 
     return (
         <Card title="Report booking (Fastmail)">
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 12 }}>
-                <p className="micro" style={{ margin: 0, flex: 1 }}>
+            <Stack direction="row" justify="between" align="start" gap={16} style={{ marginBottom: 12 }}>
+                <p className="micro stack--grow" style={{ margin: 0 }}>
                     Prospects book 30-minute review calls inline on public reports. Slots sync from your shared Fastmail calendar via CalDAV.
                 </p>
                 <Status kind={status.kind}>{status.label}</Status>
-            </div>
+            </Stack>
 
             <form onSubmit={save}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    <label className="micro" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Stack gap={16}>
+                    <Stack as="label" className="micro" direction="row" gap={8} align="center">
                         <Checkbox
                             checked={data.enabled}
                             onChange={(checked) => setData('enabled', checked)}
                         />
                         Enable inline booking on public reports
-                    </label>
+                    </Stack>
 
                     {!data.enabled && (
                         <p className="micro" style={{ margin: 0, color: 'var(--color-stone-500)' }}>
@@ -117,7 +117,7 @@ export default function AgencyBookingSettingsCard({ agencyBooking }) {
                     {data.enabled && (
                         <>
                             <Subsection title="Fastmail connection">
-                                <div style={{ display: 'grid', gap: 16 }}>
+                                <Grid gap={16}>
                                     <Field label="Fastmail email">
                                         <Input
                                             type="email"
@@ -140,9 +140,9 @@ export default function AgencyBookingSettingsCard({ agencyBooking }) {
                                             autoComplete="new-password"
                                         />
                                     </Field>
-                                </div>
+                                </Grid>
 
-                                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+                                <Stack direction="row" gap={12} align="center" wrap>
                                     <Button kind="secondary" type="button" disabled={testing || !data.fastmail_username} onClick={testConnection}>
                                         {testing ? 'Testing…' : 'Test connection'}
                                     </Button>
@@ -151,7 +151,12 @@ export default function AgencyBookingSettingsCard({ agencyBooking }) {
                                             Enter an app password to test.
                                         </span>
                                     )}
-                                </div>
+                                    {Array.isArray(flash?.agency_booking_calendars) && flash?.success && !recentlySuccessful && (
+                                        <span className="micro" style={{ color: 'var(--color-positive)' }}>
+                                            {flash.success}
+                                        </span>
+                                    )}
+                                </Stack>
 
                                 {discoveredCalendars.length > 1 ? (
                                     <Field label="Calendar" hint="Choose which Fastmail calendar receives bookings">
@@ -184,7 +189,7 @@ export default function AgencyBookingSettingsCard({ agencyBooking }) {
                             </Subsection>
 
                             <Subsection title="Availability">
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 16 }}>
+                                <Grid cols="auto" gap={16}>
                                     <Field label="Min. notice (hours)" hint="How far ahead prospects must book">
                                         <Input
                                             type="number"
@@ -224,22 +229,15 @@ export default function AgencyBookingSettingsCard({ agencyBooking }) {
                                     <Field label="Call length">
                                         <Input type="text" value="30 minutes" readOnly disabled />
                                     </Field>
-                                </div>
+                                </Grid>
 
                                 <div>
                                     <div className="micro" style={{ fontWeight: 500, marginBottom: 8 }}>Working hours</div>
-                                    <div
-                                        style={{
-                                            display: 'grid',
-                                            gridTemplateColumns: 'minmax(72px, auto) 20px minmax(100px, 1fr) 12px minmax(100px, 1fr)',
-                                            gap: '8px 8px',
-                                            alignItems: 'center',
-                                        }}
-                                    >
+                                    <Grid cols="hours">
                                         {DAYS.map((day) => {
                                             const enabled = data.working_hours[day]?.enabled ?? false;
                                             return (
-                                                <div key={day} style={{ display: 'contents' }}>
+                                                <div key={day} className="grid--contents">
                                                     <label className="micro" style={{ textTransform: 'capitalize' }}>
                                                         {day.slice(0, 3)}
                                                     </label>
@@ -264,12 +262,12 @@ export default function AgencyBookingSettingsCard({ agencyBooking }) {
                                                 </div>
                                             );
                                         })}
-                                    </div>
+                                    </Grid>
                                 </div>
                             </Subsection>
 
                             <Subsection title="Confirmation email">
-                                <div style={{ display: 'grid', gap: 16 }}>
+                                <Grid gap={16}>
                                     <Field label="From email">
                                         <Input
                                             type="email"
@@ -288,22 +286,22 @@ export default function AgencyBookingSettingsCard({ agencyBooking }) {
                                             placeholder="nthdesigns"
                                         />
                                     </Field>
-                                </div>
+                                </Grid>
                             </Subsection>
                         </>
                     )}
 
                     <FormError message={errors.agency_booking} />
 
-                    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', paddingTop: data.enabled ? 4 : 0 }}>
+                    <Stack direction="row" gap={12} align="center" wrap style={{ paddingTop: data.enabled ? 4 : 0 }}>
                         <Button kind="primary" type="submit" disabled={processing}>
                             {processing ? 'Saving…' : 'Save booking settings'}
                         </Button>
                         {recentlySuccessful && (
                             <span className="micro" style={{ color: 'var(--color-positive)' }}>Saved.</span>
                         )}
-                    </div>
-                </div>
+                    </Stack>
+                </Stack>
             </form>
         </Card>
     );

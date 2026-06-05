@@ -279,13 +279,26 @@ export default function NichesIndex({
     router.get("/niches", params, { preserveState: true });
   };
 
+  const [scanningRowId, setScanningRowId] = useState(null);
+
   const runFullScan = (row) => {
-    router.post("/searches", {
-      niche: row.niche_query,
-      city: row.city,
-      country: row.country,
-      scan_type: "gbp_only",
-    });
+    if (scanningRowId) {
+      return;
+    }
+
+    setScanningRowId(row.id);
+    router.post(
+      "/searches",
+      {
+        niche: row.niche_query,
+        city: row.city,
+        country: row.country,
+        scan_type: "gbp_only",
+      },
+      {
+        onFinish: () => setScanningRowId(null),
+      },
+    );
   };
 
   const loadPage = useCallback(
@@ -568,16 +581,19 @@ export default function NichesIndex({
                           <td className="micro">{row.ran_at_human}</td>
                           <td style={{ textAlign: "right" }}>
                             <RowActions>
-                              <button
-                                type="button"
-                                className="btn-ghost btn-xs"
+                              <Button
+                                kind="ghost"
+                                size="xs"
+                                disabled={scanningRowId === row.id}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   runFullScan(row);
                                 }}
                               >
-                                Run Full Scan
-                              </button>
+                                {scanningRowId === row.id
+                                  ? "Queuing…"
+                                  : "Run Full Scan"}
+                              </Button>
                             </RowActions>
                           </td>
                         </tr>
@@ -608,6 +624,7 @@ export default function NichesIndex({
             {selected && !manageOpen && (
               <NicheSamplePanel
                 scan={selected}
+                scanning={scanningRowId === selected.id}
                 onClose={() => setSelected(null)}
                 onRunFullScan={runFullScan}
               />

@@ -24,8 +24,8 @@ class AuditErrorRecorder
         if (strlen($fullBody) > self::MAX_BODY_BYTES) {
             Log::warning('Audit error body truncated for storage', [
                 'audit_job_id' => $auditJob->id,
-                'prospect_id'  => $auditJob->prospect_id,
-                'bytes'        => strlen($fullBody),
+                'prospect_id' => $auditJob->prospect_id,
+                'bytes' => strlen($fullBody),
             ]);
             $fullBody = substr($fullBody, 0, self::MAX_BODY_BYTES);
         }
@@ -37,7 +37,7 @@ class AuditErrorRecorder
         AuditJobErrorDetail::query()->updateOrCreate(
             ['audit_job_id' => $auditJob->id],
             [
-                'body'       => $fullBody,
+                'body' => $fullBody,
                 'created_at' => now(),
             ],
         );
@@ -69,7 +69,7 @@ class AuditErrorRecorder
         while ($previous !== null) {
             $message = trim($previous->getMessage());
 
-            if ($message !== '' && !in_array($message, $parts, true)) {
+            if ($message !== '' && ! in_array($message, $parts, true)) {
                 $parts[] = $message;
             }
 

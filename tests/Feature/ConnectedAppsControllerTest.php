@@ -47,4 +47,18 @@ class ConnectedAppsControllerTest extends TestCase
         $family->refresh();
         $this->assertNotNull($family->revoked_at);
     }
+
+    public function test_destroy_rejects_another_users_family(): void
+    {
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+        $family = $this->makeFamily($owner);
+
+        $this->actingAs($other)
+            ->delete('/settings/connected-apps/'.$family->id)
+            ->assertForbidden();
+
+        $family->refresh();
+        $this->assertNull($family->revoked_at);
+    }
 }

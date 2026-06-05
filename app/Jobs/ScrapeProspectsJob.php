@@ -3,11 +3,10 @@
 namespace App\Jobs;
 
 use App\Models\Search;
-use App\Support\SearchQueue;
 use App\Services\BenchmarkNormalizer;
 use App\Services\GooglePlacesService;
 use App\Services\ProspectExclusionService;
-use App\Services\SearchStatusService;
+use App\Support\SearchQueue;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -20,6 +19,7 @@ class ScrapeProspectsJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 3;
+
     public int $backoff = 30;
 
     public function __construct(public Search $search)
@@ -29,7 +29,6 @@ class ScrapeProspectsJob implements ShouldQueue
 
     public function handle(
         GooglePlacesService $places,
-        SearchStatusService $searchStatus,
         ProspectExclusionService $exclusions,
     ): void {
         $this->search->update(['status' => 'discovering']);
@@ -59,7 +58,7 @@ class ScrapeProspectsJob implements ShouldQueue
             $this->search->update([
                 'total_found' => count($placeIds),
                 'benchmark_snapshot' => $benchmarkPlace
-                    ? (new BenchmarkNormalizer())->fromPlace($benchmarkPlace)
+                    ? (new BenchmarkNormalizer)->fromPlace($benchmarkPlace)
                     : null,
             ]);
 
@@ -76,11 +75,10 @@ class ScrapeProspectsJob implements ShouldQueue
         } catch (\Throwable $e) {
             Log::error('ScrapeProspectsJob failed', [
                 'search_id' => $this->search->id,
-                'error'     => $e->getMessage(),
+                'error' => $e->getMessage(),
             ]);
             $this->search->update(['status' => 'failed']);
             throw $e;
         }
     }
-
 }

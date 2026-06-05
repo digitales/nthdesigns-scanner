@@ -13,7 +13,7 @@ class CombineScoresServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new CombineScoresService();
+        $this->service = new CombineScoresService;
     }
 
     public function test_gbp_only_uses_gbp_score(): void

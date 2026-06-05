@@ -26,16 +26,16 @@ class SettingsTest extends TestCase
         $this->actingAs($user)
             ->patch('/settings', [
                 'default_country' => 'IE',
-                'agency_name'     => 'nthdesigns',
-                'booking_url'     => 'https://example.com/book',
+                'agency_name' => 'nthdesigns',
+                'booking_url' => 'https://example.com/book',
             ])
             ->assertRedirect();
 
         $this->assertDatabaseHas('user_settings', [
-            'user_id'         => $user->id,
+            'user_id' => $user->id,
             'default_country' => 'IE',
-            'agency_name'     => 'nthdesigns',
-            'booking_url'     => 'https://example.com/book',
+            'agency_name' => 'nthdesigns',
+            'booking_url' => 'https://example.com/book',
         ]);
     }
 
@@ -43,7 +43,7 @@ class SettingsTest extends TestCase
     {
         $user = User::factory()->create();
         UserSetting::create([
-            'user_id'         => $user->id,
+            'user_id' => $user->id,
             'default_country' => 'IE',
         ]);
 

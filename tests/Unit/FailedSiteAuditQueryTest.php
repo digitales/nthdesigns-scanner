@@ -6,7 +6,7 @@ use App\Models\AuditJob;
 use App\Models\Prospect;
 use App\Models\Search;
 use App\Models\User;
-use App\Support\FailedSiteAuditQuery;
+use App\Queries\FailedSiteAuditQuery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Tests\TestCase;
@@ -19,18 +19,18 @@ class FailedSiteAuditQueryTest extends TestCase
     {
         $user = User::factory()->create();
         $search = Search::factory()->create([
-            'user_id'   => $user->id,
+            'user_id' => $user->id,
             'scan_type' => 'combined',
-            'status'    => 'complete',
+            'status' => 'complete',
         ]);
 
         return Prospect::factory()->create(array_merge([
-            'search_id'              => $search->id,
-            'website_url'            => 'https://example.com',
-            'audit_status'           => 'failed',
-            'raw_a11y_payload'       => ['violations' => []],
+            'search_id' => $search->id,
+            'website_url' => 'https://example.com',
+            'audit_status' => 'failed',
+            'raw_a11y_payload' => ['violations' => []],
             'raw_lighthouse_payload' => ['performance' => 80],
-            'performance_score'      => 80,
+            'performance_score' => 80,
         ], $prospectAttrs));
     }
 
@@ -47,11 +47,11 @@ class FailedSiteAuditQueryTest extends TestCase
         $prospect = $this->failedProspect();
 
         AuditJob::create([
-            'prospect_id'   => $prospect->id,
-            'job_type'      => 'accessibility',
-            'status'        => 'failed',
+            'prospect_id' => $prospect->id,
+            'job_type' => 'accessibility',
+            'status' => 'failed',
             'error_message' => 'Playwright timeout',
-            'completed_at'  => now(),
+            'completed_at' => now(),
         ]);
 
         $this->assertStringContainsString('Playwright timeout', FailedSiteAuditQuery::reasonFor($prospect));

@@ -9,14 +9,12 @@ use Carbon\CarbonInterface;
 
 class FastmailCalDavProvider implements CalendarProvider
 {
-    public function __construct(
-        private AgencyBookingSetting $settings,
-    ) {}
-
     public function busyIntervals(CarbonInterface $from, CarbonInterface $to): array
     {
-        return $this->client()->busyIntervals(
-            $this->settings->caldav_calendar_url,
+        $settings = AgencyBookingSetting::current();
+
+        return $this->client($settings)->busyIntervals(
+            $settings->caldav_calendar_url,
             $from,
             $to,
         );
@@ -24,18 +22,19 @@ class FastmailCalDavProvider implements CalendarProvider
 
     public function createEvent(CalendarEventDraft $draft): string
     {
-        $client = $this->client();
-        $ics = $client->buildEventIcs($draft, $this->settings->fastmail_username);
-        $client->createEvent($this->settings->caldav_calendar_url, $ics, $draft->uid);
+        $settings = AgencyBookingSetting::current();
+        $client = $this->client($settings);
+        $ics = $client->buildEventIcs($draft, $settings->fastmail_username);
+        $client->createEvent($settings->caldav_calendar_url, $ics, $draft->uid);
 
         return $draft->uid;
     }
 
-    private function client(): FastmailCalDavClient
+    private function client(AgencyBookingSetting $settings): FastmailCalDavClient
     {
         return new FastmailCalDavClient(
-            $this->settings->fastmail_username,
-            $this->settings->fastmail_app_password,
+            $settings->fastmail_username,
+            $settings->fastmail_app_password,
         );
     }
 }

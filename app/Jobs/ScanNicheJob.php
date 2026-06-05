@@ -13,6 +13,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Throwable;
 
 class ScanNicheJob implements ShouldQueue
@@ -31,12 +32,17 @@ class ScanNicheJob implements ShouldQueue
         public string $country,
         public int $sample,
         public string $scanDate,
+        public bool $force = false,
     ) {
         NicheQueue::apply($this);
     }
 
     public function handle(NicheSampleCollector $collector, NicheExclusionService $exclusions): void
     {
+        if (! $this->force && $this->alreadyComplete()) {
+            return;
+        }
+
         $scan = $this->pendingScan();
 
         $result = $collector->collect(
@@ -51,20 +57,45 @@ class ScanNicheJob implements ShouldQueue
         $exclusions->refreshForNiche($this->niche);
     }
 
+    private function alreadyComplete(): bool
+    {
+        return NicheScan::query()
+            ->where('niche', $this->niche)
+            ->where('city', $this->city)
+            ->whereDate('scan_date', Carbon::parse($this->scanDate)->toDateString())
+            ->where('status', 'complete')
+            ->exists();
+    }
+
     private function pendingScan(): NicheScan
     {
-        return NicheScan::query()->updateOrCreate(
-            [
-                'niche' => $this->niche,
-                'city' => $this->city,
-                'scan_date' => Carbon::parse($this->scanDate)->toDateString(),
-            ],
-            [
+        $scanDate = Carbon::parse($this->scanDate)->toDateString();
+
+        $scan = NicheScan::query()
+            ->where('niche', $this->niche)
+            ->where('city', $this->city)
+            ->whereDate('scan_date', $scanDate)
+            ->first();
+
+        if ($scan) {
+            $scan->update([
                 'niche_query' => $this->nicheQuery,
                 'country' => $this->country,
                 'status' => 'pending',
-            ],
-        );
+                'error_message' => null,
+            ]);
+
+            return $scan->fresh();
+        }
+
+        return NicheScan::query()->create([
+            'niche' => $this->niche,
+            'niche_query' => $this->nicheQuery,
+            'city' => $this->city,
+            'country' => $this->country,
+            'scan_date' => $scanDate,
+            'status' => 'pending',
+        ]);
     }
 
     public function failed(?Throwable $exception): void
@@ -80,7 +111,10 @@ class ScanNicheJob implements ShouldQueue
             ->where('niche', $this->niche)
             ->where('city', $this->city)
             ->whereDate('scan_date', $this->scanDate)
-            ->update(['status' => 'failed']);
+            ->update([
+                'status' => 'failed',
+                'error_message' => Str::limit($exception?->getMessage() ?? 'Scan failed', 2000),
+            ]);
     }
 
     public static function opportunityScore(
@@ -118,6 +152,7 @@ class ScanNicheJob implements ShouldQueue
         $scan->update([
             ...$metrics,
             'status' => 'complete',
+            'error_message' => null,
             'ran_at' => now(),
         ]);
     }

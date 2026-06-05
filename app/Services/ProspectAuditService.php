@@ -76,13 +76,13 @@ class ProspectAuditService
     public function auditResetFields(): array
     {
         return [
-            'audit_status'           => 'pending',
-            'raw_a11y_payload'       => null,
+            'audit_status' => 'pending',
+            'raw_a11y_payload' => null,
             'raw_lighthouse_payload' => null,
-            'a11y_score'             => 0,
-            'a11y_flags'             => null,
-            'performance_score'      => 0,
-            'cms_detection'          => null,
+            'a11y_score' => 0,
+            'a11y_flags' => null,
+            'performance_score' => 0,
+            'cms_detection' => null,
         ];
     }
 }

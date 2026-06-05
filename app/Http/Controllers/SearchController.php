@@ -3,6 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreDirectUrlSearchRequest;
+use App\Http\Requests\StoreSearchRequest;
+use App\Http\Resources\SearchProspectResource;
+use App\Http\Resources\SearchSummaryMapper;
 use App\Jobs\DirectUrlScanJob;
 use App\Jobs\ScrapeProspectsJob;
 use App\Models\Search;
@@ -11,7 +14,6 @@ use App\Services\ReportBuilderService;
 use App\Services\UserSettingsService;
 use App\Support\WebsiteUrlNormalizer;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -34,7 +36,7 @@ class SearchController extends Controller
                 ->latest()
                 ->take(4)
                 ->get()
-                ->map(fn ($s) => $this->mapSearchSummary($s)),
+                ->map(fn ($s) => SearchSummaryMapper::format($s)),
         ]);
     }
 
@@ -48,18 +50,18 @@ class SearchController extends Controller
 
         return Inertia::render('Search/History', [
             'searches' => $paginator->getCollection()
-                ->map(fn ($s) => $this->mapSearchSummary($s))
+                ->map(fn ($s) => SearchSummaryMapper::format($s))
                 ->values(),
             'pagination' => [
-                'total'        => $paginator->total(),
+                'total' => $paginator->total(),
                 'current_page' => $paginator->currentPage(),
-                'per_page'     => $paginator->perPage(),
-                'last_page'    => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'last_page' => $paginator->lastPage(),
             ],
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(StoreSearchRequest $request): RedirectResponse
     {
         $user = $request->user();
         $rateKey = 'search-submit:'.$user->id;
@@ -73,12 +75,7 @@ class SearchController extends Controller
             ]);
         }
 
-        $validated = $request->validate([
-            'niche'     => 'required|string|max:100',
-            'city'      => 'required|string|max:100',
-            'country'   => 'required|string|size:2',
-            'scan_type' => 'required|in:gbp_only,accessibility_only,combined',
-        ]);
+        $validated = $request->validated();
 
         RateLimiter::hit($rateKey, $decay);
 
@@ -108,12 +105,12 @@ class SearchController extends Controller
         RateLimiter::hit($rateKey, $decay);
 
         $search = $user->searches()->create([
-            'source'        => 'direct_url',
+            'source' => 'direct_url',
             'submitted_url' => $url,
-            'country'       => $this->settings->defaultCountry($user),
-            'scan_type'     => 'combined',
-            'status'        => 'pending',
-            'total_found'   => 1,
+            'country' => $this->settings->defaultCountry($user),
+            'scan_type' => 'combined',
+            'status' => 'pending',
+            'total_found' => 1,
         ]);
 
         DirectUrlScanJob::dispatch($search);
@@ -125,8 +122,7 @@ class SearchController extends Controller
         Search $search,
         ReportBuilderService $reportBuilder,
         ProgressFlowService $progressFlow,
-    ): Response
-    {
+    ): Response {
         $this->authorize('view', $search);
 
         $prospects = $search->prospects()
@@ -140,81 +136,18 @@ class SearchController extends Controller
 
         $searchFlow = $progressFlow->searchFlow($search, $prospects);
 
-        $prospectPayloads = $prospects->map(function ($p) use ($reportBuilder, $progressFlow, $search) {
-                $latestOutreach = $p->outreachEmails->first();
-                $isWarm = $p->report?->viewed_at !== null
-                    && $latestOutreach?->sent_at !== null
-                    && !($latestOutreach?->response_received ?? false);
-                $cms = $reportBuilder->cmsForProspect($p);
-                $failedAudit = $p->auditJobs->firstWhere('status', 'failed') ?? $p->auditJobs->first();
-
-                return [
-                    'id'                => $p->id,
-                    'business_name'     => $p->business_name,
-                    'address'           => $p->address,
-                    'phone'             => $p->phone,
-                    'website_url'       => $p->website_url,
-                    'place_id'          => $p->place_id,
-                    'rating'            => $p->rating,
-                    'review_count'      => $p->review_count,
-                    'photo_count'       => $p->photo_count,
-                    'has_description'   => $p->has_description,
-                    'hours_complete'    => $p->hours_complete,
-                    'gbp_score'         => $p->gbp_score,
-                    'gbp_flags'         => $p->gbp_flags ?? [],
-                    'a11y_score'        => $p->a11y_score,
-                    'a11y_flags'        => $p->a11y_flags ?? [],
-                    'performance_score' => $p->performance_score,
-                    'combined_score'    => $p->combined_score,
-                    'dominant_angle'    => $p->dominant_angle,
-                    'audit_status'      => $p->audit_status,
-                    'audit_error'       => $failedAudit?->error_message,
-                    'report_ready'      => $p->report !== null,
-                    'report_url'        => $p->report ? url('/r/'.$p->report->token) : null,
-                    'is_warm'           => $isWarm,
-                    'last_viewed'       => $p->report?->viewed_at?->diffForHumans(),
-                    'cms_badge'         => $cms['badge'] ?? null,
-                    'cms_pending'       => $cms['pending'] ?? false,
-                    'progress_flow'     => $progressFlow->prospectFlow($p, $search),
-                ];
-            });
-
         return Inertia::render('Search/Show', [
             'outreachProspectIds' => auth()->user()
                 ->outreachSelections()
                 ->pluck('prospect_id')
                 ->values(),
-            'search' => [
-                'id'             => $search->id,
-                'source'         => $search->source,
-                'submitted_url'  => $search->submitted_url,
-                'niche'          => $search->niche,
-                'city'           => $search->city,
-                'country'        => $search->country,
-                'scan_type'      => $search->scan_type,
-                'status'         => $search->status,
-                'total_found'    => $search->total_found,
-                'created_at'     => $search->created_at->toISOString(),
-                'progress_flow'  => $searchFlow,
-            ],
-            'prospects' => $prospectPayloads,
+            'search' => SearchSummaryMapper::forShow($search, $searchFlow),
+            'prospects' => $prospects->map(fn ($prospect) => SearchProspectResource::format(
+                $prospect,
+                $search,
+                $reportBuilder,
+                $progressFlow,
+            )),
         ]);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function mapSearchSummary(Search $search): array
-    {
-        return [
-            'id'            => $search->id,
-            'source'        => $search->source,
-            'submitted_url' => $search->submitted_url,
-            'niche'         => $search->niche,
-            'city'          => $search->city,
-            'status'        => $search->status,
-            'total_found'   => $search->total_found,
-            'created_at'    => $search->created_at->diffForHumans(),
-        ];
     }
 }

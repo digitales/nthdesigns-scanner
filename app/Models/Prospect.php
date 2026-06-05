@@ -21,20 +21,23 @@ class Prospect extends Model
         'raw_gbp_payload', 'raw_a11y_payload', 'raw_lighthouse_payload', 'cms_detection', 'expires_at',
     ];
 
-    protected $casts = [
-        'gbp_flags' => 'array',
-        'a11y_flags' => 'array',
-        'raw_gbp_payload' => 'array',
-        'raw_a11y_payload' => 'array',
-        'raw_lighthouse_payload' => 'array',
-        'cms_detection' => 'array',
-        'has_description' => 'boolean',
-        'hours_complete' => 'boolean',
-        'rating' => 'decimal:1',
-        'expires_at' => 'datetime',
-        'website_discovered_at' => 'datetime',
-        'suppress_auto_report' => 'boolean',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'gbp_flags' => 'array',
+            'a11y_flags' => 'array',
+            'raw_gbp_payload' => 'array',
+            'raw_a11y_payload' => 'array',
+            'raw_lighthouse_payload' => 'array',
+            'cms_detection' => 'array',
+            'has_description' => 'boolean',
+            'hours_complete' => 'boolean',
+            'rating' => 'decimal:1',
+            'expires_at' => 'datetime',
+            'website_discovered_at' => 'datetime',
+            'suppress_auto_report' => 'boolean',
+        ];
+    }
 
     public function search(): BelongsTo
     {

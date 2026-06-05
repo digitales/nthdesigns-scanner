@@ -71,7 +71,39 @@ class NicheScanSampleControllerTest extends TestCase
             ->assertStatus(202)
             ->assertJsonPath('status', 'loading');
 
-        Queue::assertPushed(ScanNicheJob::class, fn (ScanNicheJob $job) => $job->niche === $scan->niche && $job->city === $scan->city);
+        Queue::assertPushed(ScanNicheJob::class, fn (ScanNicheJob $job) => $job->niche === $scan->niche
+            && $job->city === $scan->city
+            && $job->scanDate === $scan->scan_date->toDateString());
+        $this->assertSame('pending', $scan->fresh()->status);
+    }
+
+    public function test_show_does_not_redispatch_while_backfill_pending(): void
+    {
+        Queue::fake();
+
+        $user = User::factory()->create();
+
+        $scan = NicheScan::query()->create([
+            'niche' => 'Dental Practice',
+            'niche_query' => 'dental practice',
+            'city' => 'Leeds',
+            'country' => 'GB',
+            'scan_date' => '2026-05-27',
+            'result_count' => 10,
+            'sampled_count' => 5,
+            'avg_gbp_score' => 50,
+            'pct_no_website' => 20,
+            'pct_low_reviews' => 40,
+            'opportunity_score' => 70,
+            'status' => 'complete',
+            'ran_at' => now(),
+            'sample_preview' => null,
+        ]);
+
+        $this->actingAs($user)->getJson("/niches/{$scan->id}/sample")->assertStatus(202);
+        $this->actingAs($user)->getJson("/niches/{$scan->id}/sample")->assertStatus(202);
+
+        Queue::assertPushed(ScanNicheJob::class, 1);
     }
 
     public function test_show_returns_loading_when_pending_without_dispatch(): void
@@ -98,5 +130,26 @@ class NicheScanSampleControllerTest extends TestCase
             ->assertJsonPath('status', 'loading');
 
         Queue::assertNothingPushed();
+    }
+
+    public function test_show_returns_persisted_failure_message(): void
+    {
+        $user = User::factory()->create();
+
+        $scan = NicheScan::query()->create([
+            'niche' => 'Dental Practice',
+            'niche_query' => 'dental practice',
+            'city' => 'Leeds',
+            'country' => 'GB',
+            'scan_date' => '2026-05-27',
+            'status' => 'failed',
+            'error_message' => 'Places API quota exceeded',
+        ]);
+
+        $this->actingAs($user)
+            ->getJson("/niches/{$scan->id}/sample")
+            ->assertStatus(422)
+            ->assertJsonPath('status', 'failed')
+            ->assertJsonPath('message', 'Places API quota exceeded');
     }
 }

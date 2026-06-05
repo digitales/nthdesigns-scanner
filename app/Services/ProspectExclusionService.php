@@ -29,12 +29,12 @@ final class ProspectExclusionService
     {
         $ignored = IgnoredProspect::query()->updateOrCreate(
             [
-                'user_id'  => $user->id,
+                'user_id' => $user->id,
                 'place_id' => $prospect->place_id,
             ],
             [
                 'reason' => $reason,
-                'note'   => $note !== null && trim($note) !== '' ? trim($note) : null,
+                'note' => $note !== null && trim($note) !== '' ? trim($note) : null,
             ],
         );
 
@@ -97,16 +97,16 @@ final class ProspectExclusionService
             $prospect = $latestByPlace->get($row->place_id);
 
             return [
-                'id'             => $row->id,
-                'place_id'       => $row->place_id,
-                'reason'         => $row->reason,
-                'reason_label'   => $row->label(),
-                'note'           => $row->note,
-                'ignored_at'     => $row->updated_at->diffForHumans(),
-                'prospect_id'    => $prospect?->id,
-                'business_name'  => $prospect?->business_name,
-                'niche'          => $prospect?->search?->niche,
-                'city'           => $prospect?->search?->city,
+                'id' => $row->id,
+                'place_id' => $row->place_id,
+                'reason' => $row->reason,
+                'reason_label' => $row->label(),
+                'note' => $row->note,
+                'ignored_at' => $row->updated_at->diffForHumans(),
+                'prospect_id' => $prospect?->id,
+                'business_name' => $prospect?->business_name,
+                'niche' => $prospect?->search?->niche,
+                'city' => $prospect?->search?->city,
                 'combined_score' => $prospect?->combined_score,
             ];
         });

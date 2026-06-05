@@ -14,6 +14,8 @@ class FakeCalendarProvider implements CalendarProvider
     /** @var list<CalendarEventDraft> */
     private array $created = [];
 
+    private ?\Throwable $createException = null;
+
     /**
      * @param  list<array{start: CarbonInterface, end: CarbonInterface}>  $busy
      */
@@ -30,8 +32,17 @@ class FakeCalendarProvider implements CalendarProvider
         ));
     }
 
+    public function failOnCreate(\Throwable $exception): void
+    {
+        $this->createException = $exception;
+    }
+
     public function createEvent(CalendarEventDraft $draft): string
     {
+        if ($this->createException) {
+            throw $this->createException;
+        }
+
         $this->created[] = $draft;
         $this->busy[] = [
             'start' => $draft->startsAt,

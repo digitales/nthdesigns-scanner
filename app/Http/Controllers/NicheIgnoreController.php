@@ -2,31 +2,27 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreNicheIgnoreRequest;
 use App\Services\NicheExclusionService;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 
 class NicheIgnoreController extends Controller
 {
-    public function store(Request $request, NicheExclusionService $exclusions): RedirectResponse
+    public function store(StoreNicheIgnoreRequest $request, NicheExclusionService $exclusions): RedirectResponse
     {
-        $validated = $request->validate([
-            'niche' => ['required', 'string', 'max:255'],
-        ]);
+        $niche = $request->validated('niche');
 
-        $exclusions->ignoreManually($validated['niche']);
+        $exclusions->ignoreManually($niche);
 
-        return back()->with('success', "Niche \"{$validated['niche']}\" excluded from scans.");
+        return back()->with('success', "Niche \"{$niche}\" excluded from scans.");
     }
 
-    public function destroy(Request $request, NicheExclusionService $exclusions): RedirectResponse
+    public function destroy(StoreNicheIgnoreRequest $request, NicheExclusionService $exclusions): RedirectResponse
     {
-        $validated = $request->validate([
-            'niche' => ['required', 'string', 'max:255'],
-        ]);
+        $niche = $request->validated('niche');
 
-        $exclusions->includeInScans($validated['niche']);
+        $exclusions->includeInScans($niche);
 
-        return back()->with('success', "Niche \"{$validated['niche']}\" included in scans again.");
+        return back()->with('success', "Niche \"{$niche}\" included in scans again.");
     }
 }

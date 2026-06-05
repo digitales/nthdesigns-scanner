@@ -16,8 +16,8 @@ class ProspectReportFactory extends Factory
     {
         return [
             'prospect_id' => Prospect::factory(),
-            'token'       => (string) Str::uuid(),
-            'view_count'  => 0,
+            'token' => (string) Str::uuid(),
+            'view_count' => 0,
         ];
     }
 }

@@ -25,15 +25,15 @@ class GoogleCustomSearchService
         $response = Http::timeout($timeout)
             ->get('https://www.googleapis.com/customsearch/v1', [
                 'key' => $key,
-                'cx'  => $cx,
-                'q'   => $query,
+                'cx' => $cx,
+                'q' => $query,
                 'num' => $num,
             ]);
 
         if ($response->failed()) {
             Log::warning('Google CSE request failed', [
                 'status' => $response->status(),
-                'body'   => $response->body(),
+                'body' => $response->body(),
             ]);
 
             return [];
@@ -49,8 +49,8 @@ class GoogleCustomSearchService
             }
 
             $items[] = [
-                'url'     => $url,
-                'title'   => (string) ($item['title'] ?? ''),
+                'url' => $url,
+                'title' => (string) ($item['title'] ?? ''),
                 'snippet' => (string) ($item['snippet'] ?? ''),
             ];
         }

@@ -17,7 +17,7 @@ class PlaywrightBrowsers
         $configured = config('scanner.playwright_browsers_path');
 
         if ($configured !== null && $configured !== '') {
-            if ($configured === '0' && !is_dir(base_path('scripts/node_modules/.cache/ms-playwright'))) {
+            if ($configured === '0' && ! is_dir(base_path('scripts/node_modules/.cache/ms-playwright'))) {
                 return self::detectBundledOrStorage() ?? $configured;
             }
 
@@ -42,7 +42,7 @@ class PlaywrightBrowsers
 
     public static function hasInstalledBrowsers(string $directory): bool
     {
-        if (!is_dir($directory)) {
+        if (! is_dir($directory)) {
             return false;
         }
 

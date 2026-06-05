@@ -16,12 +16,15 @@ class ProspectReport extends Model
         'report_data', 'viewed_at', 'view_count', 'viewer_ip', 'expires_at',
     ];
 
-    protected $casts = [
-        'screenshot_paths' => 'array',
-        'report_data' => 'array',
-        'viewed_at' => 'datetime',
-        'expires_at' => 'datetime',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'screenshot_paths' => 'array',
+            'report_data' => 'array',
+            'viewed_at' => 'datetime',
+            'expires_at' => 'datetime',
+        ];
+    }
 
     public function prospect(): BelongsTo
     {

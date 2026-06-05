@@ -15,12 +15,12 @@ class OutreachEmailFactory extends Factory
     public function definition(): array
     {
         return [
-            'prospect_id'        => Prospect::factory(),
-            'user_id'            => User::factory(),
-            'pitch_angle'        => 'gbp',
-            'subject_line'       => 'Quick question about your online presence',
-            'email_body'         => 'Hello, we noticed some opportunities to improve your visibility.',
-            'response_received'  => false,
+            'prospect_id' => Prospect::factory(),
+            'user_id' => User::factory(),
+            'pitch_angle' => 'gbp',
+            'subject_line' => 'Quick question about your online presence',
+            'email_body' => 'Hello, we noticed some opportunities to improve your visibility.',
+            'response_received' => false,
         ];
     }
 }

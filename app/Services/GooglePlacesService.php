@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Log;
 class GooglePlacesService
 {
     private string $apiKey;
+
     private string $baseUrl = 'https://places.googleapis.com/v1/places';
 
     private const DETAILS_FIELD_MASK_VERSION = 'v1';
@@ -31,9 +32,9 @@ class GooglePlacesService
 
         for ($page = 0; $page < 3; $page++) {
             $payload = [
-                'textQuery'   => $query,
+                'textQuery' => $query,
                 'maxResultCount' => 20,
-                'regionCode'  => strtolower($country),
+                'regionCode' => strtolower($country),
             ];
 
             if ($pageToken) {
@@ -41,16 +42,16 @@ class GooglePlacesService
             }
 
             $response = Http::withHeaders([
-                'Content-Type'       => 'application/json',
-                'X-Goog-Api-Key'     => $this->apiKey,
-                'X-Goog-FieldMask'   => 'places.id,nextPageToken',
+                'Content-Type' => 'application/json',
+                'X-Goog-Api-Key' => $this->apiKey,
+                'X-Goog-FieldMask' => 'places.id,nextPageToken',
             ])->post("{$this->baseUrl}:searchText", $payload);
 
             if ($response->failed()) {
                 Log::error('GooglePlaces searchText failed', [
-                    'status'  => $response->status(),
-                    'body'    => $response->body(),
-                    'query'   => $query,
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                    'query' => $query,
                 ]);
                 break;
             }
@@ -58,14 +59,14 @@ class GooglePlacesService
             $data = $response->json();
 
             foreach ($data['places'] ?? [] as $place) {
-                if (!empty($place['id'])) {
+                if (! empty($place['id'])) {
                     $placeIds[] = $place['id'];
                 }
             }
 
             $pageToken = $data['nextPageToken'] ?? null;
 
-            if (!$pageToken) {
+            if (! $pageToken) {
                 break;
             }
 
@@ -94,17 +95,18 @@ class GooglePlacesService
         }
 
         $response = Http::withHeaders([
-            'Content-Type'     => 'application/json',
-            'X-Goog-Api-Key'   => $this->apiKey,
+            'Content-Type' => 'application/json',
+            'X-Goog-Api-Key' => $this->apiKey,
             'X-Goog-FieldMask' => $fieldMask,
         ])->get("{$this->baseUrl}/{$placeId}");
 
         if ($response->failed()) {
             Log::error('GooglePlaces getPlaceDetails failed', [
-                'status'   => $response->status(),
-                'body'     => $response->body(),
+                'status' => $response->status(),
+                'body' => $response->body(),
                 'place_id' => $placeId,
             ]);
+
             return null;
         }
 
@@ -134,9 +136,9 @@ class GooglePlacesService
         ?string $excludePlaceId = null,
     ): ?array {
         $payload = [
-            'textQuery'      => "{$niche} in {$city}, {$country}",
+            'textQuery' => "{$niche} in {$city}, {$country}",
             'maxResultCount' => 10,
-            'regionCode'     => strtolower($country),
+            'regionCode' => strtolower($country),
         ];
 
         $fieldMask = implode(',', [
@@ -150,8 +152,8 @@ class GooglePlacesService
         ]);
 
         $response = Http::withHeaders([
-            'Content-Type'     => 'application/json',
-            'X-Goog-Api-Key'   => $this->apiKey,
+            'Content-Type' => 'application/json',
+            'X-Goog-Api-Key' => $this->apiKey,
             'X-Goog-FieldMask' => $fieldMask,
         ])->post("{$this->baseUrl}:searchText", $payload);
 
@@ -176,19 +178,19 @@ class GooglePlacesService
         $targetHost = $normalizer->host($url);
 
         $response = Http::withHeaders([
-            'Content-Type'     => 'application/json',
-            'X-Goog-Api-Key'   => $this->apiKey,
+            'Content-Type' => 'application/json',
+            'X-Goog-Api-Key' => $this->apiKey,
             'X-Goog-FieldMask' => 'places.id,places.websiteUri,places.displayName',
         ])->post("{$this->baseUrl}:searchText", [
-            'textQuery'      => $targetHost,
+            'textQuery' => $targetHost,
             'maxResultCount' => 20,
         ]);
 
         if ($response->failed()) {
             Log::warning('GooglePlaces findByWebsiteUrl searchText failed', [
                 'status' => $response->status(),
-                'body'   => $response->body(),
-                'host'   => $targetHost,
+                'body' => $response->body(),
+                'host' => $targetHost,
             ]);
 
             return null;

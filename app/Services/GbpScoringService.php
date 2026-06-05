@@ -42,15 +42,15 @@ class GbpScoringService
     public function extractFields(array $payload): array
     {
         return [
-            'business_name'   => $payload['displayName']['text'] ?? 'Unknown',
-            'phone'           => $payload['nationalPhoneNumber'] ?? null,
-            'website_url'     => $payload['websiteUri'] ?? null,
-            'address'         => $payload['formattedAddress'] ?? null,
-            'rating'          => isset($payload['rating']) ? (float) $payload['rating'] : null,
-            'review_count'    => (int) ($payload['userRatingCount'] ?? 0),
-            'photo_count'     => count($payload['photos'] ?? []),
+            'business_name' => $payload['displayName']['text'] ?? 'Unknown',
+            'phone' => $payload['nationalPhoneNumber'] ?? null,
+            'website_url' => $payload['websiteUri'] ?? null,
+            'address' => $payload['formattedAddress'] ?? null,
+            'rating' => isset($payload['rating']) ? (float) $payload['rating'] : null,
+            'review_count' => (int) ($payload['userRatingCount'] ?? 0),
+            'photo_count' => count($payload['photos'] ?? []),
             'has_description' => ! empty($payload['editorialSummary']['text'] ?? null),
-            'hours_complete'  => ! empty($payload['regularOpeningHours']['periods'] ?? null),
+            'hours_complete' => ! empty($payload['regularOpeningHours']['periods'] ?? null),
         ];
     }
 

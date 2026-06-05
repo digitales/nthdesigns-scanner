@@ -21,7 +21,7 @@ class BrowserServiceClient
             return $this->unreachableAuditPayload($url, $e->getMessage());
         }
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             $payload = $this->parseAuditPayloadFromFailedResponse($response->body());
 
             if ($payload !== null) {
@@ -35,7 +35,7 @@ class BrowserServiceClient
 
         $payload = $response->json();
 
-        if (!is_array($payload)) {
+        if (! is_array($payload)) {
             throw new \RuntimeException('Audit service returned invalid JSON');
         }
 
@@ -52,14 +52,14 @@ class BrowserServiceClient
     {
         $shots = $payload['violation_screenshots'] ?? [];
 
-        if (!is_array($shots)) {
+        if (! is_array($shots)) {
             return $payload;
         }
 
         $materialized = [];
 
         foreach ($shots as $shot) {
-            if (!is_array($shot)) {
+            if (! is_array($shot)) {
                 continue;
             }
 
@@ -139,10 +139,10 @@ class BrowserServiceClient
             throw new \RuntimeException('Screenshot service unreachable: '.$e->getMessage(), 0, $e);
         }
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             $payload = $this->parseScreenshotPayloadFromFailedResponse($response->body());
 
-            if ($payload !== null && !empty($payload['error'])) {
+            if ($payload !== null && ! empty($payload['error'])) {
                 throw new \RuntimeException((string) $payload['error']);
             }
 
@@ -153,14 +153,14 @@ class BrowserServiceClient
 
         $payload = $response->json();
 
-        if (!is_array($payload) || !empty($payload['error'])) {
+        if (! is_array($payload) || ! empty($payload['error'])) {
             throw new \RuntimeException($payload['error'] ?? 'Screenshot service returned invalid JSON');
         }
 
         $base64 = $payload['content_base64'] ?? null;
         $filename = basename((string) ($payload['desktop'] ?? 'desktop.png'));
 
-        if (!is_string($base64) || $base64 === '') {
+        if (! is_string($base64) || $base64 === '') {
             throw new \RuntimeException('Screenshot service did not return image data');
         }
 
@@ -170,7 +170,7 @@ class BrowserServiceClient
             throw new \RuntimeException('Screenshot service returned invalid base64');
         }
 
-        if (!is_dir($localDir)) {
+        if (! is_dir($localDir)) {
             mkdir($localDir, 0755, true);
         }
 
@@ -236,7 +236,7 @@ class BrowserServiceClient
     {
         $decoded = json_decode($body, true);
 
-        if (!is_array($decoded)) {
+        if (! is_array($decoded)) {
             return null;
         }
 
@@ -264,7 +264,7 @@ class BrowserServiceClient
     {
         $decoded = json_decode($body, true);
 
-        if (!is_array($decoded)) {
+        if (! is_array($decoded)) {
             return null;
         }
 

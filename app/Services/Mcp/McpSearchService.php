@@ -2,6 +2,8 @@
 
 namespace App\Services\Mcp;
 
+use App\Http\Resources\SearchProspectResource;
+use App\Http\Resources\SearchSummaryMapper;
 use App\Models\Search;
 use App\Models\User;
 use App\Services\ProgressFlowService;
@@ -30,7 +32,7 @@ class McpSearchService
 
         return [
             'searches' => $query->limit($limit)->get()
-                ->map(fn (Search $search) => $this->mapSearchSummary($search))
+                ->map(fn (Search $search) => SearchSummaryMapper::format($search, 'iso'))
                 ->values()
                 ->all(),
         ];
@@ -47,7 +49,7 @@ class McpSearchService
         $flow = $this->progressFlow->searchFlow($search, $prospects);
 
         $payload = [
-            'search' => $this->mapSearchDetail($search),
+            'search' => SearchSummaryMapper::detail($search),
             'progress' => $this->buildProgress($search, $prospects),
             'progress_flow' => $flow,
             'app_url' => route('searches.show', $search),
@@ -140,34 +142,6 @@ class McpSearchService
     /**
      * @return array<string, mixed>
      */
-    private function mapSearchSummary(Search $search): array
-    {
-        return [
-            'id' => $search->id,
-            'source' => $search->source,
-            'submitted_url' => $search->submitted_url,
-            'niche' => $search->niche,
-            'city' => $search->city,
-            'status' => $search->status,
-            'total_found' => $search->total_found,
-            'created_at' => $search->created_at->toIso8601String(),
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function mapSearchDetail(Search $search): array
-    {
-        return array_merge($this->mapSearchSummary($search), [
-            'country' => $search->country,
-            'scan_type' => $search->scan_type,
-        ]);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
     private function buildProgress(Search $search, Collection $prospects): array
     {
         $auditStatusCounts = [
@@ -203,7 +177,15 @@ class McpSearchService
      */
     private function mapProspects(Search $search, Collection $prospects): array
     {
-        return $prospects->map(fn ($prospect) => $this->mapProspect($prospect, $search))->values()->all();
+        return $prospects
+            ->map(fn ($prospect) => SearchProspectResource::forMcp(
+                $prospect,
+                $search,
+                $this->reportBuilder,
+                $this->progressFlow,
+            ))
+            ->values()
+            ->all();
     }
 
     /**
@@ -218,31 +200,5 @@ class McpSearchService
             ])
             ->orderByDesc('combined_score')
             ->get();
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function mapProspect($prospect, Search $search): array
-    {
-        $cms = $this->reportBuilder->cmsForProspect($prospect);
-
-        return [
-            'id' => $prospect->id,
-            'business_name' => $prospect->business_name,
-            'combined_score' => $prospect->combined_score,
-            'gbp_score' => $prospect->gbp_score,
-            'a11y_score' => $prospect->a11y_score,
-            'performance_score' => $prospect->performance_score,
-            'dominant_angle' => $prospect->dominant_angle,
-            'audit_status' => $prospect->audit_status,
-            'audit_error' => $prospect->auditJobs->first()?->error_message,
-            'gbp_flags' => $prospect->gbp_flags ?? [],
-            'a11y_flags' => $prospect->a11y_flags ?? [],
-            'report_ready' => $prospect->report !== null,
-            'cms_badge' => $cms['badge'] ?? null,
-            'cms_pending' => $cms['pending'] ?? false,
-            'progress_flow' => $this->progressFlow->prospectFlow($prospect, $search),
-        ];
     }
 }

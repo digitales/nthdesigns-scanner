@@ -72,6 +72,7 @@ class ScanNichesCommand extends Command
                     country: 'GB',
                     sample: $sample,
                     scanDate: $scanDate,
+                    force: $force,
                 ));
                 $count++;
             }

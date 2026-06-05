@@ -4,11 +4,11 @@ namespace App\Jobs;
 
 use App\Models\Prospect;
 use App\Models\Search;
-use App\Support\SearchQueue;
-use App\Services\GooglePlacesService;
 use App\Services\GbpScoringService;
+use App\Services\GooglePlacesService;
 use App\Services\SearchStatusService;
 use App\Services\WebsiteDiscoveryService;
+use App\Support\SearchQueue;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -21,6 +21,7 @@ class ScorePlaceJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 3;
+
     public int $backoff = 15;
 
     public function __construct(
@@ -40,18 +41,19 @@ class ScorePlaceJob implements ShouldQueue
             ->where('place_id', $this->placeId)
             ->first();
 
-        if ($existing && !in_array($existing->audit_status, ['pending'], true)) {
+        if ($existing) {
             return;
         }
 
         $payload = $places->getPlaceDetails($this->placeId);
 
-        if (!$payload) {
+        if (! $payload) {
             Log::warning('ScorePlaceJob: getPlaceDetails returned null', [
-                'place_id'  => $this->placeId,
+                'place_id' => $this->placeId,
                 'search_id' => $this->search->id,
             ]);
             $searchStatus->refresh($this->search);
+
             return;
         }
 
@@ -66,16 +68,16 @@ class ScorePlaceJob implements ShouldQueue
         $prospect = Prospect::updateOrCreate(
             [
                 'search_id' => $this->search->id,
-                'place_id'  => $this->placeId,
+                'place_id' => $this->placeId,
             ],
             [
                 ...$fields,
                 'website_url_source' => 'gbp',
-                'gbp_score'          => $scored['score'],
-                'gbp_flags'          => $scored['flags'],
-                'raw_gbp_payload'    => $payload,
-                'expires_at'         => now()->addDays(config('scanner.report_expiry_days', 30)),
-                'audit_status'       => 'pending',
+                'gbp_score' => $scored['score'],
+                'gbp_flags' => $scored['flags'],
+                'raw_gbp_payload' => $payload,
+                'expires_at' => now()->addDays(config('scanner.report_expiry_days', 30)),
+                'audit_status' => 'pending',
             ]
         );
 
@@ -106,7 +108,7 @@ class ScorePlaceJob implements ShouldQueue
     private function dispatchNextStep(Prospect $prospect, Search $search): void
     {
         $needsA11yAudit = in_array($search->scan_type, ['accessibility_only', 'combined'], true)
-            && !empty($prospect->website_url);
+            && ! empty($prospect->website_url);
 
         if ($needsA11yAudit) {
             AuditSiteJob::dispatch($prospect);
@@ -124,5 +126,4 @@ class ScorePlaceJob implements ShouldQueue
 
         CombineScoresJob::dispatch($prospect->fresh());
     }
-
 }

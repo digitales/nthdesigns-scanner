@@ -20,14 +20,17 @@ class AgencyBookingSetting extends Model
         'confirmation_from_name',
     ];
 
-    protected $casts = [
-        'enabled' => 'boolean',
-        'fastmail_app_password' => 'encrypted',
-        'working_hours' => 'array',
-        'event_duration_minutes' => 'integer',
-        'min_notice_hours' => 'integer',
-        'buffer_minutes' => 'integer',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'enabled' => 'boolean',
+            'fastmail_app_password' => 'encrypted',
+            'working_hours' => 'array',
+            'event_duration_minutes' => 'integer',
+            'min_notice_hours' => 'integer',
+            'buffer_minutes' => 'integer',
+        ];
+    }
 
     public static function current(): self
     {

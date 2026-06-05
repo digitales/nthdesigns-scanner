@@ -20,6 +20,7 @@ class NicheScan extends Model
         'pct_low_reviews',
         'opportunity_score',
         'status',
+        'error_message',
         'ran_at',
     ];
 

@@ -24,7 +24,7 @@ class PlaywrightBrowsersTest extends TestCase
     {
         $storage = PlaywrightBrowsers::storageDirectory();
 
-        if (!PlaywrightBrowsers::hasInstalledBrowsers($storage)) {
+        if (! PlaywrightBrowsers::hasInstalledBrowsers($storage)) {
             $this->markTestSkipped('storage/app/playwright-browsers not installed');
         }
 

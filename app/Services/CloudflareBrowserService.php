@@ -36,7 +36,7 @@ class CloudflareBrowserService
                 ],
             );
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             $message = $response->json('errors.0.message') ?? $response->body();
 
             throw new \RuntimeException('Cloudflare screenshot failed: '.$message);

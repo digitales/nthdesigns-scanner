@@ -7,7 +7,7 @@ use App\Models\AuditJob;
 use App\Models\Prospect;
 use App\Models\Search;
 use App\Models\User;
-use App\Support\StuckSiteAuditQuery;
+use App\Queries\StuckSiteAuditQuery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Tests\TestCase;
@@ -20,14 +20,14 @@ class StuckSiteAuditQueryTest extends TestCase
     {
         $user = User::factory()->create();
         $search = Search::factory()->create(array_merge([
-            'user_id'   => $user->id,
+            'user_id' => $user->id,
             'scan_type' => 'combined',
-            'status'    => 'auditing',
+            'status' => 'auditing',
         ], $searchAttrs));
 
         $prospect = Prospect::factory()->create(array_merge([
-            'search_id'    => $search->id,
-            'website_url'  => 'https://example.com',
+            'search_id' => $search->id,
+            'website_url' => 'https://example.com',
             'audit_status' => 'pending',
         ], $prospectAttrs));
 
@@ -77,9 +77,9 @@ class StuckSiteAuditQueryTest extends TestCase
 
         AuditJob::create([
             'prospect_id' => $prospect->id,
-            'job_type'    => 'accessibility',
-            'status'      => 'running',
-            'started_at'  => now()->subMinutes(20),
+            'job_type' => 'accessibility',
+            'status' => 'running',
+            'started_at' => now()->subMinutes(20),
         ]);
 
         $this->assertContains($prospect->id, StuckSiteAuditQuery::ids(15));

@@ -2,7 +2,9 @@
 
 namespace Tests\Unit;
 
+use App\Services\BraveSearchService;
 use App\Services\GbpScoringService;
+use App\Services\GoogleCustomSearchService;
 use App\Services\WebsiteDiscoveryService;
 use App\Support\WebsiteUrlNormalizer;
 use Tests\TestCase;
@@ -16,10 +18,10 @@ class WebsiteDiscoveryServiceTest extends TestCase
         parent::setUp();
 
         $this->service = new WebsiteDiscoveryService(
-            new \App\Services\BraveSearchService(),
-            new \App\Services\GoogleCustomSearchService(),
-            new GbpScoringService(),
-            new WebsiteUrlNormalizer(),
+            new BraveSearchService,
+            new GoogleCustomSearchService,
+            new GbpScoringService,
+            new WebsiteUrlNormalizer,
         );
     }
 
@@ -28,8 +30,8 @@ class WebsiteDiscoveryServiceTest extends TestCase
         $match = $this->service->matchCandidates(
             [
                 [
-                    'url'     => 'https://briarwren.co.uk/about',
-                    'title'   => 'Briar & Wren Solicitors — Manchester',
+                    'url' => 'https://briarwren.co.uk/about',
+                    'title' => 'Briar & Wren Solicitors — Manchester',
                     'snippet' => 'Legal services in Manchester city centre.',
                 ],
             ],
@@ -47,8 +49,8 @@ class WebsiteDiscoveryServiceTest extends TestCase
         $match = $this->service->matchCandidates(
             [
                 [
-                    'url'     => 'https://briarwrenlegal.com',
-                    'title'   => 'Briar Wren Legal Services',
+                    'url' => 'https://briarwrenlegal.com',
+                    'title' => 'Briar Wren Legal Services',
                     'snippet' => 'Contact our team today.',
                 ],
             ],
@@ -65,8 +67,8 @@ class WebsiteDiscoveryServiceTest extends TestCase
         $match = $this->service->matchCandidates(
             [
                 [
-                    'url'     => 'https://www.facebook.com/briarwren',
-                    'title'   => 'Briar & Wren — Manchester',
+                    'url' => 'https://www.facebook.com/briarwren',
+                    'title' => 'Briar & Wren — Manchester',
                     'snippet' => 'Manchester solicitors',
                 ],
             ],
@@ -82,8 +84,8 @@ class WebsiteDiscoveryServiceTest extends TestCase
         $match = $this->service->matchCandidates(
             [
                 [
-                    'url'     => 'https://unrelated-example.co.uk',
-                    'title'   => 'Unrelated Business',
+                    'url' => 'https://unrelated-example.co.uk',
+                    'title' => 'Unrelated Business',
                     'snippet' => 'Based in Manchester',
                 ],
             ],

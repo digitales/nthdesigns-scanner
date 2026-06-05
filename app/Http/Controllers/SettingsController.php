@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\BootstrapNichesFromSettingsRequest;
+use App\Http\Requests\ScanNichesFromSettingsRequest;
+use App\Http\Requests\UpdateUserSettingsRequest;
 use App\Models\NicheScan;
 use App\Services\AgencyBookingService;
 use App\Services\ApiHealthService;
@@ -56,13 +59,9 @@ class SettingsController extends Controller
         ]);
     }
 
-    public function update(Request $request, UserSettingsService $settings): RedirectResponse
+    public function update(UpdateUserSettingsRequest $request, UserSettingsService $settings): RedirectResponse
     {
-        $validated = $request->validate([
-            'default_country' => 'required|string|size:2',
-            'agency_name' => 'nullable|string|max:100',
-            'booking_url' => 'nullable|url|max:255',
-        ]);
+        $validated = $request->validated();
 
         $setting = $settings->forUser($request->user());
         $setting->update($validated);
@@ -70,11 +69,9 @@ class SettingsController extends Controller
         return back()->with('success', 'Settings saved.');
     }
 
-    public function scanNiches(Request $request): RedirectResponse
+    public function scanNiches(ScanNichesFromSettingsRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'force' => 'sometimes|boolean',
-        ]);
+        $validated = $request->validated();
 
         $params = ! empty($validated['force']) ? ['--force' => true] : [];
 
@@ -83,11 +80,9 @@ class SettingsController extends Controller
         return back()->with('success', 'Market scan queued.');
     }
 
-    public function bootstrapNiches(Request $request): RedirectResponse
+    public function bootstrapNiches(BootstrapNichesFromSettingsRequest $request): RedirectResponse
     {
-        $request->validate([
-            'confirm' => 'required|in:REFRESH',
-        ]);
+        $request->validated();
 
         Artisan::queue('niches:bootstrap', [
             '--no-interaction' => true,

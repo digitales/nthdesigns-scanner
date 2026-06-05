@@ -19,18 +19,18 @@ class BackfillAuditsCommandTest extends TestCase
     {
         $user = User::factory()->create();
         $search = Search::factory()->create([
-            'user_id'   => $user->id,
+            'user_id' => $user->id,
             'scan_type' => 'combined',
-            'status'    => 'complete',
+            'status' => 'complete',
         ]);
 
         return Prospect::factory()->create([
-            'search_id'              => $search->id,
-            'website_url'            => 'https://example.com',
-            'audit_status'           => 'complete',
-            'a11y_score'             => 55,
-            'performance_score'      => 42,
-            'raw_a11y_payload'       => ['violations' => []],
+            'search_id' => $search->id,
+            'website_url' => 'https://example.com',
+            'audit_status' => 'complete',
+            'a11y_score' => 55,
+            'performance_score' => 42,
+            'raw_a11y_payload' => ['violations' => []],
             'raw_lighthouse_payload' => null,
         ]);
     }

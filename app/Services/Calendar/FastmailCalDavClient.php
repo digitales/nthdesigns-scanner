@@ -30,7 +30,7 @@ class FastmailCalDavClient
 
         $calendars = [];
 
-        foreach ($this->responseHrefs($response) as $href) {
+        foreach (CalDavXmlParser::responseHrefs($response) as $href) {
             if ($href === $home || ! str_contains($href, '/')) {
                 continue;
             }
@@ -63,8 +63,8 @@ class FastmailCalDavClient
 
         $busy = [];
 
-        foreach ($this->extractCalendarDataBlocks($response) as $ics) {
-            foreach ($this->parseEventBusyTimes($ics) as $interval) {
+        foreach (CalDavXmlParser::extractCalendarDataBlocks($response) as $ics) {
+            foreach (CalDavXmlParser::parseEventBusyTimes($ics) as $interval) {
                 $busy[] = $interval;
             }
         }
@@ -110,77 +110,6 @@ class FastmailCalDavClient
             'END:VEVENT',
             'END:VCALENDAR',
         ])."\r\n";
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function responseHrefs(string $xml): array
-    {
-        preg_match_all('/<[^>]*href[^>]*>([^<]+)<\/[^>]*href>/i', $xml, $matches);
-
-        return array_values(array_unique($matches[1] ?? []));
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function extractCalendarDataBlocks(string $xml): array
-    {
-        preg_match_all('/<(?:[^:>]+:)?calendar-data[^>]*>([\s\S]*?)<\/(?:[^:>]+:)?calendar-data>/i', $xml, $matches);
-
-        return array_map(
-            fn (string $block) => html_entity_decode(trim($block), ENT_XML1),
-            $matches[1] ?? [],
-        );
-    }
-
-    /**
-     * @return list<array{start: CarbonInterface, end: CarbonInterface}>
-     */
-    private function parseEventBusyTimes(string $ics): array
-    {
-        if (! preg_match('/BEGIN:VEVENT([\s\S]*?)END:VEVENT/i', $ics, $eventMatch)) {
-            return [];
-        }
-
-        $event = $eventMatch[1];
-
-        if (preg_match('/STATUS:CANCELLED/i', $event)) {
-            return [];
-        }
-
-        if (preg_match('/TRANSP:TRANSPARENT/i', $event)) {
-            return [];
-        }
-
-        $start = $this->parseIcsDateTime($event, 'DTSTART');
-        $end = $this->parseIcsDateTime($event, 'DTEND');
-
-        if (! $start || ! $end) {
-            return [];
-        }
-
-        return [['start' => $start, 'end' => $end]];
-    }
-
-    private function parseIcsDateTime(string $event, string $property): ?CarbonInterface
-    {
-        if (! preg_match('/'.$property.'(?:;[^:]*)?:(.+)/i', $event, $match)) {
-            return null;
-        }
-
-        $value = trim($match[1]);
-
-        if (preg_match('/^\d{8}T\d{6}Z$/', $value)) {
-            return Carbon::createFromFormat('Ymd\THis\Z', $value, 'UTC');
-        }
-
-        if (preg_match('/^\d{8}$/', $value)) {
-            return Carbon::createFromFormat('Ymd', $value, 'UTC')->startOfDay();
-        }
-
-        return null;
     }
 
     private function propfindCalendarsBody(): string

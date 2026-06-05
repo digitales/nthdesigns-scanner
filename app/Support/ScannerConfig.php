@@ -24,7 +24,7 @@ final class ScannerConfig
 
         $screenshotDriver = env('SCREENSHOT_DRIVER');
 
-        if (!$screenshotDriver) {
+        if (! $screenshotDriver) {
             if ($auditServiceUrl) {
                 $screenshotDriver = 'http';
             } elseif (env('AUDIT_DRIVER') === 'cloudflare') {

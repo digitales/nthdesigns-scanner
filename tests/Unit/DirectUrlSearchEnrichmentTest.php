@@ -23,17 +23,17 @@ class DirectUrlSearchEnrichmentTest extends TestCase
                 ->once()
                 ->with('dentist', 'Wimbledon', 'GB', 'places/prospect')
                 ->andReturn([
-                    'id'              => 'places/leader',
-                    'displayName'     => ['text' => 'Top Dentist'],
+                    'id' => 'places/leader',
+                    'displayName' => ['text' => 'Top Dentist'],
                     'userRatingCount' => 120,
-                    'photos'          => array_fill(0, 20, []),
-                    'rating'          => 4.9,
+                    'photos' => array_fill(0, 20, []),
+                    'rating' => 4.9,
                 ]);
         });
 
         $attributes = app(DirectUrlSearchEnrichment::class)->attributesFor($search, [
-            'id'                => 'places/prospect',
-            'primaryType'       => 'dentist',
+            'id' => 'places/prospect',
+            'primaryType' => 'dentist',
             'addressComponents' => [
                 ['longText' => 'Wimbledon', 'types' => ['locality']],
                 ['shortText' => 'GB', 'types' => ['country']],
@@ -56,7 +56,7 @@ class DirectUrlSearchEnrichmentTest extends TestCase
         });
 
         $attributes = app(DirectUrlSearchEnrichment::class)->attributesFor($search, [
-            'id'          => 'places/prospect',
+            'id' => 'places/prospect',
             'primaryType' => 'dentist',
         ]);
 

@@ -9,6 +9,7 @@ use App\Services\NicheExclusionService;
 use App\Services\NicheSampleCollector;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use RuntimeException;
 use Tests\TestCase;
 
 class ScanNicheJobTest extends TestCase
@@ -82,6 +83,120 @@ class ScanNicheJobTest extends TestCase
         $this->assertTrue($row->sample_preview[0]['no_website']);
     }
 
+    public function test_backfill_writes_sample_preview_to_requested_scan_date_row(): void
+    {
+        config(['services.google_places.key' => 'test-key']);
+
+        $legacy = NicheScan::query()->create([
+            'niche' => 'Dental Practice',
+            'niche_query' => 'dental practice',
+            'city' => 'Leeds',
+            'country' => 'GB',
+            'scan_date' => '2026-05-27',
+            'result_count' => 10,
+            'sampled_count' => 1,
+            'avg_gbp_score' => 50,
+            'pct_no_website' => 100,
+            'pct_low_reviews' => 100,
+            'opportunity_score' => 70,
+            'status' => 'complete',
+            'ran_at' => now()->subDays(7),
+            'sample_preview' => null,
+        ]);
+
+        NicheScan::query()->create([
+            'niche' => 'Dental Practice',
+            'niche_query' => 'dental practice',
+            'city' => 'Leeds',
+            'country' => 'GB',
+            'scan_date' => now()->toDateString(),
+            'result_count' => 8,
+            'sampled_count' => 1,
+            'avg_gbp_score' => 40,
+            'pct_no_website' => 50,
+            'pct_low_reviews' => 50,
+            'opportunity_score' => 60,
+            'status' => 'complete',
+            'ran_at' => now(),
+            'sample_preview' => null,
+        ]);
+
+        Http::fake([
+            'https://places.googleapis.com/v1/places:searchText' => Http::response([
+                'places' => [['id' => 'places/a']],
+            ], 200),
+            'https://places.googleapis.com/v1/places/places/*' => Http::response([
+                'id' => 'places/a',
+                'displayName' => ['text' => 'Legacy Dental'],
+                'userRatingCount' => 5,
+                'photos' => [],
+            ], 200),
+        ]);
+
+        $legacy->update(['status' => 'pending']);
+
+        (new ScanNicheJob(
+            niche: $legacy->niche,
+            nicheQuery: $legacy->niche_query,
+            city: $legacy->city,
+            country: $legacy->country,
+            sample: 1,
+            scanDate: $legacy->scan_date->toDateString(),
+        ))->handle(
+            app(NicheSampleCollector::class),
+            app(NicheExclusionService::class),
+        );
+
+        $legacy->refresh();
+        $today = NicheScan::query()
+            ->whereDate('scan_date', now()->toDateString())
+            ->where('city', 'Leeds')
+            ->first();
+
+        $this->assertIsArray($legacy->sample_preview);
+        $this->assertSame('Legacy Dental', $legacy->sample_preview[0]['name']);
+        $this->assertNull($today->sample_preview);
+        $this->assertSame(8, $today->result_count);
+    }
+
+    public function test_skips_when_scan_already_complete_without_force(): void
+    {
+        config(['services.google_places.key' => 'test-key']);
+
+        NicheScan::query()->create([
+            'niche' => 'Dental Practice',
+            'niche_query' => 'dental practice',
+            'city' => 'Birmingham',
+            'country' => 'GB',
+            'scan_date' => '2026-05-27',
+            'result_count' => 10,
+            'sampled_count' => 5,
+            'avg_gbp_score' => 50,
+            'pct_no_website' => 20,
+            'pct_low_reviews' => 40,
+            'opportunity_score' => 70,
+            'status' => 'complete',
+            'ran_at' => now(),
+        ]);
+
+        Http::fake();
+
+        (new ScanNicheJob(
+            niche: 'Dental Practice',
+            nicheQuery: 'dental practice',
+            city: 'Birmingham',
+            country: 'GB',
+            sample: 5,
+            scanDate: '2026-05-27',
+        ))->handle(
+            app(NicheSampleCollector::class),
+            app(NicheExclusionService::class),
+        );
+
+        Http::assertNothingSent();
+        $this->assertSame('complete', NicheScan::query()->value('status'));
+    }
+
     public function test_zero_results_completes_with_opportunity_score_zero(): void
     {
         config(['services.google_places.key' => 'test-key']);
@@ -150,5 +265,67 @@ class ScanNicheJobTest extends TestCase
             'niche' => 'Spark',
             'reason' => IgnoredNiche::REASON_LOW_RESULTS,
         ]);
+    }
+
+    public function test_failed_persists_error_message_on_scan_row(): void
+    {
+        NicheScan::query()->create([
+            'niche' => 'Dental Practice',
+            'niche_query' => 'dental practice',
+            'city' => 'Birmingham',
+            'country' => 'GB',
+            'scan_date' => '2026-05-27',
+            'status' => 'pending',
+        ]);
+
+        (new ScanNicheJob(
+            niche: 'Dental Practice',
+            nicheQuery: 'dental practice',
+            city: 'Birmingham',
+            country: 'GB',
+            sample: 5,
+            scanDate: '2026-05-27',
+        ))->failed(new RuntimeException('Places API quota exceeded'));
+
+        $row = NicheScan::query()->first();
+
+        $this->assertSame('failed', $row->status);
+        $this->assertSame('Places API quota exceeded', $row->error_message);
+    }
+
+    public function test_complete_clears_prior_error_message(): void
+    {
+        config(['services.google_places.key' => 'test-key']);
+
+        NicheScan::query()->create([
+            'niche' => 'Dental Practice',
+            'niche_query' => 'dental practice',
+            'city' => 'Birmingham',
+            'country' => 'GB',
+            'scan_date' => '2026-05-27',
+            'status' => 'pending',
+            'error_message' => 'Previous failure',
+        ]);
+
+        Http::fake([
+            'https://places.googleapis.com/v1/places:searchText' => Http::response(['places' => []], 200),
+        ]);
+
+        (new ScanNicheJob(
+            niche: 'Dental Practice',
+            nicheQuery: 'dental practice',
+            city: 'Birmingham',
+            country: 'GB',
+            sample: 5,
+            scanDate: '2026-05-27',
+        ))->handle(
+            app(NicheSampleCollector::class),
+            app(NicheExclusionService::class),
+        );
+
+        $row = NicheScan::query()->first();
+
+        $this->assertSame('complete', $row->status);
+        $this->assertNull($row->error_message);
     }
 }

@@ -27,7 +27,7 @@ class HorizonServiceProvider extends HorizonApplicationServiceProvider
     protected function gate(): void
     {
         Gate::define('viewHorizon', function ($user = null) {
-            if (!$user) {
+            if (! $user) {
                 return false;
             }
 
@@ -37,7 +37,7 @@ class HorizonServiceProvider extends HorizonApplicationServiceProvider
 
             $allowed = config('scanner.horizon_allowed_emails', []);
 
-            return !empty($allowed) && in_array($user->email, $allowed, true);
+            return ! empty($allowed) && in_array($user->email, $allowed, true);
         });
     }
 }

@@ -3,7 +3,6 @@
 namespace App\Services\Mcp;
 
 use App\Jobs\DirectUrlScanJob;
-use App\Models\Search;
 use App\Models\User;
 use App\Services\UserSettingsService;
 use App\Support\WebsiteUrlNormalizer;

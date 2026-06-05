@@ -4,13 +4,13 @@ namespace App\Jobs;
 
 use App\Models\Prospect;
 use App\Models\Search;
-use App\Support\SearchQueue;
-use App\Support\WebsiteUrlNormalizer;
 use App\Services\DirectUrlSearchEnrichment;
 use App\Services\GbpScoringService;
 use App\Services\GooglePlacesService;
 use App\Services\ProspectExclusionService;
 use App\Services\SearchStatusService;
+use App\Support\SearchQueue;
+use App\Support\WebsiteUrlNormalizer;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -23,6 +23,7 @@ class DirectUrlScanJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 3;
+
     public int $backoff = 15;
 
     public function __construct(public Search $search)
@@ -41,6 +42,12 @@ class DirectUrlScanJob implements ShouldQueue
         $search = $this->search->fresh();
 
         if (! $search || ! $search->isDirectUrl() || ! $search->submitted_url) {
+            return;
+        }
+
+        if (Prospect::where('search_id', $search->id)->exists()) {
+            $searchStatus->refresh($search);
+
             return;
         }
 
@@ -75,25 +82,25 @@ class DirectUrlScanJob implements ShouldQueue
                 );
 
                 $prospect = Prospect::create(array_merge($fields, [
-                    'search_id'       => $search->id,
-                    'place_id'        => $payload['id'],
-                    'website_url'     => $url,
-                    'gbp_score'       => $scored['score'],
-                    'gbp_flags'       => $scored['flags'],
+                    'search_id' => $search->id,
+                    'place_id' => $payload['id'],
+                    'website_url' => $url,
+                    'gbp_score' => $scored['score'],
+                    'gbp_flags' => $scored['flags'],
                     'raw_gbp_payload' => $payload,
-                    'expires_at'      => now()->addDays(config('scanner.report_expiry_days', 30)),
-                    'audit_status'    => 'pending',
+                    'expires_at' => now()->addDays(config('scanner.report_expiry_days', 30)),
+                    'audit_status' => 'pending',
                 ]));
             } else {
                 $prospect = Prospect::create([
-                    'search_id'    => $search->id,
-                    'place_id'     => 'direct:'.hash('sha256', $normalizer->normalize($url)),
-                    'business_name'=> $normalizer->displayNameFromUrl($url),
-                    'website_url'  => $url,
-                    'gbp_score'    => 0,
-                    'gbp_flags'    => ['No GBP match found'],
+                    'search_id' => $search->id,
+                    'place_id' => 'direct:'.hash('sha256', $normalizer->normalize($url)),
+                    'business_name' => $normalizer->displayNameFromUrl($url),
+                    'website_url' => $url,
+                    'gbp_score' => 0,
+                    'gbp_flags' => ['No GBP match found'],
                     'raw_gbp_payload' => null,
-                    'expires_at'   => now()->addDays(config('scanner.report_expiry_days', 30)),
+                    'expires_at' => now()->addDays(config('scanner.report_expiry_days', 30)),
                     'audit_status' => 'pending',
                 ]);
             }
@@ -104,7 +111,7 @@ class DirectUrlScanJob implements ShouldQueue
         } catch (\Throwable $e) {
             Log::error('DirectUrlScanJob failed', [
                 'search_id' => $search->id,
-                'error'     => $e->getMessage(),
+                'error' => $e->getMessage(),
             ]);
             $search->update(['status' => 'failed']);
             throw $e;

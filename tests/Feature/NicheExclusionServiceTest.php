@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\IgnoredNiche;
-use App\Models\NicheInclusionOverride;
 use App\Models\NicheScan;
 use App\Models\User;
 use App\Services\NicheExclusionService;

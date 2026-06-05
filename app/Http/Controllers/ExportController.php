@@ -29,9 +29,9 @@ class ExportController extends Controller
         $filename = 'prospects-'.now()->format('Y-m-d-His').'.csv';
 
         Export::create([
-            'user_id'   => $request->user()->id,
+            'user_id' => $request->user()->id,
             'search_id' => null,
-            'filename'  => $filename,
+            'filename' => $filename,
             'row_count' => $prospects->count(),
         ]);
 

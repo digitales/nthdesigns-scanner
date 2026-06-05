@@ -8,7 +8,9 @@ use Illuminate\Support\Facades\Log;
 class AnthropicService
 {
     private string $apiKey;
+
     private string $model;
+
     private string $baseUrl;
 
     public function __construct()
@@ -29,13 +31,13 @@ class AnthropicService
 
         $response = Http::withHeaders([
             'Authorization' => 'Bearer '.$this->apiKey,
-            'Content-Type'  => 'application/json',
-            'HTTP-Referer'  => config('app.url'),
-            'X-Title'       => config('app.name'),
+            'Content-Type' => 'application/json',
+            'HTTP-Referer' => config('app.url'),
+            'X-Title' => config('app.name'),
         ])->timeout(60)->post($this->baseUrl.'/chat/completions', [
-            'model'      => $this->model,
+            'model' => $this->model,
             'max_tokens' => 1024,
-            'messages'   => [
+            'messages' => [
                 ['role' => 'system', 'content' => $systemPrompt],
                 ['role' => 'user', 'content' => $userPrompt],
             ],
@@ -44,7 +46,7 @@ class AnthropicService
         if ($response->failed()) {
             Log::error('OpenRouter API request failed', [
                 'status' => $response->status(),
-                'body'   => $response->body(),
+                'body' => $response->body(),
             ]);
             throw new \RuntimeException('OpenRouter API request failed: '.$response->status());
         }
@@ -54,9 +56,9 @@ class AnthropicService
         $usage = $data['usage'] ?? [];
 
         return [
-            'content'           => trim($text),
-            'model'             => $data['model'] ?? $this->model,
-            'prompt_tokens'     => (int) ($usage['prompt_tokens'] ?? 0),
+            'content' => trim($text),
+            'model' => $data['model'] ?? $this->model,
+            'prompt_tokens' => (int) ($usage['prompt_tokens'] ?? 0),
             'completion_tokens' => (int) ($usage['completion_tokens'] ?? 0),
         ];
     }

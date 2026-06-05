@@ -1,5 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
+import { useProgressReload } from '@/hooks/useProgressReload';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import CmsBadge from '@/Components/cms/CmsBadge';
 import {
@@ -11,8 +12,10 @@ import {
     EmptyState,
     Field,
     FilterBar,
-    Icon,
+    IconButton,
     Icons,
+    Input,
+    Page,
     PageHeader,
     RowActions,
     ScoreBadge,
@@ -20,26 +23,21 @@ import {
     Status,
 } from '@/Components/ui';
 import { normalizeAngle } from '@/Components/ui/scoreBand';
+import { showA11yForSearch } from '@/utils/auditVisibility';
 
 export default function SearchShow({ search, prospects, outreachProspectIds = [] }) {
     const inQueue = new Set(outreachProspectIds);
     const flow = search.progress_flow ?? {};
     const phase = flow.phase ?? 'queued';
     const isRunning = ['queued', 'discovering', 'auditing'].includes(phase);
-    const showA11y = search.scan_type !== 'gbp_only';
+    const showA11y = showA11yForSearch(search.scan_type);
 
     const [selected, setSelected] = useState({});
     const [expanded, setExpanded] = useState(null);
     const [angleFilter, setAngleFilter] = useState('all');
     const [minScore, setMinScore] = useState(0);
 
-    useEffect(() => {
-        if (!isRunning) return;
-        const timer = setInterval(() => {
-            router.reload({ only: ['search', 'prospects'] });
-        }, 4000);
-        return () => clearInterval(timer);
-    }, [isRunning]);
+    useProgressReload(isRunning, ['search', 'prospects']);
 
     const visible = useMemo(() => {
         return prospects.filter((p) => {
@@ -99,7 +97,7 @@ export default function SearchShow({ search, prospects, outreachProspectIds = []
         <AuthenticatedLayout>
             <Head title={pageTitle} />
 
-            <main className="page page-wide" style={{ maxWidth: 1440 }}>
+            <Page width="xl" className="page-wide">
                 <PageHeader
                     eyebrow={eyebrow}
                     title={isRunning ? (isDirectUrl ? 'Auditing website…' : phaseTitle) : completeTitle}
@@ -148,14 +146,14 @@ export default function SearchShow({ search, prospects, outreachProspectIds = []
                     </Field>
                     <Field label="Min combined score">
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 6 }}>
-                            <input
+                            <Input
                                 type="range"
+                                className="input-range"
                                 min="0"
                                 max="100"
                                 step="5"
                                 value={minScore}
                                 onChange={(e) => setMinScore(+e.target.value)}
-                                style={{ width: 140, accentColor: 'var(--color-ink)' }}
                             />
                             <span className="micro tabular" style={{ minWidth: 36 }}>{minScore}+</span>
                         </div>
@@ -221,7 +219,7 @@ export default function SearchShow({ search, prospects, outreachProspectIds = []
                             </tbody>
                     </DataTable>
                 )}
-            </main>
+            </Page>
         </AuthenticatedLayout>
     );
 }
@@ -306,45 +304,40 @@ function ProspectRow({
                 </td>
                 <td onClick={(e) => e.stopPropagation()} style={{ textAlign: 'right' }}>
                     <RowActions>
-                        <button type="button" className="btn-icon" title="Expand weaknesses" onClick={onToggleExpand}>
-                            <Icon d={isExpanded ? Icons.ChevronU : Icons.ChevronD} />
-                        </button>
+                        <IconButton
+                            icon={isExpanded ? Icons.ChevronU : Icons.ChevronD}
+                            title="Expand weaknesses"
+                            onClick={onToggleExpand}
+                        />
                         {p.place_id && !p.place_id.startsWith('direct:') && (
-                            <a
-                                className="btn-icon"
+                            <IconButton
+                                icon={Icons.Map}
                                 title="View on Maps"
                                 href={`https://www.google.com/maps/place/?q=place_id:${p.place_id}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={(e) => e.stopPropagation()}
-                            >
-                                <Icon d={Icons.Map} />
-                            </a>
+                            />
                         )}
                         {p.report_url && !isFailed && !isPending ? (
-                            <a
-                                className="btn-icon"
+                            <IconButton
+                                icon={Icons.Eye}
                                 title="Preview report"
                                 href={p.report_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={(e) => e.stopPropagation()}
-                            >
-                                <Icon d={Icons.Eye} />
-                            </a>
+                            />
                         ) : (
-                            <button type="button" className="btn-icon" title="Preview report" disabled>
-                                <Icon d={Icons.Eye} />
-                            </button>
+                            <IconButton icon={Icons.Eye} title="Preview report" disabled />
                         )}
-                        <Link
-                            href={`/prospects/${p.id}`}
-                            className="btn-icon"
+                        <IconButton
+                            as={Link}
+                            icon={Icons.ChevronR}
                             title="Open prospect"
+                            href={`/prospects/${p.id}`}
                             onClick={(e) => e.stopPropagation()}
-                        >
-                            <Icon d={Icons.ChevronR} />
-                        </Link>
+                        />
                     </RowActions>
                 </td>
             </tr>

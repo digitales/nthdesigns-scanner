@@ -17,8 +17,8 @@ class ExportProspectsTest extends TestCase
         $user = User::factory()->create();
         $search = Search::factory()->create(['user_id' => $user->id]);
         Prospect::factory()->create([
-            'search_id'      => $search->id,
-            'business_name'  => 'Acme Dental',
+            'search_id' => $search->id,
+            'business_name' => 'Acme Dental',
         ]);
 
         $response = $this->actingAs($user)->post('/exports');

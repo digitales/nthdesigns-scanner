@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use App\Models\Prospect;
+use App\Models\Search;
 use App\Services\GbpScoringService;
 use PHPUnit\Framework\TestCase;
 
@@ -12,7 +14,7 @@ class GbpScoringServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new GbpScoringService();
+        $this->service = new GbpScoringService;
     }
 
     private function benchmarkFixture(): array
@@ -164,7 +166,7 @@ class GbpScoringServiceTest extends TestCase
 
     public function test_overlay_adds_website_and_phone_to_payload(): void
     {
-        $prospect = new \App\Models\Prospect([
+        $prospect = new Prospect([
             'website_url' => 'https://custom.example',
             'phone' => '+441234567890',
         ]);
@@ -177,7 +179,7 @@ class GbpScoringServiceTest extends TestCase
 
     public function test_overlay_clears_website_when_operator_cleared(): void
     {
-        $prospect = new \App\Models\Prospect([
+        $prospect = new Prospect([
             'website_url' => '',
             'phone' => null,
         ]);
@@ -189,12 +191,12 @@ class GbpScoringServiceTest extends TestCase
 
     public function test_overlay_removes_no_website_flag_when_website_set(): void
     {
-        $prospect = new \App\Models\Prospect([
+        $prospect = new Prospect([
             'website_url' => 'https://example.com',
             'phone' => '+441234',
             'raw_gbp_payload' => [],
         ]);
-        $prospect->setRelation('search', new \App\Models\Search(['city' => 'London', 'benchmark_snapshot' => null]));
+        $prospect->setRelation('search', new Search(['city' => 'London', 'benchmark_snapshot' => null]));
 
         $result = $this->service->scoreProspect($prospect);
 

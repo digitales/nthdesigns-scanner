@@ -13,15 +13,23 @@ class OutreachEmailGeneratorService
         private AgencyBookingService $agencyBooking,
     ) {}
 
+    public function resolvedPitchAngle(Prospect $prospect, array $options = []): string
+    {
+        $pitchAngle = $options['pitch_angle'] ?? 'auto';
+
+        if ($pitchAngle === 'auto') {
+            return $this->resolvePitchAngle($prospect);
+        }
+
+        return $pitchAngle;
+    }
+
     /**
      * @return array{subject_line: string, email_body: string, model_used: string, prompt_tokens: int, completion_tokens: int, pitch_angle: string}
      */
     public function generate(Prospect $prospect, ?ProspectReport $report = null, array $options = []): array
     {
-        $pitchAngle = $options['pitch_angle'] ?? 'auto';
-        if ($pitchAngle === 'auto') {
-            $pitchAngle = $this->resolvePitchAngle($prospect);
-        }
+        $pitchAngle = $this->resolvedPitchAngle($prospect, $options);
         $reportUrl = $report
             ? url('/r/'.$report->token)
             : null;

@@ -14,7 +14,7 @@ class SearchStatusService
     {
         $search = $search->fresh();
 
-        if (!$search || $search->status === 'complete' || $search->status === 'failed') {
+        if (! $search || $search->status === 'complete' || $search->status === 'failed') {
             return;
         }
 
@@ -24,15 +24,19 @@ class SearchStatusService
             return;
         }
 
-        $prospectCount = Prospect::where('search_id', $search->id)->count();
+        $statusCounts = Prospect::query()
+            ->where('search_id', $search->id)
+            ->selectRaw('audit_status, COUNT(*) as aggregate')
+            ->groupBy('audit_status')
+            ->pluck('aggregate', 'audit_status');
+
+        $prospectCount = (int) $statusCounts->sum();
 
         if ($prospectCount < $totalFound) {
             return;
         }
 
-        $pendingAudits = Prospect::where('search_id', $search->id)
-            ->where('audit_status', 'pending')
-            ->count();
+        $pendingAudits = (int) ($statusCounts['pending'] ?? 0);
 
         if ($pendingAudits > 0) {
             if ($search->status !== 'auditing') {
@@ -42,9 +46,9 @@ class SearchStatusService
             return;
         }
 
-        $finishedCount = Prospect::where('search_id', $search->id)
-            ->whereIn('audit_status', ['complete', 'skipped', 'failed'])
-            ->count();
+        $finishedCount = (int) ($statusCounts['complete'] ?? 0)
+            + (int) ($statusCounts['skipped'] ?? 0)
+            + (int) ($statusCounts['failed'] ?? 0);
 
         if ($finishedCount >= $totalFound) {
             $search->update(['status' => 'complete']);

@@ -9,6 +9,7 @@ import {
   EmptyState,
   Field,
   FilterBar,
+  IconButton,
   Icons,
   Input,
   PageHeader,
@@ -276,14 +277,11 @@ export default function SavedIndex({ prospects, warmLeads, filters, meta }) {
                   >
                     <RowActions>
                       {p.report_url && (
-                        <button
-                          type="button"
-                          className="btn-icon"
+                        <IconButton
+                          icon={Icons.Copy}
                           title="Copy report URL"
                           onClick={() => copyUrl(p.report_url)}
-                        >
-                          <span className="micro">Copy</span>
-                        </button>
+                        />
                       )}
                       <button
                         type="button"

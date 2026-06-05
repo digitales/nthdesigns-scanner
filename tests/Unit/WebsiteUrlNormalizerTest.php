@@ -14,7 +14,7 @@ class WebsiteUrlNormalizerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->normalizer = new WebsiteUrlNormalizer();
+        $this->normalizer = new WebsiteUrlNormalizer;
     }
 
     #[DataProvider('normalizeProvider')]
@@ -26,10 +26,10 @@ class WebsiteUrlNormalizerTest extends TestCase
     public static function normalizeProvider(): array
     {
         return [
-            'bare domain'           => ['example.com', 'https://example.com'],
-            'https with www'        => ['https://www.example.com', 'https://example.com'],
-            'http with path'        => ['http://www.example.com/about', 'http://example.com/about'],
-            'https with path'       => ['https://example.com/about/', 'https://example.com/about'],
+            'bare domain' => ['example.com', 'https://example.com'],
+            'https with www' => ['https://www.example.com', 'https://example.com'],
+            'http with path' => ['http://www.example.com/about', 'http://example.com/about'],
+            'https with path' => ['https://example.com/about/', 'https://example.com/about'],
         ];
     }
 

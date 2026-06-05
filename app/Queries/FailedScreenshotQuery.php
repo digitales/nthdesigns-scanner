@@ -1,9 +1,10 @@
 <?php
 
-namespace App\Support;
+namespace App\Queries;
 
 use App\Models\AuditJob;
 use App\Models\ProspectReport;
+use App\Support\AuditingQueuePresence;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
@@ -62,12 +63,21 @@ final class FailedScreenshotQuery
         return 'screenshot failed';
     }
 
+    /**
+     * @param  Collection<int, ProspectReport>  $reports
+     * @return Collection<int, ProspectReport>
+     */
     private static function filterEligible(Collection $reports, int $stuckAfterMinutes): Collection
     {
-        $cutoff = now()->subMinutes($stuckAfterMinutes);
+        if ($reports->isEmpty()) {
+            return $reports;
+        }
 
-        return $reports->filter(function (ProspectReport $report) use ($cutoff, $stuckAfterMinutes) {
-            $latest = self::latestScreenshotJob($report->prospect_id);
+        $cutoff = now()->subMinutes($stuckAfterMinutes);
+        $latestJobs = self::latestScreenshotJobsForProspects($reports->pluck('prospect_id')->unique()->all());
+
+        return $reports->filter(function (ProspectReport $report) use ($cutoff, $latestJobs) {
+            $latest = $latestJobs->get($report->prospect_id);
 
             if (! $latest || ! in_array($latest->status, ['failed', 'running'], true)) {
                 return false;
@@ -87,10 +97,33 @@ final class FailedScreenshotQuery
 
     private static function latestScreenshotJob(int $prospectId): ?AuditJob
     {
-        return AuditJob::query()
-            ->where('prospect_id', $prospectId)
+        return self::latestScreenshotJobsForProspects([$prospectId])->get($prospectId);
+    }
+
+    /**
+     * @param  list<int>  $prospectIds
+     * @return Collection<int, AuditJob>
+     */
+    private static function latestScreenshotJobsForProspects(array $prospectIds): Collection
+    {
+        if ($prospectIds === []) {
+            return collect();
+        }
+
+        $latestIds = AuditJob::query()
+            ->selectRaw('MAX(id) as id')
+            ->whereIn('prospect_id', $prospectIds)
             ->where('job_type', 'screenshot')
-            ->latest('id')
-            ->first();
+            ->groupBy('prospect_id')
+            ->pluck('id');
+
+        if ($latestIds->isEmpty()) {
+            return collect();
+        }
+
+        return AuditJob::query()
+            ->whereIn('id', $latestIds)
+            ->get()
+            ->keyBy('prospect_id');
     }
 }

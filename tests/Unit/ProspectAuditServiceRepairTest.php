@@ -21,13 +21,13 @@ class ProspectAuditServiceRepairTest extends TestCase
 
         $user = User::factory()->create();
         $search = Search::factory()->create([
-            'user_id'   => $user->id,
+            'user_id' => $user->id,
             'scan_type' => 'combined',
         ]);
         $prospect = Prospect::factory()->create([
-            'search_id'        => $search->id,
-            'website_url'      => 'https://example.com',
-            'audit_status'     => 'pending',
+            'search_id' => $search->id,
+            'website_url' => 'https://example.com',
+            'audit_status' => 'pending',
             'raw_a11y_payload' => ['partial' => true],
         ]);
 

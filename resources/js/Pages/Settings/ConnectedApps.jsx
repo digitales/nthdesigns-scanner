@@ -1,6 +1,6 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Button, Card, PageHeader } from '@/Components/ui';
+import { Button, Card, Page, PageHeader } from '@/Components/ui';
 
 export default function ConnectedApps({ families }) {
     const { flash } = usePage().props;
@@ -23,7 +23,7 @@ export default function ConnectedApps({ families }) {
         <AuthenticatedLayout>
             <Head title="Connected apps" />
 
-            <main className="page" style={{ maxWidth: 720 }}>
+            <Page width="narrow">
                 <PageHeader
                     eyebrow="Settings"
                     title="Connected apps"
@@ -98,7 +98,7 @@ export default function ConnectedApps({ families }) {
                     MCP endpoint: <code>{`${window.location.origin}/api/mcp`}</code> — use OAuth when adding the remote
                     connector in your AI client.
                 </p>
-            </main>
+            </Page>
         </AuthenticatedLayout>
     );
 }

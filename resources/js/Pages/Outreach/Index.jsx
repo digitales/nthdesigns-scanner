@@ -1,4 +1,5 @@
 import { Head, Link, router, useForm } from "@inertiajs/react";
+import { useState } from "react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import OutreachEmailCard from "@/Components/OutreachEmailCard";
 import {
@@ -12,6 +13,7 @@ import {
   Input,
   PageHeader,
   ScoreBadge,
+  Page,
   Segmented,
 } from "@/Components/ui";
 
@@ -34,7 +36,18 @@ export default function OutreachIndex({
     router.delete(`/outreach/selections/${prospectId}`);
   };
 
-  const clearQueue = () => router.delete("/outreach/selections");
+  const [clearing, setClearing] = useState(false);
+
+  const clearQueue = () => {
+    if (!window.confirm("Clear all prospects from the outreach queue?")) {
+      return;
+    }
+
+    setClearing(true);
+    router.delete("/outreach/selections", {
+      onFinish: () => setClearing(false),
+    });
+  };
 
   const generateAll = (e) => {
     e.preventDefault();
@@ -45,7 +58,7 @@ export default function OutreachIndex({
     <AuthenticatedLayout>
       <Head title="Outreach" />
 
-      <main className="page page-wide">
+      <Page width="wide" className="page-wide">
         <PageHeader
           eyebrow="Outreach workspace"
           title={`${selection.length} prospect${selection.length !== 1 ? "s" : ""} in queue.`}
@@ -96,18 +109,14 @@ export default function OutreachIndex({
                 Queue
               </div>
               {selection.length > 0 && (
-                <button
-                  type="button"
-                  className="micro"
+                <Button
+                  kind="ghost"
+                  size="sm"
+                  disabled={clearing}
                   onClick={clearQueue}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                  }}
                 >
-                  Clear all
-                </button>
+                  {clearing ? "Clearing…" : "Clear all"}
+                </Button>
               )}
             </div>
 
@@ -218,7 +227,7 @@ export default function OutreachIndex({
                 <Field label="CPC benchmark" hint="optional">
                   <div className="input-with-prefix">
                     <span className="prefix">£</span>
-                    <input
+                    <Input
                       type="number"
                       min="0"
                       step="0.01"
@@ -271,7 +280,7 @@ export default function OutreachIndex({
             })}
           </section>
         </div>
-      </main>
+      </Page>
     </AuthenticatedLayout>
   );
 }

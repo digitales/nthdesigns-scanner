@@ -8,6 +8,7 @@ use App\Models\Prospect;
 use App\Models\ProspectReport;
 use App\Models\Search;
 use App\Models\User;
+use App\Support\SearchQueue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Tests\TestCase;
@@ -39,6 +40,6 @@ class OutreachGenerateTest extends TestCase
         $response->assertSessionHas('success');
         $this->assertCount(1, session('skipped'));
 
-        Bus::assertDispatched(GenerateOutreachEmailJob::class, 1);
+        Bus::assertDispatched(GenerateOutreachEmailJob::class, fn (GenerateOutreachEmailJob $job) => $job->queue === SearchQueue::NAME);
     }
 }

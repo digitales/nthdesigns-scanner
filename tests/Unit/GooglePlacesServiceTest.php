@@ -16,11 +16,11 @@ class GooglePlacesServiceTest extends TestCase
             'https://places.googleapis.com/v1/places:searchText' => Http::response([
                 'places' => [
                     [
-                        'id'          => 'places/self',
+                        'id' => 'places/self',
                         'displayName' => ['text' => 'Good Fabric'],
                     ],
                     [
-                        'id'          => 'places/competitor',
+                        'id' => 'places/competitor',
                         'displayName' => ['text' => 'Wimbledon Fabrics'],
                     ],
                 ],
@@ -46,18 +46,18 @@ class GooglePlacesServiceTest extends TestCase
             'https://places.googleapis.com/v1/places:searchText' => Http::response([
                 'places' => [
                     [
-                        'id'          => 'places/abc',
-                        'websiteUri'  => 'https://www.example.com',
+                        'id' => 'places/abc',
+                        'websiteUri' => 'https://www.example.com',
                         'displayName' => ['text' => 'Example Ltd'],
                     ],
                 ],
             ], 200),
             'https://places.googleapis.com/v1/places/places/abc' => Http::response([
-                'id'              => 'places/abc',
-                'displayName'     => ['text' => 'Example Ltd'],
-                'websiteUri'      => 'https://example.com',
+                'id' => 'places/abc',
+                'displayName' => ['text' => 'Example Ltd'],
+                'websiteUri' => 'https://example.com',
                 'userRatingCount' => 10,
-                'photos'          => [],
+                'photos' => [],
             ], 200),
         ]);
 
@@ -75,7 +75,7 @@ class GooglePlacesServiceTest extends TestCase
             'https://places.googleapis.com/v1/places:searchText' => Http::response([
                 'places' => [
                     [
-                        'id'         => 'places/other',
+                        'id' => 'places/other',
                         'websiteUri' => 'https://other.com',
                     ],
                 ],
@@ -110,11 +110,11 @@ class GooglePlacesServiceTest extends TestCase
 
         Http::fake([
             'https://places.googleapis.com/v1/places/places/abc' => Http::response([
-                'id'              => 'places/abc',
-                'displayName'     => ['text' => 'Example Ltd'],
-                'websiteUri'      => 'https://example.com',
+                'id' => 'places/abc',
+                'displayName' => ['text' => 'Example Ltd'],
+                'websiteUri' => 'https://example.com',
                 'userRatingCount' => 10,
-                'photos'          => [],
+                'photos' => [],
             ], 200),
         ]);
 

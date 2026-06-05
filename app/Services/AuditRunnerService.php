@@ -46,7 +46,7 @@ class AuditRunnerService
                 $screenshotDir,
             ]);
 
-        if (!$result->successful()) {
+        if (! $result->successful()) {
             throw new \RuntimeException(
                 $this->errorRecorder->formatProcessOutput(
                     $result->errorOutput(),
@@ -57,7 +57,7 @@ class AuditRunnerService
 
         $payload = json_decode($result->output(), true);
 
-        if (!is_array($payload)) {
+        if (! is_array($payload)) {
             throw new \RuntimeException('Audit script returned invalid JSON');
         }
 

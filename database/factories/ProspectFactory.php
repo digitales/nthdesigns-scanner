@@ -14,17 +14,17 @@ class ProspectFactory extends Factory
     public function definition(): array
     {
         return [
-            'search_id'      => Search::factory(),
-            'place_id'       => fake()->uuid(),
-            'business_name'  => fake()->company(),
+            'search_id' => Search::factory(),
+            'place_id' => fake()->uuid(),
+            'business_name' => fake()->company(),
             'combined_score' => 75,
-            'gbp_score'      => 60,
-            'a11y_score'     => 80,
+            'gbp_score' => 60,
+            'a11y_score' => 80,
             'dominant_angle' => 'accessibility',
-            'audit_status'         => 'complete',
+            'audit_status' => 'complete',
             'suppress_auto_report' => false,
-            'review_count'   => 5,
-            'photo_count'    => 2,
+            'review_count' => 5,
+            'photo_count' => 2,
         ];
     }
 }

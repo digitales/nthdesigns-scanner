@@ -47,7 +47,7 @@ class ScreenshotStorageService
         foreach ($screenshots as $shot) {
             $localPath = rtrim($localDir, '/').'/'.$shot['file'];
 
-            if (!is_file($localPath)) {
+            if (! is_file($localPath)) {
                 continue;
             }
 
@@ -55,8 +55,8 @@ class ScreenshotStorageService
 
             $stored[] = [
                 'violation_id' => $shot['violation_id'],
-                'index'        => $shot['index'],
-                'url'          => $this->storeLocalFile($relative, $localPath),
+                'index' => $shot['index'],
+                'url' => $this->storeLocalFile($relative, $localPath),
             ];
         }
 

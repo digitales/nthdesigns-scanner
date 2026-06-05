@@ -9,18 +9,18 @@ class GbpPlaceContextResolverTest extends TestCase
 {
     public function test_maps_configured_primary_type_to_niche_query(): void
     {
-        $resolved = (new GbpPlaceContextResolver())->resolve([
+        $resolved = (new GbpPlaceContextResolver)->resolve([
             'primaryType' => 'dentist',
             'addressComponents' => [
                 [
-                    'longText'  => 'Wimbledon',
+                    'longText' => 'Wimbledon',
                     'shortText' => 'Wimbledon',
-                    'types'     => ['locality', 'political'],
+                    'types' => ['locality', 'political'],
                 ],
                 [
-                    'longText'  => 'United Kingdom',
+                    'longText' => 'United Kingdom',
                     'shortText' => 'GB',
-                    'types'     => ['country', 'political'],
+                    'types' => ['country', 'political'],
                 ],
             ],
         ]);
@@ -32,7 +32,7 @@ class GbpPlaceContextResolverTest extends TestCase
 
     public function test_humanizes_unknown_primary_type(): void
     {
-        $resolved = (new GbpPlaceContextResolver())->resolve([
+        $resolved = (new GbpPlaceContextResolver)->resolve([
             'primaryType' => 'fabric_store',
         ], 'GB');
 
@@ -43,15 +43,15 @@ class GbpPlaceContextResolverTest extends TestCase
 
     public function test_prefers_locality_over_postal_town(): void
     {
-        $resolved = (new GbpPlaceContextResolver())->resolve([
+        $resolved = (new GbpPlaceContextResolver)->resolve([
             'addressComponents' => [
                 [
                     'longText' => 'SW19',
-                    'types'    => ['postal_town'],
+                    'types' => ['postal_town'],
                 ],
                 [
                     'longText' => 'Wimbledon',
-                    'types'    => ['locality'],
+                    'types' => ['locality'],
                 ],
             ],
         ]);

@@ -36,7 +36,7 @@ class HandleInertiaRequests extends Middleware
             ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
-                'error'   => fn () => $request->session()->get('error'),
+                'error' => fn () => $request->session()->get('error'),
                 'skipped' => fn () => $request->session()->get('skipped', []),
                 'agency_booking_calendars' => fn () => $request->session()->get('agency_booking_calendars'),
             ],

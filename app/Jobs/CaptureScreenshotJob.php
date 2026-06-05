@@ -4,10 +4,10 @@ namespace App\Jobs;
 
 use App\Models\AuditJob;
 use App\Models\ProspectReport;
-use App\Support\AuditingQueue;
 use App\Services\AuditErrorRecorder;
 use App\Services\ScreenshotCaptureService;
 use App\Services\ScreenshotStorageService;
+use App\Support\AuditingQueue;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -22,6 +22,7 @@ class CaptureScreenshotJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 3;
+
     public int $timeout = 180;
 
     /** @var list<int> */
@@ -51,15 +52,21 @@ class CaptureScreenshotJob implements ShouldQueue
     ): void {
         $report = $this->report->fresh(['prospect']);
 
-        if (!$report?->prospect?->website_url) {
+        if (! $report?->prospect?->website_url) {
+            return;
+        }
+
+        $paths = $report->screenshot_paths ?? [];
+
+        if (! empty($paths['desktop'])) {
             return;
         }
 
         $auditJob = AuditJob::create([
             'prospect_id' => $report->prospect_id,
-            'job_type'    => 'screenshot',
-            'status'      => 'running',
-            'started_at'  => now(),
+            'job_type' => 'screenshot',
+            'status' => 'running',
+            'started_at' => now(),
         ]);
 
         $localDir = storage_path('app/temp/screenshots/'.$report->token);
@@ -75,24 +82,25 @@ class CaptureScreenshotJob implements ShouldQueue
             $report->update(['screenshot_paths' => $paths]);
 
             $auditJob->update([
-                'status'       => 'complete',
+                'status' => 'complete',
                 'completed_at' => now(),
             ]);
         } catch (\Throwable $e) {
             Log::warning('CaptureScreenshotJob failed', [
                 'report_id' => $report->id,
-                'error'     => $e->getMessage(),
+                'error' => $e->getMessage(),
             ]);
 
             $auditJob->update([
-                'status'       => 'failed',
+                'status' => 'failed',
                 'completed_at' => now(),
             ]);
 
             $errorRecorder->recordFailure($auditJob, $errorRecorder->formatThrowable($e));
+
+            throw $e;
         } finally {
             File::deleteDirectory($localDir);
         }
     }
-
 }

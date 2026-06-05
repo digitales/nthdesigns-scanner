@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreMcpKeyRequest;
+use App\Http\Requests\UpdateMcpKeyRequest;
 use App\Models\UserMcpKey;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -34,13 +36,9 @@ class McpKeyController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(StoreMcpKeyRequest $request): RedirectResponse
     {
-        $this->authorize('create', UserMcpKey::class);
-
-        $validated = $request->validate([
-            'label' => 'nullable|string|max:64',
-        ]);
+        $validated = $request->validated();
 
         $plainKey = 'scanner_'.Str::random(32);
 
@@ -54,17 +52,10 @@ class McpKeyController extends Controller
             ->with('new_mcp_key', $plainKey);
     }
 
-    public function update(Request $request, UserMcpKey $mcpKey): RedirectResponse
+    public function update(UpdateMcpKeyRequest $request, UserMcpKey $mcpKey): RedirectResponse
     {
-        $this->authorize('update', $mcpKey);
-
-        $field = 'label_'.$mcpKey->id;
-        $validated = $request->validate([
-            $field => 'nullable|string|max:64',
-        ]);
-
         $mcpKey->update([
-            'label' => $this->resolvedLabel($validated[$field] ?? null),
+            'label' => $this->resolvedLabel($request->label()),
         ]);
 
         return redirect()

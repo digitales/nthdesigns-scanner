@@ -41,7 +41,7 @@ return [
 
     'google_cse' => [
         'key' => env('GOOGLE_CSE_KEY'),
-        'cx'  => env('GOOGLE_CSE_CX'),
+        'cx' => env('GOOGLE_CSE_CX'),
     ],
 
     'brave_search' => [
@@ -49,13 +49,13 @@ return [
     ],
 
     'openrouter' => [
-        'key'      => env('OPENROUTER_API_KEY'),
-        'model'    => env('OPENROUTER_MODEL', 'anthropic/claude-sonnet-4'),
+        'key' => env('OPENROUTER_API_KEY'),
+        'model' => env('OPENROUTER_MODEL', 'anthropic/claude-sonnet-4'),
         'base_url' => rtrim(env('OPENROUTER_BASE_URL', 'https://openrouter.ai/api/v1'), '/'),
     ],
 
     'cloudflare' => [
-        'api_token'  => env('CLOUDFLARE_API_TOKEN'),
+        'api_token' => env('CLOUDFLARE_API_TOKEN'),
         'account_id' => env('CLOUDFLARE_ACCOUNT_ID'),
     ],
 

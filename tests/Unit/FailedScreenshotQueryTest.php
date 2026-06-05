@@ -8,7 +8,7 @@ use App\Models\Prospect;
 use App\Models\ProspectReport;
 use App\Models\Search;
 use App\Models\User;
-use App\Support\FailedScreenshotQuery;
+use App\Queries\FailedScreenshotQuery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Tests\TestCase;
@@ -22,11 +22,11 @@ class FailedScreenshotQueryTest extends TestCase
         $user = User::factory()->create();
         $search = Search::factory()->create([
             'user_id' => $user->id,
-            'status'  => 'complete',
+            'status' => 'complete',
         ]);
         $prospect = Prospect::factory()->create(array_merge([
-            'search_id'    => $search->id,
-            'website_url'  => 'https://example.com',
+            'search_id' => $search->id,
+            'website_url' => 'https://example.com',
             'audit_status' => 'complete',
         ], $prospectAttrs));
 
@@ -38,9 +38,9 @@ class FailedScreenshotQueryTest extends TestCase
         $report = $this->reportWithProspect();
 
         AuditJob::create([
-            'prospect_id'  => $report->prospect_id,
-            'job_type'     => 'screenshot',
-            'status'       => 'failed',
+            'prospect_id' => $report->prospect_id,
+            'job_type' => 'screenshot',
+            'status' => 'failed',
             'completed_at' => now(),
         ]);
 
@@ -58,9 +58,9 @@ class FailedScreenshotQueryTest extends TestCase
 
         AuditJob::create([
             'prospect_id' => $report->prospect_id,
-            'job_type'    => 'screenshot',
-            'status'      => 'running',
-            'started_at'  => now()->subMinutes(20),
+            'job_type' => 'screenshot',
+            'status' => 'running',
+            'started_at' => now()->subMinutes(20),
         ]);
 
         $this->assertContains($report->id, FailedScreenshotQuery::ids(15));
@@ -74,9 +74,9 @@ class FailedScreenshotQueryTest extends TestCase
 
         AuditJob::create([
             'prospect_id' => $report->prospect_id,
-            'job_type'    => 'screenshot',
-            'status'      => 'running',
-            'started_at'  => now()->subMinutes(20),
+            'job_type' => 'screenshot',
+            'status' => 'running',
+            'started_at' => now()->subMinutes(20),
         ]);
 
         CaptureScreenshotJob::dispatch($report);

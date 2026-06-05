@@ -159,7 +159,7 @@ class ProgressFlowService
             return '<30s';
         }
 
-        $seconds = max(0, now()->diffInSeconds($from));
+        $seconds = max(0, $from->diffInSeconds(now()));
 
         if ($seconds < 30) {
             return '<30s';
