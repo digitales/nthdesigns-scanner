@@ -761,6 +761,95 @@ Cohesive pipeline (ONS fetch, taxonomy filter, Birmingham validation, PHP config
 | Effort | ~1 hour |
 
 ### S8 — Booking & calendar
+
+#### REF-S8-01: AgencyBookingSettingsController uses inline validation
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S8 Booking & calendar |
+| Scores | M=2 R=1 L=2 O=1 → Total 6 (P3) |
+| Evidence | `app/Http/Controllers/AgencyBookingSettingsController.php:15-30,45-48` |
+| Spec gap | None — REF-S10-01 |
+| PR slice | Medium — "S8: add UpdateAgencyBookingSettingsRequest and TestBookingConnectionRequest" |
+| Risk | Low — sensitive `fastmail_app_password` validated inline; Form Request would centralise empty-password unset rule (line 32–34) |
+| Effort | ~1 hour |
+
+#### REF-S8-02: PublicReportBookingController CalDAV failures surface as unhandled 500
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S8 Booking & calendar |
+| Scores | M=2 R=2 L=2 O=2 → Total 8 (P2) |
+| Evidence | `app/Services/ReportBookingService.php:79-80` — `createEvent` inside transaction; `app/Services/Calendar/FastmailCalDavClient.php:233` throws `RequestException`; `PublicReportBookingController.php:39` returns raw JSON with no try/catch |
+| Spec gap | [2026-06-04-report-booking-fastmail-design.md](../specs/2026-06-04-report-booking-fastmail-design.md) — operator test path documented; public book failure UX not specified |
+| PR slice | Medium — "S8: map CalDAV errors to 503 JSON on POST /r/{token}/book" |
+| Risk | Medium — prospect sees generic 500 when Fastmail is down; DB rolls back correctly but no retry guidance |
+| Effort | ~1–2 hours |
+| Notes | `ReportBookingTest` uses `FakeCalendarProvider`; no test for CalDAV failure path. Operator `testConnection` surfaces friendly message (AgencyBookingService.php:40-41). |
+
+#### REF-S8-03: BookingServiceProvider binds stale AgencyBookingSetting singleton
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S8 Booking & calendar |
+| Scores | M=2 R=1 L=2 O=2 → Total 7 (P2) |
+| Evidence | `app/Providers/BookingServiceProvider.php:14-16` — `new FastmailCalDavProvider(AgencyBookingSetting::current())` at resolve time |
+| Spec gap | None |
+| PR slice | Medium — "S8: resolve AgencyBookingSetting inside FastmailCalDavProvider per call" |
+| Risk | Medium — long-lived worker/request may use pre-update credentials after Settings save until container rebound |
+| Effort | ~1 hour |
+| Notes | `ReportBookingTest` binds `FakeCalendarProvider` directly, masking provider staleness in tests. |
+
+#### REF-S8-04: slotIsAvailable recomputes full day slot list per booking attempt
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S8 Booking & calendar |
+| Scores | M=1 R=2 L=2 O=2 → Total 7 (P2) |
+| Evidence | `app/Services/Calendar/BookingAvailabilityService.php:82-94` — `slotIsAvailable()` calls `availableSlots()` for whole day; invoked from `ReportBookingService.php:56` on every POST |
+| Spec gap | None |
+| PR slice | Medium — "S8: add targeted slotIsAvailable check without full day generation" |
+| Risk | Low — public endpoint is throttled; CalDAV busy fetch is the cost |
+| Effort | ~1–2 hours |
+| Notes | `BookingAvailabilityServiceTest` covers slot logic with fake calendar. |
+
+#### REF-S8-05: FastmailCalDavClient decomposition candidate (247 lines)
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S8 Booking & calendar |
+| Scores | M=2 R=1 L=2 O=1 → Total 6 (P3) |
+| Evidence | `app/Services/Calendar/FastmailCalDavClient.php` (247 lines); appendix >200 lines list |
+| Spec gap | None |
+| PR slice | Medium — "S8: extract CalDavXmlParser from FastmailCalDavClient" |
+| Risk | Low — booking feature is new; tests mock at provider boundary |
+| Effort | ~2–3 hours |
+
+#### REF-S8-06: AgencyBookingSetting and ReportBooking on legacy `$casts`
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S8 Booking & calendar |
+| Scores | M=1 R=1 L=2 O=1 → Total 5 (P3) |
+| Evidence | `app/Models/AgencyBookingSetting.php:23`; `app/Models/ReportBooking.php:24` |
+| Spec gap | None — REF-S10-02 |
+| PR slice | Small — batch with REF-S10-02 |
+| Risk | Low |
+| Effort | ~0.5 hours (batch) |
+
+#### REF-S8-07: PublicBookingController TidyCal fallback bypasses native booking when enabled
+
+| Field | Value |
+|-------|-------|
+| Subsystem | S8 Booking & calendar |
+| Scores | M=2 R=1 L=2 O=2 → Total 7 (P2) |
+| Evidence | `app/Http/Controllers/PublicBookingController.php:34-52` — resolves `report_data['booking_url']` or `config('scanner.report_booking_url')` with no `AgencyBookingService::nativeBookingActive()` check |
+| Spec gap | [2026-06-04-report-booking-fastmail-design.md](../specs/2026-06-04-report-booking-fastmail-design.md) — inline native booking on report `#book`; standalone `/book` route not in v1 spec |
+| PR slice | Medium — "S8: redirect /book to report inline picker when native booking active" |
+| Risk | Medium — operator enables Fastmail but legacy TidyCal `/book` link in stored `report_data` still routes to embed |
+| Effort | ~1 hour |
+| Notes | `PublicBookingTest` covers TidyCal paths only; `ReportBookingTest` covers native JSON API. |
+
 ### S9 — Operator settings & data hygiene
 ### S10 — Shared infrastructure
 
