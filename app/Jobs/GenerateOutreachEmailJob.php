@@ -37,6 +37,16 @@ class GenerateOutreachEmailJob implements ShouldQueue
             return;
         }
 
+        $pitchAngle = $generator->resolvedPitchAngle($prospect, $this->options);
+
+        if (OutreachEmail::query()
+            ->where('prospect_id', $prospect->id)
+            ->where('user_id', $this->user->id)
+            ->where('pitch_angle', $pitchAngle)
+            ->exists()) {
+            return;
+        }
+
         try {
             $generated = $generator->generate($prospect, $prospect->report, $this->options);
 

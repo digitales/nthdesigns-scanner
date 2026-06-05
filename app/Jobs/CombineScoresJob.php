@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Prospect;
+use App\Models\ProspectReport;
 use App\Support\AuditingQueue;
 use App\Services\CombineScoresService;
 use App\Services\SearchStatusService;
@@ -33,7 +34,9 @@ class CombineScoresJob implements ShouldQueue
             return;
         }
 
-        if ($prospect->audit_status === 'complete') {
+        if (in_array($prospect->audit_status, ['complete', 'skipped', 'failed'], true)) {
+            $searchStatus->refresh($prospect->search);
+
             return;
         }
 
@@ -56,7 +59,7 @@ class CombineScoresJob implements ShouldQueue
         if ($prospect && in_array($prospect->audit_status, ['complete', 'skipped'], true)) {
             if ($prospect->suppress_auto_report) {
                 $prospect->update(['suppress_auto_report' => false]);
-            } else {
+            } elseif (! ProspectReport::where('prospect_id', $prospect->id)->exists()) {
                 GenerateProspectReportJob::dispatch($prospect);
             }
         }
