@@ -34,6 +34,18 @@ class SearchSummaryMapper
         ]);
     }
 
+    /**
+     * @param  array<string, mixed>  $progressFlow
+     * @return array<string, mixed>
+     */
+    public static function forShow(Search $search, array $progressFlow): array
+    {
+        return array_merge(self::detail($search), [
+            'created_at' => $search->created_at->toISOString(),
+            'progress_flow' => $progressFlow,
+        ]);
+    }
+
     private static function formatCreatedAt(Search $search, string $format): string
     {
         return match ($format) {
