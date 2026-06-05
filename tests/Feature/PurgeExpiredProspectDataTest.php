@@ -16,7 +16,7 @@ class PurgeExpiredProspectDataTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_purge_clears_expired_prospect_payloads_and_reports(): void
+    public function test_dry_run_does_not_delete_expired_data(): void
     {
         $user = User::factory()->create();
         $search = Search::factory()->create(['user_id' => $user->id]);
@@ -31,6 +31,26 @@ class PurgeExpiredProspectDataTest extends TestCase
         ]);
 
         Artisan::call('scanner:purge-expired');
+
+        $this->assertNotNull($prospect->fresh()->raw_gbp_payload);
+        $this->assertDatabaseHas('prospect_reports', ['id' => $report->id]);
+    }
+
+    public function test_purge_clears_expired_prospect_payloads_and_reports(): void
+    {
+        $user = User::factory()->create();
+        $search = Search::factory()->create(['user_id' => $user->id]);
+        $prospect = Prospect::factory()->create([
+            'search_id' => $search->id,
+            'expires_at' => now()->subDay(),
+            'raw_gbp_payload' => ['test' => true],
+        ]);
+        $report = ProspectReport::factory()->create([
+            'prospect_id' => $prospect->id,
+            'expires_at' => now()->subDay(),
+        ]);
+
+        Artisan::call('scanner:purge-expired', ['--execute' => true]);
 
         $prospect->refresh();
         $this->assertNull($prospect->raw_gbp_payload);
@@ -57,7 +77,7 @@ class PurgeExpiredProspectDataTest extends TestCase
             'created_at' => now()->subDays(91),
         ]);
 
-        Artisan::call('scanner:purge-expired');
+        Artisan::call('scanner:purge-expired', ['--execute' => true]);
 
         $this->assertDatabaseMissing('audit_job_error_details', ['id' => $detail->id]);
         $this->assertDatabaseHas('audit_jobs', [
