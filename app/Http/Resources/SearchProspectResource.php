@@ -12,6 +12,36 @@ class SearchProspectResource
     /**
      * @return array<string, mixed>
      */
+    public static function forMcp(
+        Prospect $prospect,
+        Search $search,
+        ReportBuilderService $reportBuilder,
+        ProgressFlowService $progressFlow,
+    ): array {
+        $cms = $reportBuilder->cmsForProspect($prospect);
+
+        return [
+            'id' => $prospect->id,
+            'business_name' => $prospect->business_name,
+            'combined_score' => $prospect->combined_score,
+            'gbp_score' => $prospect->gbp_score,
+            'a11y_score' => $prospect->a11y_score,
+            'performance_score' => $prospect->performance_score,
+            'dominant_angle' => $prospect->dominant_angle,
+            'audit_status' => $prospect->audit_status,
+            'audit_error' => self::auditError($prospect),
+            'gbp_flags' => $prospect->gbp_flags ?? [],
+            'a11y_flags' => $prospect->a11y_flags ?? [],
+            'report_ready' => $prospect->report !== null,
+            'cms_badge' => $cms['badge'] ?? null,
+            'cms_pending' => $cms['pending'] ?? false,
+            'progress_flow' => $progressFlow->prospectFlow($prospect, $search),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     public static function format(
         Prospect $prospect,
         Search $search,
@@ -20,8 +50,6 @@ class SearchProspectResource
     ): array {
         $latestOutreach = $prospect->outreachEmails->first();
         $cms = $reportBuilder->cmsForProspect($prospect);
-        $failedAudit = $prospect->auditJobs->firstWhere('status', 'failed')
-            ?? $prospect->auditJobs->first();
 
         return [
             'id' => $prospect->id,
@@ -43,7 +71,7 @@ class SearchProspectResource
             'combined_score' => $prospect->combined_score,
             'dominant_angle' => $prospect->dominant_angle,
             'audit_status' => $prospect->audit_status,
-            'audit_error' => $failedAudit?->error_message,
+            'audit_error' => self::auditError($prospect),
             'report_ready' => $prospect->report !== null,
             'report_url' => $prospect->report ? url('/r/'.$prospect->report->token) : null,
             'is_warm' => $prospect->report?->viewed_at !== null
@@ -54,5 +82,13 @@ class SearchProspectResource
             'cms_pending' => $cms['pending'] ?? false,
             'progress_flow' => $progressFlow->prospectFlow($prospect, $search),
         ];
+    }
+
+    private static function auditError(Prospect $prospect): ?string
+    {
+        $auditJob = $prospect->auditJobs->firstWhere('status', 'failed')
+            ?? $prospect->auditJobs->first();
+
+        return $auditJob?->error_message;
     }
 }

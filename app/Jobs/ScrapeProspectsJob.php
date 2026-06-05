@@ -6,7 +6,6 @@ use App\Models\Search;
 use App\Services\BenchmarkNormalizer;
 use App\Services\GooglePlacesService;
 use App\Services\ProspectExclusionService;
-use App\Services\SearchStatusService;
 use App\Support\SearchQueue;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -30,7 +29,6 @@ class ScrapeProspectsJob implements ShouldQueue
 
     public function handle(
         GooglePlacesService $places,
-        SearchStatusService $searchStatus,
         ProspectExclusionService $exclusions,
     ): void {
         $this->search->update(['status' => 'discovering']);
