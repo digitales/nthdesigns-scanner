@@ -2,27 +2,29 @@
 
 namespace App\Jobs;
 
+use App\Enums\AuditStatus;
+use App\Enums\ScanType;
 use App\Models\Prospect;
 use App\Models\ProspectReport;
 use App\Services\CombineScoresService;
 use App\Services\SearchStatusService;
-use App\Support\AuditingQueue;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\Attributes\Tries;
+use Illuminate\Queue\Attributes\WithoutRelations;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 
+#[Tries(3)]
 class CombineScoresJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public int $tries = 3;
-
-    public function __construct(public Prospect $prospect)
-    {
-        AuditingQueue::apply($this);
-    }
+    public function __construct(
+        #[WithoutRelations]
+        public Prospect $prospect,
+    ) {}
 
     public function handle(
         CombineScoresService $combiner,
@@ -34,7 +36,7 @@ class CombineScoresJob implements ShouldQueue
             return;
         }
 
-        if (in_array($prospect->audit_status, ['complete', 'skipped', 'failed'], true)) {
+        if (in_array($prospect->audit_status, [AuditStatus::Complete, AuditStatus::Skipped, AuditStatus::Failed], true)) {
             $searchStatus->refresh($prospect->search);
 
             return;
@@ -44,10 +46,10 @@ class CombineScoresJob implements ShouldQueue
         $result = $combiner->combineForProspect($prospect, $search->scan_type);
 
         $auditStatus = match (true) {
-            $prospect->audit_status === 'failed' => 'failed',
-            config('scanner.audit_driver') === 'skip' && ! empty($prospect->website_url) => 'skipped',
-            empty($prospect->website_url) && in_array($search->scan_type, ['accessibility_only', 'combined'], true) => 'skipped',
-            default => 'complete',
+            $prospect->audit_status === AuditStatus::Failed => AuditStatus::Failed,
+            config('scanner.audit_driver') === 'skip' && ! empty($prospect->website_url) => AuditStatus::Skipped,
+            empty($prospect->website_url) && in_array($search->scan_type, [ScanType::AccessibilityOnly, ScanType::Combined], true) => AuditStatus::Skipped,
+            default => AuditStatus::Complete,
         };
 
         $prospect->update(array_merge($result, [
@@ -56,7 +58,7 @@ class CombineScoresJob implements ShouldQueue
 
         $prospect = $prospect->fresh();
 
-        if ($prospect && in_array($prospect->audit_status, ['complete', 'skipped'], true)) {
+        if ($prospect && in_array($prospect->audit_status, [AuditStatus::Complete, AuditStatus::Skipped], true)) {
             if ($prospect->suppress_auto_report) {
                 $prospect->update(['suppress_auto_report' => false]);
             } elseif (! ProspectReport::where('prospect_id', $prospect->id)->exists()) {

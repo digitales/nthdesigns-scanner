@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\SearchStatus;
 use App\Jobs\AuditSiteJob;
 use App\Jobs\DirectUrlScanJob;
 use App\Jobs\GenerateProspectReportJob;
@@ -30,7 +31,7 @@ class DirectUrlScanJobTest extends TestCase
         $user = User::factory()->create();
         $search = Search::factory()->directUrl('https://example.com')->create([
             'user_id' => $user->id,
-            'status' => 'pending',
+            'status' => SearchStatus::Pending,
         ]);
 
         $this->mock(GooglePlacesService::class, function ($mock) {
@@ -72,7 +73,7 @@ class DirectUrlScanJobTest extends TestCase
         $user = User::factory()->create();
         $search = Search::factory()->directUrl('https://unknown.example')->create([
             'user_id' => $user->id,
-            'status' => 'pending',
+            'status' => SearchStatus::Pending,
         ]);
 
         $this->mock(GooglePlacesService::class, function ($mock) {
@@ -108,7 +109,7 @@ class DirectUrlScanJobTest extends TestCase
         $user = User::factory()->create();
         $search = Search::factory()->directUrl('https://example.com')->create([
             'user_id' => $user->id,
-            'status' => 'pending',
+            'status' => SearchStatus::Pending,
         ]);
 
         $this->mock(GooglePlacesService::class, function ($mock) {
@@ -120,7 +121,7 @@ class DirectUrlScanJobTest extends TestCase
         DirectUrlScanJob::dispatchSync($search);
 
         Bus::assertDispatched(GenerateProspectReportJob::class);
-        $this->assertSame('complete', $search->fresh()->status);
+        $this->assertSame(SearchStatus::Complete, $search->fresh()->status);
     }
 
     public function test_skips_when_prospect_already_exists(): void
@@ -130,7 +131,7 @@ class DirectUrlScanJobTest extends TestCase
         $user = User::factory()->create();
         $search = Search::factory()->directUrl('https://example.com')->create([
             'user_id' => $user->id,
-            'status' => 'discovering',
+            'status' => SearchStatus::Discovering,
         ]);
 
         Prospect::factory()->create([
@@ -163,7 +164,7 @@ class DirectUrlScanJobTest extends TestCase
         $user = User::factory()->create();
         $search = Search::factory()->directUrl('https://example.com')->create([
             'user_id' => $user->id,
-            'status' => 'pending',
+            'status' => SearchStatus::Pending,
             'country' => 'GB',
         ]);
 

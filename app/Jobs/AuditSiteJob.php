@@ -2,6 +2,9 @@
 
 namespace App\Jobs;
 
+use App\Enums\AuditJobStatus;
+use App\Enums\AuditJobType;
+use App\Enums\AuditStatus;
 use App\Models\AuditJob;
 use App\Models\Prospect;
 use App\Services\A11yScoringService;
@@ -10,28 +13,33 @@ use App\Services\AuditRunnerService;
 use App\Services\CmsDetectionRunnerService;
 use App\Services\ScreenshotStorageService;
 use App\Services\SearchStatusService;
-use App\Support\AuditingQueue;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\Attributes\Timeout;
+use Illuminate\Queue\Attributes\Tries;
+use Illuminate\Queue\Attributes\WithoutRelations;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 
+#[Tries(2)]
+#[Timeout(240)]
 class AuditSiteJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public int $tries = 2;
-
     public int $backoff = 60;
 
-    public int $timeout = 240;
+    public function __construct(
+        #[WithoutRelations]
+        public Prospect $prospect,
+    ) {}
 
-    public function __construct(public Prospect $prospect)
+    public function tries(): int
     {
-        AuditingQueue::apply($this);
+        return 2;
     }
 
     public function handle(
@@ -48,7 +56,7 @@ class AuditSiteJob implements ShouldQueue
             return;
         }
 
-        if ($prospect->audit_status !== 'pending') {
+        if ($prospect->audit_status !== AuditStatus::Pending) {
             return;
         }
 
@@ -61,8 +69,8 @@ class AuditSiteJob implements ShouldQueue
 
         $auditJob = AuditJob::create([
             'prospect_id' => $prospect->id,
-            'job_type' => 'accessibility',
-            'status' => 'running',
+            'job_type' => AuditJobType::Accessibility,
+            'status' => AuditJobStatus::Running,
             'attempts' => $this->attempts(),
             'started_at' => now(),
         ]);
@@ -102,7 +110,7 @@ class AuditSiteJob implements ShouldQueue
             $prospect->update($updates);
 
             $auditJob->update([
-                'status' => 'complete',
+                'status' => AuditJobStatus::Complete,
                 'completed_at' => now(),
             ]);
 
@@ -115,14 +123,14 @@ class AuditSiteJob implements ShouldQueue
             ]);
 
             $auditJob->update([
-                'status' => 'failed',
+                'status' => AuditJobStatus::Failed,
                 'completed_at' => now(),
             ]);
 
             $errorRecorder->recordFailure($auditJob, $errorRecorder->formatThrowable($e));
 
-            if ($this->attempts() >= $this->tries) {
-                $prospect->update(['audit_status' => 'failed']);
+            if ($this->attempts() >= $this->tries()) {
+                $prospect->update(['audit_status' => AuditStatus::Failed]);
                 $searchStatus->refresh($prospect->search);
             }
 

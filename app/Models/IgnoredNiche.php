@@ -2,16 +2,17 @@
 
 namespace App\Models;
 
+use App\Enums\IgnoredNicheReason;
 use Illuminate\Database\Eloquent\Model;
 
 class IgnoredNiche extends Model
 {
-    public const REASON_MANUAL = 'manual';
-
-    public const REASON_LOW_RESULTS = 'low_results';
-
     protected $fillable = [
         'niche',
         'reason',
+    ];
+
+    protected $casts = [
+        'reason' => IgnoredNicheReason::class,
     ];
 }

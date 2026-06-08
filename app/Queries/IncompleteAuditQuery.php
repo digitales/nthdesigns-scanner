@@ -2,6 +2,9 @@
 
 namespace App\Queries;
 
+use App\Enums\AuditStatus;
+use App\Enums\ScanType;
+use App\Enums\SearchStatus;
 use App\Models\Prospect;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -12,11 +15,11 @@ final class IncompleteAuditQuery
     {
         return Prospect::query()
             ->with('search')
-            ->whereHas('search', fn (Builder $q) => $q->whereIn('status', ['auditing', 'complete']))
-            ->whereHas('search', fn (Builder $q) => $q->whereIn('scan_type', ['accessibility_only', 'combined']))
+            ->whereHas('search', fn (Builder $q) => $q->whereIn('status', [SearchStatus::Auditing->value, SearchStatus::Complete->value]))
+            ->whereHas('search', fn (Builder $q) => $q->whereIn('scan_type', [ScanType::AccessibilityOnly->value, ScanType::Combined->value]))
             ->whereNotNull('website_url')
             ->where('website_url', '!=', '')
-            ->whereIn('audit_status', ['complete', 'failed'])
+            ->whereIn('audit_status', [AuditStatus::Complete->value, AuditStatus::Failed->value])
             ->where(function (Builder $q) {
                 $q->whereNull('raw_a11y_payload')
                     ->orWhereNull('raw_lighthouse_payload')

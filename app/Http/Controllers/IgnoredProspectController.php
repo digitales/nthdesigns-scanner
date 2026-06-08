@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\IgnoredProspectReason;
 use App\Http\Requests\FilterIgnoredProspectsRequest;
 use App\Models\IgnoredProspect;
 use App\Services\ProspectExclusionService;
@@ -29,10 +30,9 @@ class IgnoredProspectController extends Controller
             ],
             'reasonOptions' => [
                 ['value' => '', 'label' => 'All reasons'],
-                ['value' => IgnoredProspect::REASON_ACQUIRED, 'label' => 'Company acquired'],
-                ['value' => IgnoredProspect::REASON_COLD, 'label' => 'Cold lead'],
-                ['value' => IgnoredProspect::REASON_OUTREACH_FAILED, 'label' => 'Outreach did not work'],
-                ['value' => IgnoredProspect::REASON_OTHER, 'label' => 'Other'],
+                ...collect(IgnoredProspectReason::cases())
+                    ->map(fn (IgnoredProspectReason $reason) => ['value' => $reason->value, 'label' => $reason->label()])
+                    ->all(),
             ],
         ]);
     }

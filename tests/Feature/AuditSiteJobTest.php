@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Enums\AuditStatus;
+use App\Enums\ScanType;
 use App\Jobs\AuditSiteJob;
 use App\Jobs\CombineScoresJob;
 use App\Models\Prospect;
@@ -27,13 +29,13 @@ class AuditSiteJobTest extends TestCase
         $user = User::factory()->create();
         $search = Search::factory()->create([
             'user_id' => $user->id,
-            'scan_type' => 'combined',
+            'scan_type' => ScanType::Combined,
         ]);
 
         return Prospect::factory()->create([
             'search_id' => $search->id,
             'website_url' => 'https://example.com',
-            'audit_status' => 'pending',
+            'audit_status' => AuditStatus::Pending,
         ]);
     }
 
@@ -68,7 +70,7 @@ class AuditSiteJobTest extends TestCase
             $this->assertSame('timeout', $e->getMessage());
         }
 
-        $this->assertSame('pending', $prospect->fresh()->audit_status);
+        $this->assertSame(AuditStatus::Pending, $prospect->fresh()->audit_status);
     }
 
     public function test_marks_failed_on_final_attempt(): void
@@ -102,6 +104,6 @@ class AuditSiteJobTest extends TestCase
             // expected
         }
 
-        $this->assertSame('failed', $prospect->fresh()->audit_status);
+        $this->assertSame(AuditStatus::Failed, $prospect->fresh()->audit_status);
     }
 }

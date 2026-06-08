@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use App\Enums\ScanType;
+use App\Enums\SearchStatus;
 use Illuminate\Database\Eloquent\Builder;
 
 final class RepairAuditScope
@@ -10,8 +12,8 @@ final class RepairAuditScope
     {
         return $query
             ->with('search')
-            ->whereHas('search', fn (Builder $q) => $q->whereIn('status', ['auditing', 'complete']))
-            ->whereHas('search', fn (Builder $q) => $q->whereIn('scan_type', ['accessibility_only', 'combined']))
+            ->whereHas('search', fn (Builder $q) => $q->whereIn('status', [SearchStatus::Auditing->value, SearchStatus::Complete->value]))
+            ->whereHas('search', fn (Builder $q) => $q->whereIn('scan_type', [ScanType::AccessibilityOnly->value, ScanType::Combined->value]))
             ->whereNotNull('website_url')
             ->where('website_url', '!=', '');
     }

@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Enums\AuditStatus;
+use App\Enums\ScanType;
 use App\Jobs\AuditSiteJob;
 use App\Jobs\CombineScoresJob;
 use App\Models\Prospect;
@@ -31,12 +33,12 @@ class AuditDriverTest extends TestCase
         $user = User::factory()->create();
         $search = Search::factory()->create([
             'user_id' => $user->id,
-            'scan_type' => 'combined',
+            'scan_type' => ScanType::Combined,
         ]);
         $prospect = Prospect::factory()->create([
             'search_id' => $search->id,
             'website_url' => 'https://example.com',
-            'audit_status' => 'pending',
+            'audit_status' => AuditStatus::Pending,
         ]);
 
         $job = new AuditSiteJob($prospect);
@@ -64,13 +66,13 @@ class AuditDriverTest extends TestCase
         $user = User::factory()->create();
         $search = Search::factory()->create([
             'user_id' => $user->id,
-            'scan_type' => 'combined',
+            'scan_type' => ScanType::Combined,
         ]);
         $prospect = Prospect::factory()->create([
             'search_id' => $search->id,
             'website_url' => 'https://example.com',
             'gbp_score' => 40,
-            'audit_status' => 'pending',
+            'audit_status' => AuditStatus::Pending,
         ]);
 
         $job = new CombineScoresJob($prospect);
@@ -80,6 +82,6 @@ class AuditDriverTest extends TestCase
         );
 
         $prospect->refresh();
-        $this->assertSame('skipped', $prospect->audit_status);
+        $this->assertSame(AuditStatus::Skipped, $prospect->audit_status);
     }
 }

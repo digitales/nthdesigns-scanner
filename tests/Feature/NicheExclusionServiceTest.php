@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Enums\IgnoredNicheReason;
+use App\Enums\NicheScanStatus;
 use App\Models\IgnoredNiche;
 use App\Models\NicheScan;
 use App\Models\User;
@@ -31,7 +33,7 @@ class NicheExclusionServiceTest extends TestCase
                 'scan_date' => '2026-05-27',
                 'result_count' => 1,
                 'sampled_count' => 1,
-                'status' => 'complete',
+                'status' => NicheScanStatus::Complete,
                 'ran_at' => now(),
             ]);
         }
@@ -40,7 +42,7 @@ class NicheExclusionServiceTest extends TestCase
 
         $this->assertDatabaseHas('ignored_niches', [
             'niche' => 'Span',
-            'reason' => IgnoredNiche::REASON_LOW_RESULTS,
+            'reason' => IgnoredNicheReason::LowResults->value,
         ]);
     }
 
@@ -55,7 +57,7 @@ class NicheExclusionServiceTest extends TestCase
 
         IgnoredNiche::query()->create([
             'niche' => 'Span',
-            'reason' => IgnoredNiche::REASON_MANUAL,
+            'reason' => IgnoredNicheReason::Manual->value,
         ]);
 
         NicheScan::query()->create([
@@ -66,7 +68,7 @@ class NicheExclusionServiceTest extends TestCase
             'scan_date' => '2026-05-27',
             'result_count' => 40,
             'sampled_count' => 5,
-            'status' => 'complete',
+            'status' => NicheScanStatus::Complete,
             'ran_at' => now(),
         ]);
 
@@ -74,7 +76,7 @@ class NicheExclusionServiceTest extends TestCase
 
         $this->assertDatabaseHas('ignored_niches', [
             'niche' => 'Span',
-            'reason' => IgnoredNiche::REASON_MANUAL,
+            'reason' => IgnoredNicheReason::Manual->value,
         ]);
     }
 
@@ -89,7 +91,7 @@ class NicheExclusionServiceTest extends TestCase
 
         IgnoredNiche::query()->create([
             'niche' => 'Span',
-            'reason' => IgnoredNiche::REASON_LOW_RESULTS,
+            'reason' => IgnoredNicheReason::LowResults->value,
         ]);
 
         app(NicheExclusionService::class)->includeInScans('Span');
@@ -113,7 +115,7 @@ class NicheExclusionServiceTest extends TestCase
 
         $this->assertDatabaseHas('ignored_niches', [
             'niche' => 'Dental Clinic',
-            'reason' => IgnoredNiche::REASON_MANUAL,
+            'reason' => IgnoredNicheReason::Manual->value,
         ]);
 
         $this->actingAs($user)

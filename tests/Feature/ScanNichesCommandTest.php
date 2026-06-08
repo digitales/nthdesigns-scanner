@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Enums\IgnoredNicheReason;
+use App\Enums\NicheScanStatus;
 use App\Jobs\ScanNicheJob;
 use App\Models\IgnoredNiche;
 use App\Models\NicheScan;
@@ -29,11 +31,11 @@ class ScanNichesCommandTest extends TestCase
 
         Queue::assertPushed(ScanNicheJob::class, 2);
 
-        Queue::assertPushed(ScanNicheJob::class, function (ScanNicheJob $job) {
+        Queue::assertPushed(ScanNicheJob::class, function (ScanNicheJob $job, ?string $queue) {
             return $job->niche === 'Dental Practice'
                 && $job->city === 'Birmingham'
                 && $job->sample === 3
-                && $job->queue === NicheQueue::NAME;
+                && $queue === NicheQueue::NAME;
         });
     }
 
@@ -71,7 +73,7 @@ class ScanNichesCommandTest extends TestCase
             'scan_date' => now('Europe/London')->toDateString(),
             'result_count' => 10,
             'sampled_count' => 5,
-            'status' => 'complete',
+            'status' => NicheScanStatus::Complete,
             'ran_at' => now(),
         ]);
 
@@ -98,7 +100,7 @@ class ScanNichesCommandTest extends TestCase
             'scan_date' => now('Europe/London')->toDateString(),
             'result_count' => 10,
             'sampled_count' => 5,
-            'status' => 'complete',
+            'status' => NicheScanStatus::Complete,
             'ran_at' => now(),
         ]);
 
@@ -131,7 +133,7 @@ class ScanNichesCommandTest extends TestCase
 
         IgnoredNiche::query()->create([
             'niche' => 'Span',
-            'reason' => IgnoredNiche::REASON_MANUAL,
+            'reason' => IgnoredNicheReason::Manual->value,
         ]);
 
         $this->artisan('niches:scan')

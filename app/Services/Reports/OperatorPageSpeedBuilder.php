@@ -2,6 +2,9 @@
 
 namespace App\Services\Reports;
 
+use App\Enums\AuditJobStatus;
+use App\Enums\AuditJobType;
+use App\Enums\AuditStatus;
 use App\Models\Prospect;
 use Illuminate\Support\Carbon;
 
@@ -16,7 +19,7 @@ class OperatorPageSpeedBuilder
     {
         $prospect->loadMissing('search');
 
-        if ($prospect->audit_status !== 'complete') {
+        if ($prospect->audit_status !== AuditStatus::Complete) {
             return null;
         }
 
@@ -44,8 +47,8 @@ class OperatorPageSpeedBuilder
     {
         $completedJob = $prospect->relationLoaded('auditJobs')
             ? $prospect->auditJobs
-                ->where('job_type', 'accessibility')
-                ->where('status', 'complete')
+                ->where('job_type', AuditJobType::Accessibility)
+                ->where('status', AuditJobStatus::Complete)
                 ->sortByDesc('completed_at')
                 ->first()
             : null;

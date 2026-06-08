@@ -2,37 +2,38 @@
 
 namespace App\Jobs;
 
+use App\Enums\SearchStatus;
 use App\Models\Search;
 use App\Services\BenchmarkNormalizer;
 use App\Services\GooglePlacesService;
 use App\Services\ProspectExclusionService;
-use App\Support\SearchQueue;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\Attributes\Tries;
+use Illuminate\Queue\Attributes\WithoutRelations;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
+#[Tries(3)]
 class ScrapeProspectsJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public int $tries = 3;
-
     public int $backoff = 30;
 
-    public function __construct(public Search $search)
-    {
-        SearchQueue::apply($this);
-    }
+    public function __construct(
+        #[WithoutRelations]
+        public Search $search,
+    ) {}
 
     public function handle(
         GooglePlacesService $places,
         ProspectExclusionService $exclusions,
         BenchmarkNormalizer $benchmarks,
     ): void {
-        $this->search->update(['status' => 'discovering']);
+        $this->search->update(['status' => SearchStatus::Discovering]);
 
         try {
             $placeIds = $exclusions->filterPlaceIds(
@@ -64,7 +65,7 @@ class ScrapeProspectsJob implements ShouldQueue
             ]);
 
             if (count($placeIds) === 0) {
-                $this->search->update(['status' => 'complete']);
+                $this->search->update(['status' => SearchStatus::Complete]);
 
                 return;
             }
@@ -78,7 +79,7 @@ class ScrapeProspectsJob implements ShouldQueue
                 'search_id' => $this->search->id,
                 'error' => $e->getMessage(),
             ]);
-            $this->search->update(['status' => 'failed']);
+            $this->search->update(['status' => SearchStatus::Failed]);
             throw $e;
         }
     }

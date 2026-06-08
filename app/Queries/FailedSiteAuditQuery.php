@@ -2,6 +2,9 @@
 
 namespace App\Queries;
 
+use App\Enums\AuditJobStatus;
+use App\Enums\AuditJobType;
+use App\Enums\AuditStatus;
 use App\Models\AuditJob;
 use App\Models\Prospect;
 use App\Support\RepairAuditScope;
@@ -17,7 +20,7 @@ final class FailedSiteAuditQuery
         }
 
         $query = RepairAuditScope::applySiteAuditProspectScope(Prospect::query())
-            ->where('audit_status', 'failed')
+            ->where('audit_status', AuditStatus::Failed->value)
             ->orderBy('id');
 
         if ($excludeProspectIds !== []) {
@@ -57,8 +60,8 @@ final class FailedSiteAuditQuery
 
         $latest = AuditJob::query()
             ->where('prospect_id', $prospect->id)
-            ->where('job_type', 'accessibility')
-            ->where('status', 'failed')
+            ->where('job_type', AuditJobType::Accessibility->value)
+            ->where('status', AuditJobStatus::Failed->value)
             ->latest('id')
             ->value('error_message');
 

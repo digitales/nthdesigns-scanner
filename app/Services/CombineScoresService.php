@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Enums\DominantAngle;
+use App\Enums\ScanType;
 use App\Models\Prospect;
 
 class CombineScoresService
@@ -10,10 +12,12 @@ class CombineScoresService
      * Scan type for scoring and display. GBP-only searches upgrade to combined
      * once this prospect has site-audit payload (batch or ad-hoc "Run site audit").
      */
-    public function effectiveScanType(Prospect $prospect, string $searchScanType): string
+    public function effectiveScanType(Prospect $prospect, string|ScanType $searchScanType): string
     {
-        if ($searchScanType === 'gbp_only' && $this->prospectHasSiteAudit($prospect)) {
-            return 'combined';
+        $searchScanType = $this->normalizeScanType($searchScanType);
+
+        if ($searchScanType === ScanType::GbpOnly->value && $this->prospectHasSiteAudit($prospect)) {
+            return ScanType::Combined->value;
         }
 
         return $searchScanType;
@@ -22,9 +26,9 @@ class CombineScoresService
     /**
      * @return array{combined_score: int, dominant_angle: string}
      */
-    public function combineForProspect(Prospect $prospect, ?string $searchScanType = null): array
+    public function combineForProspect(Prospect $prospect, string|ScanType|null $searchScanType = null): array
     {
-        $searchScanType ??= $prospect->search?->scan_type ?? 'gbp_only';
+        $searchScanType ??= $prospect->search?->scan_type ?? ScanType::GbpOnly;
 
         return $this->combine($prospect, $this->effectiveScanType($prospect, $searchScanType));
     }
@@ -40,18 +44,18 @@ class CombineScoresService
         $a11y = (int) $prospect->a11y_score;
 
         return match ($scanType) {
-            'gbp_only' => [
+            ScanType::GbpOnly->value => [
                 'combined_score' => $gbp,
-                'dominant_angle' => 'gbp',
+                'dominant_angle' => DominantAngle::Gbp->value,
             ],
-            'accessibility_only' => [
+            ScanType::AccessibilityOnly->value => [
                 'combined_score' => $a11y,
-                'dominant_angle' => 'accessibility',
+                'dominant_angle' => DominantAngle::Accessibility->value,
             ],
-            'combined' => $this->combineBoth($gbp, $a11y, (int) $prospect->performance_score),
+            ScanType::Combined->value => $this->combineBoth($gbp, $a11y, (int) $prospect->performance_score),
             default => [
                 'combined_score' => $gbp,
-                'dominant_angle' => 'gbp',
+                'dominant_angle' => DominantAngle::Gbp->value,
             ],
         };
     }
@@ -72,11 +76,11 @@ class CombineScoresService
             ($gbp * 0.35) + ($a11y * 0.50) + ($perfWeakness * 0.15)
         );
 
-        $dominant = 'both';
+        $dominant = DominantAngle::Both->value;
         if ($a11y > 70) {
-            $dominant = 'accessibility';
+            $dominant = DominantAngle::Accessibility->value;
         } elseif ($gbp > 70) {
-            $dominant = 'gbp';
+            $dominant = DominantAngle::Gbp->value;
         }
 
         return [
@@ -90,5 +94,10 @@ class CombineScoresService
         $payload = $prospect->raw_a11y_payload;
 
         return is_array($payload) && $payload !== [];
+    }
+
+    private function normalizeScanType(string|ScanType $scanType): string
+    {
+        return $scanType instanceof ScanType ? $scanType->value : $scanType;
     }
 }

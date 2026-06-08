@@ -2,12 +2,12 @@
 
 namespace Tests\Unit;
 
-use App\Services\AnthropicService;
+use App\Services\OpenRouterService;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
-class AnthropicServiceTest extends TestCase
+class OpenRouterServiceTest extends TestCase
 {
     public function test_complete_parses_openrouter_chat_response(): void
     {
@@ -28,7 +28,7 @@ class AnthropicServiceTest extends TestCase
             ]),
         ]);
 
-        $result = (new AnthropicService)->complete('system', 'user');
+        $result = (new OpenRouterService)->complete('system', 'user');
 
         $this->assertSame('{"subject_line":"Hi","email_body":"Body"}', $result['content']);
         $this->assertSame('anthropic/claude-sonnet-4', $result['model']);
@@ -53,6 +53,6 @@ class AnthropicServiceTest extends TestCase
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('OPENROUTER_API_KEY is not configured');
 
-        (new AnthropicService)->complete('system', 'user');
+        (new OpenRouterService)->complete('system', 'user');
     }
 }

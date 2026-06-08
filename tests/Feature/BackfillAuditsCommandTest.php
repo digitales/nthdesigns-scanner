@@ -2,6 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Enums\AuditStatus;
+use App\Enums\ScanType;
+use App\Enums\SearchStatus;
 use App\Jobs\AuditSiteJob;
 use App\Models\Prospect;
 use App\Models\Search;
@@ -20,14 +23,14 @@ class BackfillAuditsCommandTest extends TestCase
         $user = User::factory()->create();
         $search = Search::factory()->create([
             'user_id' => $user->id,
-            'scan_type' => 'combined',
-            'status' => 'complete',
+            'scan_type' => ScanType::Combined,
+            'status' => SearchStatus::Complete,
         ]);
 
         return Prospect::factory()->create([
             'search_id' => $search->id,
             'website_url' => 'https://example.com',
-            'audit_status' => 'complete',
+            'audit_status' => AuditStatus::Complete,
             'a11y_score' => 55,
             'performance_score' => 42,
             'raw_a11y_payload' => ['violations' => []],
@@ -46,7 +49,7 @@ class BackfillAuditsCommandTest extends TestCase
             ->assertExitCode(0);
 
         $prospect->refresh();
-        $this->assertSame('complete', $prospect->audit_status);
+        $this->assertSame(AuditStatus::Complete, $prospect->audit_status);
         $this->assertNotNull($prospect->raw_a11y_payload);
         Queue::assertNothingPushed();
     }
@@ -62,15 +65,15 @@ class BackfillAuditsCommandTest extends TestCase
             ->assertExitCode(0);
 
         $prospect->refresh();
-        $this->assertSame('pending', $prospect->audit_status);
+        $this->assertSame(AuditStatus::Pending, $prospect->audit_status);
         $this->assertNull($prospect->raw_a11y_payload);
         $this->assertNull($prospect->raw_lighthouse_payload);
         $this->assertSame(0, $prospect->a11y_score);
         $this->assertSame(0, $prospect->performance_score);
 
-        Queue::assertPushed(AuditSiteJob::class, function (AuditSiteJob $job) use ($prospect) {
+        Queue::assertPushed(AuditSiteJob::class, function (AuditSiteJob $job, ?string $queue) use ($prospect) {
             return $job->prospect->id === $prospect->id
-                && $job->queue === AuditingQueue::NAME;
+                && $queue === AuditingQueue::NAME;
         });
     }
 

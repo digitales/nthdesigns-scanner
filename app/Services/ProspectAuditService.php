@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Enums\AuditStatus;
+use App\Enums\ScanType;
 use App\Jobs\AuditSiteJob;
 use App\Models\Prospect;
 use Illuminate\Validation\ValidationException;
@@ -16,7 +18,7 @@ class ProspectAuditService
     {
         $prospect->loadMissing('search');
 
-        if ($prospect->audit_status === 'pending') {
+        if ($prospect->audit_status === AuditStatus::Pending) {
             throw ValidationException::withMessages([
                 'website_url' => 'A site audit is already in progress.',
             ]);
@@ -53,7 +55,7 @@ class ProspectAuditService
             ]);
         }
 
-        if (! in_array($prospect->search->scan_type, ['accessibility_only', 'combined'], true)) {
+        if (! in_array($prospect->search->scan_type, [ScanType::AccessibilityOnly, ScanType::Combined], true)) {
             throw ValidationException::withMessages([
                 'website_url' => 'This search type does not include site audits.',
             ]);
@@ -76,7 +78,7 @@ class ProspectAuditService
     public function auditResetFields(): array
     {
         return [
-            'audit_status' => 'pending',
+            'audit_status' => AuditStatus::Pending,
             'raw_a11y_payload' => null,
             'raw_lighthouse_payload' => null,
             'a11y_score' => 0,

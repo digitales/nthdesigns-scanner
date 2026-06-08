@@ -10,6 +10,7 @@ use Tests\TestCase;
 class GooglePlacesServiceTest extends TestCase
 {
     use RefreshDatabase;
+
     public function test_get_top_ranked_excludes_prospect_place_id(): void
     {
         config(['services.google_places.key' => 'test-key']);

@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Enums\AuditStatus;
+use App\Enums\SearchStatus;
 use App\Models\Prospect;
 use App\Models\Search;
 
@@ -14,7 +16,7 @@ class SearchStatusService
     {
         $search = $search->fresh();
 
-        if (! $search || $search->status === 'complete' || $search->status === 'failed') {
+        if (! $search || in_array($search->status, [SearchStatus::Complete, SearchStatus::Failed], true)) {
             return;
         }
 
@@ -36,22 +38,22 @@ class SearchStatusService
             return;
         }
 
-        $pendingAudits = (int) ($statusCounts['pending'] ?? 0);
+        $pendingAudits = (int) ($statusCounts[AuditStatus::Pending->value] ?? 0);
 
         if ($pendingAudits > 0) {
-            if ($search->status !== 'auditing') {
-                $search->update(['status' => 'auditing']);
+            if ($search->status !== SearchStatus::Auditing) {
+                $search->update(['status' => SearchStatus::Auditing]);
             }
 
             return;
         }
 
-        $finishedCount = (int) ($statusCounts['complete'] ?? 0)
-            + (int) ($statusCounts['skipped'] ?? 0)
-            + (int) ($statusCounts['failed'] ?? 0);
+        $finishedCount = (int) ($statusCounts[AuditStatus::Complete->value] ?? 0)
+            + (int) ($statusCounts[AuditStatus::Skipped->value] ?? 0)
+            + (int) ($statusCounts[AuditStatus::Failed->value] ?? 0);
 
         if ($finishedCount >= $totalFound) {
-            $search->update(['status' => 'complete']);
+            $search->update(['status' => SearchStatus::Complete]);
         }
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\PitchAngle;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -21,6 +22,7 @@ class OutreachEmail extends Model
         return [
             'sent_at' => 'datetime',
             'response_received' => 'boolean',
+            'pitch_angle' => PitchAngle::class,
         ];
     }
 

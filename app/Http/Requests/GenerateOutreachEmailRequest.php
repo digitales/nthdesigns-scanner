@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\PitchAngleOption;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class GenerateOutreachEmailRequest extends FormRequest
 {
@@ -15,7 +17,7 @@ class GenerateOutreachEmailRequest extends FormRequest
     {
         return [
             'agency_name' => ['nullable', 'string', 'max:100'],
-            'pitch_angle' => ['required', 'in:auto,gbp,accessibility,combined'],
+            'pitch_angle' => ['required', Rule::enum(PitchAngleOption::class)],
             'cpc_benchmark' => ['nullable', 'numeric', 'min:0'],
         ];
     }

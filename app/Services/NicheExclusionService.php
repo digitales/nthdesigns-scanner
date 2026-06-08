@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Enums\IgnoredNicheReason;
+use App\Enums\NicheScanStatus;
 use App\Models\IgnoredNiche;
 use App\Models\NicheInclusionOverride;
 use App\Queries\LatestNicheScanQuery;
@@ -28,7 +30,7 @@ final class NicheExclusionService
     {
         IgnoredNiche::query()->updateOrCreate(
             ['niche' => $niche],
-            ['reason' => IgnoredNiche::REASON_MANUAL],
+            ['reason' => IgnoredNicheReason::Manual],
         );
 
         NicheInclusionOverride::query()->where('niche', $niche)->delete();
@@ -42,7 +44,7 @@ final class NicheExclusionService
             return;
         }
 
-        if ($ignored->reason === IgnoredNiche::REASON_LOW_RESULTS) {
+        if ($ignored->reason === IgnoredNicheReason::LowResults) {
             NicheInclusionOverride::query()->firstOrCreate(['niche' => $niche]);
         }
 
@@ -54,7 +56,7 @@ final class NicheExclusionService
         if (NicheInclusionOverride::query()->where('niche', $niche)->exists()) {
             IgnoredNiche::query()
                 ->where('niche', $niche)
-                ->where('reason', IgnoredNiche::REASON_LOW_RESULTS)
+                ->where('reason', IgnoredNicheReason::LowResults->value)
                 ->delete();
 
             return;
@@ -62,7 +64,7 @@ final class NicheExclusionService
 
         if (IgnoredNiche::query()
             ->where('niche', $niche)
-            ->where('reason', IgnoredNiche::REASON_MANUAL)
+            ->where('reason', IgnoredNicheReason::Manual->value)
             ->exists()) {
             return;
         }
@@ -77,7 +79,7 @@ final class NicheExclusionService
         if ($maxResults < $minResults) {
             IgnoredNiche::query()->updateOrCreate(
                 ['niche' => $niche],
-                ['reason' => IgnoredNiche::REASON_LOW_RESULTS],
+                ['reason' => IgnoredNicheReason::LowResults],
             );
 
             return;
@@ -85,7 +87,7 @@ final class NicheExclusionService
 
         IgnoredNiche::query()
             ->where('niche', $niche)
-            ->where('reason', IgnoredNiche::REASON_LOW_RESULTS)
+            ->where('reason', IgnoredNicheReason::LowResults->value)
             ->delete();
     }
 
@@ -142,7 +144,7 @@ final class NicheExclusionService
     private function maxLatestResultCount(string $niche): ?int
     {
         $latestIds = LatestNicheScanQuery::ranked(
-            fn ($query) => $query->where('niche', $niche)->where('status', 'complete'),
+            fn ($query) => $query->where('niche', $niche)->where('status', NicheScanStatus::Complete),
         )->pluck('result_count');
 
         if ($latestIds->isEmpty()) {

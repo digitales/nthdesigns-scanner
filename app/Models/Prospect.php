@@ -2,6 +2,10 @@
 
 namespace App\Models;
 
+use App\Enums\AuditStatus;
+use App\Enums\DominantAngle;
+use App\Enums\WebsiteDiscoveryConfidence;
+use App\Enums\WebsiteUrlSource;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -36,6 +40,10 @@ class Prospect extends Model
             'expires_at' => 'datetime',
             'website_discovered_at' => 'datetime',
             'suppress_auto_report' => 'boolean',
+            'audit_status' => AuditStatus::class,
+            'dominant_angle' => DominantAngle::class,
+            'website_url_source' => WebsiteUrlSource::class,
+            'website_discovery_confidence' => WebsiteDiscoveryConfidence::class,
         ];
     }
 

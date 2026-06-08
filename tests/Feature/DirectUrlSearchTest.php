@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Enums\ScanType;
+use App\Enums\SearchSource;
 use App\Jobs\DirectUrlScanJob;
 use App\Models\Search;
 use App\Models\User;
@@ -26,9 +28,9 @@ class DirectUrlSearchTest extends TestCase
 
         $search = Search::first();
         $this->assertNotNull($search);
-        $this->assertSame('direct_url', $search->source);
+        $this->assertSame(SearchSource::DirectUrl, $search->source);
         $this->assertSame('https://example.com', $search->submitted_url);
-        $this->assertSame('combined', $search->scan_type);
+        $this->assertSame(ScanType::Combined, $search->scan_type);
         $this->assertNull($search->niche);
         $this->assertNull($search->city);
 

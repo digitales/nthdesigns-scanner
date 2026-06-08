@@ -6,12 +6,12 @@ use App\Models\ReportBooking;
 use App\Services\Booking\ReportBookingConfirmationSender;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Queue\Attributes\Tries;
 
+#[Tries(3)]
 class SendReportBookingConfirmationJob implements ShouldQueue
 {
     use Queueable;
-
-    public int $tries = 3;
 
     public function __construct(
         public int $bookingId,

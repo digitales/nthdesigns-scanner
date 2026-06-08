@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Enums\DominantAngle;
+use App\Enums\PitchAngle;
 use App\Models\Prospect;
 use App\Models\ProspectReport;
 use App\Support\TidyCalEmbed;
@@ -9,7 +11,7 @@ use App\Support\TidyCalEmbed;
 class OutreachEmailGeneratorService
 {
     public function __construct(
-        private AnthropicService $anthropic,
+        private OpenRouterService $openRouter,
         private AgencyBookingService $agencyBooking,
     ) {}
 
@@ -18,7 +20,7 @@ class OutreachEmailGeneratorService
         $pitchAngle = $options['pitch_angle'] ?? 'auto';
 
         if ($pitchAngle === 'auto') {
-            return $this->resolvePitchAngle($prospect);
+            return $this->resolvePitchAngle($prospect)->value;
         }
 
         return $pitchAngle;
@@ -47,7 +49,7 @@ PROMPT;
 
         $user = $this->buildUserPrompt($prospect, $pitchAngle, $reportUrl, $options);
 
-        $result = $this->anthropic->complete($system, $user);
+        $result = $this->openRouter->complete($system, $user);
         $parsed = $this->parseResponse($result['content']);
 
         return [
@@ -60,13 +62,22 @@ PROMPT;
         ];
     }
 
-    private function resolvePitchAngle(Prospect $prospect): string
+    private function resolvePitchAngle(Prospect $prospect): PitchAngle
     {
-        return match ($prospect->dominant_angle) {
-            'accessibility' => 'accessibility',
-            'both' => 'combined',
-            default => 'gbp',
+        return match ($this->normalizeDominantAngle($prospect->dominant_angle)) {
+            DominantAngle::Accessibility => PitchAngle::Accessibility,
+            DominantAngle::Both => PitchAngle::Combined,
+            default => PitchAngle::Gbp,
         };
+    }
+
+    private function normalizeDominantAngle(mixed $dominantAngle): DominantAngle
+    {
+        if ($dominantAngle instanceof DominantAngle) {
+            return $dominantAngle;
+        }
+
+        return DominantAngle::tryFrom((string) $dominantAngle) ?? DominantAngle::Gbp;
     }
 
     private function buildUserPrompt(Prospect $prospect, string $pitchAngle, ?string $reportUrl, array $options = []): string

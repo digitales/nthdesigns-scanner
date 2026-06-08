@@ -2,6 +2,9 @@
 
 namespace App\Queries;
 
+use App\Enums\AuditJobStatus;
+use App\Enums\AuditJobType;
+use App\Enums\SearchStatus;
 use App\Models\AuditJob;
 use App\Models\ProspectReport;
 use App\Support\AuditingQueuePresence;
@@ -18,7 +21,7 @@ final class FailedScreenshotQuery
                 ->whereNotNull('website_url')
                 ->where('website_url', '!=', ''))
             ->whereHas('prospect.search', fn (Builder $q) => $q
-                ->whereIn('status', ['auditing', 'complete']))
+                ->whereIn('status', [SearchStatus::Auditing->value, SearchStatus::Complete->value]))
             ->orderBy('id');
     }
 
@@ -56,7 +59,7 @@ final class FailedScreenshotQuery
     {
         $latest = self::latestScreenshotJob($report->prospect_id);
 
-        if ($latest?->status === 'running') {
+        if ($latest?->status === AuditJobStatus::Running) {
             return 'screenshot running stale without queue job';
         }
 
@@ -79,11 +82,11 @@ final class FailedScreenshotQuery
         return $reports->filter(function (ProspectReport $report) use ($cutoff, $latestJobs) {
             $latest = $latestJobs->get($report->prospect_id);
 
-            if (! $latest || ! in_array($latest->status, ['failed', 'running'], true)) {
+            if (! $latest || ! in_array($latest->status, [AuditJobStatus::Failed, AuditJobStatus::Running], true)) {
                 return false;
             }
 
-            if ($latest->status === 'failed') {
+            if ($latest->status === AuditJobStatus::Failed) {
                 return true;
             }
 
@@ -113,7 +116,7 @@ final class FailedScreenshotQuery
         $latestIds = AuditJob::query()
             ->selectRaw('MAX(id) as id')
             ->whereIn('prospect_id', $prospectIds)
-            ->where('job_type', 'screenshot')
+            ->where('job_type', AuditJobType::Screenshot->value)
             ->groupBy('prospect_id')
             ->pluck('id');
 

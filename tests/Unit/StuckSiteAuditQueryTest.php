@@ -38,7 +38,7 @@ class StuckSiteAuditQueryTest extends TestCase
 
     public function test_matches_stale_pending_without_queue_job(): void
     {
-        Config::set('scanner.auditing_queue_connection', 'database');
+        $this->useAuditingDatabaseQueue();
 
         $prospect = $this->stalePendingProspect();
 
@@ -50,7 +50,7 @@ class StuckSiteAuditQueryTest extends TestCase
 
     public function test_does_not_match_fresh_pending(): void
     {
-        Config::set('scanner.auditing_queue_connection', 'database');
+        $this->useAuditingDatabaseQueue();
 
         $prospect = $this->stalePendingProspect();
         $prospect->forceFill(['updated_at' => now()->subMinutes(5)])->save();
@@ -60,7 +60,7 @@ class StuckSiteAuditQueryTest extends TestCase
 
     public function test_does_not_match_when_queue_job_present(): void
     {
-        Config::set('scanner.auditing_queue_connection', 'database');
+        $this->useAuditingDatabaseQueue();
 
         $prospect = $this->stalePendingProspect();
 
@@ -71,7 +71,7 @@ class StuckSiteAuditQueryTest extends TestCase
 
     public function test_matches_stale_running_accessibility_audit_job(): void
     {
-        Config::set('scanner.auditing_queue_connection', 'database');
+        $this->useAuditingDatabaseQueue();
 
         $prospect = $this->stalePendingProspect();
 
@@ -89,7 +89,7 @@ class StuckSiteAuditQueryTest extends TestCase
     public function test_excludes_when_audit_driver_skip(): void
     {
         Config::set('scanner.audit_driver', 'skip');
-        Config::set('scanner.auditing_queue_connection', 'database');
+        $this->useAuditingDatabaseQueue();
 
         $prospect = $this->stalePendingProspect();
 

@@ -2,6 +2,8 @@
 
 namespace App\Services\Mcp;
 
+use App\Enums\AuditStatus;
+use App\Enums\SearchStatus;
 use App\Http\Resources\SearchProspectResource;
 use App\Http\Resources\SearchSummaryMapper;
 use App\Models\Search;
@@ -87,7 +89,7 @@ class McpSearchService
 
         $payload = [
             'search_id' => $search->id,
-            'status' => $search->status,
+            'status' => $search->status->value,
             'progress_flow' => $flow,
             'app_url' => route('searches.show', $search),
         ];
@@ -97,7 +99,7 @@ class McpSearchService
                 return [
                     'id' => $prospect->id,
                     'business_name' => $prospect->business_name,
-                    'audit_status' => $prospect->audit_status,
+                    'audit_status' => ($prospect->audit_status ?? AuditStatus::Pending)->value,
                     'report_ready' => $prospect->report !== null,
                     'progress_flow' => $this->progressFlow->prospectFlow($prospect, $search),
                 ];
@@ -145,16 +147,16 @@ class McpSearchService
     private function buildProgress(Search $search, Collection $prospects): array
     {
         $auditStatusCounts = [
-            'pending' => 0,
-            'complete' => 0,
-            'failed' => 0,
-            'skipped' => 0,
+            AuditStatus::Pending->value => 0,
+            AuditStatus::Complete->value => 0,
+            AuditStatus::Failed->value => 0,
+            AuditStatus::Skipped->value => 0,
         ];
 
         $reportsReady = 0;
 
         foreach ($prospects as $prospect) {
-            $status = $prospect->audit_status ?? 'pending';
+            $status = ($prospect->audit_status ?? AuditStatus::Pending)->value;
             if (array_key_exists($status, $auditStatusCounts)) {
                 $auditStatusCounts[$status]++;
             }
@@ -168,7 +170,7 @@ class McpSearchService
             'prospects_total' => $prospects->count(),
             'audit_status_counts' => $auditStatusCounts,
             'reports_ready' => $reportsReady,
-            'search_complete' => in_array($search->status, ['complete', 'failed'], true),
+            'search_complete' => in_array($search->status, [SearchStatus::Complete, SearchStatus::Failed], true),
         ];
     }
 

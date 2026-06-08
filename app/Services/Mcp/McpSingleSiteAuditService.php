@@ -2,6 +2,9 @@
 
 namespace App\Services\Mcp;
 
+use App\Enums\ScanType;
+use App\Enums\SearchSource;
+use App\Enums\SearchStatus;
 use App\Jobs\DirectUrlScanJob;
 use App\Models\User;
 use App\Services\UserSettingsService;
@@ -45,11 +48,11 @@ class McpSingleSiteAuditService
         RateLimiter::hit($rateKey, $decay);
 
         $search = $user->searches()->create([
-            'source' => 'direct_url',
+            'source' => SearchSource::DirectUrl,
             'submitted_url' => $normalized,
             'country' => $this->settings->defaultCountry($user),
-            'scan_type' => 'combined',
-            'status' => 'pending',
+            'scan_type' => ScanType::Combined,
+            'status' => SearchStatus::Pending,
             'total_found' => 1,
         ]);
 
@@ -57,7 +60,7 @@ class McpSingleSiteAuditService
 
         return [
             'search_id' => $search->id,
-            'status' => $search->status,
+            'status' => $search->status->value,
             'app_url' => route('searches.show', $search),
         ];
     }

@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests;
 
-use App\Models\IgnoredProspect;
+use App\Enums\IgnoredProspectReason;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -18,13 +18,7 @@ class StoreIgnoredProspectRequest extends FormRequest
         return [
             'reason' => [
                 'required',
-                'string',
-                Rule::in([
-                    IgnoredProspect::REASON_ACQUIRED,
-                    IgnoredProspect::REASON_COLD,
-                    IgnoredProspect::REASON_OUTREACH_FAILED,
-                    IgnoredProspect::REASON_OTHER,
-                ]),
+                Rule::enum(IgnoredProspectReason::class),
             ],
             'note' => ['nullable', 'string', 'max:2000'],
         ];

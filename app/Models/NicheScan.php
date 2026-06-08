@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\NicheScanStatus;
 use Illuminate\Database\Eloquent\Model;
 
 class NicheScan extends Model
@@ -34,6 +35,7 @@ class NicheScan extends Model
             'pct_no_website' => 'float',
             'pct_low_reviews' => 'float',
             'opportunity_score' => 'float',
+            'status' => NicheScanStatus::class,
         ];
     }
 }

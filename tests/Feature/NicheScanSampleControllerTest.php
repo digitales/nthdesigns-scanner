@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\NicheScanStatus;
 use App\Jobs\ScanNicheJob;
 use App\Models\NicheScan;
 use App\Models\User;
@@ -74,7 +75,7 @@ class NicheScanSampleControllerTest extends TestCase
         Queue::assertPushed(ScanNicheJob::class, fn (ScanNicheJob $job) => $job->niche === $scan->niche
             && $job->city === $scan->city
             && $job->scanDate === $scan->scan_date->toDateString());
-        $this->assertSame('pending', $scan->fresh()->status);
+        $this->assertSame(NicheScanStatus::Pending, $scan->fresh()->status);
     }
 
     public function test_show_does_not_redispatch_while_backfill_pending(): void

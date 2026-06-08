@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ScanType;
+use App\Enums\SearchSource;
+use App\Enums\SearchStatus;
 use App\Http\Requests\StoreDirectUrlSearchRequest;
 use App\Http\Requests\StoreSearchRequest;
 use App\Http\Resources\SearchProspectResource;
@@ -105,11 +108,11 @@ class SearchController extends Controller
         RateLimiter::hit($rateKey, $decay);
 
         $search = $user->searches()->create([
-            'source' => 'direct_url',
+            'source' => SearchSource::DirectUrl,
             'submitted_url' => $url,
             'country' => $this->settings->defaultCountry($user),
-            'scan_type' => 'combined',
-            'status' => 'pending',
+            'scan_type' => ScanType::Combined,
+            'status' => SearchStatus::Pending,
             'total_found' => 1,
         ]);
 

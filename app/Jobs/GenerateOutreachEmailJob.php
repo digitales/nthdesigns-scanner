@@ -6,29 +6,29 @@ use App\Models\OutreachEmail;
 use App\Models\Prospect;
 use App\Models\User;
 use App\Services\OutreachEmailGeneratorService;
-use App\Support\SearchQueue;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\Attributes\Timeout;
+use Illuminate\Queue\Attributes\Tries;
+use Illuminate\Queue\Attributes\WithoutRelations;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
+#[Tries(2)]
+#[Timeout(90)]
 class GenerateOutreachEmailJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public int $tries = 2;
-
-    public int $timeout = 90;
-
     public function __construct(
+        #[WithoutRelations]
         public Prospect $prospect,
+        #[WithoutRelations]
         public User $user,
         public array $options = [],
-    ) {
-        SearchQueue::apply($this);
-    }
+    ) {}
 
     public function handle(OutreachEmailGeneratorService $generator): void
     {

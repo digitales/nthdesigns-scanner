@@ -2,6 +2,9 @@
 
 namespace App\Queries;
 
+use App\Enums\AuditJobStatus;
+use App\Enums\AuditJobType;
+use App\Enums\AuditStatus;
 use App\Models\AuditJob;
 use App\Models\Prospect;
 use App\Support\AuditingQueuePresence;
@@ -21,12 +24,12 @@ final class StuckSiteAuditQuery
         $cutoff = now()->subMinutes($stuckAfterMinutes);
 
         return RepairAuditScope::applySiteAuditProspectScope(Prospect::query())
-            ->where('audit_status', 'pending')
+            ->where('audit_status', AuditStatus::Pending->value)
             ->where(function (Builder $q) use ($cutoff) {
                 $q->where('updated_at', '<', $cutoff)
                     ->orWhereHas('auditJobs', function (Builder $job) use ($cutoff) {
-                        $job->where('job_type', 'accessibility')
-                            ->where('status', 'running')
+                        $job->where('job_type', AuditJobType::Accessibility->value)
+                            ->where('status', AuditJobStatus::Running->value)
                             ->where('started_at', '<', $cutoff);
                     });
             })
@@ -109,8 +112,8 @@ final class StuckSiteAuditQuery
     {
         return AuditJob::query()
             ->where('prospect_id', $prospectId)
-            ->where('job_type', 'accessibility')
-            ->where('status', 'running')
+            ->where('job_type', AuditJobType::Accessibility->value)
+            ->where('status', AuditJobStatus::Running->value)
             ->latest('id')
             ->first();
     }
@@ -127,8 +130,8 @@ final class StuckSiteAuditQuery
 
         return AuditJob::query()
             ->whereIn('prospect_id', $prospectIds)
-            ->where('job_type', 'accessibility')
-            ->where('status', 'running')
+            ->where('job_type', AuditJobType::Accessibility->value)
+            ->where('status', AuditJobStatus::Running->value)
             ->where('started_at', '<', $cutoff)
             ->pluck('prospect_id')
             ->unique()

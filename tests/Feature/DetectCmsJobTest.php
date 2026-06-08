@@ -99,8 +99,13 @@ class DetectCmsJobTest extends TestCase
                 ->andThrow(new \RuntimeException('CMS service unavailable'));
         });
 
-        $job = new DetectCmsJob($prospect);
-        $job->tries = 1;
+        $job = new class($prospect) extends DetectCmsJob
+        {
+            public function tries(): int
+            {
+                return 1;
+            }
+        };
 
         try {
             $job->handle(app(CmsDetectionRunnerService::class));
