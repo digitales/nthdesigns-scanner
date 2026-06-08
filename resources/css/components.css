@@ -2280,7 +2280,7 @@
   .booking-suggestion-time {
     font-size: 15px;
     font-weight: 500;
-    color: var(--color-stone-900);
+    color: var(--color-stone-800);
   }
   .booking-form { display: flex; flex-direction: column; gap: 14px; }
   .booking-add-to-calendar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
