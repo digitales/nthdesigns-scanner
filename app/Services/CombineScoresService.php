@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\DominantAngle;
 use App\Enums\ScanType;
 use App\Models\Prospect;
 
@@ -15,8 +16,8 @@ class CombineScoresService
     {
         $searchScanType = $this->normalizeScanType($searchScanType);
 
-        if ($searchScanType === 'gbp_only' && $this->prospectHasSiteAudit($prospect)) {
-            return 'combined';
+        if ($searchScanType === ScanType::GbpOnly->value && $this->prospectHasSiteAudit($prospect)) {
+            return ScanType::Combined->value;
         }
 
         return $searchScanType;
@@ -43,18 +44,18 @@ class CombineScoresService
         $a11y = (int) $prospect->a11y_score;
 
         return match ($scanType) {
-            'gbp_only' => [
+            ScanType::GbpOnly->value => [
                 'combined_score' => $gbp,
-                'dominant_angle' => 'gbp',
+                'dominant_angle' => DominantAngle::Gbp->value,
             ],
-            'accessibility_only' => [
+            ScanType::AccessibilityOnly->value => [
                 'combined_score' => $a11y,
-                'dominant_angle' => 'accessibility',
+                'dominant_angle' => DominantAngle::Accessibility->value,
             ],
-            'combined' => $this->combineBoth($gbp, $a11y, (int) $prospect->performance_score),
+            ScanType::Combined->value => $this->combineBoth($gbp, $a11y, (int) $prospect->performance_score),
             default => [
                 'combined_score' => $gbp,
-                'dominant_angle' => 'gbp',
+                'dominant_angle' => DominantAngle::Gbp->value,
             ],
         };
     }
@@ -75,11 +76,11 @@ class CombineScoresService
             ($gbp * 0.35) + ($a11y * 0.50) + ($perfWeakness * 0.15)
         );
 
-        $dominant = 'both';
+        $dominant = DominantAngle::Both->value;
         if ($a11y > 70) {
-            $dominant = 'accessibility';
+            $dominant = DominantAngle::Accessibility->value;
         } elseif ($gbp > 70) {
-            $dominant = 'gbp';
+            $dominant = DominantAngle::Gbp->value;
         }
 
         return [

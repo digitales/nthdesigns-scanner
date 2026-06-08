@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Enums\IgnoredNicheReason;
 use App\Enums\NicheScanStatus;
 use App\Jobs\ScanNicheJob;
-use App\Models\IgnoredNiche;
 use App\Models\NicheScan;
 use App\Services\NicheExclusionService;
 use App\Services\NicheSampleCollector;
