@@ -80,6 +80,9 @@ return [
     /** Poll interval for MCP streamable progress watches. */
     'mcp_progress_poll_seconds' => (int) env('MCP_PROGRESS_POLL_SECONDS', 2),
 
+    /** Max outreach queue rows loaded per request (index + generate). */
+    'outreach_queue_max' => (int) env('OUTREACH_QUEUE_MAX', 200),
+
     'api_quota' => [
         'enforcement' => filter_var(env('API_QUOTA_ENFORCEMENT', true), FILTER_VALIDATE_BOOL),
         'warning_percent' => (int) env('API_QUOTA_WARNING_PERCENT', 80),

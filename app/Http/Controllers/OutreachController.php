@@ -4,12 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\GenerateOutreachEmailRequest;
 use App\Http\Requests\StoreOutreachSelectionRequest;
-use App\Http\Resources\OutreachEmailResource;
 use App\Http\Resources\OutreachSelectionResource;
 use App\Jobs\GenerateOutreachEmailJob;
-use App\Models\OutreachEmail;
 use App\Models\OutreachSelection;
 use App\Models\Prospect;
+use App\Services\Outreach\OutreachQueueLoader;
 use App\Services\UserSettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,34 +17,17 @@ use Inertia\Response;
 
 class OutreachController extends Controller
 {
-    public function __construct(private UserSettingsService $settings) {}
+    public function __construct(
+        private UserSettingsService $settings,
+        private OutreachQueueLoader $queue,
+    ) {}
 
     public function index(Request $request): Response
     {
         $user = $request->user();
         $bookedOnly = $request->boolean('booked');
-
-        $selectionsQuery = $user->outreachSelections()
-            ->with(['prospect.search', 'prospect.report.booking', 'prospect.outreachEmails' => fn ($q) => $q->latest()])
-            ->orderBy('created_at');
-
-        if ($bookedOnly) {
-            $selectionsQuery->whereHas('prospect.report.booking');
-        }
-
-        $selections = $selectionsQuery->get();
-
-        $prospectIds = $selections->pluck('prospect_id');
-
-        $emailsByProspect = OutreachEmail::query()
-            ->where('user_id', $user->id)
-            ->whereIn('prospect_id', $prospectIds)
-            ->latest()
-            ->get()
-            ->groupBy('prospect_id')
-            ->map(fn ($emails) => $emails
-                ->map(fn (OutreachEmail $email) => OutreachEmailResource::format($email))
-                ->values());
+        $selections = $this->queue->selections($user, $bookedOnly);
+        $emailsByProspect = $this->queue->latestEmailsByProspect($user, $selections->pluck('prospect_id'));
 
         return Inertia::render('Outreach/Index', [
             'selection' => $selections
@@ -113,7 +95,7 @@ class OutreachController extends Controller
             $options['cpc_benchmark'] = (float) $validated['cpc_benchmark'];
         }
 
-        $selections = $request->user()->outreachSelections()->with('prospect.report')->get();
+        $selections = $this->queue->selections($request->user(), bookedOnly: false, withReport: true);
         $dispatched = 0;
         $skipped = [];
 
