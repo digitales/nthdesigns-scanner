@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\IgnoredNicheReason;
 use App\Enums\NicheScanStatus;
 use App\Jobs\ScanNicheJob;
 use App\Models\IgnoredNiche;
@@ -264,7 +265,7 @@ class ScanNicheJobTest extends TestCase
 
         $this->assertDatabaseHas('ignored_niches', [
             'niche' => 'Spark',
-            'reason' => IgnoredNiche::REASON_LOW_RESULTS,
+            'reason' => IgnoredNicheReason::LowResults->value,
         ]);
     }
 

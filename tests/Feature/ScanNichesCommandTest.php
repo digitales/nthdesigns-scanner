@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\IgnoredNicheReason;
 use App\Enums\NicheScanStatus;
 use App\Jobs\ScanNicheJob;
 use App\Models\IgnoredNiche;
@@ -132,7 +133,7 @@ class ScanNichesCommandTest extends TestCase
 
         IgnoredNiche::query()->create([
             'niche' => 'Span',
-            'reason' => IgnoredNiche::REASON_MANUAL,
+            'reason' => IgnoredNicheReason::Manual->value,
         ]);
 
         $this->artisan('niches:scan')

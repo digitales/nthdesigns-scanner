@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests;
 
-use App\Models\IgnoredProspect;
+use App\Enums\IgnoredProspectReason;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -21,13 +21,7 @@ class FilterIgnoredProspectsRequest extends FormRequest
         return [
             'reason' => [
                 'nullable',
-                'string',
-                Rule::in([
-                    IgnoredProspect::REASON_ACQUIRED,
-                    IgnoredProspect::REASON_COLD,
-                    IgnoredProspect::REASON_OUTREACH_FAILED,
-                    IgnoredProspect::REASON_OTHER,
-                ]),
+                Rule::enum(IgnoredProspectReason::class),
             ],
             'page' => ['nullable', 'integer', 'min:1'],
         ];

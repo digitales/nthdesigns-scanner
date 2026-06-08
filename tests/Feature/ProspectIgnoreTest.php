@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\IgnoredProspectReason;
 use App\Jobs\ScorePlaceJob;
 use App\Jobs\ScrapeProspectsJob;
 use App\Models\IgnoredProspect;
@@ -31,7 +32,7 @@ class ProspectIgnoreTest extends TestCase
 
         $this->actingAs($user)
             ->post("/prospects/{$prospect->id}/ignore", [
-                'reason' => IgnoredProspect::REASON_ACQUIRED,
+                'reason' => IgnoredProspectReason::Acquired->value,
                 'note' => 'Acquired by Gallagher',
             ])
             ->assertRedirect()
@@ -40,7 +41,7 @@ class ProspectIgnoreTest extends TestCase
         $this->assertDatabaseHas('ignored_prospects', [
             'user_id' => $user->id,
             'place_id' => 'places/stackhouse',
-            'reason' => IgnoredProspect::REASON_ACQUIRED,
+            'reason' => IgnoredProspectReason::Acquired->value,
             'note' => 'Acquired by Gallagher',
         ]);
     }
@@ -60,7 +61,7 @@ class ProspectIgnoreTest extends TestCase
 
         $this->actingAs($user)
             ->post("/prospects/{$prospect->id}/ignore", [
-                'reason' => IgnoredProspect::REASON_COLD,
+                'reason' => IgnoredProspectReason::Cold->value,
             ]);
 
         $this->assertDatabaseMissing('outreach_selections', [
@@ -80,7 +81,7 @@ class ProspectIgnoreTest extends TestCase
         IgnoredProspect::create([
             'user_id' => $user->id,
             'place_id' => 'places/foo',
-            'reason' => IgnoredProspect::REASON_COLD,
+            'reason' => IgnoredProspectReason::Cold->value,
         ]);
 
         $this->actingAs($user)
@@ -105,7 +106,7 @@ class ProspectIgnoreTest extends TestCase
         IgnoredProspect::create([
             'user_id' => $user->id,
             'place_id' => 'places/foo',
-            'reason' => IgnoredProspect::REASON_ACQUIRED,
+            'reason' => IgnoredProspectReason::Acquired->value,
             'note' => 'Merged',
         ]);
 
@@ -113,7 +114,7 @@ class ProspectIgnoreTest extends TestCase
             ->get("/prospects/{$prospect->id}")
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('ignored.reason', IgnoredProspect::REASON_ACQUIRED)
+                ->where('ignored.reason', IgnoredProspectReason::Acquired->value)
                 ->where('ignored.reason_label', 'Company acquired')
                 ->where('ignored.note', 'Merged'));
     }
@@ -131,14 +132,14 @@ class ProspectIgnoreTest extends TestCase
         IgnoredProspect::create([
             'user_id' => $user->id,
             'place_id' => 'places/foo',
-            'reason' => IgnoredProspect::REASON_ACQUIRED,
+            'reason' => IgnoredProspectReason::Acquired->value,
             'note' => 'Acquired',
         ]);
 
         IgnoredProspect::create([
             'user_id' => $other->id,
             'place_id' => 'places/bar',
-            'reason' => IgnoredProspect::REASON_COLD,
+            'reason' => IgnoredProspectReason::Cold->value,
         ]);
 
         $this->actingAs($user)
@@ -160,7 +161,7 @@ class ProspectIgnoreTest extends TestCase
             IgnoredProspect::create([
                 'user_id' => $user->id,
                 'place_id' => "places/page-{$i}",
-                'reason' => IgnoredProspect::REASON_COLD,
+                'reason' => IgnoredProspectReason::Cold->value,
             ]);
         }
 
@@ -188,12 +189,12 @@ class ProspectIgnoreTest extends TestCase
         IgnoredProspect::create([
             'user_id' => $user->id,
             'place_id' => 'places/a',
-            'reason' => IgnoredProspect::REASON_COLD,
+            'reason' => IgnoredProspectReason::Cold->value,
         ]);
         IgnoredProspect::create([
             'user_id' => $user->id,
             'place_id' => 'places/b',
-            'reason' => IgnoredProspect::REASON_ACQUIRED,
+            'reason' => IgnoredProspectReason::Acquired->value,
         ]);
 
         $this->actingAs($user)
@@ -208,7 +209,7 @@ class ProspectIgnoreTest extends TestCase
         $ignored = IgnoredProspect::create([
             'user_id' => $user->id,
             'place_id' => 'places/orphan',
-            'reason' => IgnoredProspect::REASON_OTHER,
+            'reason' => IgnoredProspectReason::Other->value,
         ]);
 
         $this->actingAs($user)
@@ -226,7 +227,7 @@ class ProspectIgnoreTest extends TestCase
         $ignored = IgnoredProspect::create([
             'user_id' => $owner->id,
             'place_id' => 'places/private',
-            'reason' => IgnoredProspect::REASON_OTHER,
+            'reason' => IgnoredProspectReason::Other->value,
         ]);
 
         $this->actingAs($other)
@@ -257,7 +258,7 @@ class ProspectIgnoreTest extends TestCase
         IgnoredProspect::create([
             'user_id' => $user->id,
             'place_id' => 'places/ignored1',
-            'reason' => IgnoredProspect::REASON_ACQUIRED,
+            'reason' => IgnoredProspectReason::Acquired->value,
         ]);
 
         (new ScrapeProspectsJob($search))->handle(

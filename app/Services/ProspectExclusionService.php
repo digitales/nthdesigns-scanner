@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\IgnoredProspectReason;
 use App\Models\IgnoredProspect;
 use App\Models\Prospect;
 use App\Models\User;
@@ -27,7 +28,7 @@ final class ProspectExclusionService
             ->first();
     }
 
-    public function ignore(User $user, Prospect $prospect, string $reason, ?string $note = null): IgnoredProspect
+    public function ignore(User $user, Prospect $prospect, IgnoredProspectReason|string $reason, ?string $note = null): IgnoredProspect
     {
         $ignored = IgnoredProspect::query()->updateOrCreate(
             [
@@ -156,7 +157,7 @@ final class ProspectExclusionService
         return [
             'id' => $row->id,
             'place_id' => $row->place_id,
-            'reason' => $row->reason,
+            'reason' => $row->reason->value,
             'reason_label' => $row->label(),
             'note' => $row->note,
             'ignored_at' => $row->updated_at->diffForHumans(),
