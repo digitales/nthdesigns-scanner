@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\SearchSource;
 use App\Jobs\DirectUrlScanJob;
 use App\Models\Prospect;
 use App\Models\Search;
@@ -153,7 +154,7 @@ class McpScanToolsTest extends TestCase
         $this->assertNotNull($searchId);
 
         $search = Search::query()->find($searchId);
-        $this->assertSame('direct_url', $search->source);
+        $this->assertSame(SearchSource::DirectUrl, $search->source);
         $this->assertSame('https://example.com/path', $search->submitted_url);
 
         Queue::assertPushed(DirectUrlScanJob::class);

@@ -2,6 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Enums\AuditJobStatus;
+use App\Enums\AuditJobType;
+use App\Enums\AuditStatus;
+use App\Enums\ScanType;
+use App\Enums\SearchStatus;
 use App\Jobs\AuditSiteJob;
 use App\Jobs\CaptureScreenshotJob;
 use App\Models\AuditJob;
@@ -23,8 +28,8 @@ class RepairAuditsCommandTest extends TestCase
         $user = User::factory()->create();
         $search = Search::factory()->create([
             'user_id' => $user->id,
-            'scan_type' => 'combined',
-            'status' => 'auditing',
+            'scan_type' => ScanType::Combined,
+            'status' => SearchStatus::Auditing,
         ]);
 
         return Prospect::factory()->create(array_merge([
@@ -39,16 +44,16 @@ class RepairAuditsCommandTest extends TestCase
         Queue::fake();
         $this->useAuditingDatabaseQueue();
 
-        $stuck = $this->searchProspect('pending');
+        $stuck = $this->searchProspect(AuditStatus::Pending->value);
         $stuck->forceFill(['updated_at' => now()->subMinutes(20)])->save();
 
-        $failed = $this->searchProspect('failed');
+        $failed = $this->searchProspect(AuditStatus::Failed->value);
 
         $report = ProspectReport::factory()->create(['prospect_id' => $failed->id]);
         AuditJob::create([
             'prospect_id' => $failed->id,
-            'job_type' => 'screenshot',
-            'status' => 'failed',
+            'job_type' => AuditJobType::Screenshot,
+            'status' => AuditJobStatus::Failed,
             'completed_at' => now(),
         ]);
 
@@ -66,13 +71,13 @@ class RepairAuditsCommandTest extends TestCase
         Queue::fake();
         $this->useAuditingDatabaseQueue();
 
-        $prospect = $this->searchProspect('pending');
+        $prospect = $this->searchProspect(AuditStatus::Pending->value);
         $prospect->forceFill(['updated_at' => now()->subMinutes(20)])->save();
 
         $running = AuditJob::create([
             'prospect_id' => $prospect->id,
-            'job_type' => 'accessibility',
-            'status' => 'running',
+            'job_type' => AuditJobType::Accessibility,
+            'status' => AuditJobStatus::Running,
             'started_at' => now()->subMinutes(20),
         ]);
 
@@ -84,7 +89,7 @@ class RepairAuditsCommandTest extends TestCase
         ])->assertExitCode(0);
 
         $running->refresh();
-        $this->assertSame('failed', $running->status);
+        $this->assertSame(AuditJobStatus::Failed, $running->status);
         $this->assertSame('Closed by scanner:repair-audits (stale)', $running->error_message);
 
         Queue::assertPushed(AuditSiteJob::class, fn (AuditSiteJob $job) => $job->prospect->id === $prospect->id);
@@ -94,7 +99,7 @@ class RepairAuditsCommandTest extends TestCase
     {
         Queue::fake();
 
-        $prospect = $this->searchProspect('failed', [
+        $prospect = $this->searchProspect(AuditStatus::Failed->value, [
             'raw_a11y_payload' => ['violations' => []],
             'raw_lighthouse_payload' => ['performance' => 90],
             'performance_score' => 90,
@@ -107,7 +112,7 @@ class RepairAuditsCommandTest extends TestCase
         ])->assertExitCode(0);
 
         $prospect->refresh();
-        $this->assertSame('pending', $prospect->audit_status);
+        $this->assertSame(AuditStatus::Pending, $prospect->audit_status);
         $this->assertNull($prospect->raw_a11y_payload);
 
         Queue::assertPushed(AuditSiteJob::class);
@@ -117,13 +122,13 @@ class RepairAuditsCommandTest extends TestCase
     {
         Queue::fake();
 
-        $prospect = $this->searchProspect('complete');
+        $prospect = $this->searchProspect(AuditStatus::Complete->value);
         $report = ProspectReport::factory()->create(['prospect_id' => $prospect->id]);
 
         AuditJob::create([
             'prospect_id' => $prospect->id,
-            'job_type' => 'screenshot',
-            'status' => 'failed',
+            'job_type' => AuditJobType::Screenshot,
+            'status' => AuditJobStatus::Failed,
             'completed_at' => now(),
         ]);
 
@@ -134,7 +139,7 @@ class RepairAuditsCommandTest extends TestCase
         ])->assertExitCode(0);
 
         $prospect->refresh();
-        $this->assertSame('complete', $prospect->audit_status);
+        $this->assertSame(AuditStatus::Complete, $prospect->audit_status);
 
         Queue::assertPushed(CaptureScreenshotJob::class, function (CaptureScreenshotJob $job, ?string $queue) use ($report) {
             return $job->report->id === $report->id

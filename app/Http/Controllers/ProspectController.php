@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\AuditJobStatus;
+use App\Enums\AuditJobType;
+use App\Enums\AuditStatus;
 use App\Http\Requests\UpdateProspectRequest;
 use App\Jobs\GenerateOutreachEmailJob;
 use App\Jobs\GenerateProspectReportJob;
@@ -139,15 +142,15 @@ class ProspectController extends Controller
      */
     private function auditFailureFor(Prospect $prospect): ?array
     {
-        if ($prospect->audit_status !== 'failed') {
+        if ($prospect->audit_status !== AuditStatus::Failed) {
             return null;
         }
 
         $failedJobs = $prospect->auditJobs
-            ->where('status', 'failed')
+            ->where('status', AuditJobStatus::Failed)
             ->sortByDesc('id');
 
-        $job = $failedJobs->firstWhere('job_type', 'accessibility')
+        $job = $failedJobs->firstWhere('job_type', AuditJobType::Accessibility)
             ?? $failedJobs->first();
 
         if (! $job instanceof AuditJob) {

@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Enums\AuditStatus;
+use App\Enums\ScanType;
 use App\Jobs\CombineScoresJob;
 use App\Jobs\GenerateProspectReportJob;
 use App\Models\Prospect;
@@ -23,13 +25,13 @@ class AutoGenerateReportTest extends TestCase
         Bus::fake();
 
         $user = User::factory()->create();
-        $search = Search::factory()->create(['user_id' => $user->id, 'scan_type' => 'gbp_only']);
+        $search = Search::factory()->create(['user_id' => $user->id, 'scan_type' => ScanType::GbpOnly]);
         $prospect = Prospect::factory()->create([
             'search_id' => $search->id,
             'gbp_score' => 70,
             'a11y_score' => 0,
             'combined_score' => 0,
-            'audit_status' => 'pending',
+            'audit_status' => AuditStatus::Pending,
         ]);
 
         $job = new CombineScoresJob($prospect);
@@ -41,7 +43,7 @@ class AutoGenerateReportTest extends TestCase
         Bus::assertDispatched(GenerateProspectReportJob::class, 1);
 
         $prospect->refresh();
-        $this->assertSame('complete', $prospect->audit_status);
+        $this->assertSame(AuditStatus::Complete, $prospect->audit_status);
         $this->assertSame(70, $prospect->combined_score);
     }
 
@@ -50,13 +52,13 @@ class AutoGenerateReportTest extends TestCase
         Bus::fake();
 
         $user = User::factory()->create();
-        $search = Search::factory()->create(['user_id' => $user->id, 'scan_type' => 'gbp_only']);
+        $search = Search::factory()->create(['user_id' => $user->id, 'scan_type' => ScanType::GbpOnly]);
         $prospect = Prospect::factory()->create([
             'search_id' => $search->id,
             'gbp_score' => 70,
             'a11y_score' => 0,
             'combined_score' => 0,
-            'audit_status' => 'pending',
+            'audit_status' => AuditStatus::Pending,
             'suppress_auto_report' => true,
         ]);
 
@@ -70,7 +72,7 @@ class AutoGenerateReportTest extends TestCase
 
         $prospect->refresh();
         $this->assertFalse($prospect->suppress_auto_report);
-        $this->assertSame('complete', $prospect->audit_status);
+        $this->assertSame(AuditStatus::Complete, $prospect->audit_status);
     }
 
     public function test_combine_scores_skips_report_when_report_already_exists(): void
@@ -78,13 +80,13 @@ class AutoGenerateReportTest extends TestCase
         Bus::fake();
 
         $user = User::factory()->create();
-        $search = Search::factory()->create(['user_id' => $user->id, 'scan_type' => 'gbp_only']);
+        $search = Search::factory()->create(['user_id' => $user->id, 'scan_type' => ScanType::GbpOnly]);
         $prospect = Prospect::factory()->create([
             'search_id' => $search->id,
             'gbp_score' => 70,
             'a11y_score' => 0,
             'combined_score' => 0,
-            'audit_status' => 'pending',
+            'audit_status' => AuditStatus::Pending,
         ]);
 
         ProspectReport::factory()->create(['prospect_id' => $prospect->id]);
@@ -96,7 +98,7 @@ class AutoGenerateReportTest extends TestCase
         );
 
         Bus::assertNotDispatched(GenerateProspectReportJob::class);
-        $this->assertSame('complete', $prospect->fresh()->audit_status);
+        $this->assertSame(AuditStatus::Complete, $prospect->fresh()->audit_status);
     }
 
     public function test_combine_scores_does_not_reprocess_skipped_prospect(): void
@@ -104,12 +106,12 @@ class AutoGenerateReportTest extends TestCase
         Bus::fake();
 
         $user = User::factory()->create();
-        $search = Search::factory()->create(['user_id' => $user->id, 'scan_type' => 'combined']);
+        $search = Search::factory()->create(['user_id' => $user->id, 'scan_type' => ScanType::Combined]);
         $prospect = Prospect::factory()->create([
             'search_id' => $search->id,
             'gbp_score' => 70,
             'combined_score' => 70,
-            'audit_status' => 'skipped',
+            'audit_status' => AuditStatus::Skipped,
         ]);
 
         $job = new CombineScoresJob($prospect);

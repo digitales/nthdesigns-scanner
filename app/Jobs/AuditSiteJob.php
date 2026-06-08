@@ -2,6 +2,9 @@
 
 namespace App\Jobs;
 
+use App\Enums\AuditJobStatus;
+use App\Enums\AuditJobType;
+use App\Enums\AuditStatus;
 use App\Models\AuditJob;
 use App\Models\Prospect;
 use App\Services\A11yScoringService;
@@ -53,7 +56,7 @@ class AuditSiteJob implements ShouldQueue
             return;
         }
 
-        if ($prospect->audit_status !== 'pending') {
+        if ($prospect->audit_status !== AuditStatus::Pending) {
             return;
         }
 
@@ -66,8 +69,8 @@ class AuditSiteJob implements ShouldQueue
 
         $auditJob = AuditJob::create([
             'prospect_id' => $prospect->id,
-            'job_type' => 'accessibility',
-            'status' => 'running',
+            'job_type' => AuditJobType::Accessibility,
+            'status' => AuditJobStatus::Running,
             'attempts' => $this->attempts(),
             'started_at' => now(),
         ]);
@@ -107,7 +110,7 @@ class AuditSiteJob implements ShouldQueue
             $prospect->update($updates);
 
             $auditJob->update([
-                'status' => 'complete',
+                'status' => AuditJobStatus::Complete,
                 'completed_at' => now(),
             ]);
 
@@ -120,14 +123,14 @@ class AuditSiteJob implements ShouldQueue
             ]);
 
             $auditJob->update([
-                'status' => 'failed',
+                'status' => AuditJobStatus::Failed,
                 'completed_at' => now(),
             ]);
 
             $errorRecorder->recordFailure($auditJob, $errorRecorder->formatThrowable($e));
 
             if ($this->attempts() >= $this->tries()) {
-                $prospect->update(['audit_status' => 'failed']);
+                $prospect->update(['audit_status' => AuditStatus::Failed]);
                 $searchStatus->refresh($prospect->search);
             }
 

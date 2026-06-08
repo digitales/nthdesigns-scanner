@@ -13,11 +13,11 @@ class SearchSummaryMapper
     {
         return [
             'id' => $search->id,
-            'source' => $search->source,
+            'source' => $search->source->value,
             'submitted_url' => $search->submitted_url,
             'niche' => $search->niche,
             'city' => $search->city,
-            'status' => $search->status,
+            'status' => $search->status->value,
             'total_found' => $search->total_found,
             'created_at' => self::formatCreatedAt($search, $createdAtFormat),
         ];
@@ -30,7 +30,7 @@ class SearchSummaryMapper
     {
         return array_merge(self::format($search, $createdAtFormat), [
             'country' => $search->country,
-            'scan_type' => $search->scan_type,
+            'scan_type' => $search->scan_type->value,
         ]);
     }
 

@@ -2,6 +2,9 @@
 
 namespace App\Services;
 
+use App\Enums\AuditStatus;
+use App\Enums\ScanType;
+use App\Enums\SearchStatus;
 use App\Models\Prospect;
 use App\Models\Search;
 use Illuminate\Support\Carbon;
@@ -18,7 +21,9 @@ class ProgressFlowService
         $phase = $this->phaseForSearch($search);
         $total = $search->total_found;
         $prospectsTotal = $prospects->count();
-        $audited = $prospects->where('audit_status', '!=', 'pending')->count();
+        $audited = $prospects->filter(
+            fn (Prospect $prospect) => ($prospect->audit_status ?? AuditStatus::Pending) !== AuditStatus::Pending
+        )->count();
 
         if ($phase === 'discovering') {
             $progress = $prospectsTotal;
@@ -39,7 +44,7 @@ class ProgressFlowService
                 : null,
             'duration_bucket' => $this->durationBucket($search->created_at),
             'message' => $this->searchMessage($phase, $safeProgress, $effectiveTotal),
-            'search_complete' => in_array($search->status, ['complete', 'failed'], true),
+            'search_complete' => in_array($search->status, [SearchStatus::Complete, SearchStatus::Failed], true),
         ];
     }
 
@@ -52,7 +57,7 @@ class ProgressFlowService
         $startedAt = $this->stepStartedAt($prospect);
 
         return [
-            'audit_status' => $prospect->audit_status ?? 'pending',
+            'audit_status' => ($prospect->audit_status ?? AuditStatus::Pending)->value,
             'current_step' => $step,
             'step_started_at' => $startedAt?->toIso8601String(),
             'step_duration_bucket' => $this->durationBucket($startedAt ?? $prospect->updated_at ?? $prospect->created_at),
@@ -63,11 +68,11 @@ class ProgressFlowService
     private function phaseForSearch(Search $search): string
     {
         return match ($search->status) {
-            'pending' => 'queued',
-            'discovering' => 'discovering',
-            'auditing' => 'auditing',
-            'complete' => 'complete',
-            'failed' => 'failed',
+            SearchStatus::Pending => 'queued',
+            SearchStatus::Discovering => 'discovering',
+            SearchStatus::Auditing => 'auditing',
+            SearchStatus::Complete => 'complete',
+            SearchStatus::Failed => 'failed',
             default => 'discovering',
         };
     }
@@ -101,14 +106,14 @@ class ProgressFlowService
 
     private function prospectStep(Prospect $prospect): string
     {
-        $status = $prospect->audit_status ?? 'pending';
+        $status = $prospect->audit_status ?? AuditStatus::Pending;
         $hasReport = $prospect->relationLoaded('report') ? $prospect->report !== null : false;
 
-        if (in_array($status, ['complete', 'skipped'], true)) {
+        if (in_array($status, [AuditStatus::Complete, AuditStatus::Skipped], true)) {
             return $hasReport ? 'done' : 'report';
         }
 
-        if ($status === 'failed') {
+        if ($status === AuditStatus::Failed) {
             return 'a11y';
         }
 
@@ -135,7 +140,7 @@ class ProgressFlowService
             'a11y' => 'Running accessibility audit',
             'performance' => 'Running performance audit',
             'scoring' => 'Combining audit scores',
-            'report' => $search->scan_type === 'gbp_only' ? 'Finalizing results' : 'Generating report',
+            'report' => $search->scan_type === ScanType::GbpOnly ? 'Finalizing results' : 'Generating report',
             'done' => 'Complete',
             default => 'In progress',
         };

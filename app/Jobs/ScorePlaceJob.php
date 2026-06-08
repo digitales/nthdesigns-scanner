@@ -2,6 +2,8 @@
 
 namespace App\Jobs;
 
+use App\Enums\AuditStatus;
+use App\Enums\ScanType;
 use App\Models\Prospect;
 use App\Models\Search;
 use App\Services\GbpScoringService;
@@ -76,7 +78,7 @@ class ScorePlaceJob implements ShouldQueue
                 'gbp_flags' => $scored['flags'],
                 'raw_gbp_payload' => $payload,
                 'expires_at' => now()->addDays(config('scanner.report_expiry_days', 30)),
-                'audit_status' => 'pending',
+                'audit_status' => AuditStatus::Pending,
             ]
         );
 
@@ -106,7 +108,7 @@ class ScorePlaceJob implements ShouldQueue
 
     private function dispatchNextStep(Prospect $prospect, Search $search): void
     {
-        $needsA11yAudit = in_array($search->scan_type, ['accessibility_only', 'combined'], true)
+        $needsA11yAudit = in_array($search->scan_type, [ScanType::AccessibilityOnly, ScanType::Combined], true)
             && ! empty($prospect->website_url);
 
         if ($needsA11yAudit) {

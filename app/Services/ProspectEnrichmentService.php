@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Enums\AuditStatus;
+use App\Enums\ScanType;
 use App\Jobs\DetectCmsJob;
 use App\Models\Prospect;
 use Illuminate\Support\Str;
@@ -21,7 +23,7 @@ class ProspectEnrichmentService
      */
     public function update(Prospect $prospect, array $data): array
     {
-        if ($prospect->audit_status === 'pending') {
+        if ($prospect->audit_status === AuditStatus::Pending) {
             throw ValidationException::withMessages([
                 'website_url' => 'A site audit is already in progress. Wait for it to finish before saving changes.',
             ]);
@@ -73,7 +75,7 @@ class ProspectEnrichmentService
 
     private function shouldAudit(Prospect $prospect): bool
     {
-        return in_array($prospect->search->scan_type, ['accessibility_only', 'combined'], true)
+        return in_array($prospect->search->scan_type, [ScanType::AccessibilityOnly, ScanType::Combined], true)
             && ! empty($prospect->website_url);
     }
 

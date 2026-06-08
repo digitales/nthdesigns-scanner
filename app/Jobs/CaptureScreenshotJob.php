@@ -2,6 +2,8 @@
 
 namespace App\Jobs;
 
+use App\Enums\AuditJobStatus;
+use App\Enums\AuditJobType;
 use App\Models\AuditJob;
 use App\Models\ProspectReport;
 use App\Services\AuditErrorRecorder;
@@ -79,8 +81,8 @@ class CaptureScreenshotJob implements ShouldQueue
 
         $auditJob = AuditJob::create([
             'prospect_id' => $report->prospect_id,
-            'job_type' => 'screenshot',
-            'status' => 'running',
+            'job_type' => AuditJobType::Screenshot,
+            'status' => AuditJobStatus::Running,
             'started_at' => now(),
         ]);
 
@@ -97,7 +99,7 @@ class CaptureScreenshotJob implements ShouldQueue
             $report->update(['screenshot_paths' => $paths]);
 
             $auditJob->update([
-                'status' => 'complete',
+                'status' => AuditJobStatus::Complete,
                 'completed_at' => now(),
             ]);
         } catch (\Throwable $e) {
@@ -107,7 +109,7 @@ class CaptureScreenshotJob implements ShouldQueue
             ]);
 
             $auditJob->update([
-                'status' => 'failed',
+                'status' => AuditJobStatus::Failed,
                 'completed_at' => now(),
             ]);
 

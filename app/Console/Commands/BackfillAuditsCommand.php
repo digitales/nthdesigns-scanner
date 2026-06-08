@@ -43,7 +43,7 @@ class BackfillAuditsCommand extends Command
             $prospect->id,
             $prospect->business_name,
             $prospect->search_id,
-            $prospect->audit_status,
+            $prospect->audit_status?->value,
             IncompleteAuditQuery::reasonFor($prospect),
         ])->all();
 

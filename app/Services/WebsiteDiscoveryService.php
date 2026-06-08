@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\ScanType;
 use App\Models\Prospect;
 use App\Models\Search;
 use Illuminate\Support\Facades\Log;
@@ -56,7 +57,7 @@ class WebsiteDiscoveryService
             return false;
         }
 
-        if (! in_array($search->scan_type, ['accessibility_only', 'combined'], true)) {
+        if (! in_array($search->scan_type, [ScanType::AccessibilityOnly, ScanType::Combined], true)) {
             return false;
         }
 

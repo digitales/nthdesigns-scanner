@@ -2,6 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Enums\AuditJobStatus;
+use App\Enums\AuditStatus;
+use App\Enums\ScanType;
 use App\Jobs\CaptureScreenshotJob;
 use App\Models\AuditJob;
 use App\Models\Prospect;
@@ -25,12 +28,12 @@ class CaptureScreenshotJobTest extends TestCase
         $user = User::factory()->create();
         $search = Search::factory()->create([
             'user_id' => $user->id,
-            'scan_type' => 'combined',
+            'scan_type' => ScanType::Combined,
         ]);
         $prospect = Prospect::factory()->create([
             'search_id' => $search->id,
             'website_url' => 'https://example.com',
-            'audit_status' => 'complete',
+            'audit_status' => AuditStatus::Complete,
         ]);
 
         return ProspectReport::factory()->create(['prospect_id' => $prospect->id]);
@@ -98,7 +101,7 @@ class CaptureScreenshotJobTest extends TestCase
             ->first();
 
         $this->assertNotNull($auditJob);
-        $this->assertSame('failed', $auditJob->status);
+        $this->assertSame(AuditJobStatus::Failed, $auditJob->status);
         $this->assertSame('browser down', $auditJob->error_message);
         $this->assertNull($report->fresh()->screenshot_paths['desktop'] ?? null);
     }

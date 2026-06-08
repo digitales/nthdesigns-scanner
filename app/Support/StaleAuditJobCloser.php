@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Enums\AuditJobStatus;
 use App\Models\AuditJob;
 
 final class StaleAuditJobCloser
@@ -13,9 +14,9 @@ final class StaleAuditJobCloser
         return AuditJob::query()
             ->where('prospect_id', $prospectId)
             ->where('job_type', $jobType)
-            ->where('status', 'running')
+            ->where('status', AuditJobStatus::Running->value)
             ->update([
-                'status' => 'failed',
+                'status' => AuditJobStatus::Failed->value,
                 'error_message' => self::MESSAGE,
                 'completed_at' => now(),
             ]);

@@ -2,6 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Enums\AuditStatus;
+use App\Enums\ScanType;
+use App\Enums\SearchStatus;
 use App\Jobs\AuditSiteJob;
 use App\Models\Prospect;
 use App\Models\Search;
@@ -33,17 +36,17 @@ class BackfillWebsitesCommandTest extends TestCase
         $user = User::factory()->create();
         $search = Search::factory()->create(array_merge([
             'user_id' => $user->id,
-            'scan_type' => 'combined',
+            'scan_type' => ScanType::Combined,
             'city' => 'Manchester',
             'country' => 'GB',
-            'status' => 'complete',
+            'status' => SearchStatus::Complete,
         ], $searchAttrs));
 
         return Prospect::factory()->create(array_merge([
             'search_id' => $search->id,
             'business_name' => 'Briar & Wren Solicitors Ltd',
             'website_url' => null,
-            'audit_status' => 'skipped',
+            'audit_status' => AuditStatus::Skipped,
             'gbp_flags' => ['No website listed'],
             'raw_gbp_payload' => [
                 'id' => 'places/test',
@@ -111,7 +114,7 @@ class BackfillWebsitesCommandTest extends TestCase
         $this->assertSame('high', $prospect->website_discovery_confidence);
         $this->assertContains(WebsiteDiscoveryService::GBP_FLAG_NOT_ON_PROFILE, $prospect->gbp_flags);
         $this->assertNotContains('No website listed', $prospect->gbp_flags);
-        $this->assertSame('pending', $prospect->audit_status);
+        $this->assertSame(AuditStatus::Pending, $prospect->audit_status);
 
         Queue::assertPushed(AuditSiteJob::class, function (AuditSiteJob $job, ?string $queue) use ($prospect) {
             return $job->prospect->id === $prospect->id
@@ -161,7 +164,7 @@ class BackfillWebsitesCommandTest extends TestCase
 
     public function test_skips_gbp_only_searches(): void
     {
-        $this->prospectWithoutWebsite([], ['scan_type' => 'gbp_only']);
+        $this->prospectWithoutWebsite([], ['scan_type' => ScanType::GbpOnly]);
 
         $this->artisan('scanner:backfill-websites')
             ->expectsOutputToContain('No prospects match')

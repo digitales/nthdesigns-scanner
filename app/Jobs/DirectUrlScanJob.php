@@ -2,6 +2,8 @@
 
 namespace App\Jobs;
 
+use App\Enums\AuditStatus;
+use App\Enums\SearchStatus;
 use App\Models\Prospect;
 use App\Models\Search;
 use App\Services\DirectUrlSearchEnrichment;
@@ -51,7 +53,7 @@ class DirectUrlScanJob implements ShouldQueue
             return;
         }
 
-        $search->update(['status' => 'discovering']);
+        $search->update(['status' => SearchStatus::Discovering]);
 
         $url = $search->submitted_url;
         $payload = $places->findByWebsiteUrl($url);
@@ -59,7 +61,7 @@ class DirectUrlScanJob implements ShouldQueue
         $placeId = $payload['id'] ?? 'direct:'.hash('sha256', $normalizer->normalize($url));
 
         if ($exclusions->isIgnored($search->user_id, $placeId)) {
-            $search->update(['status' => 'complete', 'total_found' => 0]);
+            $search->update(['status' => SearchStatus::Complete, 'total_found' => 0]);
 
             return;
         }
@@ -89,7 +91,7 @@ class DirectUrlScanJob implements ShouldQueue
                     'gbp_flags' => $scored['flags'],
                     'raw_gbp_payload' => $payload,
                     'expires_at' => now()->addDays(config('scanner.report_expiry_days', 30)),
-                    'audit_status' => 'pending',
+                    'audit_status' => AuditStatus::Pending,
                 ]));
             } else {
                 $prospect = Prospect::create([
@@ -101,7 +103,7 @@ class DirectUrlScanJob implements ShouldQueue
                     'gbp_flags' => ['No GBP match found'],
                     'raw_gbp_payload' => null,
                     'expires_at' => now()->addDays(config('scanner.report_expiry_days', 30)),
-                    'audit_status' => 'pending',
+                    'audit_status' => AuditStatus::Pending,
                 ]);
             }
 
@@ -113,7 +115,7 @@ class DirectUrlScanJob implements ShouldQueue
                 'search_id' => $search->id,
                 'error' => $e->getMessage(),
             ]);
-            $search->update(['status' => 'failed']);
+            $search->update(['status' => SearchStatus::Failed]);
             throw $e;
         }
     }

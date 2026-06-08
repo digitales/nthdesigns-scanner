@@ -2,6 +2,8 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\AuditStatus;
+use App\Enums\ScanType;
 use App\Models\Prospect;
 use App\Services\ProspectAuditService;
 use App\Services\WebsiteDiscoveryService;
@@ -52,7 +54,7 @@ class BackfillWebsitesCommand extends Command
             $prospect->id,
             $prospect->business_name,
             $prospect->search_id,
-            $prospect->search?->scan_type,
+            $prospect->search?->scan_type?->value,
             $prospect->search?->city,
         ])->all();
 
@@ -189,7 +191,7 @@ class BackfillWebsitesCommand extends Command
         return Prospect::query()
             ->where(fn (Builder $q) => $q->whereNull('website_url')->orWhere('website_url', ''))
             ->whereHas('search', fn (Builder $q) => $q
-                ->whereIn('scan_type', ['accessibility_only', 'combined'])
+                ->whereIn('scan_type', [ScanType::AccessibilityOnly->value, ScanType::Combined->value])
                 ->whereNotNull('city')
                 ->where('city', '!=', ''))
             ->when($searchId !== null, fn (Builder $q) => $q->where('search_id', $searchId))
@@ -212,11 +214,11 @@ class BackfillWebsitesCommand extends Command
 
     private function shouldAuditProspect(Prospect $prospect): bool
     {
-        if (! in_array($prospect->search->scan_type, ['accessibility_only', 'combined'], true)) {
+        if (! in_array($prospect->search->scan_type, [ScanType::AccessibilityOnly, ScanType::Combined], true)) {
             return false;
         }
 
-        if ($prospect->audit_status === 'pending') {
+        if ($prospect->audit_status === AuditStatus::Pending) {
             return false;
         }
 

@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Enums\AuditStatus;
+use App\Enums\ScanType;
 use App\Jobs\AuditSiteJob;
 use App\Models\Prospect;
 use App\Models\Search;
@@ -17,7 +19,7 @@ class ProspectEnrichmentTest extends TestCase
     public function test_owner_can_patch_prospect_fields(): void
     {
         $user = User::factory()->create();
-        $search = Search::factory()->create(['user_id' => $user->id, 'scan_type' => 'gbp_only']);
+        $search = Search::factory()->create(['user_id' => $user->id, 'scan_type' => ScanType::GbpOnly]);
         $prospect = Prospect::factory()->create([
             'search_id' => $search->id,
             'phone' => null,
@@ -60,11 +62,11 @@ class ProspectEnrichmentTest extends TestCase
         Queue::fake();
 
         $user = User::factory()->create();
-        $search = Search::factory()->create(['user_id' => $user->id, 'scan_type' => 'combined']);
+        $search = Search::factory()->create(['user_id' => $user->id, 'scan_type' => ScanType::Combined]);
         $prospect = Prospect::factory()->create([
             'search_id' => $search->id,
             'website_url' => null,
-            'audit_status' => 'skipped',
+            'audit_status' => AuditStatus::Skipped,
             'raw_a11y_payload' => ['violations' => []],
             'a11y_score' => 50,
         ]);
@@ -75,7 +77,7 @@ class ProspectEnrichmentTest extends TestCase
             ->assertSessionHas('success', 'Details saved. Site audit queued.');
 
         $prospect->refresh();
-        $this->assertSame('pending', $prospect->audit_status);
+        $this->assertSame(AuditStatus::Pending, $prospect->audit_status);
         $this->assertNull($prospect->raw_a11y_payload);
         $this->assertTrue($prospect->suppress_auto_report);
 
@@ -87,7 +89,7 @@ class ProspectEnrichmentTest extends TestCase
         $user = User::factory()->create();
         $prospect = Prospect::factory()->create([
             'search_id' => Search::factory()->create(['user_id' => $user->id])->id,
-            'audit_status' => 'pending',
+            'audit_status' => AuditStatus::Pending,
         ]);
 
         $this->actingAs($user)

@@ -2,6 +2,8 @@
 
 namespace App\Http\Resources;
 
+use App\Enums\AuditJobStatus;
+use App\Enums\AuditStatus;
 use App\Models\Prospect;
 use App\Models\Search;
 use App\Services\ProgressFlowService;
@@ -28,7 +30,7 @@ class SearchProspectResource
             'a11y_score' => $prospect->a11y_score,
             'performance_score' => $prospect->performance_score,
             'dominant_angle' => $prospect->dominant_angle,
-            'audit_status' => $prospect->audit_status,
+            'audit_status' => ($prospect->audit_status ?? AuditStatus::Pending)->value,
             'audit_error' => self::auditError($prospect),
             'gbp_flags' => $prospect->gbp_flags ?? [],
             'a11y_flags' => $prospect->a11y_flags ?? [],
@@ -70,7 +72,7 @@ class SearchProspectResource
             'performance_score' => $prospect->performance_score,
             'combined_score' => $prospect->combined_score,
             'dominant_angle' => $prospect->dominant_angle,
-            'audit_status' => $prospect->audit_status,
+            'audit_status' => ($prospect->audit_status ?? AuditStatus::Pending)->value,
             'audit_error' => self::auditError($prospect),
             'report_ready' => $prospect->report !== null,
             'report_url' => $prospect->report ? url('/r/'.$prospect->report->token) : null,
@@ -86,7 +88,7 @@ class SearchProspectResource
 
     private static function auditError(Prospect $prospect): ?string
     {
-        $auditJob = $prospect->auditJobs->firstWhere('status', 'failed')
+        $auditJob = $prospect->auditJobs->firstWhere('status', AuditJobStatus::Failed)
             ?? $prospect->auditJobs->first();
 
         return $auditJob?->error_message;

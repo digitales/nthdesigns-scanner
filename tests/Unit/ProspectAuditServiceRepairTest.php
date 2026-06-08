@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use App\Enums\AuditStatus;
+use App\Enums\ScanType;
 use App\Jobs\AuditSiteJob;
 use App\Models\Prospect;
 use App\Models\Search;
@@ -22,19 +24,19 @@ class ProspectAuditServiceRepairTest extends TestCase
         $user = User::factory()->create();
         $search = Search::factory()->create([
             'user_id' => $user->id,
-            'scan_type' => 'combined',
+            'scan_type' => ScanType::Combined,
         ]);
         $prospect = Prospect::factory()->create([
             'search_id' => $search->id,
             'website_url' => 'https://example.com',
-            'audit_status' => 'pending',
+            'audit_status' => AuditStatus::Pending,
             'raw_a11y_payload' => ['partial' => true],
         ]);
 
         app(ProspectAuditService::class)->repairSiteAudit($prospect);
 
         $prospect->refresh();
-        $this->assertSame('pending', $prospect->audit_status);
+        $this->assertSame(AuditStatus::Pending, $prospect->audit_status);
         $this->assertNull($prospect->raw_a11y_payload);
 
         Queue::assertPushed(AuditSiteJob::class, fn (AuditSiteJob $job) => $job->prospect->id === $prospect->id);

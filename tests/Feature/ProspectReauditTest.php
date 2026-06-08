@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Enums\AuditStatus;
+use App\Enums\ScanType;
 use App\Jobs\AuditSiteJob;
 use App\Jobs\GenerateProspectReportJob;
 use App\Models\Prospect;
@@ -20,11 +22,11 @@ class ProspectReauditTest extends TestCase
         Queue::fake();
 
         $user = User::factory()->create();
-        $search = Search::factory()->create(['user_id' => $user->id, 'scan_type' => 'combined']);
+        $search = Search::factory()->create(['user_id' => $user->id, 'scan_type' => ScanType::Combined]);
         $prospect = Prospect::factory()->create([
             'search_id' => $search->id,
             'website_url' => 'https://goodfabrics.example',
-            'audit_status' => 'complete',
+            'audit_status' => AuditStatus::Complete,
             'gbp_score' => 72,
             'gbp_flags' => ['Under 20 reviews'],
             'raw_gbp_payload' => ['displayName' => ['text' => 'Good Fabrics']],
@@ -40,7 +42,7 @@ class ProspectReauditTest extends TestCase
             ->assertSessionHas('success', 'Site audit queued. GBP scores unchanged.');
 
         $prospect->refresh();
-        $this->assertSame('pending', $prospect->audit_status);
+        $this->assertSame(AuditStatus::Pending, $prospect->audit_status);
         $this->assertNull($prospect->raw_a11y_payload);
         $this->assertSame(72, $prospect->gbp_score);
         $this->assertSame(['Under 20 reviews'], $prospect->gbp_flags);
@@ -54,9 +56,9 @@ class ProspectReauditTest extends TestCase
     {
         $user = User::factory()->create();
         $prospect = Prospect::factory()->create([
-            'search_id' => Search::factory()->create(['user_id' => $user->id, 'scan_type' => 'combined'])->id,
+            'search_id' => Search::factory()->create(['user_id' => $user->id, 'scan_type' => ScanType::Combined])->id,
             'website_url' => 'https://example.com',
-            'audit_status' => 'pending',
+            'audit_status' => AuditStatus::Pending,
         ]);
 
         $this->actingAs($user)
@@ -69,7 +71,7 @@ class ProspectReauditTest extends TestCase
         $owner = User::factory()->create();
         $other = User::factory()->create();
         $prospect = Prospect::factory()->create([
-            'search_id' => Search::factory()->create(['user_id' => $owner->id, 'scan_type' => 'combined'])->id,
+            'search_id' => Search::factory()->create(['user_id' => $owner->id, 'scan_type' => ScanType::Combined])->id,
             'website_url' => 'https://example.com',
         ]);
 
@@ -83,11 +85,11 @@ class ProspectReauditTest extends TestCase
         Queue::fake();
 
         $user = User::factory()->create();
-        $search = Search::factory()->create(['user_id' => $user->id, 'scan_type' => 'gbp_only']);
+        $search = Search::factory()->create(['user_id' => $user->id, 'scan_type' => ScanType::GbpOnly]);
         $prospect = Prospect::factory()->create([
             'search_id' => $search->id,
             'website_url' => 'https://sustainable-health.example',
-            'audit_status' => 'complete',
+            'audit_status' => AuditStatus::Complete,
             'gbp_score' => 68,
             'combined_score' => 68,
             'raw_a11y_payload' => null,
@@ -99,7 +101,7 @@ class ProspectReauditTest extends TestCase
             ->assertSessionHas('success', 'Site audit queued. GBP scores unchanged.');
 
         $prospect->refresh();
-        $this->assertSame('pending', $prospect->audit_status);
+        $this->assertSame(AuditStatus::Pending, $prospect->audit_status);
         $this->assertSame(68, $prospect->gbp_score);
 
         Queue::assertPushed(AuditSiteJob::class);

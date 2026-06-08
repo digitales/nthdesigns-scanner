@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\ScanType;
 use App\Models\Prospect;
 
 class CombineScoresService
@@ -10,8 +11,10 @@ class CombineScoresService
      * Scan type for scoring and display. GBP-only searches upgrade to combined
      * once this prospect has site-audit payload (batch or ad-hoc "Run site audit").
      */
-    public function effectiveScanType(Prospect $prospect, string $searchScanType): string
+    public function effectiveScanType(Prospect $prospect, string|ScanType $searchScanType): string
     {
+        $searchScanType = $this->normalizeScanType($searchScanType);
+
         if ($searchScanType === 'gbp_only' && $this->prospectHasSiteAudit($prospect)) {
             return 'combined';
         }
@@ -22,9 +25,9 @@ class CombineScoresService
     /**
      * @return array{combined_score: int, dominant_angle: string}
      */
-    public function combineForProspect(Prospect $prospect, ?string $searchScanType = null): array
+    public function combineForProspect(Prospect $prospect, string|ScanType|null $searchScanType = null): array
     {
-        $searchScanType ??= $prospect->search?->scan_type ?? 'gbp_only';
+        $searchScanType ??= $prospect->search?->scan_type ?? ScanType::GbpOnly;
 
         return $this->combine($prospect, $this->effectiveScanType($prospect, $searchScanType));
     }
@@ -90,5 +93,10 @@ class CombineScoresService
         $payload = $prospect->raw_a11y_payload;
 
         return is_array($payload) && $payload !== [];
+    }
+
+    private function normalizeScanType(string|ScanType $scanType): string
+    {
+        return $scanType instanceof ScanType ? $scanType->value : $scanType;
     }
 }

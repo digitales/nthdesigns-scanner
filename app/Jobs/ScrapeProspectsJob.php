@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Enums\SearchStatus;
 use App\Models\Search;
 use App\Services\BenchmarkNormalizer;
 use App\Services\GooglePlacesService;
@@ -32,7 +33,7 @@ class ScrapeProspectsJob implements ShouldQueue
         ProspectExclusionService $exclusions,
         BenchmarkNormalizer $benchmarks,
     ): void {
-        $this->search->update(['status' => 'discovering']);
+        $this->search->update(['status' => SearchStatus::Discovering]);
 
         try {
             $placeIds = $exclusions->filterPlaceIds(
@@ -64,7 +65,7 @@ class ScrapeProspectsJob implements ShouldQueue
             ]);
 
             if (count($placeIds) === 0) {
-                $this->search->update(['status' => 'complete']);
+                $this->search->update(['status' => SearchStatus::Complete]);
 
                 return;
             }
@@ -78,7 +79,7 @@ class ScrapeProspectsJob implements ShouldQueue
                 'search_id' => $this->search->id,
                 'error' => $e->getMessage(),
             ]);
-            $this->search->update(['status' => 'failed']);
+            $this->search->update(['status' => SearchStatus::Failed]);
             throw $e;
         }
     }
