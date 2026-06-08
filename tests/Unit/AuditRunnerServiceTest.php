@@ -93,4 +93,22 @@ class AuditRunnerServiceTest extends TestCase
 
         $this->assertSame('page.goto: Timeout 45000ms exceeded.', $payload['error']);
     }
+
+    public function test_playwright_driver_fails_fast_when_npm_packages_missing(): void
+    {
+        if (is_dir(base_path('scripts/node_modules/playwright'))) {
+            $this->markTestSkipped('Playwright npm packages are installed locally');
+        }
+
+        Config::set('scanner.audit_driver', 'playwright');
+        Config::set('scanner.node_binary', PHP_BINARY);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('scripts/node_modules/playwright missing');
+
+        app(AuditRunnerService::class)->run(
+            'https://example.com',
+            storage_path('app/temp/audit-runner-missing-deps-test'),
+        );
+    }
 }

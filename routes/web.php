@@ -104,6 +104,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/prospects/{prospect}/notes', [ProspectNoteController::class, 'store'])->name('prospects.notes.store');
     Route::post('/prospects/{prospect}/ignore', [ProspectIgnoreController::class, 'store'])->name('prospects.ignore.store');
     Route::delete('/prospects/{prospect}/ignore', [ProspectIgnoreController::class, 'destroy'])->name('prospects.ignore.destroy');
+    Route::post('/prospects/{prospect}/niche-scan', [ProspectController::class, 'refreshMarketScan'])->name('prospects.niche-scan');
     Route::post('/prospects/{prospect}/audit', [ProspectController::class, 'reauditSite'])->name('prospects.audit');
     Route::post('/prospects/{prospect}/report', [ProspectController::class, 'generateReport'])->name('prospects.report');
     Route::post('/prospects/{prospect}/outreach', [ProspectController::class, 'generateOutreach'])->name('prospects.outreach');

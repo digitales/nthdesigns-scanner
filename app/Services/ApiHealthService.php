@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Support\PlaywrightBrowsers;
+use App\Support\PlaywrightScripts;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
@@ -159,6 +160,13 @@ class ApiHealthService
      */
     public function checkPlaywright(): array
     {
+        if (! PlaywrightScripts::dependenciesInstalled()) {
+            return [
+                'ok' => false,
+                'message' => PlaywrightScripts::missingDependenciesMessage(),
+            ];
+        }
+
         $browsersPath = PlaywrightBrowsers::resolve();
 
         if ($browsersPath === null || $browsersPath === '') {

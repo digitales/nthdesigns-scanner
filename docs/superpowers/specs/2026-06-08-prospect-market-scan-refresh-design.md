@@ -1,7 +1,7 @@
 # Prospect Detail — Refresh Market Scan — Design Spec
 
 **Date:** 2026-06-08  
-**Status:** Approved  
+**Status:** Implemented  
 **Screen:** C — `/prospects/{id}` (`Prospect/Show.jsx`)
 
 **Approach:** Prospect-scoped action — expose latest niche scan context on show; `POST` dispatches a single `ScanNicheJob` with `force: true` for the prospect's search niche + city.

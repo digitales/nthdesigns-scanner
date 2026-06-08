@@ -16,6 +16,7 @@ import {
     Page,
     PageHeader,
     ScoreCard,
+    ScoreBadge,
     SidebarLayout,
     Stack,
     Status,
@@ -42,6 +43,7 @@ export default function ProspectShow({
     ignored = null,
     ignoreReasons = [],
     progress_flow: progressFlow = {},
+    marketScan = null,
 }) {
     const { flash } = usePage().props;
     const [copied, setCopied] = useState(false);
@@ -73,6 +75,7 @@ export default function ProspectShow({
     const generateReport = () => postAction('report', `/prospects/${prospect.id}/report`);
     const reauditSite = () => postAction('audit', `/prospects/${prospect.id}/audit`, { preserveScroll: true });
     const generateOutreach = () => postAction('outreach', `/prospects/${prospect.id}/outreach`);
+    const refreshMarketScan = () => postAction('marketScan', `/prospects/${prospect.id}/niche-scan`, { preserveScroll: true });
     const addToOutreach = () => postAction('selection', '/outreach/selections', {
         data: { prospect_ids: [prospect.id] },
     });
@@ -139,6 +142,7 @@ export default function ProspectShow({
         auditPending && showA11y,
         ['prospect', 'audit', 'auditFailure', 'lighthouse', 'pageSpeed', 'progress_flow', 'report'],
     );
+    useProgressReload(marketScan?.is_pending, ['marketScan']);
     const latestOutreach = outreachEmails[0] ?? null;
     const isDirectUrl = search.source === 'direct_url';
     const directHost = search.submitted_url?.replace(/^https?:\/\//, '') ?? 'Single site';
@@ -162,6 +166,12 @@ export default function ProspectShow({
                 {flash?.success && (
                     <div className="skip-banner skip-banner--success mb-20">
                         {flash.success}
+                    </div>
+                )}
+
+                {flash?.error && (
+                    <div className="skip-banner skip-banner--critical mb-20">
+                        {flash.error}
                     </div>
                 )}
 
@@ -451,6 +461,62 @@ export default function ProspectShow({
                                 </>
                             )}
                         </Card>
+
+                        {marketScan && (
+                            <Card title="Market scan">
+                                <p className="micro mb-12">
+                                    {marketScan.niche} · {marketScan.city}
+                                </p>
+                                {marketScan.status == null ? (
+                                    <p className="micro mb-12">No market scan yet.</p>
+                                ) : (
+                                    <Stack gap={8} className="mb-12">
+                                        <Stack direction="row" gap={12} align="center">
+                                            <span className="micro">Opportunity</span>
+                                            <ScoreBadge
+                                                value={
+                                                    marketScan.opportunity_score != null
+                                                        ? Math.round(marketScan.opportunity_score)
+                                                        : null
+                                                }
+                                                withBar={false}
+                                            />
+                                        </Stack>
+                                        <div className="micro">
+                                            {marketScan.result_count ?? '—'} businesses found · Last run {marketScan.ran_at_human}
+                                        </div>
+                                        {marketScan.status !== 'complete' && (
+                                            <Status
+                                                kind={marketScan.status === 'failed' ? 'failed' : 'pending'}
+                                            >
+                                                {marketScan.status}
+                                            </Status>
+                                        )}
+                                        {marketScan.status === 'failed' && marketScan.error_message && (
+                                            <p className="micro text-critical">{marketScan.error_message}</p>
+                                        )}
+                                    </Stack>
+                                )}
+                                <Button
+                                    kind="secondary"
+                                    size="sm"
+                                    onClick={refreshMarketScan}
+                                    disabled={marketScan.is_pending || actionProcessing === 'marketScan'}
+                                >
+                                    {actionProcessing === 'marketScan'
+                                        ? 'Queuing…'
+                                        : marketScan.is_pending
+                                          ? 'Scan in progress…'
+                                          : 'Refresh market scan'}
+                                </Button>
+                                <p className="micro mt-8">
+                                    Re-samples Google Business Profiles for this niche and city. Updates the Niches dashboard — does not re-scan this prospect.
+                                </p>
+                                <a href={marketScan.niches_url} className="micro mt-8 inline-block">
+                                    View on Niches
+                                </a>
+                            </Card>
+                        )}
 
                         {prospect.place_id && (
                             <Card title="Location">

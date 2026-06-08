@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Enums\NicheScanStatus;
 use App\Models\AuditJob;
+use App\Models\NicheScan;
 use App\Models\AuditJobErrorDetail;
 use App\Models\Prospect;
 use App\Models\Search;
@@ -288,5 +290,57 @@ class ProspectShowTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('Prospect/Show')
                 ->where('pageSpeed', null));
+    }
+
+    public function test_show_includes_market_scan_for_area_search(): void
+    {
+        $user = User::factory()->create();
+        $search = Search::factory()->create([
+            'user_id' => $user->id,
+            'niche' => 'Dental Clinic',
+            'city' => 'Leeds',
+        ]);
+        $prospect = Prospect::factory()->create(['search_id' => $search->id]);
+
+        NicheScan::query()->create([
+            'niche' => 'Dental Clinic',
+            'niche_query' => 'dental clinic',
+            'city' => 'Leeds',
+            'country' => 'GB',
+            'scan_date' => now('Europe/London')->subDay()->toDateString(),
+            'result_count' => 12,
+            'sampled_count' => 5,
+            'opportunity_score' => 44.5,
+            'status' => NicheScanStatus::Complete,
+            'ran_at' => now()->subDay(),
+        ]);
+
+        $this->actingAs($user)
+            ->get("/prospects/{$prospect->id}")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Prospect/Show')
+                ->has('marketScan')
+                ->where('marketScan.niche', 'Dental Clinic')
+                ->where('marketScan.city', 'Leeds')
+                ->where('marketScan.opportunity_score', 44.5)
+                ->where('marketScan.result_count', 12)
+                ->where('marketScan.status', 'complete')
+                ->where('marketScan.is_pending', false)
+                ->where('marketScan.niches_url', '/niches?city=Leeds'));
+    }
+
+    public function test_show_omits_market_scan_for_direct_url_search(): void
+    {
+        $user = User::factory()->create();
+        $search = Search::factory()->directUrl()->create(['user_id' => $user->id]);
+        $prospect = Prospect::factory()->create(['search_id' => $search->id]);
+
+        $this->actingAs($user)
+            ->get("/prospects/{$prospect->id}")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Prospect/Show')
+                ->where('marketScan', null));
     }
 }

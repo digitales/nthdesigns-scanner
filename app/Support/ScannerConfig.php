@@ -23,6 +23,8 @@ use Illuminate\Support\Facades\Queue;
  */
 final class ScannerConfig
 {
+    public const PRODUCTION_BROWSER_SERVICE_URL = 'https://nth-scanner-browser.fly.dev';
+
     /**
      * Resolve audit/screenshot/cms drivers from env for config file and runtime overrides.
      *
@@ -36,7 +38,7 @@ final class ScannerConfig
      */
     public static function driversForConfig(): array
     {
-        $auditServiceUrl = env('AUDIT_SERVICE_URL') ?: null;
+        $auditServiceUrl = self::resolveAuditServiceUrl();
         $auditDriver = env('AUDIT_DRIVER', 'playwright');
 
         if ($auditServiceUrl) {
@@ -87,6 +89,21 @@ final class ScannerConfig
         }
 
         config($overrides);
+    }
+
+    public static function resolveAuditServiceUrl(): ?string
+    {
+        $configured = env('AUDIT_SERVICE_URL');
+
+        if ($configured !== null && $configured !== '') {
+            return $configured;
+        }
+
+        if (env('APP_ENV') === 'production') {
+            return self::PRODUCTION_BROWSER_SERVICE_URL;
+        }
+
+        return null;
     }
 
     public static function registerQueueRoutes(): void

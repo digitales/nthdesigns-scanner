@@ -14,11 +14,13 @@ class ScannerConfigTest extends TestCase
         putenv('AUDIT_SERVICE_TOKEN');
         putenv('AUDIT_DRIVER');
         putenv('SCREENSHOT_DRIVER');
+        putenv('APP_ENV');
 
         unset($_ENV['AUDIT_SERVICE_URL'], $_SERVER['AUDIT_SERVICE_URL']);
         unset($_ENV['AUDIT_SERVICE_TOKEN'], $_SERVER['AUDIT_SERVICE_TOKEN']);
         unset($_ENV['AUDIT_DRIVER'], $_SERVER['AUDIT_DRIVER']);
         unset($_ENV['SCREENSHOT_DRIVER'], $_SERVER['SCREENSHOT_DRIVER']);
+        unset($_ENV['APP_ENV'], $_SERVER['APP_ENV']);
 
         parent::tearDown();
     }
@@ -43,5 +45,21 @@ class ScannerConfigTest extends TestCase
         $this->assertSame('http', config('scanner.screenshot_driver'));
         $this->assertSame('https://browser.example', config('scanner.audit_service_url'));
         $this->assertSame('secret', config('scanner.audit_service_token'));
+    }
+
+    public function test_production_defaults_to_fly_browser_service_url(): void
+    {
+        putenv('APP_ENV=production');
+        $_ENV['APP_ENV'] = 'production';
+        $_SERVER['APP_ENV'] = 'production';
+
+        putenv('AUDIT_SERVICE_URL');
+        unset($_ENV['AUDIT_SERVICE_URL'], $_SERVER['AUDIT_SERVICE_URL']);
+
+        $drivers = ScannerConfig::driversForConfig();
+
+        $this->assertSame('http', $drivers['audit_driver']);
+        $this->assertSame('http', $drivers['screenshot_driver']);
+        $this->assertSame(ScannerConfig::PRODUCTION_BROWSER_SERVICE_URL, $drivers['audit_service_url']);
     }
 }

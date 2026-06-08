@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Support\PlaywrightEnv;
+use App\Support\PlaywrightScripts;
 use Illuminate\Support\Facades\Process;
 
 class AuditRunnerService
@@ -34,6 +35,7 @@ class AuditRunnerService
     private function runPlaywright(string $url, string $screenshotDir): array
     {
         $this->assertNodeBinaryAvailable();
+        $this->assertPlaywrightDependenciesInstalled();
 
         $result = Process::timeout(config('scanner.audit_timeout'))
             ->env(PlaywrightEnv::forProcess([
@@ -81,6 +83,15 @@ class AuditRunnerService
             ($stderr !== '' ? $stderr.'. ' : '').
             'Set NODE_BINARY=node or the path from `which node` in .env, then restart queue workers.'
         );
+    }
+
+    private function assertPlaywrightDependenciesInstalled(): void
+    {
+        if (PlaywrightScripts::dependenciesInstalled()) {
+            return;
+        }
+
+        throw new \RuntimeException(PlaywrightScripts::missingDependenciesMessage());
     }
 
     /**
