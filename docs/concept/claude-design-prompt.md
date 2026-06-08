@@ -154,7 +154,7 @@ Use these **after** the master prompt in the same Claude Design project.
 
 ### G. Settings
 
-> Design Settings for operators: Google Places and Anthropic API status indicators, default country, default agency name for outreach, Calendly/booking URL for public report CTA, object storage health. Simple account section (billing stubbed). Calm admin aesthetic, not consumer settings.
+> Design Settings for operators: Google Places and OpenRouter API status indicators, default country, default agency name for outreach, Calendly/booking URL for public report CTA, object storage health. Simple account section (billing stubbed). Calm admin aesthetic, not consumer settings.
 
 ### H. Public prospect report
 

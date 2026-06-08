@@ -19,7 +19,7 @@ A three-section web app that scrapes Google Business Profile data for local busi
 | Auth | Laravel Breeze | latest | Minimal, no bloat |
 | Deployment | Laravel Forge + DigitalOcean or Hetzner | - | Cheaper than Vercel for PHP; Forge handles Horizon daemon |
 
-**Laravel AI SDK**: Laravel 13 ships with a production-stable, provider-agnostic AI SDK covering text generation and tool-calling agents. Use this for the `AnthropicService` layer rather than the unofficial `anthropics/anthropic-sdk-php` or raw HTTP calls. Configure Anthropic as the provider in `config/ai.php`.
+**OpenRouter transport**: Outreach LLM calls use `OpenRouterService` posting to OpenRouter `/chat/completions`. Frontier model selection stays env-driven via `OPENROUTER_MODEL` (e.g. `anthropic/claude-sonnet-4`). This project does not use the Laravel AI SDK.
 
 **Tailwind v4 install note**: No `tailwind.config.js`. Configuration lives in `resources/css/app.css` using `@theme`. Use the official Vite plugin (`@tailwindcss/vite`) rather than PostCSS. New Laravel 13 + Breeze installs scaffold this correctly by default.
 
@@ -351,7 +351,7 @@ $table->unique(['search_id', 'place_id']);
 - Basic `/search` page: form + results table, polling
 
 **Phase 2 — Outreach generation (days 4–5)**
-- `AnthropicService` with outreach prompt
+- `OpenRouterService` with outreach prompt
 - `/outreach` page: selection, generation, copy/edit
 - Session-based prospect selection (simple before adding proper saved lists)
 

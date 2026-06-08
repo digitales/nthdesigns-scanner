@@ -253,7 +253,7 @@ If you want the icon set as a standalone library, lift the `Icons` object from `
 
 1. **A–F grade is currently combined-score derived.** Spec didn't pin down the rule. Confirm the thresholds in `tokens.css` are acceptable, or replace with a rubric you'd rather defend.
 2. **The public report assumes a "top competitor" exists.** When the prospect's niche+city returns no competitor (e.g. rural single-practice), do we hide Section 2 entirely or show a "you're the only one for 10km" panel?
-3. **Outreach email tone** is editorial UK-consultancy — confirm with Alex before locking the prompts in `AnthropicService`.
+3. **Outreach email tone** is editorial UK-consultancy — confirm with Alex before locking the prompts in `OpenRouterService`.
 4. **Settings screen** — keep designed or drop until the spec admits it.
 5. **Perf column convention break.** The new Phase-7 Perf column reads Lighthouse-native (high = good site), the opposite direction to every other score column where high = warm lead. The terracotta `weakPip` below 30 disambiguates, but it's worth confirming this is acceptable rather than inverting the perf score on the table (showing `100 - lighthouse_perf` as a "perf weakness" score so the column reads consistently with the rest). The current direction matches the public report dials and the raw Lighthouse value the operator sees in PageSpeed Insights, which is the upside.
 6. **Editorial sentence under Performance dial uses a hard 30 threshold.** The dial itself bands at 50/70 (Google's penalty thresholds). Confirm 30 is the right cut-off for the editorial sentence, or replace with a different threshold (e.g. < 40, or a more nuanced rule based on which Lighthouse field actually triggered the score).

@@ -21,7 +21,7 @@ Give nthdesigns operators a full internal workflow to browse prospects, monitor 
 | Warm lead definition | **B — strict:** report `viewed_at` set, latest outreach `sent_at` set, `response_received` false |
 | Settings page | Out of scope; agency name + CPC on outreach form only (request-scoped) |
 | Report before outreach | Manual report generation remains; batch generate skips prospects without a report |
-| AI integration | Keep existing `AnthropicService` (no Laravel AI SDK migration in this slice) |
+| AI integration | Keep existing `OpenRouterService` (no Laravel AI SDK migration in this slice) |
 
 ---
 

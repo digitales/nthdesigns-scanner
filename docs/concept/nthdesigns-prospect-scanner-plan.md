@@ -583,7 +583,7 @@ Two queues: `scraping` (fast, Places API calls) and `auditing` (slow, headless C
 
 #### `/settings` — UserSettings
 
-- API key health check (Google Places, Anthropic)
+- API key health check (Google Places, OpenRouter)
 - Default country (pre-fill on search form)
 - Default pitch agency name and Calendly/booking URL (used in report CTA)
 - Object storage health check
@@ -622,7 +622,7 @@ Two queues: `scraping` (fast, Places API calls) and `auditing` (slow, headless C
 
 #### Phase 3 — Outreach generation (days 9–11)
 
-- Laravel AI SDK configuration for Anthropic provider
+- OpenRouter API key and `OPENROUTER_MODEL` for outreach LLM calls
 - `OutreachGeneratorService` with three prompt variants (each embeds report URL)
 - `ReportGeneratorService`: denormalise scores, fetch benchmark place, build `report_data`
 - `GenerateReportJob` wired into the end of `CombineScoresJob`
