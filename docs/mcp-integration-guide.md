@@ -59,7 +59,7 @@ When calling tools over streamable MCP transport, clients can include:
 
 Supported tools (`get_search`, `get_search_progress_flow`, `watch_search_progress`) may emit `notifications/progress` with monotonic `progress`, optional `total`, and `message`.
 
-**Worker note:** Streamable watches hold a PHP worker for up to `timeout_seconds` (max 45s), polling every `MCP_PROGRESS_POLL_SECONDS` (default 2s). Prefer `get_search_progress_flow` for lightweight polling when you do not need SSE notifications. Disconnecting the client ends the watch early (`connection_aborted`).
+**Worker note:** Streamable watches hold a PHP **app worker** for up to `timeout_seconds` (max 45s), polling every `MCP_PROGRESS_POLL_SECONDS` (default 2s) in 200ms slices so client disconnects release the worker promptly. Prefer `get_search_progress_flow` for lightweight agent polling when you do not need SSE `notifications/progress`. On Laravel Cloud, size the app cluster for expected concurrent watches (e.g. two agents each running one watch ≈ two busy workers). Disconnecting the client ends the watch early (`connection_aborted`).
 
 ## Revocation
 

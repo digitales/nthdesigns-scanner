@@ -194,7 +194,7 @@ class McpProgressStreamHandler
                     return;
                 }
 
-                sleep(max(1, (int) config('scanner.mcp_progress_poll_seconds', 2)));
+                $this->waitForNextPoll();
             } while ((microtime(true) - $startedAt) < $timeout);
 
             $result = $name === 'get_search'
@@ -267,5 +267,19 @@ class McpProgressStreamHandler
         }
 
         return array_values(array_unique($hosts));
+    }
+
+    private function waitForNextPoll(): void
+    {
+        $seconds = max(1, (int) config('scanner.mcp_progress_poll_seconds', 2));
+        $deadline = microtime(true) + $seconds;
+
+        while (microtime(true) < $deadline) {
+            if (connection_aborted()) {
+                return;
+            }
+
+            usleep(200_000);
+        }
     }
 }
