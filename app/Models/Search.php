@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use App\Enums\ScanType;
+use App\Enums\SearchSource;
+use App\Enums\SearchStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -19,6 +22,9 @@ class Search extends Model
     protected function casts(): array
     {
         return [
+            'status' => SearchStatus::class,
+            'scan_type' => ScanType::class,
+            'source' => SearchSource::class,
             'benchmark_snapshot' => 'array',
         ];
     }
@@ -35,6 +41,6 @@ class Search extends Model
 
     public function isDirectUrl(): bool
     {
-        return $this->source === 'direct_url';
+        return $this->source === SearchSource::DirectUrl;
     }
 }
