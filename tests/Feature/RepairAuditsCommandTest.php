@@ -11,7 +11,6 @@ use App\Models\Search;
 use App\Models\User;
 use App\Support\AuditingQueue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 

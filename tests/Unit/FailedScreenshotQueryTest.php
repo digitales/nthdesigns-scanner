@@ -10,7 +10,6 @@ use App\Models\Search;
 use App\Models\User;
 use App\Queries\FailedScreenshotQuery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Config;
 use Tests\TestCase;
 
 class FailedScreenshotQueryTest extends TestCase
