@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Enums\NicheScanStatus;
 use App\Jobs\ScanNicheJob;
 use App\Models\NicheScan;
-use App\Support\NicheQueue;
 use Illuminate\Http\JsonResponse;
 
 class NicheScanSampleController extends Controller
@@ -45,14 +44,14 @@ class NicheScanSampleController extends Controller
             ->update(['status' => NicheScanStatus::Pending]);
 
         if ($claimed) {
-            NicheQueue::dispatch(new ScanNicheJob(
+            ScanNicheJob::dispatch(
                 niche: $nicheScan->niche,
                 nicheQuery: $nicheScan->niche_query,
                 city: $nicheScan->city,
                 country: $nicheScan->country,
                 sample: max(1, (int) ($nicheScan->sampled_count ?: config('niches.sample_size', 5))),
                 scanDate: $nicheScan->scan_date->toDateString(),
-            ));
+            );
         }
 
         return response()->json(['status' => 'loading'], 202);

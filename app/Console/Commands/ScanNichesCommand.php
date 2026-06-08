@@ -5,7 +5,6 @@ namespace App\Console\Commands;
 use App\Jobs\ScanNicheJob;
 use App\Models\NicheScan;
 use App\Services\NicheExclusionService;
-use App\Support\NicheQueue;
 use Illuminate\Console\Command;
 use Illuminate\Support\Str;
 
@@ -65,7 +64,7 @@ class ScanNichesCommand extends Command
                     continue;
                 }
 
-                NicheQueue::dispatch(new ScanNicheJob(
+                ScanNicheJob::dispatch(
                     niche: $niche['label'],
                     nicheQuery: $niche['query'],
                     city: $city,
@@ -73,7 +72,7 @@ class ScanNichesCommand extends Command
                     sample: $sample,
                     scanDate: $scanDate,
                     force: $force,
-                ));
+                );
                 $count++;
             }
         }
