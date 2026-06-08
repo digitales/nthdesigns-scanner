@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\AuditJobStatus;
+use App\Enums\AuditJobType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -18,6 +20,8 @@ class AuditJob extends Model
         return [
             'started_at' => 'datetime',
             'completed_at' => 'datetime',
+            'status' => AuditJobStatus::class,
+            'job_type' => AuditJobType::class,
         ];
     }
 

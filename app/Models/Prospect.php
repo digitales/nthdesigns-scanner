@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\AuditStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -36,6 +37,7 @@ class Prospect extends Model
             'expires_at' => 'datetime',
             'website_discovered_at' => 'datetime',
             'suppress_auto_report' => 'boolean',
+            'audit_status' => AuditStatus::class,
         ];
     }
 
