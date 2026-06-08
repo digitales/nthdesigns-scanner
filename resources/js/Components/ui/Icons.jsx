@@ -16,6 +16,10 @@ export const Icons = {
     Send: 'M14 2L7 9M14 2l-5 12-2-5-5-2z',
     Mail: 'M2 4h12v8H2zM2 4l6 5 6-5',
     Search: 'M7 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zM11 11l4 4',
+    List: 'M2 4h12M2 8h12M2 12h8',
+    Filter: 'M2 3h12l-4 5v4l-4 2V8z',
+    Bookmark: 'M3 2h10v12l-5-3-5 3z',
+    Share: 'M10 2h4v4M6 10l8-8M14 6v8H2V2h8',
 };
 
 export default function Icon({ d, size = 16, className = '' }) {

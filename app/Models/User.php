@@ -56,4 +56,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(UserMcpKey::class);
     }
+
+    public function prospectLists(): HasMany
+    {
+        return $this->hasMany(ProspectList::class);
+    }
+
+    public function tags(): HasMany
+    {
+        return $this->hasMany(Tag::class);
+    }
 }

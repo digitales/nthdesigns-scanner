@@ -319,7 +319,21 @@
   .sidebar-aside {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
+  }
+  .sidebar-aside > * {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .sidebar-aside .card-pad {
+    padding: 14px 16px;
+  }
+  .sidebar-aside .card-title {
+    margin-bottom: 8px;
+  }
+  .sidebar-aside .audit-eyebrow-spaced-lg {
+    margin-bottom: 8px;
   }
 
   .meta-list {
@@ -377,6 +391,28 @@
   }
   .warm-lead-link { text-decoration: none; color: inherit; }
   .warm-lead-name { font-weight: 500; font-size: 13px; }
+  .lists-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
+  }
+  .list-card-link { text-decoration: none; color: inherit; }
+  .list-type-icon { color: var(--color-stone-500); }
+  .tag-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag-chip {
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--color-stone-100);
+    border: 1px solid var(--color-stone-200);
+    cursor: pointer;
+  }
+  .tag-suggestions { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+  .niches-panel-tabs { padding: 0 16px 12px; }
+  tr.overdue td { background: var(--color-sev-serious-soft); }
+  .public-sheet { max-width: 960px; margin: 0 auto; padding: 32px 16px; }
+  .public-sheet-header { margin-bottom: 24px; }
+  .shared-sheet-table { width: 100%; }
   .filter-checkbox-label {
     display: flex;
     align-items: center;

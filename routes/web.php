@@ -19,9 +19,14 @@ use App\Http\Controllers\ProspectIgnoreController;
 use App\Http\Controllers\ProspectNoteController;
 use App\Http\Controllers\PublicBookingController;
 use App\Http\Controllers\PublicReportBookingController;
+use App\Http\Controllers\NicheAnnotationController;
+use App\Http\Controllers\ProspectListController;
+use App\Http\Controllers\ProspectTagController;
 use App\Http\Controllers\PublicReportController;
+use App\Http\Controllers\PublicSharedListController;
 use App\Http\Controllers\ReportDashboardController;
 use App\Http\Controllers\SavedProspectController;
+use App\Http\Controllers\SharedListController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\Settings\ConnectedAppsController;
 use App\Http\Controllers\Settings\McpKeyController;
@@ -55,6 +60,9 @@ Route::get('/dashboard', function () {
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::get('/r/{token}', [PublicReportController::class, 'show'])->name('reports.public');
+Route::get('/s/{token}', [PublicSharedListController::class, 'show'])
+    ->middleware('throttle:60,1')
+    ->name('lists.public');
 Route::get('/r/{token}/slots', [PublicReportBookingController::class, 'slots'])
     ->middleware('throttle:60,1')
     ->name('reports.public.slots');
@@ -87,6 +95,23 @@ Route::middleware('auth')->group(function () {
     Route::get('/searches/{search}', [SearchController::class, 'show'])->name('searches.show');
 
     Route::get('/saved', [SavedProspectController::class, 'index'])->name('saved.index');
+
+    Route::get('/lists', [ProspectListController::class, 'index'])->name('lists.index');
+    Route::get('/lists/browse', [ProspectListController::class, 'browse'])->name('lists.browse');
+    Route::post('/lists', [ProspectListController::class, 'store'])->name('lists.store');
+    Route::get('/lists/{list}', [ProspectListController::class, 'show'])->name('lists.show');
+    Route::patch('/lists/{list}', [ProspectListController::class, 'update'])->name('lists.update');
+    Route::delete('/lists/{list}', [ProspectListController::class, 'destroy'])->name('lists.destroy');
+    Route::post('/lists/{list}/items', [ProspectListController::class, 'storeItems'])->name('lists.items.store');
+    Route::patch('/lists/{list}/items/{item}', [ProspectListController::class, 'updateItem'])->name('lists.items.update');
+    Route::delete('/lists/{list}/items/{item}', [ProspectListController::class, 'destroyItem'])->name('lists.items.destroy');
+    Route::post('/lists/{list}/share', [ProspectListController::class, 'share'])->name('lists.share');
+    Route::delete('/shared-lists/{sharedList}', [SharedListController::class, 'destroy'])->name('shared-lists.destroy');
+
+    Route::get('/niches/annotations', [NicheAnnotationController::class, 'show'])->name('niches.annotations.show');
+    Route::post('/niche-notes', [NicheAnnotationController::class, 'storeNote'])->name('niche-notes.store');
+    Route::post('/niche-tags', [NicheAnnotationController::class, 'syncTags'])->name('niche-tags.sync');
+    Route::post('/prospects/{prospect}/tags', [ProspectTagController::class, 'sync'])->name('prospects.tags.sync');
     Route::get('/ignored', [IgnoredProspectController::class, 'index'])->name('ignored.index');
     Route::delete('/ignored/{ignoredProspect}', [IgnoredProspectController::class, 'destroy'])->name('ignored.destroy');
     Route::get('/reports', [ReportDashboardController::class, 'index'])->name('reports.index');

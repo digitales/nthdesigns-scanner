@@ -57,6 +57,18 @@ class ProspectListQuery
             $this->applyWarmScope();
         }
 
+        if (! empty($filters['tags']) && is_array($filters['tags'])) {
+            $tagNames = array_filter($filters['tags']);
+            if ($tagNames !== []) {
+                $this->query->whereHas('tags', fn (Builder $q) => $q
+                    ->whereIn('name', $tagNames));
+            }
+        }
+
+        if (! empty($filters['has_note'])) {
+            $this->query->whereHas('notes');
+        }
+
         return $this;
     }
 

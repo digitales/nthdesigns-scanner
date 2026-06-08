@@ -7,6 +7,7 @@ import SiteAuditSection from '@/Components/audit/SiteAuditSection';
 import TechnologySection from '@/Components/cms/TechnologySection';
 import PageSpeedSection from '@/Components/audit/PageSpeedSection';
 import OutreachEmailCard from '@/Components/OutreachEmailCard';
+import TagInput from '@/Components/TagInput';
 import { shouldShowA11yAudit } from '@/utils/auditVisibility';
 import {
     AnglePill,
@@ -44,6 +45,9 @@ export default function ProspectShow({
     ignoreReasons = [],
     progress_flow: progressFlow = {},
     marketScan = null,
+    tags = [],
+    tagSuggestions = [],
+    manualLists = [],
 }) {
     const { flash } = usePage().props;
     const [copied, setCopied] = useState(false);
@@ -79,6 +83,14 @@ export default function ProspectShow({
     const addToOutreach = () => postAction('selection', '/outreach/selections', {
         data: { prospect_ids: [prospect.id] },
     });
+
+    const syncTag = (action, tagName) => {
+        router.post(`/prospects/${prospect.id}/tags`, { action, tag_name: tagName }, { preserveScroll: true });
+    };
+
+    const addToList = (listId) => {
+        router.post(`/lists/${listId}/items`, { prospect_ids: [prospect.id] }, { preserveScroll: true });
+    };
 
     const copyReportLink = () => {
         if (!report?.public_url) return;
@@ -363,9 +375,9 @@ export default function ProspectShow({
                             )}
                             {report ? (
                                 <>
-                                    <div className="micro mb-8 break-all">/r/{report.token}</div>
+                                    <div className="micro mb-4 break-all">/r/{report.token}</div>
                                     {report.booking && (
-                                        <Stack gap={8} className="mb-16">
+                                        <Stack gap={8} className="mb-12">
                                             <Status kind={report.booking.confirmation_sent ? 'ready' : 'pending'}>
                                                 Booked · {report.booking.label}
                                             </Status>
@@ -390,7 +402,7 @@ export default function ProspectShow({
                                             )}
                                         </Stack>
                                     )}
-                                    <Stack direction="row" gap={8} className="mb-16">
+                                    <Stack direction="row" gap={8} className="mb-12">
                                         <Button kind="secondary" size="sm" onClick={copyReportLink}>
                                             {copied ? 'Copied' : 'Copy link'}
                                         </Button>
@@ -398,7 +410,7 @@ export default function ProspectShow({
                                             <Button kind="ghost" size="sm">Preview</Button>
                                         </a>
                                     </Stack>
-                                    <div className="micro mb-8">
+                                    <div className="micro mb-4">
                                         {report.view_count === 0
                                             ? 'Not yet opened'
                                             : `${report.view_count} view${report.view_count !== 1 ? 's' : ''}`}
@@ -421,7 +433,7 @@ export default function ProspectShow({
                                 </>
                             ) : (
                                 <>
-                                    <p className="micro mb-12">No report yet.</p>
+                                    <p className="micro mb-8">No report yet.</p>
                                     <Button
                                         kind="primary"
                                         size="sm"
@@ -433,7 +445,7 @@ export default function ProspectShow({
                                 </>
                             )}
                             {prospect.audit_status === 'failed' && (
-                                <p className="micro mt-8 text-critical">
+                                <p className="micro mt-4 text-critical">
                                     Site audit failed. Use Re-run site audit above, or fix the website URL and save.
                                 </p>
                             )}
@@ -449,7 +461,7 @@ export default function ProspectShow({
                                 </>
                             ) : (
                                 <>
-                                    <p className="micro mb-12">No email drafted.</p>
+                                    <p className="micro mb-8">No email drafted.</p>
                                     <Button
                                         kind="primary"
                                         size="sm"
@@ -464,13 +476,13 @@ export default function ProspectShow({
 
                         {marketScan && (
                             <Card title="Market scan">
-                                <p className="micro mb-12">
+                                <p className="micro mb-8">
                                     {marketScan.niche} · {marketScan.city}
                                 </p>
                                 {marketScan.status == null ? (
-                                    <p className="micro mb-12">No market scan yet.</p>
+                                    <p className="micro mb-8">No market scan yet.</p>
                                 ) : (
-                                    <Stack gap={8} className="mb-12">
+                                    <Stack gap={8} className="mb-8">
                                         <Stack direction="row" gap={12} align="center">
                                             <span className="micro">Opportunity</span>
                                             <ScoreBadge
@@ -521,7 +533,7 @@ export default function ProspectShow({
                         {prospect.place_id && (
                             <Card title="Location">
                                 {prospect.address && (
-                                    <p className="body-sm line-height-snug mb-8">
+                                    <p className="body-sm line-height-snug mb-4">
                                         {prospect.address}
                                     </p>
                                 )}
@@ -623,7 +635,7 @@ export default function ProspectShow({
 
                         {!ignored && (
                             <Card title="Ignore prospect">
-                                <p className="micro mb-12">
+                                <p className="micro mb-8">
                                     Skip this business in future niche and city scans. Use for acquisitions, cold leads, or failed outreach.
                                 </p>
                                 {showIgnoreForm ? (
@@ -661,10 +673,39 @@ export default function ProspectShow({
                             </Card>
                         )}
 
+                        <Card title="Tags">
+                            <TagInput
+                                tags={tags}
+                                suggestions={tagSuggestions}
+                                onAttach={(name) => syncTag('attach', name)}
+                                onDetach={(name) => syncTag('detach', name)}
+                            />
+                        </Card>
+
+                        {manualLists.length > 0 && (
+                            <Card title="Add to list">
+                                <select
+                                    className="input w-full"
+                                    defaultValue=""
+                                    onChange={(e) => {
+                                        if (e.target.value) {
+                                            addToList(e.target.value);
+                                            e.target.value = '';
+                                        }
+                                    }}
+                                >
+                                    <option value="">Choose a manual list…</option>
+                                    {manualLists.map((l) => (
+                                        <option key={l.id} value={l.id}>{l.name}</option>
+                                    ))}
+                                </select>
+                            </Card>
+                        )}
+
                         <Card title="Private notes">
-                            <p className="micro mb-12">Not included on public reports.</p>
+                            <p className="micro mb-8">Not included on public reports.</p>
                             {notes.length === 0 ? (
-                                <p className="micro mb-12">No notes yet.</p>
+                                <p className="micro mb-8">No notes yet.</p>
                             ) : (
                                 <Stack as="ul" gap={12} className="meta-list meta-list--notes">
                                     {notes.map((n) => (

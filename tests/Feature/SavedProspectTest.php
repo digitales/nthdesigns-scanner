@@ -17,13 +17,15 @@ class SavedProspectTest extends TestCase
         $this->get('/saved')->assertRedirect('/login');
     }
 
-    public function test_saved_page_lists_user_prospects(): void
+    public function test_saved_page_redirects_to_lists_browse(): void
     {
         $user = User::factory()->create();
         $search = Search::factory()->create(['user_id' => $user->id]);
         Prospect::factory()->create(['search_id' => $search->id]);
 
-        $this->actingAs($user)->get('/saved')->assertOk();
+        $this->actingAs($user)
+            ->get('/saved')
+            ->assertRedirect('/lists/browse');
     }
 
     public function test_saved_page_rejects_invalid_scan_type_filter(): void
@@ -31,7 +33,7 @@ class SavedProspectTest extends TestCase
         $user = User::factory()->create();
 
         $this->actingAs($user)
-            ->get('/saved?scan_type=invalid')
+            ->get('/lists/browse?scan_type=invalid')
             ->assertSessionHasErrors('scan_type');
     }
 }

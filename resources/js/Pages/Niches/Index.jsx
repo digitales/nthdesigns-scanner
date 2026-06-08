@@ -1,6 +1,7 @@
 import { Head, router, usePage } from "@inertiajs/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import NicheAnnotatePanel from "@/Components/Niches/NicheAnnotatePanel";
 import NicheSamplePanel from "@/Components/Niches/NicheSamplePanel";
 import ManageNichesPanel from "@/Components/Niches/ManageNichesPanel";
 import {
@@ -89,6 +90,7 @@ export default function NichesIndex({
   const [loadingMore, setLoadingMore] = useState(false);
   const [selected, setSelected] = useState(null);
   const [manageOpen, setManageOpen] = useState(false);
+  const [annotateScan, setAnnotateScan] = useState(null);
   const [viewRange, setViewRange] = useState({
     from: 1,
     to: Math.min(PER_PAGE, pagination?.total ?? PER_PAGE),
@@ -522,7 +524,10 @@ export default function NichesIndex({
                           key={row.id}
                           data-niche-row-index={index}
                           className={selected?.id === row.id ? "selected" : ""}
-                          onClick={() => setSelected(row)}
+                          onClick={() => {
+                            setAnnotateScan(null);
+                            setSelected(row);
+                          }}
                         >
                           <td className="biz">
                             {row.niche}
@@ -579,6 +584,17 @@ export default function NichesIndex({
                               <Button
                                 kind="ghost"
                                 size="xs"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelected(null);
+                                  setAnnotateScan(row);
+                                }}
+                              >
+                                Annotate
+                              </Button>
+                              <Button
+                                kind="ghost"
+                                size="xs"
                                 disabled={scanningRowId === row.id}
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -612,12 +628,19 @@ export default function NichesIndex({
               </div>
             </div>
 
-            {selected && !manageOpen && (
+            {selected && !manageOpen && !annotateScan && (
               <NicheSamplePanel
                 scan={selected}
                 scanning={scanningRowId === selected.id}
                 onClose={() => setSelected(null)}
                 onRunFullScan={runFullScan}
+              />
+            )}
+
+            {annotateScan && !manageOpen && (
+              <NicheAnnotatePanel
+                scan={annotateScan}
+                onClose={() => setAnnotateScan(null)}
               />
             )}
 

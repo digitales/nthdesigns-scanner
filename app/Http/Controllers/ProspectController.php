@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\AuditJobStatus;
+use App\Enums\ProspectListType;
 use App\Enums\AuditJobType;
 use App\Enums\AuditStatus;
 use App\Enums\IgnoredProspectReason;
@@ -26,6 +27,7 @@ use App\Services\ProspectAuditService;
 use App\Services\ProspectEnrichmentService;
 use App\Services\ProspectExclusionService;
 use App\Services\ReportBuilderService;
+use App\Services\TagService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -49,16 +51,22 @@ class ProspectController extends Controller
             'outreachEmails' => fn ($q) => $q->latest(),
             'auditJobs.errorDetail',
             'notes.user',
+            'tags',
         ]);
 
-        $navigation = $request->query('from') === 'outreach'
-            ? ['back_href' => '/outreach', 'back_label' => 'Back to outreach']
-            : [
+        $navigation = match ($request->query('from')) {
+            'outreach' => ['back_href' => '/outreach', 'back_label' => 'Back to outreach'],
+            'list' => [
+                'back_href' => '/lists/'.$request->query('list_id'),
+                'back_label' => 'Back to list',
+            ],
+            default => [
                 'back_href' => '/searches/'.$prospect->search->id,
                 'back_label' => $prospect->search->isDirectUrl()
                     ? 'Back to single site'
                     : 'Back to '.$prospect->search->niche,
-            ];
+            ],
+        };
 
         $ignored = $exclusions->findForUser($request->user()->id, $prospect->place_id);
 
@@ -144,6 +152,17 @@ class ProspectController extends Controller
                 ->all(),
             'progress_flow' => $progressFlow->prospectFlow($prospect, $prospect->search),
             'marketScan' => $this->marketScanFor($prospect->search),
+            'tags' => $prospect->tags->map(fn ($t) => [
+                'id' => $t->id,
+                'name' => $t->name,
+                'color' => $t->color,
+            ]),
+            'tagSuggestions' => app(TagService::class)->suggestionsFor($request->user()),
+            'manualLists' => $request->user()
+                ->prospectLists()
+                ->where('type', ProspectListType::Manual)
+                ->orderBy('name')
+                ->get(['id', 'name']),
         ]);
     }
 

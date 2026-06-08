@@ -28,6 +28,9 @@ class FilterProspectListRequest extends FormRequest
             'min_score' => ['nullable', 'integer', 'min:0', 'max:100'],
             'dominant_angle' => ['nullable', Rule::enum(DominantAngle::class)],
             'warm' => ['nullable', 'boolean'],
+            'tags' => ['nullable', 'array'],
+            'tags.*' => ['string', 'max:50'],
+            'has_note' => ['nullable', 'boolean'],
         ];
     }
 }
