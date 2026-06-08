@@ -1,5 +1,9 @@
 import { Head, router, usePage } from "@inertiajs/react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  nicheCityKey,
+  useNicheScanStatusPoll,
+} from "@/hooks/useNicheScanStatusPoll";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import NicheAnnotatePanel from "@/Components/Niches/NicheAnnotatePanel";
 import NicheSamplePanel from "@/Components/Niches/NicheSamplePanel";
@@ -116,12 +120,21 @@ export default function NichesIndex({
   }, [flash?.success]);
 
   useEffect(() => {
+    if (flash?.error) {
+      setToast(flash.error);
+    }
+  }, [flash?.error]);
+
+  useEffect(() => {
     setMeta(pagination);
   }, [pagination]);
 
   // Reset list only when filters change — not on infinite-scroll partial reloads (those merge in loadPage).
   useEffect(() => {
     setRows(initialScans);
+    setPendingKeys(
+      initialScans.filter((row) => row.is_pending).map(nicheCityKey),
+    );
     setSelected(null);
     deepLinkDoneRef.current = false;
     const initialTo = Math.min(
@@ -282,6 +295,84 @@ export default function NichesIndex({
   };
 
   const [scanningRowId, setScanningRowId] = useState(null);
+  const [refreshQueuingRowId, setRefreshQueuingRowId] = useState(null);
+  const [pendingKeys, setPendingKeys] = useState([]);
+
+  const isComboPending = useCallback(
+    (row) => row.is_pending || pendingKeys.includes(nicheCityKey(row)),
+    [pendingKeys],
+  );
+
+  const patchRowFromStatus = useCallback((comboKey, data) => {
+    const patch = {
+      id: data.id,
+      result_count: data.result_count,
+      sampled_count: data.sampled_count,
+      avg_gbp_score: data.avg_gbp_score,
+      pct_no_website: data.pct_no_website,
+      pct_low_reviews: data.pct_low_reviews,
+      opportunity_score: data.opportunity_score,
+      status: data.status,
+      is_pending: data.is_pending,
+      ran_at_human: data.ran_at_human,
+    };
+
+    setRows((prev) =>
+      prev.map((row) =>
+        nicheCityKey(row) === comboKey ? { ...row, ...patch } : row,
+      ),
+    );
+
+    setSelected((prev) =>
+      prev && nicheCityKey(prev) === comboKey ? { ...prev, ...patch } : prev,
+    );
+
+    if (
+      !data.is_pending &&
+      (data.status === "complete" || data.status === "failed")
+    ) {
+      setPendingKeys((prev) => prev.filter((key) => key !== comboKey));
+    } else if (data.is_pending) {
+      setPendingKeys((prev) =>
+        prev.includes(comboKey) ? prev : [...prev, comboKey],
+      );
+    }
+  }, []);
+
+  useNicheScanStatusPoll(pendingKeys, rows, patchRowFromStatus);
+
+  const refreshScan = (row) => {
+    if (refreshQueuingRowId || isComboPending(row)) {
+      return;
+    }
+
+    setRefreshQueuingRowId(row.id);
+    router.post(
+      `/niches/${row.id}/refresh`,
+      {},
+      {
+        preserveScroll: true,
+        onSuccess: () => {
+          setPendingKeys((prev) =>
+            prev.includes(nicheCityKey(row))
+              ? prev
+              : [...prev, nicheCityKey(row)],
+          );
+        },
+        onFinish: () => setRefreshQueuingRowId(null),
+      },
+    );
+  };
+
+  const refreshScanLabel = (row) => {
+    if (refreshQueuingRowId === row.id) {
+      return "Queuing…";
+    }
+    if (isComboPending(row)) {
+      return "Scan in progress…";
+    }
+    return "Refresh scan";
+  };
 
   const runFullScan = (row) => {
     if (scanningRowId) {
@@ -536,7 +627,7 @@ export default function NichesIndex({
                                 <Status kind="pending">Ignored</Status>
                               </div>
                             )}
-                            {row.status !== "complete" && (
+                            {(row.status !== "complete" || row.is_pending) && (
                               <div className="mt-4">
                                 <Status
                                   kind={
@@ -545,7 +636,7 @@ export default function NichesIndex({
                                       : "pending"
                                   }
                                 >
-                                  {row.status}
+                                  {row.is_pending ? "pending" : row.status}
                                 </Status>
                               </div>
                             )}
@@ -595,6 +686,20 @@ export default function NichesIndex({
                               <Button
                                 kind="ghost"
                                 size="xs"
+                                disabled={
+                                  refreshQueuingRowId === row.id ||
+                                  isComboPending(row)
+                                }
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  refreshScan(row);
+                                }}
+                              >
+                                {refreshScanLabel(row)}
+                              </Button>
+                              <Button
+                                kind="ghost"
+                                size="xs"
                                 disabled={scanningRowId === row.id}
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -632,7 +737,10 @@ export default function NichesIndex({
               <NicheSamplePanel
                 scan={selected}
                 scanning={scanningRowId === selected.id}
+                scanPending={isComboPending(selected)}
+                refreshing={refreshQueuingRowId === selected.id}
                 onClose={() => setSelected(null)}
+                onRefreshScan={refreshScan}
                 onRunFullScan={runFullScan}
               />
             )}

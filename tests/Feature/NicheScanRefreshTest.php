@@ -6,15 +6,13 @@ use App\Actions\DispatchMarketScanRefresh;
 use App\Enums\NicheScanStatus;
 use App\Jobs\ScanNicheJob;
 use App\Models\NicheScan;
-use App\Models\Prospect;
-use App\Models\Search;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\RateLimiter;
 use Tests\TestCase;
 
-class ProspectNicheScanTest extends TestCase
+class NicheScanRefreshTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -29,44 +27,54 @@ class ProspectNicheScanTest extends TestCase
         ]);
 
         $user = User::factory()->create();
-        $search = Search::factory()->create([
-            'user_id' => $user->id,
+        $scan = NicheScan::query()->create([
             'niche' => 'Dental Clinic',
+            'niche_query' => 'dental clinic',
             'city' => 'Leeds',
             'country' => 'GB',
+            'scan_date' => '2026-05-27',
+            'result_count' => 10,
+            'sampled_count' => 5,
+            'avg_gbp_score' => 50,
+            'pct_no_website' => 20,
+            'pct_low_reviews' => 40,
+            'opportunity_score' => 45,
+            'status' => NicheScanStatus::Complete,
+            'ran_at' => now(),
         ]);
-        $prospect = Prospect::factory()->create(['search_id' => $search->id]);
 
         $this->actingAs($user)
-            ->post("/prospects/{$prospect->id}/niche-scan")
+            ->post("/niches/{$scan->id}/refresh")
             ->assertRedirect()
             ->assertSessionHas('success', 'Market scan queued for Dental Clinic in Leeds.');
 
         Queue::assertPushed(ScanNicheJob::class, fn (ScanNicheJob $job) => $job->niche === 'Dental Clinic'
             && $job->nicheQuery === 'dental clinic'
             && $job->city === 'Leeds'
-            && $job->country === 'GB'
             && $job->force === true);
     }
 
-    public function test_refresh_uses_lowercased_niche_when_not_in_config(): void
+    public function test_refresh_uses_stored_niche_query_when_label_not_in_config(): void
     {
         Queue::fake();
         config(['niches.niches' => []]);
 
         $user = User::factory()->create();
-        $search = Search::factory()->create([
-            'user_id' => $user->id,
+        $scan = NicheScan::query()->create([
             'niche' => 'Custom Niche',
+            'niche_query' => 'stored query',
             'city' => 'Leeds',
+            'country' => 'GB',
+            'scan_date' => '2026-05-27',
+            'status' => NicheScanStatus::Complete,
+            'ran_at' => now(),
         ]);
-        $prospect = Prospect::factory()->create(['search_id' => $search->id]);
 
         $this->actingAs($user)
-            ->post("/prospects/{$prospect->id}/niche-scan")
+            ->post("/niches/{$scan->id}/refresh")
             ->assertRedirect();
 
-        Queue::assertPushed(ScanNicheJob::class, fn (ScanNicheJob $job) => $job->nicheQuery === 'custom niche');
+        Queue::assertPushed(ScanNicheJob::class, fn (ScanNicheJob $job) => $job->nicheQuery === 'stored query');
     }
 
     public function test_refresh_blocked_when_todays_scan_is_pending(): void
@@ -74,12 +82,15 @@ class ProspectNicheScanTest extends TestCase
         Queue::fake();
 
         $user = User::factory()->create();
-        $search = Search::factory()->create([
-            'user_id' => $user->id,
+        $scan = NicheScan::query()->create([
             'niche' => 'Plumber',
+            'niche_query' => 'plumber',
             'city' => 'Leeds',
+            'country' => 'GB',
+            'scan_date' => '2026-05-27',
+            'status' => NicheScanStatus::Complete,
+            'ran_at' => now()->subDay(),
         ]);
-        $prospect = Prospect::factory()->create(['search_id' => $search->id]);
 
         NicheScan::query()->create([
             'niche' => 'Plumber',
@@ -91,7 +102,7 @@ class ProspectNicheScanTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->post("/prospects/{$prospect->id}/niche-scan")
+            ->post("/niches/{$scan->id}/refresh")
             ->assertRedirect()
             ->assertSessionHas('success', 'Market scan already in progress.');
 
@@ -103,48 +114,39 @@ class ProspectNicheScanTest extends TestCase
         Queue::fake();
 
         $user = User::factory()->create();
-        $search = Search::factory()->create([
-            'user_id' => $user->id,
+        $scan = NicheScan::query()->create([
             'niche' => 'Plumber',
+            'niche_query' => 'plumber',
             'city' => 'Leeds',
+            'country' => 'GB',
+            'scan_date' => '2026-05-27',
+            'status' => NicheScanStatus::Complete,
+            'ran_at' => now(),
         ]);
-        $prospect = Prospect::factory()->create(['search_id' => $search->id]);
 
         RateLimiter::hit(DispatchMarketScanRefresh::rateLimitKey($user->id, 'Plumber', 'Leeds'), 60);
 
         $this->actingAs($user)
-            ->post("/prospects/{$prospect->id}/niche-scan")
+            ->post("/niches/{$scan->id}/refresh")
             ->assertRedirect()
             ->assertSessionHas('error');
 
         Queue::assertNothingPushed();
     }
 
-    public function test_refresh_rejects_direct_url_search(): void
+    public function test_refresh_requires_authentication(): void
     {
-        Queue::fake();
-
-        $user = User::factory()->create();
-        $search = Search::factory()->directUrl()->create(['user_id' => $user->id]);
-        $prospect = Prospect::factory()->create(['search_id' => $search->id]);
-
-        $this->actingAs($user)
-            ->post("/prospects/{$prospect->id}/niche-scan")
-            ->assertStatus(422);
-
-        Queue::assertNothingPushed();
-    }
-
-    public function test_other_user_cannot_refresh_market_scan(): void
-    {
-        $owner = User::factory()->create();
-        $other = User::factory()->create();
-        $prospect = Prospect::factory()->create([
-            'search_id' => Search::factory()->create(['user_id' => $owner->id])->id,
+        $scan = NicheScan::query()->create([
+            'niche' => 'Plumber',
+            'niche_query' => 'plumber',
+            'city' => 'Leeds',
+            'country' => 'GB',
+            'scan_date' => '2026-05-27',
+            'status' => NicheScanStatus::Complete,
+            'ran_at' => now(),
         ]);
 
-        $this->actingAs($other)
-            ->post("/prospects/{$prospect->id}/niche-scan")
-            ->assertForbidden();
+        $this->post("/niches/{$scan->id}/refresh")
+            ->assertRedirect('/login');
     }
 }

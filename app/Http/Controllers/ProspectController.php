@@ -2,23 +2,21 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\DispatchMarketScanRefresh;
 use App\Enums\AuditJobStatus;
-use App\Enums\ProspectListType;
 use App\Enums\AuditJobType;
 use App\Enums\AuditStatus;
 use App\Enums\IgnoredProspectReason;
 use App\Enums\NicheScanStatus;
+use App\Enums\ProspectListType;
 use App\Http\Requests\UpdateProspectRequest;
 use App\Jobs\GenerateOutreachEmailJob;
 use App\Jobs\GenerateProspectReportJob;
-use App\Jobs\ScanNicheJob;
 use App\Models\AuditJob;
 use App\Models\NicheScan;
 use App\Models\Prospect;
 use App\Models\Search;
 use App\Queries\LatestNicheScanQuery;
-use App\Support\NicheQueryResolver;
-use Illuminate\Support\Facades\RateLimiter;
 use App\Services\AgencyBookingService;
 use App\Services\Booking\BookingPresentation;
 use App\Services\CombineScoresService;
@@ -235,7 +233,7 @@ class ProspectController extends Controller
         return back()->with('success', 'Outreach email generation started. Refresh in a few seconds.');
     }
 
-    public function refreshMarketScan(Request $request, Prospect $prospect): RedirectResponse
+    public function refreshMarketScan(Request $request, Prospect $prospect, DispatchMarketScanRefresh $dispatch): RedirectResponse
     {
         $this->authorize('view', $prospect);
 
@@ -244,38 +242,20 @@ class ProspectController extends Controller
 
         abort_if($search->isDirectUrl(), 422);
 
-        $scanDate = now('Europe/London')->toDateString();
+        $result = $dispatch(
+            niche: $search->niche,
+            city: $search->city,
+            country: $search->country,
+            userId: $request->user()->id,
+        );
 
-        $todayPending = NicheScan::query()
-            ->where('niche', $search->niche)
-            ->where('city', $search->city)
-            ->whereDate('scan_date', $scanDate)
-            ->where('status', NicheScanStatus::Pending)
-            ->exists();
-
-        if ($todayPending) {
+        if ($result->isAlreadyPending()) {
             return back()->with('success', 'Market scan already in progress.');
         }
 
-        $rateKey = 'prospect-niche-scan:'.$request->user()->id.':'.$search->niche.':'.$search->city;
-
-        if (RateLimiter::tooManyAttempts($rateKey, 1)) {
-            $seconds = RateLimiter::availableIn($rateKey);
-
-            return back()->with('error', "Please wait {$seconds} seconds before refreshing this market scan.");
+        if ($result->isRateLimited()) {
+            return back()->with('error', "Please wait {$result->rateLimitSeconds} seconds before refreshing this market scan.");
         }
-
-        RateLimiter::hit($rateKey, 60);
-
-        ScanNicheJob::dispatch(
-            niche: $search->niche,
-            nicheQuery: NicheQueryResolver::forLabel($search->niche),
-            city: $search->city,
-            country: $search->country,
-            sample: 5,
-            scanDate: $scanDate,
-            force: true,
-        );
 
         return back()->with('success', "Market scan queued for {$search->niche} in {$search->city}.");
     }

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\NicheScanStatus;
 use App\Models\NicheScan;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -92,6 +93,45 @@ class NicheScanControllerTest extends TestCase
                 ->where('pagination.per_page', 50)
                 ->where('pagination.last_page', 2)
                 ->where('scans.0.id', fn ($id) => $id !== null)
+            );
+    }
+
+    public function test_index_marks_row_pending_when_todays_scan_is_in_progress(): void
+    {
+        $user = User::factory()->create();
+
+        $previous = NicheScan::query()->create([
+            'niche' => 'Plumber',
+            'niche_query' => 'plumber',
+            'city' => 'Leeds',
+            'country' => 'GB',
+            'scan_date' => '2026-05-27',
+            'result_count' => 100,
+            'sampled_count' => 5,
+            'avg_gbp_score' => 50,
+            'pct_no_website' => 20,
+            'pct_low_reviews' => 40,
+            'opportunity_score' => 45,
+            'status' => NicheScanStatus::Complete,
+            'ran_at' => now(),
+        ]);
+
+        NicheScan::query()->create([
+            'niche' => 'Plumber',
+            'niche_query' => 'plumber',
+            'city' => 'Leeds',
+            'country' => 'GB',
+            'scan_date' => now('Europe/London')->toDateString(),
+            'status' => NicheScanStatus::Pending,
+        ]);
+
+        $this->actingAs($user)
+            ->get('/niches')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('scans.0.id', $previous->id)
+                ->where('scans.0.is_pending', true)
+                ->where('scans.0.status', 'pending')
             );
     }
 

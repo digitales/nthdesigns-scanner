@@ -4,7 +4,15 @@ import { Button, ScoreBadge } from '@/Components/ui';
 const POLL_MS = 2000;
 const MAX_POLLS = 30;
 
-export default function NicheSamplePanel({ scan, scanning = false, onClose, onRunFullScan }) {
+export default function NicheSamplePanel({
+    scan,
+    scanning = false,
+    scanPending = false,
+    refreshing = false,
+    onClose,
+    onRefreshScan,
+    onRunFullScan,
+}) {
     const [state, setState] = useState('loading');
     const [items, setItems] = useState([]);
     const [meta, setMeta] = useState(null);
@@ -67,14 +75,25 @@ export default function NicheSamplePanel({ scan, scanning = false, onClose, onRu
     }, [scan.id]);
 
     useEffect(() => {
+        if (scanPending) {
+            setState('refreshing');
+            return undefined;
+        }
+
         const controller = new AbortController();
         loadSample(controller.signal);
         return () => controller.abort();
-    }, [loadSample]);
+    }, [loadSample, scanPending, scan.id]);
 
     const sampled = meta?.sampled_count ?? scan.sampled_count;
     const total = meta?.result_count ?? scan.result_count;
     const ranAt = meta?.ran_at_human ?? scan.ran_at_human;
+
+    const refreshLabel = refreshing
+        ? 'Queuing…'
+        : scanPending
+          ? 'Scan in progress…'
+          : 'Refresh scan';
 
     return (
         <aside className="niches-panel" aria-label="Sample businesses">
@@ -99,6 +118,10 @@ export default function NicheSamplePanel({ scan, scanning = false, onClose, onRu
             </div>
 
             <div className="niches-panel-body">
+                {state === 'refreshing' && (
+                    <p className="micro">Refreshing market scan…</p>
+                )}
+
                 {state === 'loading' && <p className="micro">Fetching sample…</p>}
 
                 {state === 'failed' && (
@@ -129,7 +152,15 @@ export default function NicheSamplePanel({ scan, scanning = false, onClose, onRu
                     ))}
             </div>
 
-            <div className="niches-panel-footer">
+            <div className="niches-panel-footer" style={{ display: 'flex', gap: '8px' }}>
+                <Button
+                    type="button"
+                    kind="secondary"
+                    disabled={scanPending || refreshing}
+                    onClick={() => onRefreshScan?.(scan)}
+                >
+                    {refreshLabel}
+                </Button>
                 <Button type="button" disabled={scanning} onClick={() => onRunFullScan(scan)}>
                     {scanning ? 'Queuing…' : 'Run Full Scan'}
                 </Button>
