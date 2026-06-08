@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Enums\WebsiteDiscoveryConfidence;
+use App\Enums\WebsiteUrlSource;
 use App\Jobs\AuditSiteJob;
 use App\Jobs\ScorePlaceJob;
 use App\Models\Prospect;
@@ -85,8 +87,8 @@ class ScorePlaceJobWebsiteDiscoveryTest extends TestCase
 
         $this->assertNotNull($prospect);
         $this->assertSame('https://briarwren.co.uk', $prospect->website_url);
-        $this->assertSame('brave', $prospect->website_url_source);
-        $this->assertSame('high', $prospect->website_discovery_confidence);
+        $this->assertSame(WebsiteUrlSource::Brave, $prospect->website_url_source);
+        $this->assertSame(WebsiteDiscoveryConfidence::High, $prospect->website_discovery_confidence);
         $this->assertNotNull($prospect->website_discovered_at);
         $this->assertContains(WebsiteDiscoveryService::GBP_FLAG_NOT_ON_PROFILE, $prospect->gbp_flags);
         $this->assertNotContains('No website listed', $prospect->gbp_flags);
@@ -149,7 +151,7 @@ class ScorePlaceJobWebsiteDiscoveryTest extends TestCase
 
         $prospect = Prospect::where('place_id', 'places/abc')->first();
 
-        $this->assertSame('google_cse', $prospect->website_url_source);
+        $this->assertSame(WebsiteUrlSource::GoogleCse, $prospect->website_url_source);
     }
 
     public function test_skips_cse_when_gbp_has_website(): void
@@ -190,7 +192,7 @@ class ScorePlaceJobWebsiteDiscoveryTest extends TestCase
         Http::assertNothingSent();
 
         $prospect = Prospect::where('place_id', 'places/abc')->first();
-        $this->assertSame('gbp', $prospect->website_url_source);
+        $this->assertSame(WebsiteUrlSource::Gbp, $prospect->website_url_source);
         $this->assertSame('https://example.com', $prospect->website_url);
         Bus::assertDispatched(AuditSiteJob::class);
     }

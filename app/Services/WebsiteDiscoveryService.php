@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Enums\ScanType;
+use App\Enums\WebsiteDiscoveryConfidence;
+use App\Enums\WebsiteUrlSource;
 use App\Models\Prospect;
 use App\Models\Search;
 use Illuminate\Support\Facades\Log;
@@ -25,17 +27,19 @@ class WebsiteDiscoveryService
         }
 
         return match ($this->provider()) {
-            'google_cse' => (bool) config('services.google_cse.key')
+            WebsiteUrlSource::GoogleCse => (bool) config('services.google_cse.key')
                 && (bool) config('services.google_cse.cx'),
             default => (bool) config('services.brave_search.api_key'),
         };
     }
 
-    private function provider(): string
+    private function provider(): WebsiteUrlSource
     {
         $provider = (string) config('scanner.website_discovery_provider', 'brave');
 
-        return $provider === 'google_cse' ? 'google_cse' : 'brave';
+        return $provider === WebsiteUrlSource::GoogleCse->value
+            ? WebsiteUrlSource::GoogleCse
+            : WebsiteUrlSource::Brave;
     }
 
     /**
@@ -46,7 +50,7 @@ class WebsiteDiscoveryService
         $country = strtoupper(substr(trim((string) $search->country), 0, 2)) ?: 'GB';
 
         return match ($this->provider()) {
-            'google_cse' => $this->googleCse->search($query),
+            WebsiteUrlSource::GoogleCse => $this->googleCse->search($query),
             default => $this->brave->search($query, $country),
         };
     }
@@ -154,7 +158,7 @@ class WebsiteDiscoveryService
         $prospect->fill([
             'website_url' => $match['url'],
             'website_url_source' => $this->provider(),
-            'website_discovery_confidence' => $match['confidence'],
+            'website_discovery_confidence' => WebsiteDiscoveryConfidence::from($match['confidence']),
             'website_discovered_at' => $discoveredAt,
             'gbp_score' => $scored['score'],
             'gbp_flags' => $flags,

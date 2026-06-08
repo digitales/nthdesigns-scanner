@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\AuditStatus;
 use App\Enums\ScanType;
+use App\Enums\WebsiteUrlSource;
 use App\Jobs\AuditSiteJob;
 use App\Models\Prospect;
 use App\Models\Search;
@@ -38,7 +39,7 @@ class ProspectEnrichmentTest extends TestCase
         $prospect->refresh();
         $this->assertSame('+441234567890', $prospect->phone);
         $this->assertSame('https://example.com', $prospect->website_url);
-        $this->assertSame('operator', $prospect->website_url_source);
+        $this->assertSame(WebsiteUrlSource::Operator, $prospect->website_url_source);
         $this->assertNull($prospect->website_discovery_confidence);
         $this->assertNotContains('No phone number listed', $prospect->gbp_flags);
         $this->assertNotContains('No website listed', $prospect->gbp_flags);

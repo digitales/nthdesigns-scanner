@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\NicheScanStatus;
 use App\Jobs\ScanNicheJob;
 use App\Models\IgnoredNiche;
 use App\Models\NicheScan;
@@ -62,7 +63,7 @@ class ScanNicheJobTest extends TestCase
         $row = NicheScan::query()->first();
 
         $this->assertNotNull($row);
-        $this->assertSame('complete', $row->status);
+        $this->assertSame(NicheScanStatus::Complete, $row->status);
         $this->assertSame(2, $row->result_count);
         $this->assertSame(2, $row->sampled_count);
         $this->assertGreaterThan(0, $row->avg_gbp_score);
@@ -99,7 +100,7 @@ class ScanNicheJobTest extends TestCase
             'pct_no_website' => 100,
             'pct_low_reviews' => 100,
             'opportunity_score' => 70,
-            'status' => 'complete',
+            'status' => NicheScanStatus::Complete,
             'ran_at' => now()->subDays(7),
             'sample_preview' => null,
         ]);
@@ -116,7 +117,7 @@ class ScanNicheJobTest extends TestCase
             'pct_no_website' => 50,
             'pct_low_reviews' => 50,
             'opportunity_score' => 60,
-            'status' => 'complete',
+            'status' => NicheScanStatus::Complete,
             'ran_at' => now(),
             'sample_preview' => null,
         ]);
@@ -133,7 +134,7 @@ class ScanNicheJobTest extends TestCase
             ], 200),
         ]);
 
-        $legacy->update(['status' => 'pending']);
+        $legacy->update(['status' => NicheScanStatus::Pending]);
 
         (new ScanNicheJob(
             niche: $legacy->niche,
@@ -175,7 +176,7 @@ class ScanNicheJobTest extends TestCase
             'pct_no_website' => 20,
             'pct_low_reviews' => 40,
             'opportunity_score' => 70,
-            'status' => 'complete',
+            'status' => NicheScanStatus::Complete,
             'ran_at' => now(),
         ]);
 
@@ -194,7 +195,7 @@ class ScanNicheJobTest extends TestCase
         );
 
         Http::assertNothingSent();
-        $this->assertSame('complete', NicheScan::query()->value('status'));
+        $this->assertSame(NicheScanStatus::Complete, NicheScan::query()->first()->status);
     }
 
     public function test_zero_results_completes_with_opportunity_score_zero(): void
@@ -219,7 +220,7 @@ class ScanNicheJobTest extends TestCase
 
         $row = NicheScan::query()->first();
 
-        $this->assertSame('complete', $row->status);
+        $this->assertSame(NicheScanStatus::Complete, $row->status);
         $this->assertSame(0, $row->result_count);
         $this->assertSame(0, $row->sampled_count);
         $this->assertSame(0.0, $row->opportunity_score);
@@ -256,7 +257,7 @@ class ScanNicheJobTest extends TestCase
 
         $row = NicheScan::query()->first();
 
-        $this->assertSame('complete', $row->status);
+        $this->assertSame(NicheScanStatus::Complete, $row->status);
         $this->assertSame(1, $row->result_count);
         $this->assertSame(1, $row->sampled_count);
         $this->assertSame(0.0, $row->opportunity_score);
@@ -275,7 +276,7 @@ class ScanNicheJobTest extends TestCase
             'city' => 'Birmingham',
             'country' => 'GB',
             'scan_date' => '2026-05-27',
-            'status' => 'pending',
+            'status' => NicheScanStatus::Pending,
         ]);
 
         (new ScanNicheJob(
@@ -289,7 +290,7 @@ class ScanNicheJobTest extends TestCase
 
         $row = NicheScan::query()->first();
 
-        $this->assertSame('failed', $row->status);
+        $this->assertSame(NicheScanStatus::Failed, $row->status);
         $this->assertSame('Places API quota exceeded', $row->error_message);
     }
 
@@ -303,7 +304,7 @@ class ScanNicheJobTest extends TestCase
             'city' => 'Birmingham',
             'country' => 'GB',
             'scan_date' => '2026-05-27',
-            'status' => 'pending',
+            'status' => NicheScanStatus::Pending,
             'error_message' => 'Previous failure',
         ]);
 
@@ -325,7 +326,7 @@ class ScanNicheJobTest extends TestCase
 
         $row = NicheScan::query()->first();
 
-        $this->assertSame('complete', $row->status);
+        $this->assertSame(NicheScanStatus::Complete, $row->status);
         $this->assertNull($row->error_message);
     }
 }

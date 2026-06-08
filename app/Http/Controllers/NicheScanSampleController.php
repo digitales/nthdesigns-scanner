@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\NicheScanStatus;
 use App\Jobs\ScanNicheJob;
 use App\Models\NicheScan;
 use App\Support\NicheQueue;
@@ -11,7 +12,7 @@ class NicheScanSampleController extends Controller
 {
     public function show(NicheScan $nicheScan): JsonResponse
     {
-        if ($nicheScan->status === 'failed') {
+        if ($nicheScan->status === NicheScanStatus::Failed) {
             return response()->json([
                 'status' => 'failed',
                 'message' => $nicheScan->error_message ?? 'Sample scan failed.',
@@ -33,15 +34,15 @@ class NicheScanSampleController extends Controller
             ]);
         }
 
-        if ($nicheScan->status === 'pending') {
+        if ($nicheScan->status === NicheScanStatus::Pending) {
             return response()->json(['status' => 'loading'], 202);
         }
 
         $claimed = NicheScan::query()
             ->whereKey($nicheScan->id)
             ->whereNull('sample_preview')
-            ->where('status', 'complete')
-            ->update(['status' => 'pending']);
+            ->where('status', NicheScanStatus::Complete)
+            ->update(['status' => NicheScanStatus::Pending]);
 
         if ($claimed) {
             NicheQueue::dispatch(new ScanNicheJob(

@@ -56,7 +56,9 @@ class ExportController extends Controller
                     $prospect->combined_score,
                     $prospect->gbp_score,
                     $prospect->a11y_score,
-                    $prospect->dominant_angle,
+                    $prospect->dominant_angle instanceof \BackedEnum
+                        ? $prospect->dominant_angle->value
+                        : $prospect->dominant_angle,
                     implode('; ', $prospect->gbp_flags ?? []),
                     implode('; ', $prospect->a11y_flags ?? []),
                     $prospect->report ? url('/r/'.$prospect->report->token) : '',

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\NicheScanStatus;
 use App\Models\IgnoredNiche;
 use App\Models\NicheInclusionOverride;
 use App\Queries\LatestNicheScanQuery;
@@ -142,7 +143,7 @@ final class NicheExclusionService
     private function maxLatestResultCount(string $niche): ?int
     {
         $latestIds = LatestNicheScanQuery::ranked(
-            fn ($query) => $query->where('niche', $niche)->where('status', 'complete'),
+            fn ($query) => $query->where('niche', $niche)->where('status', NicheScanStatus::Complete),
         )->pluck('result_count');
 
         if ($latestIds->isEmpty()) {

@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Enums\NicheScanStatus;
 use App\Models\NicheScan;
 use App\Services\NicheExclusionService;
 use App\Services\NicheSampleCollector;
@@ -60,7 +61,7 @@ class ScanNicheJob implements ShouldQueue
             ->where('niche', $this->niche)
             ->where('city', $this->city)
             ->whereDate('scan_date', Carbon::parse($this->scanDate)->toDateString())
-            ->where('status', 'complete')
+            ->where('status', NicheScanStatus::Complete)
             ->exists();
     }
 
@@ -78,7 +79,7 @@ class ScanNicheJob implements ShouldQueue
             $scan->update([
                 'niche_query' => $this->nicheQuery,
                 'country' => $this->country,
-                'status' => 'pending',
+                'status' => NicheScanStatus::Pending,
                 'error_message' => null,
             ]);
 
@@ -91,7 +92,7 @@ class ScanNicheJob implements ShouldQueue
             'city' => $this->city,
             'country' => $this->country,
             'scan_date' => $scanDate,
-            'status' => 'pending',
+            'status' => NicheScanStatus::Pending,
         ]);
     }
 
@@ -109,7 +110,7 @@ class ScanNicheJob implements ShouldQueue
             ->where('city', $this->city)
             ->whereDate('scan_date', $this->scanDate)
             ->update([
-                'status' => 'failed',
+                'status' => NicheScanStatus::Failed,
                 'error_message' => Str::limit($exception?->getMessage() ?? 'Scan failed', 2000),
             ]);
     }
@@ -148,7 +149,7 @@ class ScanNicheJob implements ShouldQueue
     {
         $scan->update([
             ...$metrics,
-            'status' => 'complete',
+            'status' => NicheScanStatus::Complete,
             'error_message' => null,
             'ran_at' => now(),
         ]);

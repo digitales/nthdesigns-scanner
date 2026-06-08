@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\NicheScanStatus;
 use App\Jobs\ScanNicheJob;
 use App\Models\IgnoredNiche;
 use App\Models\NicheScan;
@@ -71,7 +72,7 @@ class ScanNichesCommandTest extends TestCase
             'scan_date' => now('Europe/London')->toDateString(),
             'result_count' => 10,
             'sampled_count' => 5,
-            'status' => 'complete',
+            'status' => NicheScanStatus::Complete,
             'ran_at' => now(),
         ]);
 
@@ -98,7 +99,7 @@ class ScanNichesCommandTest extends TestCase
             'scan_date' => now('Europe/London')->toDateString(),
             'result_count' => 10,
             'sampled_count' => 5,
-            'status' => 'complete',
+            'status' => NicheScanStatus::Complete,
             'ran_at' => now(),
         ]);
 

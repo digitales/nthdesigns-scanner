@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\NicheScanStatus;
 use App\Models\IgnoredNiche;
 use App\Models\NicheScan;
 use App\Models\User;
@@ -31,7 +32,7 @@ class NicheExclusionServiceTest extends TestCase
                 'scan_date' => '2026-05-27',
                 'result_count' => 1,
                 'sampled_count' => 1,
-                'status' => 'complete',
+                'status' => NicheScanStatus::Complete,
                 'ran_at' => now(),
             ]);
         }
@@ -66,7 +67,7 @@ class NicheExclusionServiceTest extends TestCase
             'scan_date' => '2026-05-27',
             'result_count' => 40,
             'sampled_count' => 5,
-            'status' => 'complete',
+            'status' => NicheScanStatus::Complete,
             'ran_at' => now(),
         ]);
 

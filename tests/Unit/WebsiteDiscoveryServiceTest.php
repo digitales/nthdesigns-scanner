@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Enums\WebsiteDiscoveryConfidence;
 use App\Services\WebsiteDiscoveryService;
 use Tests\TestCase;
 
@@ -32,7 +33,7 @@ class WebsiteDiscoveryServiceTest extends TestCase
 
         $this->assertNotNull($match);
         $this->assertSame('https://briarwren.co.uk', $match['url']);
-        $this->assertSame('high', $match['confidence']);
+        $this->assertSame(WebsiteDiscoveryConfidence::High->value, $match['confidence']);
     }
 
     public function test_medium_confidence_match_without_city_in_snippet(): void
@@ -50,7 +51,7 @@ class WebsiteDiscoveryServiceTest extends TestCase
         );
 
         $this->assertNotNull($match);
-        $this->assertSame('medium', $match['confidence']);
+        $this->assertSame(WebsiteDiscoveryConfidence::Medium->value, $match['confidence']);
     }
 
     public function test_rejects_weak_hosts(): void

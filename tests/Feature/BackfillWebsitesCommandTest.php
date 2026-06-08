@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Enums\AuditStatus;
 use App\Enums\ScanType;
 use App\Enums\SearchStatus;
+use App\Enums\WebsiteDiscoveryConfidence;
+use App\Enums\WebsiteUrlSource;
 use App\Jobs\AuditSiteJob;
 use App\Models\Prospect;
 use App\Models\Search;
@@ -110,8 +112,8 @@ class BackfillWebsitesCommandTest extends TestCase
 
         $prospect->refresh();
         $this->assertSame('https://briarwren.co.uk', $prospect->website_url);
-        $this->assertSame('brave', $prospect->website_url_source);
-        $this->assertSame('high', $prospect->website_discovery_confidence);
+        $this->assertSame(WebsiteUrlSource::Brave, $prospect->website_url_source);
+        $this->assertSame(WebsiteDiscoveryConfidence::High, $prospect->website_discovery_confidence);
         $this->assertContains(WebsiteDiscoveryService::GBP_FLAG_NOT_ON_PROFILE, $prospect->gbp_flags);
         $this->assertNotContains('No website listed', $prospect->gbp_flags);
         $this->assertSame(AuditStatus::Pending, $prospect->audit_status);

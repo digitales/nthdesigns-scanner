@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Enums\AuditStatus;
 use App\Enums\ScanType;
+use App\Enums\WebsiteUrlSource;
 use App\Models\Prospect;
 use App\Models\Search;
 use App\Services\GbpScoringService;
@@ -73,7 +74,7 @@ class ScorePlaceJob implements ShouldQueue
             ],
             [
                 ...$fields,
-                'website_url_source' => 'gbp',
+                'website_url_source' => WebsiteUrlSource::Gbp,
                 'gbp_score' => $scored['score'],
                 'gbp_flags' => $scored['flags'],
                 'raw_gbp_payload' => $payload,
