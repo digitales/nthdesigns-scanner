@@ -1,5 +1,7 @@
 # Laravel 13 Modernisation Implementation Plan
 
+> **Status (2026-06-08):** Complete — merged to `main` via [PR #33](https://github.com/digitales/nthdesigns-scanner/pull/33) (`622c158`). Checkboxes below are a historical task log; prefer the code, spec, and `php artisan test` for current behaviour.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Align the nthdesigns Prospect Scanner backend with Laravel 13 idioms — backed enums, `Queue::route()`, job PHP attributes, and honest `OpenRouterService` naming — without changing product behaviour or the OpenRouter integration.
@@ -54,7 +56,7 @@ After each task commit, re-run full suite unless the task specifies a narrower f
 - Modify: `app/Services/OutreachEmailGeneratorService.php`
 - Rename: `tests/Unit/AnthropicServiceTest.php` → `tests/Unit/OpenRouterServiceTest.php`
 
-- [ ] **Step 1: Rename service class**
+- [x] **Step 1: Rename service class**
 
 Rename file and update class name. Content is identical except the class declaration:
 
@@ -72,7 +74,7 @@ class OpenRouterService
 }
 ```
 
-- [ ] **Step 2: Update OutreachEmailGeneratorService injection**
+- [x] **Step 2: Update OutreachEmailGeneratorService injection**
 
 ```php
 // app/Services/OutreachEmailGeneratorService.php
@@ -84,7 +86,7 @@ public function __construct(
 
 Find the call site inside `generate()` (currently `$this->anthropic->complete(...)`) and change to `$this->openRouter->complete(...)`.
 
-- [ ] **Step 3: Rename and update test**
+- [x] **Step 3: Rename and update test**
 
 ```php
 <?php
@@ -97,7 +99,7 @@ use App\Services\OpenRouterService;
 
 Rename test class to `OpenRouterServiceTest`.
 
-- [ ] **Step 4: Verify no app/test references remain**
+- [x] **Step 4: Verify no app/test references remain**
 
 ```bash
 rg 'AnthropicService' app tests
@@ -105,7 +107,7 @@ rg 'AnthropicService' app tests
 
 Expected: no matches.
 
-- [ ] **Step 5: Run tests**
+- [x] **Step 5: Run tests**
 
 ```bash
 php artisan test --filter=OpenRouterServiceTest
@@ -114,7 +116,7 @@ php artisan test --filter=OutreachGenerateTest
 
 Expected: all PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add app/Services/OpenRouterService.php app/Services/OutreachEmailGeneratorService.php tests/Unit/OpenRouterServiceTest.php
@@ -138,7 +140,7 @@ EOF
 - Modify: `app/Http/Controllers/NicheScanSampleController.php`, `app/Console/Commands/ScanNichesCommand.php` (optional: simplify dispatch)
 - Test: `tests/Feature/GenerateOutreachEmailJobTest.php`, `tests/Feature/ScanNichesCommandTest.php`, `tests/Unit/AuditingQueueTest.php`
 
-- [ ] **Step 1: Register routes in AppServiceProvider**
+- [x] **Step 1: Register routes in AppServiceProvider**
 
 Add imports and call at end of `boot()` (before closing brace):
 
@@ -175,7 +177,7 @@ Queue::route([
 ]);
 ```
 
-- [ ] **Step 2: Remove constructor queue wiring from all 10 jobs**
+- [x] **Step 2: Remove constructor queue wiring from all 10 jobs**
 
 For each job listed above, delete the constructor body that calls `SearchQueue::apply($this)`, `NicheQueue::apply($this)`, or `AuditingQueue::apply($this)`.
 
@@ -190,7 +192,7 @@ public function __construct(public Prospect $prospect) {}
 
 `DetectCmsJob` keeps `public function __construct(public Prospect $prospect, bool $force = false)` but removes `AuditingQueue::apply($this)`.
 
-- [ ] **Step 3: Remove `apply()` from queue support classes**
+- [x] **Step 3: Remove `apply()` from queue support classes**
 
 In `SearchQueue.php`, `NicheQueue.php`, `AuditingQueue.php`, delete the `apply()` method. Keep `NAME`, `connection()`, `dispatch()`, and `chain()`.
 
@@ -205,7 +207,7 @@ public static function dispatch(object $job): PendingDispatch
 
 `Queue::route()` now handles connection/queue assignment.
 
-- [ ] **Step 4: Run queue-related tests**
+- [x] **Step 4: Run queue-related tests**
 
 ```bash
 php artisan test --filter=GenerateOutreachEmailJobTest
@@ -216,7 +218,7 @@ php artisan test --filter=RepairAuditsCommandTest
 
 Expected: all PASS; assertions on `$job->queue` and `$job->connection` still match `SearchQueue::NAME` / `NicheQueue::NAME` / `AuditingQueue::NAME`.
 
-- [ ] **Step 5: Run full suite**
+- [x] **Step 5: Run full suite**
 
 ```bash
 php artisan test
@@ -224,7 +226,7 @@ php artisan test
 
 Expected: 431 passed, 2 skipped.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add app/Providers/AppServiceProvider.php app/Jobs/ app/Support/SearchQueue.php app/Support/NicheQueue.php app/Support/AuditingQueue.php
@@ -259,7 +261,7 @@ Preserve existing retry/timeout values from current properties (do not change be
 | `ScrapeProspectsJob` | `$tries` | `#[Tries(3)]`, `#[WithoutRelations]` on `$search` |
 | `SendReportBookingConfirmationJob` | `$tries` | `#[Tries(3)]` (no model serialisation — uses `int $bookingId`) |
 
-- [ ] **Step 1: Apply attributes to AuditSiteJob (template)**
+- [x] **Step 1: Apply attributes to AuditSiteJob (template)**
 
 ```php
 use Illuminate\Queue\Attributes\Timeout;
@@ -279,11 +281,11 @@ class AuditSiteJob implements ShouldQueue
 
 Keep `public int $backoff = 60;` as a property.
 
-- [ ] **Step 2: Repeat for remaining jobs**
+- [x] **Step 2: Repeat for remaining jobs**
 
 Apply the table above. Import attributes from `Illuminate\Queue\Attributes\*`.
 
-- [ ] **Step 3: Run job tests**
+- [x] **Step 3: Run job tests**
 
 ```bash
 php artisan test --filter=CaptureScreenshotJobTest
@@ -295,7 +297,7 @@ php artisan test --filter=ReportBookingTest
 
 Expected: all PASS.
 
-- [ ] **Step 4: Full suite + commit**
+- [x] **Step 4: Full suite + commit**
 
 ```bash
 php artisan test
@@ -315,13 +317,13 @@ EOF
 **Files:**
 - Modify: `tests/Unit/GooglePlacesServiceTest.php`, `tests/Unit/BraveSearchServiceTest.php`, `tests/Unit/ApiUsageLimiterTest.php`
 
-- [ ] **Step 1: Run Pint**
+- [x] **Step 1: Run Pint**
 
 ```bash
 ./vendor/bin/pint tests/Unit/GooglePlacesServiceTest.php tests/Unit/BraveSearchServiceTest.php tests/Unit/ApiUsageLimiterTest.php
 ```
 
-- [ ] **Step 2: Verify Pint clean**
+- [x] **Step 2: Verify Pint clean**
 
 ```bash
 ./vendor/bin/pint --test
@@ -329,7 +331,7 @@ EOF
 
 Expected: PASS (0 files needing fixes).
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add tests/Unit/GooglePlacesServiceTest.php tests/Unit/BraveSearchServiceTest.php tests/Unit/ApiUsageLimiterTest.php
@@ -350,7 +352,7 @@ EOF
 - Create: `tests/Unit/Enums/SearchModelCastsTest.php`
 - Modify: `app/Models/Search.php`
 
-- [ ] **Step 1: Write failing enum cast test**
+- [x] **Step 1: Write failing enum cast test**
 
 ```php
 <?php
@@ -390,7 +392,7 @@ class SearchModelCastsTest extends TestCase
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 ```bash
 php artisan test --filter=SearchModelCastsTest
@@ -398,7 +400,7 @@ php artisan test --filter=SearchModelCastsTest
 
 Expected: FAIL (status is string, not enum).
 
-- [ ] **Step 3: Create enum classes**
+- [x] **Step 3: Create enum classes**
 
 ```php
 <?php
@@ -445,7 +447,7 @@ enum SearchSource: string
 }
 ```
 
-- [ ] **Step 4: Add casts and update isDirectUrl()**
+- [x] **Step 4: Add casts and update isDirectUrl()**
 
 ```php
 // app/Models/Search.php
@@ -469,7 +471,7 @@ public function isDirectUrl(): bool
 }
 ```
 
-- [ ] **Step 5: Run test and fix factories**
+- [x] **Step 5: Run test and fix factories**
 
 ```bash
 php artisan test --filter=SearchModelCastsTest
@@ -477,7 +479,7 @@ php artisan test --filter=SearchModelCastsTest
 
 If `SearchFactory` sets raw strings, that is fine — casts accept string values. Fix any factory using invalid enum values.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add app/Enums/ app/Models/Search.php tests/Unit/Enums/
@@ -496,7 +498,7 @@ EOF
 - Create: `tests/Unit/Enums/ProspectAuditCastsTest.php`
 - Modify: `app/Models/Prospect.php`, `app/Models/AuditJob.php`
 
-- [ ] **Step 1: Write failing cast test**
+- [x] **Step 1: Write failing cast test**
 
 ```php
 public function test_prospect_audit_status_casts_to_enum(): void
@@ -509,7 +511,7 @@ public function test_prospect_audit_status_casts_to_enum(): void
 }
 ```
 
-- [ ] **Step 2: Create enums**
+- [x] **Step 2: Create enums**
 
 ```php
 // AuditStatus.php
@@ -545,7 +547,7 @@ enum AuditJobType: string
 }
 ```
 
-- [ ] **Step 3: Add model casts**
+- [x] **Step 3: Add model casts**
 
 ```php
 // Prospect.php
@@ -556,14 +558,14 @@ enum AuditJobType: string
 'job_type' => AuditJobType::class,
 ```
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 ```bash
 php artisan test --filter=ProspectAuditCastsTest
 php artisan test --filter=AuditJob
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/Enums/Audit*.php app/Models/Prospect.php app/Models/AuditJob.php tests/Unit/Enums/
@@ -596,7 +598,7 @@ Primary targets:
 - `app/Http/Resources/SearchProspectResource.php`, `ProspectListResource.php`
 - `app/Services/Mcp/McpSearchService.php`, `McpSingleSiteAuditService.php`
 
-- [ ] **Step 1: Write SearchStatusService unit test**
+- [x] **Step 1: Write SearchStatusService unit test**
 
 ```php
 // tests/Unit/SearchStatusServiceTest.php
@@ -617,7 +619,7 @@ public function test_marks_search_auditing_when_prospects_pending(): void
 }
 ```
 
-- [ ] **Step 2: Update SearchStatusService**
+- [x] **Step 2: Update SearchStatusService**
 
 ```php
 use App\Enums\AuditStatus;
@@ -642,7 +644,7 @@ $search->update(['status' => SearchStatus::Complete]);
 
 Note: `groupBy('audit_status')` pluck keys remain strings from DB — index with `AuditStatus::Pending->value`.
 
-- [ ] **Step 3: Update jobs — example AuditSiteJob**
+- [x] **Step 3: Update jobs — example AuditSiteJob**
 
 ```php
 if ($prospect->audit_status !== AuditStatus::Pending) {
@@ -658,11 +660,11 @@ $auditJob = AuditJob::create([
 $prospect->update(['audit_status' => AuditStatus::Failed]);
 ```
 
-- [ ] **Step 4: Update repair queries**
+- [x] **Step 4: Update repair queries**
 
 Replace `'pending'`, `'failed'`, `'screenshot'`, `'accessibility'` string literals with enum `->value` in SQL where raw strings required, or enum cases in PHP comparisons.
 
-- [ ] **Step 5: Run targeted tests**
+- [x] **Step 5: Run targeted tests**
 
 ```bash
 php artisan test --filter=SearchStatusServiceTest
@@ -674,7 +676,7 @@ php artisan test --filter=ProspectReauditTest
 php artisan test --filter=ScrapeProspectsJobTest
 ```
 
-- [ ] **Step 6: Grep for remaining core enum strings in app/**
+- [x] **Step 6: Grep for remaining core enum strings in app/**
 
 ```bash
 rg "audit_status.*'pending'|status.*'auditing'|job_type.*'screenshot'" app --glob '*.php'
@@ -682,7 +684,7 @@ rg "audit_status.*'pending'|status.*'auditing'|job_type.*'screenshot'" app --glo
 
 Expected: no matches (or only in comments).
 
-- [ ] **Step 7: Full suite + commit**
+- [x] **Step 7: Full suite + commit**
 
 ```bash
 php artisan test
@@ -701,7 +703,7 @@ EOF
 - Modify: `app/Models/NicheScan.php`, `Prospect.php` (additional casts), `OutreachEmail.php`
 - Modify: `app/Jobs/ScanNicheJob.php`, `app/Services/GbpScoringService.php`, `WebsiteDiscoveryService.php`, `ScorePlaceJob.php`
 
-- [ ] **Step 1: Create enums**
+- [x] **Step 1: Create enums**
 
 ```php
 enum NicheScanStatus: string { case Pending = 'pending'; case Complete = 'complete'; case Failed = 'failed'; }
@@ -711,7 +713,7 @@ enum WebsiteUrlSource: string { case Gbp = 'gbp'; case GoogleCse = 'google_cse';
 enum WebsiteDiscoveryConfidence: string { case High = 'high'; case Medium = 'medium'; case Low = 'low'; }
 ```
 
-- [ ] **Step 2: Add model casts**
+- [x] **Step 2: Add model casts**
 
 ```php
 // NicheScan.php
@@ -726,7 +728,7 @@ enum WebsiteDiscoveryConfidence: string { case High = 'high'; case Medium = 'med
 'pitch_angle' => PitchAngle::class,
 ```
 
-- [ ] **Step 3: Replace string literals in services/jobs**
+- [x] **Step 3: Replace string literals in services/jobs**
 
 ```bash
 rg "'gbp_only'|'low_results'|website_url_source.*'gbp'|dominant_angle" app --glob '*.php' -l
@@ -734,7 +736,7 @@ rg "'gbp_only'|'low_results'|website_url_source.*'gbp'|dominant_angle" app --glo
 
 Key files: `ScanNicheJob.php`, `GbpScoringService.php`, `WebsiteDiscoveryService.php`, `ScorePlaceJob.php`, `NicheExclusionService.php`, `OutreachEmailGeneratorService.php`.
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 ```bash
 php artisan test --filter=ScanNicheJob
@@ -744,7 +746,7 @@ php artisan test --filter=ScorePlaceJobWebsiteDiscoveryTest
 php artisan test --filter=ScanNichesCommandTest
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git commit -am "$(cat <<'EOF'
@@ -763,7 +765,7 @@ EOF
 - Modify: `app/Services/ProspectExclusionService.php`, `NicheExclusionService.php`
 - Modify: `app/Http/Requests/StoreIgnoredProspectRequest.php`, `FilterIgnoredProspectsRequest.php`
 
-- [ ] **Step 1: Create enums and remove model constants**
+- [x] **Step 1: Create enums and remove model constants**
 
 ```php
 enum IgnoredProspectReason: string
@@ -791,7 +793,7 @@ enum IgnoredNicheReason: string
 }
 ```
 
-- [ ] **Step 2: Update IgnoredProspect**
+- [x] **Step 2: Update IgnoredProspect**
 
 ```php
 // casts
@@ -809,7 +811,7 @@ rg 'IgnoredProspect::REASON_|IgnoredNiche::REASON_' app tests
 
 Replace with enum cases, e.g. `IgnoredProspectReason::Acquired`.
 
-- [ ] **Step 3: Run tests**
+- [x] **Step 3: Run tests**
 
 ```bash
 php artisan test --filter=ProspectIgnoreTest
@@ -817,7 +819,7 @@ php artisan test --filter=NicheExclusionServiceTest
 php artisan test --filter=IgnoredProspect
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git commit -am "$(cat <<'EOF'
@@ -835,7 +837,7 @@ EOF
 - Create: `app/Enums/PitchAngleOption.php` (includes `Auto`)
 - Audit: `resources/js/Pages/Prospect/Show.jsx` (website_discovery_confidence comparisons)
 
-- [ ] **Step 1: Create PitchAngleOption enum**
+- [x] **Step 1: Create PitchAngleOption enum**
 
 ```php
 enum PitchAngleOption: string
@@ -847,7 +849,7 @@ enum PitchAngleOption: string
 }
 ```
 
-- [ ] **Step 2: Update Form Requests**
+- [x] **Step 2: Update Form Requests**
 
 ```php
 use Illuminate\Validation\Rule;
@@ -870,7 +872,7 @@ use App\Enums\ScanType;
 
 Do **not** convert OAuth or booking Form Request `Rule::in()` fields — those are protocol constraints, not domain enums.
 
-- [ ] **Step 3: Grep app/ for remaining in-scope string literals**
+- [x] **Step 3: Grep app/ for remaining in-scope string literals**
 
 ```bash
 rg "'gbp_only'|'pending'|'acquired'|'manual'" app --glob '*.php' | grep -v vendor
@@ -878,7 +880,7 @@ rg "'gbp_only'|'pending'|'acquired'|'manual'" app --glob '*.php' | grep -v vendo
 
 Replace any remaining matches with enum cases.
 
-- [ ] **Step 4: Frontend string audit**
+- [x] **Step 4: Frontend string audit**
 
 Backed enums serialise as strings in Inertia — frontend should already work. Verify and add comment only if needed:
 
@@ -888,7 +890,7 @@ rg "audit_status|scan_type|pitch_angle" resources/js --glob '*.jsx'
 
 Ensure comparisons use the same string values (`'pending'`, `'high'`, etc.). No JS enum import required.
 
-- [ ] **Step 5: Full verification**
+- [x] **Step 5: Full verification**
 
 ```bash
 php artisan test
@@ -899,7 +901,7 @@ rg "SearchQueue::apply|NicheQueue::apply|AuditingQueue::apply" app
 
 Expected: all tests pass, Pint clean, no AnthropicService, no `apply()` calls.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git commit -am "$(cat <<'EOF'
@@ -912,13 +914,13 @@ EOF
 
 ## Programme completion checklist
 
-- [ ] `OpenRouterService` is the only LLM transport class in `app/`
-- [ ] 14 enums in `app/Enums/`
-- [ ] All 10 scanner jobs use `Queue::route()` (no constructor `apply()`)
-- [ ] Job attributes replace `$tries` / `$timeout` properties
-- [ ] `./vendor/bin/pint --test` passes
-- [ ] `php artisan test` — 431+ passed, 2 skipped
-- [ ] Staging verified with hybrid queue connections
+- [x] `OpenRouterService` is the only LLM transport class in `app/`
+- [x] 14 enums in `app/Enums/`
+- [x] All 10 scanner jobs use `Queue::route()` (no constructor `apply()`)
+- [x] Job attributes replace `$tries` / `$timeout` properties
+- [x] `./vendor/bin/pint --test` passes
+- [x] `php artisan test` — 431+ passed, 2 skipped
+- [x] Staging verified with hybrid queue connections
 
 ---
 
