@@ -9,7 +9,7 @@ use App\Support\TidyCalEmbed;
 class OutreachEmailGeneratorService
 {
     public function __construct(
-        private AnthropicService $anthropic,
+        private OpenRouterService $openRouter,
         private AgencyBookingService $agencyBooking,
     ) {}
 
@@ -47,7 +47,7 @@ PROMPT;
 
         $user = $this->buildUserPrompt($prospect, $pitchAngle, $reportUrl, $options);
 
-        $result = $this->anthropic->complete($system, $user);
+        $result = $this->openRouter->complete($system, $user);
         $parsed = $this->parseResponse($result['content']);
 
         return [
