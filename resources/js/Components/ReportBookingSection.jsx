@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, Field, Input, Textarea } from '@/Components/ui';
 
 function bookingErrorMessage(status, data) {
@@ -13,6 +13,191 @@ function bookingErrorMessage(status, data) {
     }
 
     return data.message ?? 'Booking failed. Please try another time.';
+}
+
+function parseSlot(slot) {
+    const [dayLabel = slot.label, timeLabel = ''] = slot.label.split(', ');
+
+    return { ...slot, dayLabel, timeLabel };
+}
+
+function groupSlotsByDay(slots) {
+    const groups = new Map();
+
+    for (const slot of slots.map(parseSlot)) {
+        const dateKey = slot.starts_at.slice(0, 10);
+
+        if (!groups.has(dateKey)) {
+            groups.set(dateKey, { dateKey, dayLabel: slot.dayLabel, slots: [] });
+        }
+
+        groups.get(dateKey).slots.push(slot);
+    }
+
+    return Array.from(groups.values());
+}
+
+function preferredSlotForDay(daySlots) {
+    const preferredTimes = ['10:00 AM', '2:00 PM', '11:00 AM', '3:00 PM'];
+
+    for (const time of preferredTimes) {
+        const match = daySlots.find((slot) => slot.timeLabel === time);
+
+        if (match) {
+            return match;
+        }
+    }
+
+    return daySlots[Math.min(1, daySlots.length - 1)] ?? daySlots[0];
+}
+
+function curateSuggestions(slots, max = 3) {
+    return groupSlotsByDay(slots)
+        .slice(0, max)
+        .map((day) => preferredSlotForDay(day.slots));
+}
+
+function BookingSlotButton({ slot, selected, onSelect, children }) {
+    return (
+        <button
+            key={slot.starts_at}
+            type="button"
+            role="option"
+            aria-selected={selected?.starts_at === slot.starts_at}
+            onClick={() => onSelect(slot)}
+            className={`booking-slot${selected?.starts_at === slot.starts_at ? ' booking-slot--selected' : ''}`}
+        >
+            {children ?? slot.label}
+        </button>
+    );
+}
+
+function BookingForm({ form, setForm, submit, submitting }) {
+    return (
+        <form onSubmit={submit} className="booking-form">
+            <Field label="Your name" htmlFor="booking-attendee-name">
+                <Input
+                    id="booking-attendee-name"
+                    required
+                    value={form.attendee_name}
+                    onChange={(e) => setForm((f) => ({ ...f, attendee_name: e.target.value }))}
+                />
+            </Field>
+            <Field label="Email" htmlFor="booking-attendee-email">
+                <Input
+                    id="booking-attendee-email"
+                    type="email"
+                    required
+                    value={form.attendee_email}
+                    onChange={(e) => setForm((f) => ({ ...f, attendee_email: e.target.value }))}
+                />
+            </Field>
+            <Field label="Phone (optional)" htmlFor="booking-attendee-phone">
+                <Input
+                    id="booking-attendee-phone"
+                    value={form.attendee_phone}
+                    onChange={(e) => setForm((f) => ({ ...f, attendee_phone: e.target.value }))}
+                />
+            </Field>
+            <Field label="Anything we should know? (optional)" htmlFor="booking-note">
+                <Textarea
+                    id="booking-note"
+                    value={form.note}
+                    onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
+                />
+            </Field>
+            <div className="booking-panel--center">
+                <Button kind="accent" size="lg" type="submit" disabled={submitting}>
+                    {submitting ? 'Booking…' : 'Confirm booking'}
+                </Button>
+            </div>
+        </form>
+    );
+}
+
+function SlotsDayFirst({ slots, selected, onSelect, timezoneLabel, showIntro = true }) {
+    const days = useMemo(() => groupSlotsByDay(slots), [slots]);
+    const [activeDayKey, setActiveDayKey] = useState(days[0]?.dateKey ?? null);
+
+    useEffect(() => {
+        if (!days.some((day) => day.dateKey === activeDayKey)) {
+            setActiveDayKey(days[0]?.dateKey ?? null);
+        }
+    }, [days, activeDayKey]);
+
+    const activeDay = days.find((day) => day.dateKey === activeDayKey);
+
+    return (
+        <>
+            {showIntro && <p className="micro mb-8">Pick a day, then a time ({timezoneLabel})</p>}
+            <div className="booking-day-picker" role="tablist" aria-label="Available days">
+                {days.map((day) => (
+                    <button
+                        key={day.dateKey}
+                        type="button"
+                        role="tab"
+                        aria-selected={activeDayKey === day.dateKey}
+                        onClick={() => setActiveDayKey(day.dateKey)}
+                        className={`booking-day-pill${activeDayKey === day.dateKey ? ' booking-day-pill--selected' : ''}`}
+                    >
+                        {day.dayLabel}
+                    </button>
+                ))}
+            </div>
+            {activeDay && (
+                <div className="booking-time-row" role="listbox" aria-label={`Times on ${activeDay.dayLabel}`}>
+                    {activeDay.slots.map((slot) => (
+                        <BookingSlotButton key={slot.starts_at} slot={slot} selected={selected} onSelect={onSelect}>
+                            {slot.timeLabel}
+                        </BookingSlotButton>
+                    ))}
+                </div>
+            )}
+        </>
+    );
+}
+
+function SlotsCurated({ slots, selected, onSelect, timezoneLabel }) {
+    const suggestions = useMemo(() => curateSuggestions(slots), [slots]);
+    const [showAll, setShowAll] = useState(false);
+
+    if (showAll) {
+        return (
+            <>
+                <p className="micro mb-8">All available times ({timezoneLabel})</p>
+                <SlotsDayFirst
+                    slots={slots}
+                    selected={selected}
+                    onSelect={onSelect}
+                    timezoneLabel={timezoneLabel}
+                    showIntro={false}
+                />
+                <button type="button" className="booking-expand booking-expand--top" onClick={() => setShowAll(false)}>
+                    Back to suggested times
+                </button>
+            </>
+        );
+    }
+
+    return (
+        <>
+            <p className="micro mb-4">Suggested times ({timezoneLabel})</p>
+            <p className="booking-lede">Three openings that usually work well. Pick one, or browse the full week.</p>
+            <div className="booking-suggestions" role="listbox" aria-label="Suggested times">
+                {suggestions.map((slot) => (
+                    <BookingSlotButton key={slot.starts_at} slot={slot} selected={selected} onSelect={onSelect}>
+                        <span className="booking-suggestion-day">{slot.dayLabel}</span>
+                        <span className="booking-suggestion-time">{slot.timeLabel}</span>
+                    </BookingSlotButton>
+                ))}
+            </div>
+            {slots.length > suggestions.length && (
+                <button type="button" className="booking-expand" onClick={() => setShowAll(true)}>
+                    Browse all times
+                </button>
+            )}
+        </>
+    );
 }
 
 export default function ReportBookingSection({ token, businessName, existingBooking, timezoneLabel = 'UK (London)' }) {
@@ -147,61 +332,15 @@ export default function ReportBookingSection({ token, businessName, existingBook
 
             {slots.length > 0 && (
                 <>
-                    <p className="micro mb-12">Choose a time ({resolvedTimezoneLabel})</p>
-                    <div className="booking-slots-grid" role="listbox" aria-label="Available times">
-                        {slots.map((slot) => (
-                            <button
-                                key={slot.starts_at}
-                                type="button"
-                                role="option"
-                                aria-selected={selected?.starts_at === slot.starts_at}
-                                onClick={() => setSelected(slot)}
-                                className={`booking-slot${selected?.starts_at === slot.starts_at ? ' booking-slot--selected' : ''}`}
-                            >
-                                {slot.label}
-                            </button>
-                        ))}
-                    </div>
+                    <SlotsCurated
+                        slots={slots}
+                        selected={selected}
+                        onSelect={setSelected}
+                        timezoneLabel={resolvedTimezoneLabel}
+                    />
 
                     {selected && (
-                        <form onSubmit={submit} className="booking-form">
-                            <Field label="Your name" htmlFor="booking-attendee-name">
-                                <Input
-                                    id="booking-attendee-name"
-                                    required
-                                    value={form.attendee_name}
-                                    onChange={(e) => setForm((f) => ({ ...f, attendee_name: e.target.value }))}
-                                />
-                            </Field>
-                            <Field label="Email" htmlFor="booking-attendee-email">
-                                <Input
-                                    id="booking-attendee-email"
-                                    type="email"
-                                    required
-                                    value={form.attendee_email}
-                                    onChange={(e) => setForm((f) => ({ ...f, attendee_email: e.target.value }))}
-                                />
-                            </Field>
-                            <Field label="Phone (optional)" htmlFor="booking-attendee-phone">
-                                <Input
-                                    id="booking-attendee-phone"
-                                    value={form.attendee_phone}
-                                    onChange={(e) => setForm((f) => ({ ...f, attendee_phone: e.target.value }))}
-                                />
-                            </Field>
-                            <Field label="Anything we should know? (optional)" htmlFor="booking-note">
-                                <Textarea
-                                    id="booking-note"
-                                    value={form.note}
-                                    onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
-                                />
-                            </Field>
-                            <div className="booking-panel--center">
-                                <Button kind="accent" size="lg" type="submit" disabled={submitting}>
-                                    {submitting ? 'Booking…' : 'Confirm booking'}
-                                </Button>
-                            </div>
-                        </form>
+                        <BookingForm form={form} setForm={setForm} submit={submit} submitting={submitting} />
                     )}
                 </>
             )}

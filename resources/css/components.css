@@ -2194,12 +2194,6 @@
   .booking-panel--narrow { max-width: 520px; margin: 0 auto; }
   .booking-panel--center { text-align: center; margin-top: 8px; }
   .booking-confirmed-title { font-family: var(--font-serif); font-size: 20px; margin: 0 0 12px; }
-  .booking-slots-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 8px;
-    margin-bottom: 24px;
-  }
   .booking-slot {
     padding: 10px 12px;
     border: 1px solid var(--color-line);
@@ -2212,6 +2206,81 @@
   .booking-slot--selected {
     border-color: var(--color-accent-deep);
     background: var(--color-accent-soft);
+  }
+  .booking-lede {
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--color-stone-600);
+    margin: 0 0 16px;
+    max-width: 36ch;
+  }
+  .booking-day-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .booking-day-pill {
+    padding: 8px 14px;
+    border: 1px solid var(--color-line);
+    border-radius: 999px;
+    background: transparent;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-stone-700);
+  }
+  .booking-day-pill--selected {
+    border-color: var(--color-accent-deep);
+    background: var(--color-accent-soft);
+    color: var(--color-accent-ink);
+  }
+  .booking-time-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+  .booking-time-row .booking-slot {
+    min-width: 88px;
+    text-align: center;
+  }
+  .booking-expand {
+    margin-top: 10px;
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--color-accent-deep);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .booking-expand--top {
+    margin-top: 0;
+    margin-bottom: 16px;
+  }
+  .booking-suggestions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .booking-suggestions .booking-slot {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 14px 16px;
+  }
+  .booking-suggestion-day {
+    font-size: 12px;
+    color: var(--color-stone-600);
+  }
+  .booking-suggestion-time {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--color-stone-900);
   }
   .booking-form { display: flex; flex-direction: column; gap: 14px; }
   .booking-add-to-calendar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
