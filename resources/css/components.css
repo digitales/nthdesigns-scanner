@@ -1503,6 +1503,10 @@
   }
   .queue-chip:hover .remove { opacity: 1; }
 
+  .page-header + .skip-banner {
+    margin-top: -16px;
+  }
+
   .skip-banner {
     background: var(--color-sev-moderate-soft);
     border: 1px solid oklch(0.610 0.085 85 / 0.25);

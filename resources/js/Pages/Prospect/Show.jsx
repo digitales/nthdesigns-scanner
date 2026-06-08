@@ -176,20 +176,20 @@ export default function ProspectShow({
                 />
 
                 {flash?.success && (
-                    <div className="skip-banner skip-banner--success mb-20">
+                    <div className="skip-banner skip-banner--success">
                         {flash.success}
                     </div>
                 )}
 
                 {flash?.error && (
-                    <div className="skip-banner skip-banner--critical mb-20">
+                    <div className="skip-banner skip-banner--critical">
                         {flash.error}
                     </div>
                 )}
 
                 {ignored && (
-                    <div className="skip-banner skip-banner--ignored mb-20">
-                        <Stack direction="row" justify="between" align="start" gap={16}>
+                    <div className="skip-banner skip-banner--ignored">
+                        <Stack direction="row" justify="between" align="start" gap={16} className="w-full">
                             <div>
                                 <strong className="body-sm-medium">Ignored from future scans</strong>
                                 <p className="micro ignore-banner-copy">
