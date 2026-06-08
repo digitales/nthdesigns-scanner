@@ -62,4 +62,56 @@ class ScannerConfigTest extends TestCase
         $this->assertSame('http', $drivers['screenshot_driver']);
         $this->assertSame(ScannerConfig::PRODUCTION_BROWSER_SERVICE_URL, $drivers['audit_service_url']);
     }
+
+    public function test_runtime_overrides_use_cached_app_env_when_process_env_missing(): void
+    {
+        Config::set('scanner.audit_driver', 'playwright');
+        Config::set('scanner.screenshot_driver', 'playwright');
+        Config::set('scanner.audit_service_url', null);
+        Config::set('app.env', 'production');
+
+        putenv('AUDIT_SERVICE_URL');
+        putenv('AUDIT_DRIVER');
+        putenv('SCREENSHOT_DRIVER');
+        putenv('APP_ENV');
+        unset(
+            $_ENV['AUDIT_SERVICE_URL'],
+            $_SERVER['AUDIT_SERVICE_URL'],
+            $_ENV['AUDIT_DRIVER'],
+            $_SERVER['AUDIT_DRIVER'],
+            $_ENV['SCREENSHOT_DRIVER'],
+            $_SERVER['SCREENSHOT_DRIVER'],
+            $_ENV['APP_ENV'],
+            $_SERVER['APP_ENV'],
+        );
+
+        ScannerConfig::applyRuntimeOverrides();
+
+        $this->assertSame('http', config('scanner.audit_driver'));
+        $this->assertSame('http', config('scanner.screenshot_driver'));
+        $this->assertSame(ScannerConfig::PRODUCTION_BROWSER_SERVICE_URL, config('scanner.audit_service_url'));
+    }
+
+    public function test_runtime_overrides_read_server_environment_variables(): void
+    {
+        Config::set('scanner.audit_driver', 'playwright');
+        Config::set('scanner.screenshot_driver', 'playwright');
+        Config::set('scanner.audit_service_url', null);
+
+        putenv('AUDIT_SERVICE_URL');
+        putenv('AUDIT_SERVICE_TOKEN');
+        unset($_ENV['AUDIT_SERVICE_URL'], $_ENV['AUDIT_SERVICE_TOKEN']);
+
+        $_SERVER['AUDIT_SERVICE_URL'] = 'https://browser.example';
+        $_SERVER['AUDIT_SERVICE_TOKEN'] = 'secret';
+        $_SERVER['AUDIT_DRIVER'] = 'http';
+        $_SERVER['SCREENSHOT_DRIVER'] = 'http';
+
+        ScannerConfig::applyRuntimeOverrides();
+
+        $this->assertSame('http', config('scanner.audit_driver'));
+        $this->assertSame('http', config('scanner.screenshot_driver'));
+        $this->assertSame('https://browser.example', config('scanner.audit_service_url'));
+        $this->assertSame('secret', config('scanner.audit_service_token'));
+    }
 }

@@ -39,7 +39,7 @@ final class ScannerConfig
     public static function driversForConfig(): array
     {
         $auditServiceUrl = self::resolveAuditServiceUrl();
-        $auditDriver = env('AUDIT_DRIVER', 'playwright');
+        $auditDriver = self::runtimeEnv('AUDIT_DRIVER', 'playwright');
 
         if ($auditServiceUrl) {
             $auditDriver = 'http';
@@ -47,24 +47,24 @@ final class ScannerConfig
             $auditDriver = 'skip';
         }
 
-        $screenshotDriver = env('SCREENSHOT_DRIVER');
+        $screenshotDriver = self::runtimeEnv('SCREENSHOT_DRIVER');
 
         if (! $screenshotDriver) {
             if ($auditServiceUrl) {
                 $screenshotDriver = 'http';
-            } elseif (env('AUDIT_DRIVER') === 'cloudflare') {
+            } elseif (self::runtimeEnv('AUDIT_DRIVER') === 'cloudflare') {
                 $screenshotDriver = 'cloudflare';
             } else {
                 $screenshotDriver = 'playwright';
             }
         }
 
-        $token = env('AUDIT_SERVICE_TOKEN');
+        $token = self::runtimeEnv('AUDIT_SERVICE_TOKEN');
 
         return [
             'audit_driver' => $auditDriver,
             'screenshot_driver' => $screenshotDriver,
-            'cms_detect_driver' => env('CMS_DETECT_DRIVER') ?: $auditDriver,
+            'cms_detect_driver' => self::runtimeEnv('CMS_DETECT_DRIVER') ?: $auditDriver,
             'audit_service_url' => $auditServiceUrl,
             'audit_service_token' => ($token !== null && $token !== '') ? $token : null,
         ];
@@ -93,17 +93,88 @@ final class ScannerConfig
 
     public static function resolveAuditServiceUrl(): ?string
     {
-        $configured = env('AUDIT_SERVICE_URL');
+        $configured = self::normalizeEnvString(self::runtimeEnv('AUDIT_SERVICE_URL'));
 
-        if ($configured !== null && $configured !== '') {
+        if ($configured !== null) {
             return $configured;
         }
 
-        if (env('APP_ENV') === 'production') {
+        if (self::isProductionEnvironment()) {
             return self::PRODUCTION_BROWSER_SERVICE_URL;
         }
 
         return null;
+    }
+
+    /**
+     * Read env vars at runtime without relying on env() after config:cache.
+     * Laravel Cloud injects secrets into the process environment; env() often
+     * returns null once config is cached and .env is not loaded.
+     */
+    public static function runtimeEnv(string $key, mixed $default = null): mixed
+    {
+        if (array_key_exists($key, $_ENV)) {
+            $value = $_ENV[$key];
+
+            if ($value !== false && $value !== null && $value !== '') {
+                return $value;
+            }
+        }
+
+        if (array_key_exists($key, $_SERVER) && ! is_array($_SERVER[$key])) {
+            $value = $_SERVER[$key];
+
+            if ($value !== false && $value !== null && $value !== '') {
+                return $value;
+            }
+        }
+
+        $value = getenv($key);
+
+        if ($value !== false && $value !== '') {
+            return $value;
+        }
+
+        return $default;
+    }
+
+    private static function isProductionEnvironment(): bool
+    {
+        $runtimeEnv = self::normalizeEnvString(self::runtimeEnv('APP_ENV'));
+
+        if ($runtimeEnv !== null) {
+            return $runtimeEnv === 'production';
+        }
+
+        if (config('app.env') === 'production') {
+            return true;
+        }
+
+        try {
+            return app()->environment('production');
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    private static function normalizeEnvString(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+
+        if ($trimmed === '') {
+            return null;
+        }
+
+        if ((str_starts_with($trimmed, '"') && str_ends_with($trimmed, '"'))
+            || (str_starts_with($trimmed, "'") && str_ends_with($trimmed, "'"))) {
+            $trimmed = substr($trimmed, 1, -1);
+        }
+
+        return $trimmed !== '' ? $trimmed : null;
     }
 
     public static function registerQueueRoutes(): void
