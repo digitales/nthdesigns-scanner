@@ -8,7 +8,6 @@ use App\Models\Search;
 use App\Services\BenchmarkNormalizer;
 use App\Services\GooglePlacesService;
 use App\Services\ReportBuilderService;
-use App\Support\AuditingQueue;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -24,10 +23,7 @@ class GenerateProspectReportJob implements ShouldQueue
 
     public int $timeout = 120;
 
-    public function __construct(public Prospect $prospect)
-    {
-        AuditingQueue::apply($this);
-    }
+    public function __construct(public Prospect $prospect) {}
 
     public function handle(
         GooglePlacesService $places,

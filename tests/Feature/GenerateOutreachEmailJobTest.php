@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\OutreachEmailGeneratorService;
 use App\Support\SearchQueue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class GenerateOutreachEmailJobTest extends TestCase
@@ -26,8 +27,8 @@ class GenerateOutreachEmailJobTest extends TestCase
 
         $job = new GenerateOutreachEmailJob($prospect, $user);
 
-        $this->assertSame(SearchQueue::NAME, $job->queue);
-        $this->assertSame(SearchQueue::connection(), $job->connection);
+        $this->assertSame(SearchQueue::NAME, Queue::resolveQueueFromQueueRoute($job));
+        $this->assertSame(SearchQueue::connection(), Queue::resolveConnectionFromQueueRoute($job));
     }
 
     public function test_skips_when_matching_email_already_exists(): void

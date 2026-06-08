@@ -13,14 +13,9 @@ final class SearchQueue
         return (string) config('scanner.search_queue_connection', config('queue.default'));
     }
 
-    public static function apply(object $job): object
-    {
-        return $job->onConnection(self::connection())->onQueue(self::NAME);
-    }
-
     public static function dispatch(object $job): PendingDispatch
     {
-        return dispatch(self::apply($job));
+        return dispatch($job);
     }
 
     public static function chain(PendingDispatch $pending): PendingDispatch

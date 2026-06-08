@@ -6,7 +6,6 @@ use App\Models\OutreachEmail;
 use App\Models\Prospect;
 use App\Models\User;
 use App\Services\OutreachEmailGeneratorService;
-use App\Support\SearchQueue;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -26,9 +25,7 @@ class GenerateOutreachEmailJob implements ShouldQueue
         public Prospect $prospect,
         public User $user,
         public array $options = [],
-    ) {
-        SearchQueue::apply($this);
-    }
+    ) {}
 
     public function handle(OutreachEmailGeneratorService $generator): void
     {

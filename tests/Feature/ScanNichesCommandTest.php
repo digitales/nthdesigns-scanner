@@ -29,11 +29,11 @@ class ScanNichesCommandTest extends TestCase
 
         Queue::assertPushed(ScanNicheJob::class, 2);
 
-        Queue::assertPushed(ScanNicheJob::class, function (ScanNicheJob $job) {
+        Queue::assertPushed(ScanNicheJob::class, function (ScanNicheJob $job, ?string $queue) {
             return $job->niche === 'Dental Practice'
                 && $job->city === 'Birmingham'
                 && $job->sample === 3
-                && $job->queue === NicheQueue::NAME;
+                && $queue === NicheQueue::NAME;
         });
     }
 

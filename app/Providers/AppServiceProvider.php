@@ -65,5 +65,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('manageNicheExclusions', [NicheExclusionPolicy::class, 'manage']);
 
         Vite::prefetch(concurrency: 3);
+
+        ScannerConfig::registerQueueRoutes();
     }
 }

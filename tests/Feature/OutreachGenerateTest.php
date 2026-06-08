@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Support\SearchQueue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class OutreachGenerateTest extends TestCase
@@ -40,6 +41,9 @@ class OutreachGenerateTest extends TestCase
         $response->assertSessionHas('success');
         $this->assertCount(1, session('skipped'));
 
-        Bus::assertDispatched(GenerateOutreachEmailJob::class, fn (GenerateOutreachEmailJob $job) => $job->queue === SearchQueue::NAME);
+        Bus::assertDispatched(
+            GenerateOutreachEmailJob::class,
+            fn (GenerateOutreachEmailJob $job) => Queue::resolveQueueFromQueueRoute($job) === SearchQueue::NAME,
+        );
     }
 }

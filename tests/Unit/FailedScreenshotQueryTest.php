@@ -52,7 +52,7 @@ class FailedScreenshotQueryTest extends TestCase
 
     public function test_matches_stale_running_screenshot_without_queue_job(): void
     {
-        Config::set('scanner.auditing_queue_connection', 'database');
+        $this->useAuditingDatabaseQueue();
 
         $report = $this->reportWithProspect();
 
@@ -68,7 +68,7 @@ class FailedScreenshotQueryTest extends TestCase
 
     public function test_does_not_match_when_screenshot_queue_job_present(): void
     {
-        Config::set('scanner.auditing_queue_connection', 'database');
+        $this->useAuditingDatabaseQueue();
 
         $report = $this->reportWithProspect();
 

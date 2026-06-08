@@ -7,7 +7,6 @@ use App\Models\ProspectReport;
 use App\Services\AuditErrorRecorder;
 use App\Services\ScreenshotCaptureService;
 use App\Services\ScreenshotStorageService;
-use App\Support\AuditingQueue;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -43,10 +42,7 @@ class CaptureScreenshotJob implements ShouldQueue
     /** @var list<int> */
     public array $backoff = [60, 120];
 
-    public function __construct(public ProspectReport $report)
-    {
-        AuditingQueue::apply($this);
-    }
+    public function __construct(public ProspectReport $report) {}
 
     /**
      * @return list<object>

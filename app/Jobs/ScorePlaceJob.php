@@ -8,7 +8,6 @@ use App\Services\GbpScoringService;
 use App\Services\GooglePlacesService;
 use App\Services\SearchStatusService;
 use App\Services\WebsiteDiscoveryService;
-use App\Support\SearchQueue;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -27,9 +26,7 @@ class ScorePlaceJob implements ShouldQueue
     public function __construct(
         public Search $search,
         public string $placeId,
-    ) {
-        SearchQueue::apply($this);
-    }
+    ) {}
 
     public function handle(
         GooglePlacesService $places,

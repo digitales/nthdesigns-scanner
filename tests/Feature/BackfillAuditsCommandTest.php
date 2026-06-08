@@ -68,9 +68,9 @@ class BackfillAuditsCommandTest extends TestCase
         $this->assertSame(0, $prospect->a11y_score);
         $this->assertSame(0, $prospect->performance_score);
 
-        Queue::assertPushed(AuditSiteJob::class, function (AuditSiteJob $job) use ($prospect) {
+        Queue::assertPushed(AuditSiteJob::class, function (AuditSiteJob $job, ?string $queue) use ($prospect) {
             return $job->prospect->id === $prospect->id
-                && $job->queue === AuditingQueue::NAME;
+                && $queue === AuditingQueue::NAME;
         });
     }
 

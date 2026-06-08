@@ -113,9 +113,9 @@ class BackfillWebsitesCommandTest extends TestCase
         $this->assertNotContains('No website listed', $prospect->gbp_flags);
         $this->assertSame('pending', $prospect->audit_status);
 
-        Queue::assertPushed(AuditSiteJob::class, function (AuditSiteJob $job) use ($prospect) {
+        Queue::assertPushed(AuditSiteJob::class, function (AuditSiteJob $job, ?string $queue) use ($prospect) {
             return $job->prospect->id === $prospect->id
-                && $job->queue === AuditingQueue::NAME;
+                && $queue === AuditingQueue::NAME;
         });
     }
 

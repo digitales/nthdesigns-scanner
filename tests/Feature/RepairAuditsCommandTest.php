@@ -38,7 +38,7 @@ class RepairAuditsCommandTest extends TestCase
     public function test_dry_run_lists_categories_without_dispatching(): void
     {
         Queue::fake();
-        Config::set('scanner.auditing_queue_connection', 'database');
+        $this->useAuditingDatabaseQueue();
 
         $stuck = $this->searchProspect('pending');
         $stuck->forceFill(['updated_at' => now()->subMinutes(20)])->save();
@@ -65,7 +65,7 @@ class RepairAuditsCommandTest extends TestCase
     public function test_execute_stuck_closes_running_job_and_dispatches_audit(): void
     {
         Queue::fake();
-        Config::set('scanner.auditing_queue_connection', 'database');
+        $this->useAuditingDatabaseQueue();
 
         $prospect = $this->searchProspect('pending');
         $prospect->forceFill(['updated_at' => now()->subMinutes(20)])->save();
@@ -137,9 +137,9 @@ class RepairAuditsCommandTest extends TestCase
         $prospect->refresh();
         $this->assertSame('complete', $prospect->audit_status);
 
-        Queue::assertPushed(CaptureScreenshotJob::class, function (CaptureScreenshotJob $job) use ($report) {
+        Queue::assertPushed(CaptureScreenshotJob::class, function (CaptureScreenshotJob $job, ?string $queue) use ($report) {
             return $job->report->id === $report->id
-                && $job->queue === AuditingQueue::NAME;
+                && $queue === AuditingQueue::NAME;
         });
         Queue::assertNotPushed(AuditSiteJob::class);
     }

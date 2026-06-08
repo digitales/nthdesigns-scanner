@@ -9,7 +9,6 @@ use App\Services\GbpScoringService;
 use App\Services\GooglePlacesService;
 use App\Services\ProspectExclusionService;
 use App\Services\SearchStatusService;
-use App\Support\SearchQueue;
 use App\Support\WebsiteUrlNormalizer;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -26,10 +25,7 @@ class DirectUrlScanJob implements ShouldQueue
 
     public int $backoff = 15;
 
-    public function __construct(public Search $search)
-    {
-        SearchQueue::apply($this);
-    }
+    public function __construct(public Search $search) {}
 
     public function handle(
         GooglePlacesService $places,

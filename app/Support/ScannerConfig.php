@@ -2,6 +2,18 @@
 
 namespace App\Support;
 
+use App\Jobs\AuditSiteJob;
+use App\Jobs\CaptureScreenshotJob;
+use App\Jobs\CombineScoresJob;
+use App\Jobs\DetectCmsJob;
+use App\Jobs\DirectUrlScanJob;
+use App\Jobs\GenerateOutreachEmailJob;
+use App\Jobs\GenerateProspectReportJob;
+use App\Jobs\ScanNicheJob;
+use App\Jobs\ScorePlaceJob;
+use App\Jobs\ScrapeProspectsJob;
+use Illuminate\Support\Facades\Queue;
+
 /**
  * Scanner settings derived from env() at runtime.
  *
@@ -75,5 +87,21 @@ final class ScannerConfig
         }
 
         config($overrides);
+    }
+
+    public static function registerQueueRoutes(): void
+    {
+        Queue::route([
+            DirectUrlScanJob::class => [config('scanner.search_queue_connection'), SearchQueue::NAME],
+            ScrapeProspectsJob::class => [config('scanner.search_queue_connection'), SearchQueue::NAME],
+            ScorePlaceJob::class => [config('scanner.search_queue_connection'), SearchQueue::NAME],
+            GenerateOutreachEmailJob::class => [config('scanner.search_queue_connection'), SearchQueue::NAME],
+            ScanNicheJob::class => [config('scanner.niche_queue_connection'), NicheQueue::NAME],
+            AuditSiteJob::class => [config('scanner.auditing_queue_connection'), AuditingQueue::NAME],
+            CaptureScreenshotJob::class => [config('scanner.auditing_queue_connection'), AuditingQueue::NAME],
+            CombineScoresJob::class => [config('scanner.auditing_queue_connection'), AuditingQueue::NAME],
+            DetectCmsJob::class => [config('scanner.auditing_queue_connection'), AuditingQueue::NAME],
+            GenerateProspectReportJob::class => [config('scanner.auditing_queue_connection'), AuditingQueue::NAME],
+        ]);
     }
 }

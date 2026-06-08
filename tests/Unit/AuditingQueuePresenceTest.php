@@ -10,6 +10,7 @@ use App\Models\Search;
 use App\Models\User;
 use App\Support\AuditingQueue;
 use App\Support\AuditingQueuePresence;
+use App\Support\ScannerConfig;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +22,7 @@ class AuditingQueuePresenceTest extends TestCase
 
     public function test_database_connection_detects_pending_audit_site_job(): void
     {
-        Config::set('scanner.auditing_queue_connection', 'database');
+        $this->useAuditingDatabaseQueue();
 
         $user = User::factory()->create();
         $search = Search::factory()->create(['user_id' => $user->id, 'scan_type' => 'combined']);
@@ -39,7 +40,7 @@ class AuditingQueuePresenceTest extends TestCase
 
     public function test_database_connection_detects_pending_screenshot_job(): void
     {
-        Config::set('scanner.auditing_queue_connection', 'database');
+        $this->useAuditingDatabaseQueue();
 
         $report = ProspectReport::factory()->create();
 
@@ -53,6 +54,7 @@ class AuditingQueuePresenceTest extends TestCase
     public function test_cloud_connection_skips_queue_check(): void
     {
         Config::set('scanner.auditing_queue_connection', 'cloud');
+        ScannerConfig::registerQueueRoutes();
 
         $user = User::factory()->create();
         $search = Search::factory()->create(['user_id' => $user->id]);
@@ -66,7 +68,7 @@ class AuditingQueuePresenceTest extends TestCase
 
     public function test_ignores_completed_jobs_in_database(): void
     {
-        Config::set('scanner.auditing_queue_connection', 'database');
+        $this->useAuditingDatabaseQueue();
 
         $user = User::factory()->create();
         $search = Search::factory()->create(['user_id' => $user->id]);

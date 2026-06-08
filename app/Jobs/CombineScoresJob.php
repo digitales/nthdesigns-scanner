@@ -6,7 +6,6 @@ use App\Models\Prospect;
 use App\Models\ProspectReport;
 use App\Services\CombineScoresService;
 use App\Services\SearchStatusService;
-use App\Support\AuditingQueue;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -19,10 +18,7 @@ class CombineScoresJob implements ShouldQueue
 
     public int $tries = 3;
 
-    public function __construct(public Prospect $prospect)
-    {
-        AuditingQueue::apply($this);
-    }
+    public function __construct(public Prospect $prospect) {}
 
     public function handle(
         CombineScoresService $combiner,

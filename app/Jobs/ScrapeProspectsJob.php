@@ -6,7 +6,6 @@ use App\Models\Search;
 use App\Services\BenchmarkNormalizer;
 use App\Services\GooglePlacesService;
 use App\Services\ProspectExclusionService;
-use App\Support\SearchQueue;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -22,10 +21,7 @@ class ScrapeProspectsJob implements ShouldQueue
 
     public int $backoff = 30;
 
-    public function __construct(public Search $search)
-    {
-        SearchQueue::apply($this);
-    }
+    public function __construct(public Search $search) {}
 
     public function handle(
         GooglePlacesService $places,

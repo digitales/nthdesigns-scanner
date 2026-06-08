@@ -4,7 +4,6 @@ namespace App\Jobs;
 
 use App\Models\Prospect;
 use App\Services\CmsDetectionRunnerService;
-use App\Support\AuditingQueue;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -23,13 +22,7 @@ class DetectCmsJob implements ShouldQueue
 
     public int $timeout = 120;
 
-    public bool $force = false;
-
-    public function __construct(public Prospect $prospect, bool $force = false)
-    {
-        $this->force = $force;
-        AuditingQueue::apply($this);
-    }
+    public function __construct(public Prospect $prospect, public bool $force = false) {}
 
     public function handle(CmsDetectionRunnerService $runner): void
     {

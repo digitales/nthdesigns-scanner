@@ -55,9 +55,9 @@ class BackfillCmsCommandTest extends TestCase
             ->expectsOutputToContain('Dispatched 1')
             ->assertExitCode(0);
 
-        Queue::assertPushed(DetectCmsJob::class, function (DetectCmsJob $job) use ($prospect) {
+        Queue::assertPushed(DetectCmsJob::class, function (DetectCmsJob $job, ?string $queue) use ($prospect) {
             return $job->prospect->id === $prospect->id
-                && $job->queue === AuditingQueue::NAME;
+                && $queue === AuditingQueue::NAME;
         });
     }
 

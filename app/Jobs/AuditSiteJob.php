@@ -10,7 +10,6 @@ use App\Services\AuditRunnerService;
 use App\Services\CmsDetectionRunnerService;
 use App\Services\ScreenshotStorageService;
 use App\Services\SearchStatusService;
-use App\Support\AuditingQueue;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -29,10 +28,7 @@ class AuditSiteJob implements ShouldQueue
 
     public int $timeout = 240;
 
-    public function __construct(public Prospect $prospect)
-    {
-        AuditingQueue::apply($this);
-    }
+    public function __construct(public Prospect $prospect) {}
 
     public function handle(
         AuditRunnerService $auditRunner,
