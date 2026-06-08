@@ -13,6 +13,7 @@ use App\Services\AuditRunnerService;
 use App\Services\CmsDetectionRunnerService;
 use App\Services\ScreenshotStorageService;
 use App\Services\SearchStatusService;
+use App\Support\CmsDetectionPayload;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -97,14 +98,23 @@ class AuditSiteJob implements ShouldQueue
                 'raw_lighthouse_payload' => $payload['lighthouse'] ?? null,
             ];
 
-            try {
-                $updates['cms_detection'] = $cmsRunner->run($prospect->website_url);
-            } catch (\Throwable $e) {
-                Log::warning('AuditSiteJob CMS detection failed', [
-                    'prospect_id' => $prospect->id,
-                    'url' => $prospect->website_url,
-                    'error' => $e->getMessage(),
-                ]);
+            $cms = CmsDetectionPayload::fromAuditPayload($payload);
+
+            if ($cms === null) {
+                try {
+                    $cms = $cmsRunner->run($prospect->website_url);
+                } catch (\Throwable $e) {
+                    Log::warning('AuditSiteJob CMS detection failed', [
+                        'prospect_id' => $prospect->id,
+                        'url' => $prospect->website_url,
+                        'error' => $e->getMessage(),
+                    ]);
+                    $cms = null;
+                }
+            }
+
+            if ($cms !== null) {
+                $updates['cms_detection'] = $cms;
             }
 
             $prospect->update($updates);

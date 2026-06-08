@@ -106,4 +106,46 @@ class AuditSiteJobTest extends TestCase
 
         $this->assertSame(AuditStatus::Failed, $prospect->fresh()->audit_status);
     }
+
+    public function test_uses_cms_from_audit_payload_without_second_runner_call(): void
+    {
+        Queue::fake([CombineScoresJob::class]);
+
+        $prospect = $this->pendingProspect();
+
+        $this->mock(AuditRunnerService::class, function ($mock) {
+            $mock->shouldReceive('shouldSkip')->andReturn(false);
+            $mock->shouldReceive('run')->andReturn([
+                'violations' => [],
+                'pass_count' => 0,
+                'incomplete_count' => 0,
+                'violation_screenshots' => [],
+                'cms' => [
+                    'platform' => 'wordpress',
+                    'confidence' => 'high',
+                    'signals' => [],
+                ],
+            ]);
+        });
+
+        $this->mock(CmsDetectionRunnerService::class, function ($mock) {
+            $mock->shouldNotReceive('run');
+        });
+
+        $this->mock(ScreenshotStorageService::class, function ($mock) {
+            $mock->shouldReceive('storeViolationScreenshots')->andReturn([]);
+        });
+
+        (new AuditSiteJob($prospect))->handle(
+            app(AuditRunnerService::class),
+            app(A11yScoringService::class),
+            app(SearchStatusService::class),
+            app(ScreenshotStorageService::class),
+            app(AuditErrorRecorder::class),
+            app(CmsDetectionRunnerService::class),
+        );
+
+        $prospect->refresh();
+        $this->assertSame('wordpress', $prospect->cms_detection['platform']);
+    }
 }
