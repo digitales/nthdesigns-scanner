@@ -2,50 +2,30 @@
 
 namespace App\Services;
 
+use App\Services\Browser\BrowserAuditGateway;
+use App\Services\Browser\BrowserCmsGateway;
+use App\Services\Browser\BrowserHttpTransport;
+use App\Services\Browser\BrowserScreenshotGateway;
 use App\Services\Browser\ViolationScreenshotMaterializer;
-use Illuminate\Http\Client\ConnectionException;
-use Illuminate\Http\Client\PendingRequest;
-use Illuminate\Support\Facades\Http;
 
 class BrowserServiceClient
 {
+    public function __construct(
+        private BrowserAuditGateway $audit,
+        private BrowserCmsGateway $cms,
+        private BrowserScreenshotGateway $screenshot,
+        private BrowserHttpTransport $http,
+    ) {}
+
     /**
      * @return array<string, mixed>
      */
     public function fetchAudit(string $url): array
     {
-        try {
-            $response = $this->request()
-                ->timeout(config('scanner.audit_timeout'))
-                ->post($this->endpoint('/audit'), ['url' => $url]);
-        } catch (ConnectionException $e) {
-            return $this->unreachableAuditPayload($url, $e->getMessage());
-        }
-
-        if (! $response->successful()) {
-            $payload = $this->parseAuditPayloadFromFailedResponse($response->body());
-
-            if ($payload !== null) {
-                return $payload;
-            }
-
-            throw new \RuntimeException(
-                'Audit service failed: '.trim($response->body())
-            );
-        }
-
-        $payload = $response->json();
-
-        if (! is_array($payload)) {
-            throw new \RuntimeException('Audit service returned invalid JSON');
-        }
-
-        return $payload;
+        return $this->audit->fetch($url);
     }
 
     /**
-     * Write violation PNGs from base64 fields and strip them from the payload.
-     *
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
      */
@@ -59,95 +39,12 @@ class BrowserServiceClient
      */
     public function fetchCmsDetection(string $url): array
     {
-        try {
-            $response = $this->request()
-                ->timeout((int) config('scanner.cms_detect_timeout', 90))
-                ->post($this->endpoint('/detect-cms'), ['url' => $url]);
-        } catch (ConnectionException $e) {
-            return [
-                'platform' => 'unknown',
-                'version' => null,
-                'confidence' => 'low',
-                'signals' => [
-                    ['id' => 'fetch_failed', 'matched' => true, 'detail' => $e->getMessage()],
-                ],
-                'detected_at' => now()->toIso8601String(),
-                'url' => $url,
-            ];
-        }
-
-        if (! $response->successful()) {
-            $body = trim($response->body());
-
-            if ($response->status() === 404) {
-                throw new \RuntimeException(
-                    'CMS detect endpoint not found on browser service — redeploy Fly with the latest scripts/browser-service (POST /detect-cms). Response: '.$body
-                );
-            }
-
-            throw new \RuntimeException(
-                'CMS detect service failed: '.$body
-            );
-        }
-
-        $payload = $response->json();
-
-        if (! is_array($payload)) {
-            throw new \RuntimeException('CMS detect service returned invalid JSON');
-        }
-
-        return $payload;
+        return $this->cms->fetch($url);
     }
 
     public function captureDesktop(string $url, string $localDir): string
     {
-        try {
-            $response = $this->request()
-                ->timeout(config('scanner.screenshot_timeout'))
-                ->post($this->endpoint('/screenshot'), ['url' => $url]);
-        } catch (ConnectionException $e) {
-            throw new \RuntimeException('Screenshot service unreachable: '.$e->getMessage(), 0, $e);
-        }
-
-        if (! $response->successful()) {
-            $payload = $this->parseScreenshotPayloadFromFailedResponse($response->body());
-
-            if ($payload !== null && ! empty($payload['error'])) {
-                throw new \RuntimeException((string) $payload['error']);
-            }
-
-            throw new \RuntimeException(
-                'Screenshot service failed: '.trim($response->body())
-            );
-        }
-
-        $payload = $response->json();
-
-        if (! is_array($payload) || ! empty($payload['error'])) {
-            throw new \RuntimeException($payload['error'] ?? 'Screenshot service returned invalid JSON');
-        }
-
-        $base64 = $payload['content_base64'] ?? null;
-        $filename = basename((string) ($payload['desktop'] ?? 'desktop.png'));
-
-        if (! is_string($base64) || $base64 === '') {
-            throw new \RuntimeException('Screenshot service did not return image data');
-        }
-
-        $decoded = base64_decode($base64, true);
-
-        if ($decoded === false) {
-            throw new \RuntimeException('Screenshot service returned invalid base64');
-        }
-
-        if (! is_dir($localDir)) {
-            mkdir($localDir, 0755, true);
-        }
-
-        $absolutePath = rtrim($localDir, '/').'/'.$filename;
-        file_put_contents($absolutePath, $decoded);
-
-        return $absolutePath;
+        return $this->screenshot->captureDesktop($url, $localDir);
     }
 
     /**
@@ -155,14 +52,14 @@ class BrowserServiceClient
      */
     public function healthCheck(): array
     {
-        $baseUrl = $this->baseUrl();
+        $baseUrl = $this->http->baseUrl();
 
         if ($baseUrl === '') {
             return ['ok' => false, 'message' => 'AUDIT_SERVICE_URL is not set'];
         }
 
         try {
-            $response = $this->request()->timeout(10)->get($this->endpoint('/health'));
+            $response = $this->http->request()->timeout(10)->get($this->http->endpoint('/health'));
 
             if ($response->successful() && ($response->json('ok') === true || $response->json('status') === 'ok')) {
                 return ['ok' => true, 'message' => 'Browser service reachable'];
@@ -172,102 +69,5 @@ class BrowserServiceClient
         } catch (\Throwable $e) {
             return ['ok' => false, 'message' => $e->getMessage()];
         }
-    }
-
-    private function request(): PendingRequest
-    {
-        $request = Http::acceptJson()->asJson();
-
-        $token = config('scanner.audit_service_token');
-
-        if ($token) {
-            $request = $request->withToken($token);
-        }
-
-        return $request;
-    }
-
-    private function baseUrl(): string
-    {
-        return rtrim((string) config('scanner.audit_service_url'), '/');
-    }
-
-    private function endpoint(string $path): string
-    {
-        return $this->baseUrl().$path;
-    }
-
-    /**
-     * Older browser-service builds returned HTTP 500 with audit.js stdout nested in error.
-     *
-     * @return array<string, mixed>|null
-     */
-    private function parseAuditPayloadFromFailedResponse(string $body): ?array
-    {
-        $decoded = json_decode($body, true);
-
-        if (! is_array($decoded)) {
-            return null;
-        }
-
-        $nested = $decoded['error'] ?? null;
-
-        if (is_string($nested)) {
-            $payload = json_decode($nested, true);
-
-            if (is_array($payload) && (isset($payload['url']) || isset($payload['violations']))) {
-                return $payload;
-            }
-        }
-
-        if (isset($decoded['url']) || array_key_exists('error', $decoded)) {
-            return $decoded;
-        }
-
-        return null;
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function parseScreenshotPayloadFromFailedResponse(string $body): ?array
-    {
-        $decoded = json_decode($body, true);
-
-        if (! is_array($decoded)) {
-            return null;
-        }
-
-        $nested = $decoded['error'] ?? null;
-
-        if (is_string($nested)) {
-            $payload = json_decode($nested, true);
-
-            if (is_array($payload) && array_key_exists('error', $payload)) {
-                return $payload;
-            }
-        }
-
-        if (array_key_exists('error', $decoded)) {
-            return $decoded;
-        }
-
-        return null;
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function unreachableAuditPayload(string $url, string $message): array
-    {
-        return [
-            'url' => $url,
-            'error' => $message,
-            'violations' => [],
-            'pass_count' => 0,
-            'incomplete_count' => 0,
-            'violation_screenshots' => [],
-            'lighthouse' => null,
-        ];
     }
 }
