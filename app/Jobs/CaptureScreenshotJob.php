@@ -10,6 +10,9 @@ use App\Services\ScreenshotStorageService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\Attributes\Timeout;
+use Illuminate\Queue\Attributes\Tries;
+use Illuminate\Queue\Attributes\WithoutRelations;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Queue\SerializesModels;
@@ -20,29 +23,30 @@ use Illuminate\Support\Facades\Log;
  * Captures a desktop screenshot for a prospect report and stores it on the report row.
  *
  * Retry semantics:
- * - Laravel may run up to {@see $tries} attempts with {@see $backoff} delays between failures.
+ * - Laravel may run up to 3 attempts with {@see $backoff} delays between failures.
  * - The catch block records failure via {@see AuditErrorRecorder} then rethrows so the queue
  *   driver schedules retries (same pattern as {@see AuditSiteJob}).
  * - {@see WithoutOverlapping} serialises screenshot work on the `fly-browser-screenshot` lock;
- *   contending jobs are released until the lock expires ({@see $timeout} release / 600s expire).
+ *   contending jobs are released until the lock expires (180s release / 600s expire).
  *
  * Idempotency:
  * - Returns early when the report has no website URL or `screenshot_paths.desktop` is already set.
  * - Each attempt creates a new `audit_jobs` row with `job_type = screenshot`; a later successful
  *   attempt updates `screenshot_paths` and does not re-capture if desktop already exists.
  */
+#[Tries(3)]
+#[Timeout(180)]
 class CaptureScreenshotJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public int $tries = 3;
-
-    public int $timeout = 180;
-
     /** @var list<int> */
     public array $backoff = [60, 120];
 
-    public function __construct(public ProspectReport $report) {}
+    public function __construct(
+        #[WithoutRelations]
+        public ProspectReport $report,
+    ) {}
 
     /**
      * @return list<object>
@@ -51,7 +55,7 @@ class CaptureScreenshotJob implements ShouldQueue
     {
         return [
             (new WithoutOverlapping('fly-browser-screenshot-report-'.$this->report->id))
-                ->releaseAfter($this->timeout)
+                ->releaseAfter(180)
                 ->expireAfter(600),
         ];
     }

@@ -9,19 +9,23 @@ use App\Services\ProspectExclusionService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\Attributes\Tries;
+use Illuminate\Queue\Attributes\WithoutRelations;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
+#[Tries(3)]
 class ScrapeProspectsJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public int $tries = 3;
-
     public int $backoff = 30;
 
-    public function __construct(public Search $search) {}
+    public function __construct(
+        #[WithoutRelations]
+        public Search $search,
+    ) {}
 
     public function handle(
         GooglePlacesService $places,

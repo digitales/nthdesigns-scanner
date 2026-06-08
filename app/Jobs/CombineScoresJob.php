@@ -9,16 +9,20 @@ use App\Services\SearchStatusService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\Attributes\Tries;
+use Illuminate\Queue\Attributes\WithoutRelations;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 
+#[Tries(3)]
 class CombineScoresJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public int $tries = 3;
-
-    public function __construct(public Prospect $prospect) {}
+    public function __construct(
+        #[WithoutRelations]
+        public Prospect $prospect,
+    ) {}
 
     public function handle(
         CombineScoresService $combiner,

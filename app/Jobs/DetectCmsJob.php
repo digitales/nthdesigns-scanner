@@ -7,22 +7,32 @@ use App\Services\CmsDetectionRunnerService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\Attributes\Timeout;
+use Illuminate\Queue\Attributes\Tries;
+use Illuminate\Queue\Attributes\WithoutRelations;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
+#[Tries(2)]
+#[Timeout(120)]
 class DetectCmsJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public int $tries = 2;
-
     public int $backoff = 30;
 
-    public int $timeout = 120;
+    public function __construct(
+        #[WithoutRelations]
+        public Prospect $prospect,
+        public bool $force = false,
+    ) {}
 
-    public function __construct(public Prospect $prospect, public bool $force = false) {}
+    public function tries(): int
+    {
+        return 2;
+    }
 
     public function handle(CmsDetectionRunnerService $runner): void
     {
@@ -45,7 +55,7 @@ class DetectCmsJob implements ShouldQueue
                 'error' => $e->getMessage(),
             ]);
 
-            if ($this->attempts() >= $this->tries) {
+            if ($this->attempts() >= $this->tries()) {
                 $prospect->update([
                     'cms_detection' => [
                         'status' => 'failed',

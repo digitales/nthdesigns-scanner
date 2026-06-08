@@ -11,19 +11,23 @@ use App\Services\ReportBuilderService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\Attributes\Tries;
+use Illuminate\Queue\Attributes\WithoutRelations;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Str;
 
+#[Tries(2)]
 class GenerateProspectReportJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public int $tries = 2;
-
     public int $timeout = 120;
 
-    public function __construct(public Prospect $prospect) {}
+    public function __construct(
+        #[WithoutRelations]
+        public Prospect $prospect,
+    ) {}
 
     public function handle(
         GooglePlacesService $places,

@@ -13,22 +13,31 @@ use App\Services\SearchStatusService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\Attributes\Timeout;
+use Illuminate\Queue\Attributes\Tries;
+use Illuminate\Queue\Attributes\WithoutRelations;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 
+#[Tries(2)]
+#[Timeout(240)]
 class AuditSiteJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public int $tries = 2;
-
     public int $backoff = 60;
 
-    public int $timeout = 240;
+    public function __construct(
+        #[WithoutRelations]
+        public Prospect $prospect,
+    ) {}
 
-    public function __construct(public Prospect $prospect) {}
+    public function tries(): int
+    {
+        return 2;
+    }
 
     public function handle(
         AuditRunnerService $auditRunner,
@@ -117,7 +126,7 @@ class AuditSiteJob implements ShouldQueue
 
             $errorRecorder->recordFailure($auditJob, $errorRecorder->formatThrowable($e));
 
-            if ($this->attempts() >= $this->tries) {
+            if ($this->attempts() >= $this->tries()) {
                 $prospect->update(['audit_status' => 'failed']);
                 $searchStatus->refresh($prospect->search);
             }
