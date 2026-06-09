@@ -8,6 +8,7 @@ use App\Models\Search;
 use App\Services\BenchmarkNormalizer;
 use App\Services\GooglePlacesService;
 use App\Services\ReportBuilderService;
+use App\Support\ScannerJobContext;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -34,6 +35,8 @@ class GenerateProspectReportJob implements ShouldQueue
         ReportBuilderService $builder,
         BenchmarkNormalizer $benchmarks,
     ): void {
+        ScannerJobContext::add(self::class, ['prospect_id' => $this->prospect->id]);
+
         $prospect = $this->prospect->fresh(['search.user.setting']);
 
         if (! $prospect) {

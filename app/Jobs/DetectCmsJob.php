@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Prospect;
 use App\Services\CmsDetectionRunnerService;
+use App\Support\ScannerJobContext;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -36,6 +37,8 @@ class DetectCmsJob implements ShouldQueue
 
     public function handle(CmsDetectionRunnerService $runner): void
     {
+        ScannerJobContext::add(self::class, ['prospect_id' => $this->prospect->id]);
+
         $prospect = $this->prospect->fresh();
 
         if (! $prospect || empty($prospect->website_url)) {

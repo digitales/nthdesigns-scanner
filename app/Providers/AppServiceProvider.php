@@ -29,6 +29,7 @@ use App\Policies\SharedListPolicy;
 use App\Policies\UserMcpKeyPolicy;
 use App\Queue\FailJobOnApiQuotaExceeded;
 use App\Support\ScannerConfig;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Vite;
@@ -49,6 +50,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if ($this->app->environment(['local', 'testing'])) {
+            Model::shouldBeStrict();
+        }
+
         ScannerConfig::applyRuntimeOverrides();
 
         Gate::policy(Search::class, SearchPolicy::class);

@@ -14,6 +14,7 @@ use App\Services\CmsDetectionRunnerService;
 use App\Services\ScreenshotStorageService;
 use App\Services\SearchStatusService;
 use App\Support\CmsDetectionPayload;
+use App\Support\ScannerJobContext;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -51,6 +52,8 @@ class AuditSiteJob implements ShouldQueue
         AuditErrorRecorder $errorRecorder,
         CmsDetectionRunnerService $cmsRunner,
     ): void {
+        ScannerJobContext::add(self::class, ['prospect_id' => $this->prospect->id]);
+
         $prospect = $this->prospect->fresh();
 
         if (! $prospect || ! $prospect->website_url) {

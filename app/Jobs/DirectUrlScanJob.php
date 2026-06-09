@@ -11,6 +11,7 @@ use App\Services\GbpScoringService;
 use App\Services\GooglePlacesService;
 use App\Services\ProspectExclusionService;
 use App\Services\SearchStatusService;
+use App\Support\ScannerJobContext;
 use App\Support\WebsiteUrlNormalizer;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -41,6 +42,8 @@ class DirectUrlScanJob implements ShouldQueue
         DirectUrlSearchEnrichment $enrichment,
         ProspectExclusionService $exclusions,
     ): void {
+        ScannerJobContext::add(self::class, ['search_id' => $this->search->id]);
+
         $search = $this->search->fresh();
 
         if (! $search || ! $search->isDirectUrl() || ! $search->submitted_url) {
