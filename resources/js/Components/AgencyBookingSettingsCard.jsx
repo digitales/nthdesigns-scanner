@@ -51,6 +51,7 @@ export default function AgencyBookingSettingsCard({ agencyBooking }) {
 
     const [testing, setTesting] = useState(false);
     const [testMessage, setTestMessage] = useState(null);
+    const [editingPassword, setEditingPassword] = useState(!agencyBooking.has_app_password);
 
     const discoveredCalendars = flash?.agency_booking_calendars ?? [];
     const status = bookingStatus(agencyBooking, data.enabled);
@@ -65,7 +66,13 @@ export default function AgencyBookingSettingsCard({ agencyBooking }) {
 
     const save = (e) => {
         e.preventDefault();
-        patch('/settings/agency-booking', { preserveScroll: true });
+        patch('/settings/agency-booking', {
+            preserveScroll: true,
+            onSuccess: (page) => {
+                setEditingPassword(!page.props.agencyBooking?.has_app_password);
+                setData('fastmail_app_password', '');
+            },
+        });
     };
 
     const testConnection = () => {
@@ -81,6 +88,8 @@ export default function AgencyBookingSettingsCard({ agencyBooking }) {
                 if (message) {
                     setTestMessage(message);
                 }
+                setEditingPassword(!page.props.agencyBooking?.has_app_password);
+                setData('fastmail_app_password', '');
             },
             onFinish: () => setTesting(false),
         });
@@ -95,6 +104,16 @@ export default function AgencyBookingSettingsCard({ agencyBooking }) {
 
     const pickCalendar = (url) => {
         setData('caldav_calendar_url', url);
+    };
+
+    const startPasswordEdit = () => {
+        setEditingPassword(true);
+        setData('fastmail_app_password', '');
+    };
+
+    const cancelPasswordEdit = () => {
+        setEditingPassword(false);
+        setData('fastmail_app_password', '');
     };
 
     return (
@@ -138,15 +157,38 @@ export default function AgencyBookingSettingsCard({ agencyBooking }) {
 
                                     <Field
                                         label="App password"
-                                        hint={agencyBooking.has_app_password ? 'Leave blank to keep the saved password' : 'Fastmail → Privacy & Security → App passwords'}
+                                        hint={
+                                            agencyBooking.has_app_password && !editingPassword
+                                                ? undefined
+                                                : agencyBooking.has_app_password
+                                                    ? 'Enter a new app password to replace the saved one'
+                                                    : 'Fastmail → Privacy & Security → App passwords'
+                                        }
                                     >
-                                        <Input
-                                            type="password"
-                                            name="fastmail_app_password"
-                                            value={data.fastmail_app_password}
-                                            onChange={(e) => setData('fastmail_app_password', e.target.value)}
-                                            autoComplete="new-password"
-                                        />
+                                        {agencyBooking.has_app_password && !editingPassword ? (
+                                            <Stack direction="row" gap={12} align="center" wrap>
+                                                <Status kind="ready">App password saved</Status>
+                                                <Button kind="ghost" size="xs" type="button" onClick={startPasswordEdit}>
+                                                    Change password
+                                                </Button>
+                                            </Stack>
+                                        ) : (
+                                            <Stack gap={8}>
+                                                <Input
+                                                    type="password"
+                                                    name="fastmail_app_password"
+                                                    value={data.fastmail_app_password}
+                                                    onChange={(e) => setData('fastmail_app_password', e.target.value)}
+                                                    autoComplete="new-password"
+                                                    placeholder={agencyBooking.has_app_password ? 'New app password' : undefined}
+                                                />
+                                                {agencyBooking.has_app_password && (
+                                                    <Button kind="ghost" size="xs" type="button" onClick={cancelPasswordEdit}>
+                                                        Cancel
+                                                    </Button>
+                                                )}
+                                            </Stack>
+                                        )}
                                     </Field>
                                 </Grid>
 
