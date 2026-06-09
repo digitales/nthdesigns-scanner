@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ReportBookingStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -27,6 +28,7 @@ class ReportBooking extends Model
             'starts_at' => 'datetime',
             'ends_at' => 'datetime',
             'confirmation_sent_at' => 'datetime',
+            'status' => ReportBookingStatus::class,
         ];
     }
 

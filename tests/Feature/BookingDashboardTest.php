@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\ReportBookingStatus;
 use App\Models\AgencyBookingSetting;
 use App\Models\ProspectReport;
 use App\Models\ReportBooking;
@@ -28,7 +29,7 @@ class BookingDashboardTest extends TestCase
             'attendee_name' => 'Jane Smith',
             'attendee_email' => 'jane@example.com',
             'calendar_event_uid' => 'scanner-test@nthdesigns.co.uk',
-            'status' => 'confirmed',
+            'status' => ReportBookingStatus::Confirmed,
         ]);
 
         AgencyBookingSetting::current()->update(['enabled' => true]);
@@ -56,7 +57,7 @@ class BookingDashboardTest extends TestCase
             'attendee_name' => 'Jane Smith',
             'attendee_email' => 'jane@example.com',
             'calendar_event_uid' => 'scanner-test@nthdesigns.co.uk',
-            'status' => 'confirmed',
+            'status' => ReportBookingStatus::Confirmed,
             'confirmation_sent_at' => null,
         ]);
 

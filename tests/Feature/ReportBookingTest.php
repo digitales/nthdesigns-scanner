@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Contracts\Calendar\CalendarProvider;
+use App\Enums\ReportBookingStatus;
 use App\Mail\ReportBookingConfirmed;
 use App\Models\AgencyBookingSetting;
 use App\Models\ProspectReport;
@@ -197,7 +198,7 @@ class ReportBookingTest extends TestCase
 
         $booking = $report->fresh()->booking;
         $this->assertNotNull($booking);
-        $this->assertSame('confirmed', $booking->status);
+        $this->assertSame(ReportBookingStatus::Confirmed, $booking->status);
         $this->assertNull($booking->confirmation_sent_at);
         $response->assertJsonPath('booking.confirmation_sent', false);
         $this->assertCount(1, $this->calendar->createdEvents());

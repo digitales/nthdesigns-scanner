@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\ReportBookingStatus;
 use App\Models\OutreachEmail;
 use App\Models\OutreachSelection;
 use App\Models\Prospect;
@@ -35,7 +36,7 @@ class OutreachIndexTest extends TestCase
             'ends_at' => now()->addDays(2)->setTime(15, 0),
             'attendee_name' => 'Jane Smith',
             'attendee_email' => 'jane@example.com',
-            'status' => 'confirmed',
+            'status' => ReportBookingStatus::Confirmed,
         ]);
 
         OutreachSelection::create([

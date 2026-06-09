@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ReportBookingStatus;
 use App\Http\Resources\BookingDashboardResource;
 use App\Models\ReportBooking;
 use Illuminate\Database\Eloquent\Builder;
@@ -26,7 +27,7 @@ class BookingDashboardController extends Controller
 
         $unsentCount = (clone $baseQuery)
             ->whereNull('confirmation_sent_at')
-            ->where('status', 'confirmed')
+            ->where('status', ReportBookingStatus::Confirmed)
             ->count();
 
         $query = clone $baseQuery;
