@@ -12,8 +12,7 @@ export default function SampleReportExcerpt() {
           </div>
           <p className="note">
             The report below is what the prospect sees when you forward them their token URL.
-            No login, no internal jargon, no "combined score". An A–F grade, the top five
-            violations, and one call-to-action.
+            No login, no internal jargon — a plain-English summary, the top violations, and one call-to-action.
           </p>
         </div>
 
@@ -29,20 +28,25 @@ export default function SampleReportExcerpt() {
             <h3>Birmingham Dental Practice</h3>
             <div className="sr-meta">birminghamdentalpractice.co.uk · audit 22 May 2026</div>
 
+            <div className="sr-key-finding">
+              <span className="sr-kf-label">Key finding</span>
+              <p>
+                Your site has barriers that can stop patients from booking online — while your Google profile trails the top dental practice in Birmingham on reviews (12 vs 89).
+              </p>
+            </div>
+
             <div className="sr-grade-row">
               <div className="grade">D</div>
               <p>
-                We audited your website and Google Business Profile against the 2025 WCAG 2.2
-                standard and the best-performing dental practice within 5 km of B5 6RG. The
-                audit found <b>23 issues</b>, four of which are likely blocking patient
-                bookings today.
+                We audited your website and Google Business Profile against WCAG 2.2 and local competitors in Birmingham.
+                The audit found <b>23 issues</b> worth addressing.
               </p>
             </div>
 
             <div className="sr-sev-chips">
-              <SevChip level="critical" count={4} />
-              <SevChip level="serious" count={11} />
-              <SevChip level="moderate" count={8} />
+              <SevChip level="critical" label="4 likely blocking enquiries" />
+              <SevChip level="serious" label="11 serious" />
+              <SevChip level="moderate" label="8 moderate" />
             </div>
 
             <div className="sr-violations">

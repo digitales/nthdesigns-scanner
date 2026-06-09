@@ -1742,6 +1742,61 @@
     flex-wrap: wrap;
     gap: 8px;
   }
+  .public-report-headline {
+    font-family: var(--font-serif);
+    font-size: 22px;
+    line-height: 1.35;
+    letter-spacing: -0.012em;
+    color: var(--color-ink);
+    margin: 0 0 28px;
+    max-width: 640px;
+  }
+  .public-report-grade-grid--context {
+    margin-top: 8px;
+  }
+  .public-report-dimensions-eyebrow {
+    margin-top: 40px;
+  }
+  .public-report-dimensions {
+    list-style: none;
+    margin: 0;
+    padding: 16px 0 0;
+    border-top: 1px solid var(--color-line);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .public-report-dimension {
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--color-stone-600);
+    padding-left: 12px;
+    border-left: 3px solid var(--color-stone-300);
+  }
+  .public-report-dimension--high {
+    border-left-color: var(--color-sev-critical);
+  }
+  .public-report-dimension--moderate {
+    border-left-color: var(--color-sev-serious);
+  }
+  .public-report-dimension--low {
+    border-left-color: var(--color-positive);
+  }
+  .public-report-dimension strong {
+    color: var(--color-ink);
+    font-weight: 500;
+  }
+  .public-report-dimension-sep {
+    color: var(--color-stone-400);
+  }
+  .lighthouse-dial-caption {
+    margin: 8px auto 0;
+    max-width: 140px;
+    text-align: center;
+    font-size: 11px;
+    line-height: 1.45;
+    color: var(--color-stone-600);
+  }
   .public-report-h2 {
     font-family: var(--font-serif);
     font-weight: 500;

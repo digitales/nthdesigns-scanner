@@ -1,9 +1,9 @@
 import { Head } from '@inertiajs/react';
 import ViolationCard from '@/Components/audit/ViolationCard';
 import LighthouseDial from '@/Components/audit/LighthouseDial';
+import ReportSummarySection from '@/Components/report/ReportSummarySection';
 import ReportBookingSection from '@/Components/ReportBookingSection';
-import { DataTable, LinkButton, SevChip } from '@/Components/ui';
-import { gradeColor } from '@/Components/ui/scoreBand';
+import { DataTable, LinkButton } from '@/Components/ui';
 import { hasA11yAuditContent, hasLighthouseMetrics } from '@/utils/auditVisibility';
 
 export default function PublicReport({ report }) {
@@ -12,7 +12,6 @@ export default function PublicReport({ report }) {
     const summary = report.violation_summary ?? {};
     const lighthouse = report.lighthouse ?? {};
     const grade = report.grade ?? 'C';
-    const color = gradeColor(report.combined_score ?? 0);
     const hasA11y = hasA11yAuditContent({ summary, topViolations: report.top_violations });
     const hasLighthouse = hasLighthouseMetrics(lighthouse);
     const hasGbp = benchmark != null;
@@ -54,30 +53,14 @@ export default function PublicReport({ report }) {
                     </header>
 
                     <section className="public-report-section">
-                        <div className="eyebrow eyebrow--spaced">Overall grade</div>
-                        <div className="public-report-grade-grid">
-                            <div>
-                                <div className="public-report-grade-letter" style={{ color }}>
-                                    {grade}
-                                </div>
-                                <div className="micro public-report-grade-label">
-                                    {report.grade_label}
-                                </div>
-                            </div>
-                            <div>
-                                <p className="public-report-lede">
-                                    We audited your website and Google Business Profile against WCAG 2.2 and local competitors in {report.city}.
-                                    {summary.total > 0 && (
-                                        <> The audit found <strong>{summary.total} issues</strong> worth addressing.</>
-                                    )}
-                                </p>
-                                <div className="public-report-chips">
-                                    {summary.critical > 0 && <SevChip level="critical" count={summary.critical} />}
-                                    {summary.serious > 0 && <SevChip level="serious" count={summary.serious} />}
-                                    {summary.moderate > 0 && <SevChip level="moderate" count={summary.moderate} />}
-                                </div>
-                            </div>
-                        </div>
+                        <ReportSummarySection
+                            reportContext={report.report_context}
+                            grade={grade}
+                            gradeLabel={report.grade_label}
+                            combinedScore={report.combined_score}
+                            violationSummary={summary}
+                            city={report.city}
+                        />
                     </section>
 
                     {hasA11y && (
@@ -121,10 +104,34 @@ export default function PublicReport({ report }) {
                                 Measured via Google Lighthouse on a mid-range mobile connection. Below 50 in any dial is where Google starts penalising the site in mobile search.
                             </p>
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-8">
-                                {lighthouse.performance != null && <LighthouseDial label="Performance" score={lighthouse.performance} />}
-                                {lighthouse.accessibility != null && <LighthouseDial label="Accessibility" score={lighthouse.accessibility} />}
-                                {lighthouse.seo != null && <LighthouseDial label="SEO" score={lighthouse.seo} />}
-                                {lighthouse.best_practices != null && <LighthouseDial label="Best practices" score={lighthouse.best_practices} />}
+                                {lighthouse.performance != null && (
+                                    <LighthouseDial
+                                        label="Performance"
+                                        score={lighthouse.performance}
+                                        caption={report.report_context?.lighthouse_captions?.performance}
+                                    />
+                                )}
+                                {lighthouse.accessibility != null && (
+                                    <LighthouseDial
+                                        label="Accessibility"
+                                        score={lighthouse.accessibility}
+                                        caption={report.report_context?.lighthouse_captions?.accessibility}
+                                    />
+                                )}
+                                {lighthouse.seo != null && (
+                                    <LighthouseDial
+                                        label="SEO"
+                                        score={lighthouse.seo}
+                                        caption={report.report_context?.lighthouse_captions?.seo}
+                                    />
+                                )}
+                                {lighthouse.best_practices != null && (
+                                    <LighthouseDial
+                                        label="Best practices"
+                                        score={lighthouse.best_practices}
+                                        caption={report.report_context?.lighthouse_captions?.best_practices}
+                                    />
+                                )}
                             </div>
                             {lighthouse.performance != null && lighthouse.performance < 30 && (
                                 <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mt-4">
@@ -138,10 +145,10 @@ export default function PublicReport({ report }) {
                         <section id="book" className="public-report-section public-report-section--cta">
                             <div className="eyebrow eyebrow--cta">Next step</div>
                             <h2 className="public-report-cta-title">
-                                A free 30-minute call to walk you through every fix.
+                                Let&apos;s scope what fixing this would involve.
                             </h2>
                             <p className="public-report-cta-copy">
-                                No obligation. We'll go through the audit findings and outline what fixing them would involve.
+                                You&apos;ve seen the findings above. On a free 30-minute call we&apos;ll estimate effort, cost, and timeline — and answer any questions. No obligation.
                             </p>
                             {report.native_booking ? (
                                 <ReportBookingSection

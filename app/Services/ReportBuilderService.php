@@ -7,6 +7,7 @@ use App\Services\Reports\CmsLabelResolver;
 use App\Services\Reports\LighthouseMetricsExtractor;
 use App\Services\Reports\OperatorAuditAssembler;
 use App\Services\Reports\OperatorPageSpeedBuilder;
+use App\Services\Reports\ReportContextBuilder;
 use App\Services\Reports\ReportGradeCalculator;
 use App\Services\Reports\ViolationMapper;
 
@@ -21,6 +22,7 @@ class ReportBuilderService
         private ReportGradeCalculator $grades,
         private LighthouseMetricsExtractor $lighthouse,
         private OperatorAuditAssembler $operatorAudit,
+        private ReportContextBuilder $reportContext,
     ) {}
 
     /**
@@ -59,11 +61,42 @@ class ReportBuilderService
         $search->loadMissing('user.setting');
         $bookingUrl = $search->user?->setting?->booking_url ?: config('scanner.report_booking_url');
 
+        $prospectSnapshot = [
+            'business_name' => $prospect->business_name,
+            'address' => $prospect->address,
+            'phone' => $prospect->phone,
+            'website_url' => $prospect->website_url,
+            'rating' => $prospect->rating,
+            'review_count' => $prospect->review_count,
+            'photo_count' => $prospect->photo_count,
+            'has_description' => $prospect->has_description,
+            'hours_complete' => $prospect->hours_complete,
+            'gbp_flags' => $prospect->gbp_flags ?? [],
+            'a11y_flags' => $prospect->a11y_flags ?? [],
+        ];
+
+        $reportContext = $this->reportContext->build([
+            'scan_type' => $scanType,
+            'city' => $search->city,
+            'niche' => $search->niche,
+            'gbp_score' => (int) $prospect->gbp_score,
+            'a11y_score' => (int) $prospect->a11y_score,
+            'performance_score' => (int) $prospect->performance_score,
+            'violation_summary' => $violationSummary,
+            'top_violations' => $topViolations,
+            'comparison' => $comparison,
+            'benchmark' => $benchmark,
+            'prospect' => $prospectSnapshot,
+            'lighthouse' => $lighthouse,
+        ]);
+
         return [
             'niche' => $search->niche,
             'city' => $search->city,
             'country' => $search->country,
             'scan_type' => $scanType,
+            'gbp_score' => (int) $prospect->gbp_score,
+            'a11y_score' => (int) $prospect->a11y_score,
             'booking_url' => $bookingUrl,
             'generated_at' => now()->toIso8601String(),
             'website_url' => $prospect->website_url,
@@ -74,19 +107,8 @@ class ReportBuilderService
             'violation_summary' => $violationSummary,
             'top_violations' => $topViolations,
             'lighthouse' => $lighthouse,
-            'prospect' => [
-                'business_name' => $prospect->business_name,
-                'address' => $prospect->address,
-                'phone' => $prospect->phone,
-                'website_url' => $prospect->website_url,
-                'rating' => $prospect->rating,
-                'review_count' => $prospect->review_count,
-                'photo_count' => $prospect->photo_count,
-                'has_description' => $prospect->has_description,
-                'hours_complete' => $prospect->hours_complete,
-                'gbp_flags' => $prospect->gbp_flags ?? [],
-                'a11y_flags' => $prospect->a11y_flags ?? [],
-            ],
+            'report_context' => $reportContext,
+            'prospect' => $prospectSnapshot,
             'benchmark' => $benchmark,
             'comparison' => $comparison,
         ];

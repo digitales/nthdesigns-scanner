@@ -688,6 +688,26 @@
     margin-bottom: 36px;
   }
 
+.marketing-page .sr-key-finding {
+    margin-bottom: 28px;
+  }
+  .marketing-page .sr-kf-label {
+    display: block;
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--stone-500);
+    margin-bottom: 10px;
+  }
+  .marketing-page .sr-key-finding p {
+    font-family: var(--serif);
+    font-size: 18px;
+    line-height: 1.4;
+    color: var(--ink);
+    margin: 0;
+  }
+
 .marketing-page .sr-grade-row{
     display: grid;
     grid-template-columns: 180px 1fr;

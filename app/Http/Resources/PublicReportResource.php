@@ -47,6 +47,7 @@ class PublicReportResource
             'violation_summary' => $data['violation_summary'] ?? ['critical' => 0, 'serious' => 0, 'moderate' => 0, 'minor' => 0, 'total' => 0],
             'top_violations' => $data['top_violations'] ?? [],
             'lighthouse' => $data['lighthouse'] ?? [],
+            'report_context' => $data['report_context'] ?? null,
             'booking_url' => $nativeBooking ? null : $bookingUrl,
             'book_cta_url' => $bookCtaUrl,
             'book_cta_external' => $bookingUrl && ! TidyCalEmbed::isEmbeddable($bookingUrl),

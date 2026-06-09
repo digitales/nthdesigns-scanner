@@ -315,7 +315,7 @@ export default function ReportBookingSection({ token, businessName, existingBook
                     {confirmed.confirmation_sent
                         ? `Confirmation sent to ${confirmed.attendee_name}.`
                         : `You're confirmed, ${confirmed.attendee_name}. We'll email you shortly.`}
-                    {' '}We&apos;ll walk through the findings for {businessName} on the call.
+                    {' '}We&apos;ll talk through priorities and what a fix would involve for {businessName} on the call.
                 </p>
                 {(confirmed.google_calendar_url || confirmed.ics_url) && (
                     <div className="booking-add-to-calendar">
