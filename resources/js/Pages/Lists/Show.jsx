@@ -4,6 +4,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import {
     AnglePill,
     Button,
+    Card,
     DataTable,
     EmptyState,
     Icon,
@@ -24,14 +25,21 @@ function ListTypeIcon({ type }) {
 export default function ListsShow({ list, rows = [], statuses = [], manualLists = [] }) {
     const { flash } = usePage().props;
     const [toast, setToast] = useState(null);
+    const [sharedUrl, setSharedUrl] = useState(null);
+    const [copied, setCopied] = useState(false);
 
     useEffect(() => {
-        if (flash?.success) setToast(flash.success);
-        if (flash?.shared_url) {
-            navigator.clipboard.writeText(flash.shared_url);
-            setToast('Share link copied to clipboard');
-        }
+        if (flash?.success && !flash?.shared_url) setToast(flash.success);
+        if (flash?.shared_url) setSharedUrl(flash.shared_url);
     }, [flash]);
+
+    const copyShareLink = () => {
+        if (!sharedUrl) return;
+
+        navigator.clipboard.writeText(sharedUrl);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
 
     const updateItem = (itemId, data) => {
         router.patch(`/lists/${list.id}/items/${itemId}`, data, { preserveScroll: true });
@@ -76,6 +84,26 @@ export default function ListsShow({ list, rows = [], statuses = [], manualLists 
                         </Stack>
                     }
                 />
+
+                {sharedUrl && (
+                    <Card className="banner-muted">
+                        <div className="micro mb-4">
+                            Share link created — anyone with this link can view a snapshot of this list.
+                        </div>
+                        <div className="micro mb-8 break-all">{sharedUrl}</div>
+                        <Stack direction="row" gap={8}>
+                            <Button kind="secondary" size="sm" onClick={copyShareLink}>
+                                {copied ? 'Copied' : 'Copy link'}
+                            </Button>
+                            <a href={sharedUrl} target="_blank" rel="noopener noreferrer">
+                                <Button kind="ghost" size="sm">Open</Button>
+                            </a>
+                            <Button kind="ghost" size="sm" onClick={() => setSharedUrl(null)}>
+                                Dismiss
+                            </Button>
+                        </Stack>
+                    </Card>
+                )}
 
                 {rows.length === 0 ? (
                     <EmptyState
