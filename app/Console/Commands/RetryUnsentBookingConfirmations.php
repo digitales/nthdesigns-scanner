@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\ReportBookingStatus;
 use App\Jobs\SendReportBookingConfirmationJob;
 use App\Models\ReportBooking;
 use Illuminate\Console\Command;
@@ -15,7 +16,7 @@ class RetryUnsentBookingConfirmations extends Command
     public function handle(): int
     {
         $bookings = ReportBooking::query()
-            ->where('status', 'confirmed')
+            ->where('status', ReportBookingStatus::Confirmed)
             ->whereNull('confirmation_sent_at')
             ->where('created_at', '<=', now()->subMinutes(2))
             ->orderBy('id')

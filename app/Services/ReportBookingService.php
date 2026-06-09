@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Contracts\Calendar\CalendarEventDraft;
 use App\Contracts\Calendar\CalendarProvider;
+use App\Enums\ReportBookingStatus;
 use App\Jobs\SendReportBookingConfirmationJob;
 use App\Models\ProspectReport;
 use App\Models\ReportBooking;
@@ -88,7 +89,7 @@ class ReportBookingService
                 'attendee_phone' => $input['attendee_phone'] ?? null,
                 'note' => $input['note'] ?? null,
                 'calendar_event_uid' => $uid,
-                'status' => 'confirmed',
+                'status' => ReportBookingStatus::Confirmed,
             ]));
         } catch (\Throwable $e) {
             $this->rollbackCalendarEvent($uid, $report->id);
