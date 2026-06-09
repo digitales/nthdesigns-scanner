@@ -31,6 +31,7 @@ class FilterProspectListRequest extends FormRequest
             'tags' => ['nullable', 'array'],
             'tags.*' => ['string', 'max:50'],
             'has_note' => ['nullable', 'boolean'],
+            'page' => ['nullable', 'integer', 'min:1'],
         ];
     }
 }

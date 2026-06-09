@@ -47,17 +47,30 @@ class ProspectListController extends Controller
         $filters = $request->validated();
 
         $listQuery = new ProspectListQuery($request->user());
-        $prospects = $listQuery->apply($filters)->query()->with('tags')->get();
+        $paginator = $listQuery
+            ->apply($filters)
+            ->query()
+            ->with('tags')
+            ->paginate(20)
+            ->withQueryString();
 
         $warmLeads = empty($filters['warm'])
             ? (new ProspectListQuery($request->user()))->warmLeads(10)
             : collect();
 
         return Inertia::render('Lists/Browse', [
-            'prospects' => $prospects->map(fn ($p) => ProspectListResource::format($p)),
+            'prospects' => $paginator->getCollection()
+                ->map(fn ($p) => ProspectListResource::format($p))
+                ->values(),
             'warmLeads' => $warmLeads->map(fn ($p) => ProspectListResource::format($p)),
             'filters' => $filters,
-            'meta' => ['total' => $prospects->count()],
+            'meta' => ['total' => $paginator->total()],
+            'pagination' => [
+                'total' => $paginator->total(),
+                'current_page' => $paginator->currentPage(),
+                'per_page' => $paginator->perPage(),
+                'last_page' => $paginator->lastPage(),
+            ],
             'tagSuggestions' => app(TagService::class)->suggestionsFor($request->user()),
             'manualLists' => $request->user()
                 ->prospectLists()

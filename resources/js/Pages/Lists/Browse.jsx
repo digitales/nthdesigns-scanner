@@ -14,6 +14,7 @@ import {
     Icons,
     Input,
     PageHeader,
+    Pagination,
     RowActions,
     ScoreBadge,
     Select,
@@ -21,7 +22,7 @@ import {
     Toast,
 } from '@/Components/ui';
 
-export default function ListsBrowse({ prospects, warmLeads, filters, meta, manualLists = [] }) {
+export default function ListsBrowse({ prospects, warmLeads, filters, meta, pagination, manualLists = [] }) {
     const [toast, setToast] = useState(null);
 
     const submitFilters = (e) => {
@@ -183,6 +184,8 @@ export default function ListsBrowse({ prospects, warmLeads, filters, meta, manua
                         </tbody>
                     </DataTable>
                 )}
+
+                <Pagination pagination={pagination} href="/lists/browse" query={filters} />
 
                 {toast && <Toast onClose={() => setToast(null)}>{toast}</Toast>}
             </main>
