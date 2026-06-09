@@ -96,14 +96,14 @@ class ReportBookingService
             throw $e;
         }
 
-        SendReportBookingConfirmationJob::dispatch($booking->id);
+        SendReportBookingConfirmationJob::dispatch($booking);
 
         return $booking->fresh();
     }
 
     public function queueConfirmation(ReportBooking $booking): void
     {
-        SendReportBookingConfirmationJob::dispatch($booking->id);
+        SendReportBookingConfirmationJob::dispatch($booking);
     }
 
     private function rollbackCalendarEvent(string $uid, int $reportId): void
