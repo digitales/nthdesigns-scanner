@@ -29,11 +29,6 @@ class DetectCmsJob implements ShouldQueue
         public bool $force = false,
     ) {}
 
-    public function tries(): int
-    {
-        return 2;
-    }
-
     public function handle(CmsDetectionRunnerService $runner): void
     {
         $prospect = $this->prospect->fresh();

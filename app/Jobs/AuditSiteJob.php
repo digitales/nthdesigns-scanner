@@ -31,17 +31,14 @@ class AuditSiteJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    private const MAX_TRIES = 2;
+
     public int $backoff = 60;
 
     public function __construct(
         #[WithoutRelations]
         public Prospect $prospect,
     ) {}
-
-    public function tries(): int
-    {
-        return 2;
-    }
 
     public function handle(
         AuditRunnerService $auditRunner,
@@ -139,7 +136,7 @@ class AuditSiteJob implements ShouldQueue
 
             $errorRecorder->recordFailure($auditJob, $errorRecorder->formatThrowable($e));
 
-            if ($this->attempts() >= $this->tries()) {
+            if ($this->attempts() >= self::MAX_TRIES) {
                 $prospect->update(['audit_status' => AuditStatus::Failed]);
                 $searchStatus->refresh($prospect->search);
             }

@@ -34,6 +34,6 @@ class RetryUnsentBookingConfirmationsTest extends TestCase
 
         $this->artisan('booking:retry-unsent-confirmations')->assertSuccessful();
 
-        Bus::assertDispatched(SendReportBookingConfirmationJob::class, fn ($job) => $job->bookingId === $booking->id);
+        Bus::assertDispatched(SendReportBookingConfirmationJob::class, fn ($job) => $job->booking->id === $booking->id);
     }
 }

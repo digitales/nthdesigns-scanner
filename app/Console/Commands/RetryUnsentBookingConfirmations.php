@@ -22,7 +22,7 @@ class RetryUnsentBookingConfirmations extends Command
             ->get();
 
         foreach ($bookings as $booking) {
-            SendReportBookingConfirmationJob::dispatch($booking->id);
+            SendReportBookingConfirmationJob::dispatch($booking);
         }
 
         $this->info('Queued '.$bookings->count().' unsent booking confirmation(s).');
