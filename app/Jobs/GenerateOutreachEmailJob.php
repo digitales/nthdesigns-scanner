@@ -6,6 +6,7 @@ use App\Models\OutreachEmail;
 use App\Models\Prospect;
 use App\Models\User;
 use App\Services\OutreachEmailGeneratorService;
+use App\Support\ScannerJobContext;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -32,6 +33,11 @@ class GenerateOutreachEmailJob implements ShouldQueue
 
     public function handle(OutreachEmailGeneratorService $generator): void
     {
+        ScannerJobContext::add(self::class, [
+            'prospect_id' => $this->prospect->id,
+            'user_id' => $this->user->id,
+        ]);
+
         $prospect = $this->prospect->fresh(['search', 'report']);
 
         if (! $prospect) {

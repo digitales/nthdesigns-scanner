@@ -8,6 +8,7 @@ use App\Models\Prospect;
 use App\Models\ProspectReport;
 use App\Services\CombineScoresService;
 use App\Services\SearchStatusService;
+use App\Support\ScannerJobContext;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -30,6 +31,8 @@ class CombineScoresJob implements ShouldQueue
         CombineScoresService $combiner,
         SearchStatusService $searchStatus,
     ): void {
+        ScannerJobContext::add(self::class, ['prospect_id' => $this->prospect->id]);
+
         $prospect = $this->prospect->fresh();
 
         if (! $prospect) {

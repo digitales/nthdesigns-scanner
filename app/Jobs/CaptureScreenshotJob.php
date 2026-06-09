@@ -9,6 +9,7 @@ use App\Models\ProspectReport;
 use App\Services\AuditErrorRecorder;
 use App\Services\ScreenshotCaptureService;
 use App\Services\ScreenshotStorageService;
+use App\Support\ScannerJobContext;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -67,6 +68,11 @@ class CaptureScreenshotJob implements ShouldQueue
         ScreenshotStorageService $storage,
         AuditErrorRecorder $errorRecorder,
     ): void {
+        ScannerJobContext::add(self::class, [
+            'report_id' => $this->report->id,
+            'prospect_id' => $this->report->prospect_id,
+        ]);
+
         $report = $this->report->fresh(['prospect']);
 
         if (! $report?->prospect?->website_url) {

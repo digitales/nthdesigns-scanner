@@ -7,6 +7,7 @@ use App\Models\Search;
 use App\Services\BenchmarkNormalizer;
 use App\Services\GooglePlacesService;
 use App\Services\ProspectExclusionService;
+use App\Support\ScannerJobContext;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -33,6 +34,8 @@ class ScrapeProspectsJob implements ShouldQueue
         ProspectExclusionService $exclusions,
         BenchmarkNormalizer $benchmarks,
     ): void {
+        ScannerJobContext::add(self::class, ['search_id' => $this->search->id]);
+
         $this->search->update(['status' => SearchStatus::Discovering]);
 
         try {

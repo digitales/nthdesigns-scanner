@@ -6,6 +6,7 @@ use App\Enums\NicheScanStatus;
 use App\Models\NicheScan;
 use App\Services\NicheExclusionService;
 use App\Services\NicheSampleCollector;
+use App\Support\ScannerJobContext;
 use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -37,6 +38,12 @@ class ScanNicheJob implements ShouldQueue
 
     public function handle(NicheSampleCollector $collector, NicheExclusionService $exclusions): void
     {
+        ScannerJobContext::add(self::class, [
+            'niche' => $this->niche,
+            'city' => $this->city,
+            'scan_date' => $this->scanDate,
+        ]);
+
         if (! $this->force && $this->alreadyComplete()) {
             return;
         }
