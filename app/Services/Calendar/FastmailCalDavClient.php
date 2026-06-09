@@ -27,28 +27,57 @@ class FastmailCalDavClient
             'Depth' => '1',
         ]);
 
-        $calendars = [];
+        $raw = [];
 
-        foreach (CalDavXmlParser::responseHrefs($response) as $href) {
+        foreach (CalDavXmlParser::parsePropfindResponses($response) as $item) {
+            $href = $item['href'];
+
             if ($href === $home || ! str_contains($href, '/')) {
                 continue;
             }
 
             $url = str_starts_with($href, 'http') ? $href : self::BASE_URL.$href;
-            $name = basename(rtrim(parse_url($url, PHP_URL_PATH) ?? '', '/'));
+            $id = basename(rtrim(parse_url($url, PHP_URL_PATH) ?? '', '/'));
 
-            if ($name === '' || $name === rawurlencode($this->username)) {
+            if ($id === '' || $id === rawurlencode($this->username)) {
                 continue;
             }
 
-            $calendars[] = [
-                'id' => $name,
-                'name' => str_replace(['%40', '%20'], ['@', ' '], $name),
+            $displayName = filled($item['displayname'])
+                ? $item['displayname']
+                : str_replace(['%40', '%20'], ['@', ' '], $id);
+
+            $raw[] = [
+                'id' => $id,
+                'display_name' => $displayName,
                 'url' => rtrim($url, '/').'/',
             ];
         }
 
-        return $calendars;
+        return $this->formatCalendarLabels($raw);
+    }
+
+    /**
+     * @param  list<array{id: string, display_name: string, url: string}>  $calendars
+     * @return list<array{id: string, name: string, url: string}>
+     */
+    private function formatCalendarLabels(array $calendars): array
+    {
+        $counts = array_count_values(array_column($calendars, 'display_name'));
+
+        return array_map(function (array $calendar) use ($counts): array {
+            $name = $calendar['display_name'];
+
+            if (($counts[$calendar['display_name']] ?? 0) > 1) {
+                $name .= ' ('.substr($calendar['id'], 0, 8).')';
+            }
+
+            return [
+                'id' => $calendar['id'],
+                'name' => $name,
+                'url' => $calendar['url'],
+            ];
+        }, $calendars);
     }
 
     /**

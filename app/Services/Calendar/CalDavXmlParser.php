@@ -18,6 +18,36 @@ final class CalDavXmlParser
     }
 
     /**
+     * @return list<array{href: string, displayname: ?string}>
+     */
+    public static function parsePropfindResponses(string $xml): array
+    {
+        preg_match_all('/<(?:[^:>]+:)?response[^>]*>([\s\S]*?)<\/(?:[^:>]+:)?response>/i', $xml, $blocks);
+
+        $results = [];
+
+        foreach ($blocks[1] ?? [] as $block) {
+            if (! preg_match('/<[^>]*href[^>]*>([^<]+)<\/[^>]*href>/i', $block, $hrefMatch)) {
+                continue;
+            }
+
+            $displayname = null;
+
+            if (preg_match('/<(?:[^:>]+:)?displayname[^>]*>([\s\S]*?)<\/(?:[^:>]+:)?displayname>/i', $block, $nameMatch)) {
+                $decoded = html_entity_decode(trim($nameMatch[1]), ENT_XML1);
+                $displayname = $decoded !== '' ? $decoded : null;
+            }
+
+            $results[] = [
+                'href' => $hrefMatch[1],
+                'displayname' => $displayname,
+            ];
+        }
+
+        return $results;
+    }
+
+    /**
      * @return list<string>
      */
     public static function extractCalendarDataBlocks(string $xml): array

@@ -91,6 +91,60 @@ ICS;
     }
 
     #[Test]
+    public function test_parse_propfind_responses_extracts_href_and_displayname(): void
+    {
+        $xml = <<<'XML'
+<d:multistatus xmlns:d="DAV:">
+  <d:response>
+    <d:href>/dav/calendars/user/me/</d:href>
+    <d:propstat><d:prop><d:displayname>Home</d:displayname></d:prop></d:propstat>
+  </d:response>
+  <d:response>
+    <d:href>/dav/calendars/user/me/3f2a1b9c-e4d5-6789-abcd-ef0123456789/</d:href>
+    <d:propstat><d:prop><d:displayname>Work</d:displayname></d:prop></d:propstat>
+  </d:response>
+</d:multistatus>
+XML;
+
+        $this->assertSame([
+            ['href' => '/dav/calendars/user/me/', 'displayname' => 'Home'],
+            ['href' => '/dav/calendars/user/me/3f2a1b9c-e4d5-6789-abcd-ef0123456789/', 'displayname' => 'Work'],
+        ], CalDavXmlParser::parsePropfindResponses($xml));
+    }
+
+    #[Test]
+    public function test_parse_propfind_responses_returns_null_when_displayname_missing(): void
+    {
+        $xml = <<<'XML'
+<d:multistatus xmlns:d="DAV:">
+  <d:response>
+    <d:href>/dav/calendars/user/me/uuid-here/</d:href>
+    <d:propstat><d:prop></d:prop></d:propstat>
+  </d:response>
+</d:multistatus>
+XML;
+
+        $this->assertSame([
+            ['href' => '/dav/calendars/user/me/uuid-here/', 'displayname' => null],
+        ], CalDavXmlParser::parsePropfindResponses($xml));
+    }
+
+    #[Test]
+    public function test_parse_propfind_responses_decodes_xml_entities_in_displayname(): void
+    {
+        $xml = <<<'XML'
+<d:multistatus xmlns:d="DAV:">
+  <d:response>
+    <d:href>/dav/calendars/user/me/abc/</d:href>
+    <d:propstat><d:prop><d:displayname>Tom &amp; Jerry</d:displayname></d:prop></d:propstat>
+  </d:response>
+</d:multistatus>
+XML;
+
+        $this->assertSame('Tom & Jerry', CalDavXmlParser::parsePropfindResponses($xml)[0]['displayname']);
+    }
+
+    #[Test]
     public function test_parse_event_busy_times_supports_all_day_dates(): void
     {
         $ics = <<<'ICS'
