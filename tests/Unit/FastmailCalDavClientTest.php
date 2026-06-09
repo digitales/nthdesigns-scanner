@@ -71,6 +71,37 @@ class FastmailCalDavClientTest extends TestCase
         $this->assertSame('3f2a1b9c-e4d5-6789-abcd-ef0123456789', $calendars[0]['name']);
     }
 
+    #[Test]
+    public function test_create_event_sends_calendar_content_type(): void
+    {
+        Http::fake([
+            'caldav.fastmail.com/*' => function ($request) {
+                $this->assertSame('PUT', $request->method());
+                $this->assertSame('text/calendar; charset=utf-8', $request->header('Content-Type')[0]);
+                $this->assertStringContainsString('BEGIN:VCALENDAR', $request->body());
+
+                return Http::response('', 201);
+            },
+        ]);
+
+        $client = new FastmailCalDavClient('bookings@example.com', 'secret');
+        $draft = new \App\Contracts\Calendar\CalendarEventDraft(
+            startsAt: now(),
+            endsAt: now()->addMinutes(30),
+            summary: 'Review call',
+            description: 'Test booking',
+            attendeeEmail: 'jane@example.com',
+            attendeeName: 'Jane Smith',
+            uid: 'scanner-test@nthdesigns.co.uk',
+        );
+
+        $client->createEvent(
+            'https://caldav.fastmail.com/dav/calendars/user/bookings%40example.com/primary/',
+            $client->buildEventIcs($draft, 'bookings@example.com'),
+            $draft->uid,
+        );
+    }
+
     /**
      * @param  list<array{id: string, displayname: ?string}>  $calendars
      */

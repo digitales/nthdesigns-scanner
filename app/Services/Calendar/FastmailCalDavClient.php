@@ -105,14 +105,13 @@ class FastmailCalDavClient
         $eventUrl = $this->eventUrl($calendarUrl, $uid);
 
         $this->request('PUT', $eventUrl, $icsBody, [
-            'Content-Type' => 'text/calendar; charset=utf-8',
             'If-None-Match' => '*',
-        ]);
+        ], 'text/calendar; charset=utf-8');
     }
 
     public function deleteEvent(string $calendarUrl, string $uid): void
     {
-        $this->request('DELETE', $this->eventUrl($calendarUrl, $uid), '');
+        $this->request('DELETE', $this->eventUrl($calendarUrl, $uid), '', contentType: '');
     }
 
     private function eventUrl(string $calendarUrl, string $uid): string
@@ -166,12 +165,21 @@ XML;
     /**
      * @param  array<string, string>  $headers
      */
-    private function request(string $method, string $url, string $body, array $headers = []): string
-    {
-        $response = Http::withBasicAuth($this->username, $this->appPassword)
-            ->withHeaders($headers)
-            ->withBody($body, 'application/xml')
-            ->send($method, $url);
+    private function request(
+        string $method,
+        string $url,
+        string $body,
+        array $headers = [],
+        string $contentType = 'application/xml',
+    ): string {
+        $pending = Http::withBasicAuth($this->username, $this->appPassword)
+            ->withHeaders($headers);
+
+        if ($contentType !== '') {
+            $pending = $pending->withBody($body, $contentType);
+        }
+
+        $response = $pending->send($method, $url);
 
         if ($response->failed()) {
             throw new RequestException($response);
