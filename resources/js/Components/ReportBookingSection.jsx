@@ -20,8 +20,8 @@ function parseSlot(slot) {
         return null;
     }
 
-    const startsAt = typeof slot.starts_at === 'string' ? slot.starts_at : null;
-    const label = typeof slot.label === 'string' ? slot.label : '';
+    const startsAt = slot.starts_at != null ? String(slot.starts_at) : '';
+    const label = slot.label != null ? String(slot.label).trim() : '';
 
     if (!startsAt || !label) {
         return null;
@@ -63,8 +63,10 @@ function preferredSlotForDay(daySlots) {
 }
 
 function curateSuggestions(slots, max = 3) {
+    const parsedSlots = slots.map(parseSlot).filter(Boolean);
+
     try {
-        const suggestions = groupSlotsByDay(slots)
+        const suggestions = groupSlotsByDay(parsedSlots)
             .slice(0, max)
             .map((day) => preferredSlotForDay(day.slots))
             .filter(Boolean);
@@ -76,7 +78,7 @@ function curateSuggestions(slots, max = 3) {
         // Fall through to raw slots below.
     }
 
-    return slots.filter((slot) => parseSlot(slot)).slice(0, max);
+    return parsedSlots.slice(0, max);
 }
 
 function BookingSlotButton({ slot, selected, onSelect, children }) {
@@ -207,22 +209,9 @@ function SlotsCurated({ slots, selected, onSelect, timezoneLabel }) {
             <p className="micro mb-4">Suggested times ({timezoneLabel})</p>
             <p className="booking-lede">Three openings that usually work well. Pick one, or browse the full week.</p>
             <div className="booking-suggestions" role="listbox" aria-label="Suggested times">
-                {suggestions.map((slot) => {
-                    const parsed = parseSlot(slot) ?? slot;
-
-                    return (
-                        <BookingSlotButton key={parsed.starts_at} slot={slot} selected={selected} onSelect={onSelect}>
-                            {parsed.timeLabel ? (
-                                <>
-                                    <span className="booking-suggestion-day">{parsed.dayLabel}</span>
-                                    <span className="booking-suggestion-time">{parsed.timeLabel}</span>
-                                </>
-                            ) : (
-                                parsed.label
-                            )}
-                        </BookingSlotButton>
-                    );
-                })}
+                {suggestions.map((slot) => (
+                    <BookingSlotButton key={slot.starts_at} slot={slot} selected={selected} onSelect={onSelect} />
+                ))}
             </div>
             {slots.length > suggestions.length && (
                 <button type="button" className="booking-expand" onClick={() => setShowAll(true)}>
@@ -263,7 +252,7 @@ export default function ReportBookingSection({ token, businessName, existingBook
                 setConfirmed(data.booking);
             } else {
                 const nextSlots = Array.isArray(data.slots) ? data.slots : [];
-                setSlots(nextSlots.filter((slot) => slot?.starts_at && slot?.label));
+                setSlots(nextSlots.map(parseSlot).filter(Boolean));
             }
         } catch (e) {
             setError(e.message ?? 'Could not load available times.');
