@@ -407,7 +407,26 @@
     border: 1px solid var(--color-stone-200);
     cursor: pointer;
   }
+  .tag-suggestions-panel { display: flex; flex-direction: column; gap: 6px; }
+  .tag-suggestions-label { margin: 0; color: var(--color-stone-500); }
+  .tag-suggestions-hint { margin: 0; color: var(--color-stone-500); }
   .tag-suggestions { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag-suggestion {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--color-paper);
+    border: 1px dashed var(--color-stone-400);
+    color: var(--color-stone-700);
+    cursor: pointer;
+    transition: background-color 0.12s, border-color 0.12s, color 0.12s;
+  }
+  .tag-suggestion:hover {
+    background: var(--color-paper-2);
+    border-color: var(--color-stone-500);
+    color: var(--color-ink);
+  }
   .niches-panel-tabs { padding: 0 16px 12px; }
   tr.overdue td { background: var(--color-sev-serious-soft); }
   .public-sheet { max-width: 960px; margin: 0 auto; padding: 32px 16px; }

@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 
 export default function TagInput({ tags = [], suggestions = [], onAttach, onDetach, className = '' }) {
     const [value, setValue] = useState('');
+    const listboxId = useId();
     const tagNames = new Set(tags.map((t) => t.name ?? t));
 
     const submit = (name) => {
@@ -15,6 +16,8 @@ export default function TagInput({ tags = [], suggestions = [], onAttach, onDeta
     const filteredSuggestions = suggestions.filter(
         (s) => !tagNames.has(s) && s.toLowerCase().includes(value.toLowerCase()),
     );
+    const visibleSuggestions = filteredSuggestions.slice(0, 6);
+    const showSuggestions = visibleSuggestions.length > 0 && value.trim() !== '';
 
     return (
         <div className={className}>
@@ -39,25 +42,48 @@ export default function TagInput({ tags = [], suggestions = [], onAttach, onDeta
                 className="input mt-8"
                 placeholder="Add tag…"
                 value={value}
+                role="combobox"
+                aria-expanded={showSuggestions}
+                aria-controls={showSuggestions ? listboxId : undefined}
+                aria-autocomplete="list"
                 onChange={(e) => setValue(e.target.value)}
                 onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                         e.preventDefault();
-                        submit(value);
+                        if (showSuggestions) {
+                            submit(visibleSuggestions[0]);
+                        } else {
+                            submit(value);
+                        }
+                    }
+                    if (e.key === 'Escape') {
+                        e.preventDefault();
+                        setValue('');
                     }
                 }}
-                list="tag-suggestions"
             />
-            {filteredSuggestions.length > 0 && value && (
-                <ul className="tag-suggestions mt-4">
-                    {filteredSuggestions.slice(0, 6).map((s) => (
-                        <li key={s}>
-                            <button type="button" className="btn-ghost btn-xs" onClick={() => submit(s)}>
-                                {s}
-                            </button>
-                        </li>
-                    ))}
-                </ul>
+            {showSuggestions && (
+                <div className="tag-suggestions-panel mt-8">
+                    <p className="micro tag-suggestions-label">Suggestions</p>
+                    <ul id={listboxId} className="tag-suggestions" role="listbox" aria-label="Tag suggestions">
+                        {visibleSuggestions.map((s) => (
+                            <li key={s} role="presentation">
+                                <button
+                                    type="button"
+                                    className="tag-suggestion"
+                                    role="option"
+                                    aria-selected={false}
+                                    onClick={() => submit(s)}
+                                >
+                                    + {s}
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
+                    <p className="micro tag-suggestions-hint">
+                        Press Enter to add the first suggestion, or click a tag.
+                    </p>
+                </div>
             )}
         </div>
     );
