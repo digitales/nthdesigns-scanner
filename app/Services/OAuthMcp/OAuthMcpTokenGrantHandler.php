@@ -19,7 +19,7 @@ class OAuthMcpTokenGrantHandler
     public function resolveTokenRequest(Request $request): OAuthTokenRequest
     {
         $form = OAuthTokenRequest::createFrom($request);
-        $form->setContainer(app())->setRedirector(app('redirector'));
+        $form->setContainer(app())->setRedirector(app('redirect'));
         $form->validateResolved();
 
         return $form;
