@@ -8,7 +8,6 @@ use App\Enums\AuditJobType;
 use App\Enums\AuditStatus;
 use App\Enums\IgnoredProspectReason;
 use App\Enums\NicheScanStatus;
-use App\Enums\ProspectListType;
 use App\Http\Requests\UpdateProspectRequest;
 use App\Jobs\GenerateOutreachEmailJob;
 use App\Jobs\GenerateProspectReportJob;
@@ -24,6 +23,7 @@ use App\Services\ProgressFlowService;
 use App\Services\ProspectAuditService;
 use App\Services\ProspectEnrichmentService;
 use App\Services\ProspectExclusionService;
+use App\Services\ProspectListMembershipService;
 use App\Services\ReportBuilderService;
 use App\Services\TagService;
 use Illuminate\Http\RedirectResponse;
@@ -40,6 +40,7 @@ class ProspectController extends Controller
         ProspectExclusionService $exclusions,
         ProgressFlowService $progressFlow,
         CombineScoresService $combiner,
+        ProspectListMembershipService $listMembership,
     ): Response {
         $this->authorize('view', $prospect);
 
@@ -67,6 +68,9 @@ class ProspectController extends Controller
         };
 
         $ignored = $exclusions->findForUser($request->user()->id, $prospect->place_id);
+
+        $listMemberships = $listMembership->membershipsForProspect($request->user(), $prospect->id);
+        $manualLists = $listMembership->manualListsFor($request->user());
 
         return Inertia::render('Prospect/Show', [
             'navigation' => $navigation,
@@ -156,11 +160,8 @@ class ProspectController extends Controller
                 'color' => $t->color,
             ]),
             'tagSuggestions' => app(TagService::class)->suggestionsFor($request->user()),
-            'manualLists' => $request->user()
-                ->prospectLists()
-                ->where('type', ProspectListType::Manual)
-                ->orderBy('name')
-                ->get(['id', 'name']),
+            'listMembership' => $listMemberships,
+            'addableLists' => $listMembership->addableLists($manualLists, $listMemberships),
         ]);
     }
 

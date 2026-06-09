@@ -8,9 +8,11 @@ import TechnologySection from '@/Components/cms/TechnologySection';
 import PageSpeedSection from '@/Components/audit/PageSpeedSection';
 import OutreachEmailCard from '@/Components/OutreachEmailCard';
 import TagInput from '@/Components/TagInput';
+import ListPicker from '@/Components/ListPicker';
 import { shouldShowA11yAudit } from '@/utils/auditVisibility';
 import {
     AnglePill,
+    Badge,
     Button,
     Card,
     Grid,
@@ -47,7 +49,8 @@ export default function ProspectShow({
     marketScan = null,
     tags = [],
     tagSuggestions = [],
-    manualLists = [],
+    listMembership = [],
+    addableLists = [],
 }) {
     const { flash } = usePage().props;
     const [copied, setCopied] = useState(false);
@@ -682,23 +685,37 @@ export default function ProspectShow({
                             />
                         </Card>
 
-                        {manualLists.length > 0 && (
-                            <Card title="Add to list">
-                                <select
-                                    className="input w-full"
-                                    defaultValue=""
-                                    onChange={(e) => {
-                                        if (e.target.value) {
-                                            addToList(e.target.value);
-                                            e.target.value = '';
-                                        }
-                                    }}
-                                >
-                                    <option value="">Choose a manual list…</option>
-                                    {manualLists.map((l) => (
-                                        <option key={l.id} value={l.id}>{l.name}</option>
-                                    ))}
-                                </select>
+                        {(listMembership.length > 0 || addableLists.length > 0) && (
+                            <Card title="Lists">
+                                {listMembership.length === 0 ? (
+                                    <p className="micro mb-8">Not on any lists yet.</p>
+                                ) : (
+                                    <Stack as="ul" gap={8} className="meta-list">
+                                        {listMembership.map((membership) => (
+                                            <li key={membership.list_id} className="split-row split-row--center">
+                                                <Link
+                                                    href={`/lists/${membership.list_id}`}
+                                                    className="link"
+                                                >
+                                                    {membership.list_name}
+                                                </Link>
+                                                <Badge>{membership.status_label}</Badge>
+                                            </li>
+                                        ))}
+                                    </Stack>
+                                )}
+                                {addableLists.length > 0 ? (
+                                    <div className={listMembership.length > 0 ? 'mt-12' : undefined}>
+                                        <ListPicker
+                                            lists={addableLists}
+                                            onSelect={addToList}
+                                            className="w-full"
+                                            placeholder="Add to list…"
+                                        />
+                                    </div>
+                                ) : listMembership.length > 0 ? (
+                                    <p className="micro mt-12">On all your manual lists.</p>
+                                ) : null}
                             </Card>
                         )}
 

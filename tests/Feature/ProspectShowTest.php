@@ -2,11 +2,15 @@
 
 namespace Tests\Feature;
 
+use App\Enums\ListItemStatus;
 use App\Enums\NicheScanStatus;
+use App\Enums\ProspectListType;
 use App\Models\AuditJob;
 use App\Models\NicheScan;
 use App\Models\AuditJobErrorDetail;
 use App\Models\Prospect;
+use App\Models\ProspectList;
+use App\Models\ProspectListItem;
 use App\Models\Search;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -342,5 +346,43 @@ class ProspectShowTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('Prospect/Show')
                 ->where('marketScan', null));
+    }
+
+    public function test_show_includes_list_membership_and_addable_lists(): void
+    {
+        $user = User::factory()->create();
+        $search = Search::factory()->create(['user_id' => $user->id]);
+        $prospect = Prospect::factory()->create(['search_id' => $search->id]);
+
+        $onList = ProspectList::create([
+            'user_id' => $user->id,
+            'name' => 'Active pipeline',
+            'type' => ProspectListType::Manual,
+        ]);
+        $openList = ProspectList::create([
+            'user_id' => $user->id,
+            'name' => 'Future follow-up',
+            'type' => ProspectListType::Manual,
+        ]);
+
+        ProspectListItem::create([
+            'prospect_list_id' => $onList->id,
+            'prospect_id' => $prospect->id,
+            'status' => ListItemStatus::Replied,
+        ]);
+
+        $this->actingAs($user)
+            ->get("/prospects/{$prospect->id}")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Prospect/Show')
+                ->has('listMembership', 1)
+                ->where('listMembership.0.list_id', $onList->id)
+                ->where('listMembership.0.list_name', 'Active pipeline')
+                ->where('listMembership.0.status', 'replied')
+                ->where('listMembership.0.status_label', 'Replied')
+                ->has('addableLists', 1)
+                ->where('addableLists.0.id', $openList->id)
+                ->where('addableLists.0.name', 'Future follow-up'));
     }
 }

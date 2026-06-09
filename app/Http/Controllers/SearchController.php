@@ -13,6 +13,7 @@ use App\Jobs\DirectUrlScanJob;
 use App\Jobs\ScrapeProspectsJob;
 use App\Models\Search;
 use App\Services\ProgressFlowService;
+use App\Services\ProspectListMembershipService;
 use App\Services\ReportBuilderService;
 use App\Services\UserSettingsService;
 use App\Support\WebsiteUrlNormalizer;
@@ -125,8 +126,11 @@ class SearchController extends Controller
         Search $search,
         ReportBuilderService $reportBuilder,
         ProgressFlowService $progressFlow,
+        ProspectListMembershipService $listMembership,
     ): Response {
         $this->authorize('view', $search);
+
+        $user = auth()->user();
 
         $prospects = $search->prospects()
             ->with([
@@ -138,19 +142,34 @@ class SearchController extends Controller
             ->get();
 
         $searchFlow = $progressFlow->searchFlow($search, $prospects);
+        $membershipsByProspectId = $listMembership->membershipsByProspectId(
+            $user,
+            $prospects->pluck('id'),
+        );
 
         return Inertia::render('Search/Show', [
-            'outreachProspectIds' => auth()->user()
+            'outreachProspectIds' => $user
                 ->outreachSelections()
                 ->pluck('prospect_id')
                 ->values(),
+            'manualLists' => $listMembership->manualListsFor($user),
             'search' => SearchSummaryMapper::forShow($search, $searchFlow),
-            'prospects' => $prospects->map(fn ($prospect) => SearchProspectResource::format(
-                $prospect,
+            'prospects' => $prospects->map(function ($prospect) use (
                 $search,
                 $reportBuilder,
                 $progressFlow,
-            )),
+                $membershipsByProspectId,
+            ) {
+                return [
+                    ...SearchProspectResource::format(
+                        $prospect,
+                        $search,
+                        $reportBuilder,
+                        $progressFlow,
+                    ),
+                    'list_memberships' => $membershipsByProspectId[$prospect->id] ?? [],
+                ];
+            }),
         ]);
     }
 }

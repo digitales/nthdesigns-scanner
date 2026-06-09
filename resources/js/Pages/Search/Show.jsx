@@ -3,6 +3,7 @@ import { Fragment, useMemo, useState } from 'react';
 import { useProgressReload } from '@/hooks/useProgressReload';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import CmsBadge from '@/Components/cms/CmsBadge';
+import ListPicker from '@/Components/ListPicker';
 import {
     AnglePill,
     Badge,
@@ -25,7 +26,7 @@ import {
 import { normalizeAngle } from '@/Components/ui/scoreBand';
 import { showA11yForSearch } from '@/utils/auditVisibility';
 
-export default function SearchShow({ search, prospects, outreachProspectIds = [] }) {
+export default function SearchShow({ search, prospects, outreachProspectIds = [], manualLists = [] }) {
     const inQueue = new Set(outreachProspectIds);
     const flow = search.progress_flow ?? {};
     const phase = flow.phase ?? 'queued';
@@ -88,10 +89,36 @@ export default function SearchShow({ search, prospects, outreachProspectIds = []
         }
     };
 
-    const addSelected = () => {
+    const addSelectedToOutreach = () => {
         router.post('/outreach/selections', { prospect_ids: selectedIds.map(Number) });
         setSelected({});
     };
+
+    const addSelectedToList = (listId) => {
+        router.post(`/lists/${listId}/items`, { prospect_ids: selectedIds.map(Number) }, {
+            preserveScroll: true,
+            onSuccess: () => setSelected({}),
+        });
+    };
+
+    const selectedProspects = useMemo(
+        () => prospects.filter((p) => selected[p.id]),
+        [prospects, selected],
+    );
+
+    const bulkAddableLists = useMemo(() => {
+        if (selectedProspects.length === 0) {
+            return [];
+        }
+
+        const memberListIdsByProspect = selectedProspects.map(
+            (p) => new Set((p.list_memberships ?? []).map((m) => m.list_id)),
+        );
+
+        return manualLists.filter((list) =>
+            memberListIdsByProspect.some((memberIds) => !memberIds.has(list.id)),
+        );
+    }, [manualLists, selectedProspects]);
 
     return (
         <AuthenticatedLayout>
@@ -110,9 +137,18 @@ export default function SearchShow({ search, prospects, outreachProspectIds = []
                     onBack={() => router.visit('/search')}
                     actions={
                         selectedIds.length > 0 ? (
-                            <Button kind="primary" size="sm" icon={Icons.Plus} onClick={addSelected}>
-                                Add {selectedIds.length} to outreach
-                            </Button>
+                            <>
+                                <Button kind="primary" size="sm" icon={Icons.Plus} onClick={addSelectedToOutreach}>
+                                    Add {selectedIds.length} to outreach
+                                </Button>
+                                {bulkAddableLists.length > 0 && (
+                                    <ListPicker
+                                        lists={bulkAddableLists}
+                                        placeholder={`Add ${selectedIds.length} to list…`}
+                                        onSelect={addSelectedToList}
+                                    />
+                                )}
+                            </>
                         ) : null
                     }
                 />
@@ -202,6 +238,7 @@ export default function SearchShow({ search, prospects, outreachProspectIds = []
                                         prospect={p}
                                         showA11y={showA11y}
                                         inQueue={inQueue.has(p.id)}
+                                        manualLists={manualLists}
                                         isExpanded={expanded === p.id}
                                         isSelected={!!selected[p.id]}
                                         onToggleSelect={() => toggleRow(p.id)}
@@ -228,6 +265,7 @@ function ProspectRow({
     prospect: p,
     showA11y,
     inQueue,
+    manualLists = [],
     isExpanded,
     isSelected,
     onToggleSelect,
@@ -237,6 +275,13 @@ function ProspectRow({
     const isPending = p.audit_status === 'pending';
     const isWarm = p.is_warm;
     const urlDisplay = p.website_url?.replace(/^https?:\/\//, '') ?? 'No website';
+    const listMemberships = p.list_memberships ?? [];
+    const memberListIds = new Set(listMemberships.map((m) => m.list_id));
+    const addableLists = manualLists.filter((list) => !memberListIds.has(list.id));
+
+    const addToList = (listId) => {
+        router.post(`/lists/${listId}/items`, { prospect_ids: [p.id] }, { preserveScroll: true });
+    };
 
     const rowClass = [
         isWarm ? 'warm' : '',
@@ -261,6 +306,12 @@ function ProspectRow({
                         {p.business_name}
                         {inQueue && (
                             <span className="badge badge--queue">In outreach</span>
+                        )}
+                        {listMemberships.length === 1 && (
+                            <span className="badge badge--list">{listMemberships[0].list_name}</span>
+                        )}
+                        {listMemberships.length > 1 && (
+                            <span className="badge badge--list">On {listMemberships.length} lists</span>
                         )}
                     </div>
                     <span
@@ -369,7 +420,7 @@ function ProspectRow({
                                 </div>
                             </div>
                             {!inQueue && (
-                                <div className="mt-16">
+                                <div className="input-row mt-16">
                                     <Button
                                         kind="secondary"
                                         size="sm"
@@ -377,6 +428,22 @@ function ProspectRow({
                                     >
                                         Add to outreach
                                     </Button>
+                                    {addableLists.length > 0 && (
+                                        <ListPicker
+                                            lists={addableLists}
+                                            placeholder="Add to list…"
+                                            onSelect={addToList}
+                                        />
+                                    )}
+                                </div>
+                            )}
+                            {inQueue && addableLists.length > 0 && (
+                                <div className="input-row mt-16">
+                                    <ListPicker
+                                        lists={addableLists}
+                                        placeholder="Add to list…"
+                                        onSelect={addToList}
+                                    />
                                 </div>
                             )}
                         </div>
