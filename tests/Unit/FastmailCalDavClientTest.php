@@ -44,6 +44,20 @@ class FastmailCalDavClientTest extends TestCase
     }
 
     #[Test]
+    public function test_list_calendars_unwraps_cdata_displaynames(): void
+    {
+        Http::fake([
+            'caldav.fastmail.com/*' => Http::response($this->multistatusXml([
+                ['id' => '3f2a1b9c-e4d5-6789-abcd-ef0123456789', 'displayname' => '<![CDATA[Nthdesigns Scanner]]>'],
+            ]), 207),
+        ]);
+
+        $calendars = (new FastmailCalDavClient('bookings@example.com', 'secret'))->listCalendars();
+
+        $this->assertSame('Nthdesigns Scanner', $calendars[0]['name']);
+    }
+
+    #[Test]
     public function test_list_calendars_falls_back_to_id_when_displayname_missing(): void
     {
         Http::fake([

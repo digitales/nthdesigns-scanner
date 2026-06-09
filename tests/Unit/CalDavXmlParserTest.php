@@ -130,6 +130,21 @@ XML;
     }
 
     #[Test]
+    public function test_parse_propfind_responses_unwraps_cdata_in_displayname(): void
+    {
+        $xml = <<<'XML'
+<d:multistatus xmlns:d="DAV:">
+  <d:response>
+    <d:href>/dav/calendars/user/me/abc/</d:href>
+    <d:propstat><d:prop><d:displayname><![CDATA[Nthdesigns Scanner]]></d:displayname></d:prop></d:propstat>
+  </d:response>
+</d:multistatus>
+XML;
+
+        $this->assertSame('Nthdesigns Scanner', CalDavXmlParser::parsePropfindResponses($xml)[0]['displayname']);
+    }
+
+    #[Test]
     public function test_parse_propfind_responses_decodes_xml_entities_in_displayname(): void
     {
         $xml = <<<'XML'

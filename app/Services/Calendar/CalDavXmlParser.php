@@ -34,7 +34,7 @@ final class CalDavXmlParser
             $displayname = null;
 
             if (preg_match('/<(?:[^:>]+:)?displayname[^>]*>([\s\S]*?)<\/(?:[^:>]+:)?displayname>/i', $block, $nameMatch)) {
-                $decoded = html_entity_decode(trim($nameMatch[1]), ENT_XML1);
+                $decoded = self::normalizeXmlTextContent($nameMatch[1]);
                 $displayname = $decoded !== '' ? $decoded : null;
             }
 
@@ -55,7 +55,7 @@ final class CalDavXmlParser
         preg_match_all('/<(?:[^:>]+:)?calendar-data[^>]*>([\s\S]*?)<\/(?:[^:>]+:)?calendar-data>/i', $xml, $matches);
 
         return array_map(
-            fn (string $block) => html_entity_decode(trim($block), ENT_XML1),
+            fn (string $block) => self::normalizeXmlTextContent($block),
             $matches[1] ?? [],
         );
     }
@@ -87,6 +87,17 @@ final class CalDavXmlParser
         }
 
         return [['start' => $start, 'end' => $end]];
+    }
+
+    private static function normalizeXmlTextContent(string $value): string
+    {
+        $value = html_entity_decode(trim($value), ENT_XML1);
+
+        if (preg_match('/^<!\[CDATA\[([\s\S]*?)\]\]>$/', $value, $match)) {
+            return $match[1];
+        }
+
+        return $value;
     }
 
     private static function parseIcsDateTime(string $event, string $property): ?CarbonInterface
