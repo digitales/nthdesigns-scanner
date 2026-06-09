@@ -6,7 +6,6 @@ use App\Enums\DominantAngle;
 use App\Enums\PitchAngle;
 use App\Models\Prospect;
 use App\Models\ProspectReport;
-use App\Support\TidyCalEmbed;
 
 class OutreachEmailGeneratorService
 {
@@ -44,6 +43,7 @@ Rules:
 - No hype or spam phrases
 - Under 180 words for the body
 - One clear call-to-action
+- When an audit report link is provided, steer booking to the report's Next step section only — never include separate scheduling links (TidyCal, Calendly, etc.)
 - Return ONLY valid JSON with keys: subject_line, email_body
 PROMPT;
 
@@ -105,18 +105,7 @@ PROMPT;
 
         if ($reportUrl) {
             $lines[] = "Include this audit report link naturally: {$reportUrl}";
-
-            if ($this->agencyBooking->nativeBookingActive()) {
-                $lines[] = 'The report includes inline booking — encourage them to pick a time on the report (Next step section).';
-            }
-        }
-
-        if (! $this->agencyBooking->nativeBookingActive()) {
-            $bookingUrl = config('scanner.report_booking_url');
-
-            if ($bookingUrl) {
-                $lines[] = 'Booking link for a call: '.(TidyCalEmbed::bookPageUrl($bookingUrl) ?? $bookingUrl);
-            }
+            $lines[] = $this->reportBookingInstruction();
         }
 
         if ($instruction = $this->performancePromptInstruction($prospect)) {
@@ -124,6 +113,15 @@ PROMPT;
         }
 
         return implode("\n", $lines);
+    }
+
+    public function reportBookingInstruction(): string
+    {
+        if ($this->agencyBooking->nativeBookingActive()) {
+            return 'The report includes inline booking — encourage them to pick a time in the Next step section. Do not include any separate booking or calendar link in the email.';
+        }
+
+        return 'The report has a Next step section where they can book a call — encourage them to use that on the report. Do not include any separate booking or calendar link in the email.';
     }
 
     public function performancePromptInstruction(Prospect $prospect): ?string
