@@ -32,6 +32,7 @@ class SearchProspectResource
             'dominant_angle' => $prospect->dominant_angle,
             'audit_status' => ($prospect->audit_status ?? AuditStatus::Pending)->value,
             'audit_error' => self::auditError($prospect),
+            'site_load_error' => self::siteLoadError($prospect),
             'gbp_flags' => $prospect->gbp_flags ?? [],
             'a11y_flags' => $prospect->a11y_flags ?? [],
             'report_ready' => $prospect->report !== null,
@@ -74,6 +75,7 @@ class SearchProspectResource
             'dominant_angle' => $prospect->dominant_angle,
             'audit_status' => ($prospect->audit_status ?? AuditStatus::Pending)->value,
             'audit_error' => self::auditError($prospect),
+            'site_load_error' => self::siteLoadError($prospect),
             'report_ready' => $prospect->report !== null,
             'report_url' => $prospect->report ? url('/r/'.$prospect->report->token) : null,
             'is_warm' => $prospect->report?->viewed_at !== null
@@ -88,9 +90,24 @@ class SearchProspectResource
 
     private static function auditError(Prospect $prospect): ?string
     {
-        $auditJob = $prospect->auditJobs->firstWhere('status', AuditJobStatus::Failed)
-            ?? $prospect->auditJobs->first();
+        if ($prospect->audit_status === AuditStatus::Failed) {
+            $auditJob = $prospect->auditJobs->firstWhere('status', AuditJobStatus::Failed)
+                ?? $prospect->auditJobs->first();
 
-        return $auditJob?->error_message;
+            return $auditJob?->error_message;
+        }
+
+        return self::siteLoadError($prospect);
+    }
+
+    private static function siteLoadError(Prospect $prospect): ?string
+    {
+        $payload = $prospect->raw_a11y_payload;
+
+        if (! is_array($payload) || empty($payload['error'])) {
+            return null;
+        }
+
+        return (string) $payload['error'];
     }
 }

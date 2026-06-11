@@ -31,6 +31,10 @@ final class OperatorAuditAssembler
             return null;
         }
 
+        if (! empty($a11yPayload['error'])) {
+            return $this->loadErrorAudit($prospect, $a11yPayload);
+        }
+
         $lighthouse = $this->lighthouseForProspect($prospect) ?? [
             'performance' => null,
             'accessibility' => null,
@@ -69,6 +73,37 @@ final class OperatorAuditAssembler
         }
 
         return $this->lighthouse->hasMetrics($lighthouse) ? $lighthouse : null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $a11yPayload
+     * @return array<string, mixed>
+     */
+    private function loadErrorAudit(Prospect $prospect, array $a11yPayload): array
+    {
+        return [
+            'audited_at' => $this->auditedAt($prospect)?->toIso8601String() ?? now()->toIso8601String(),
+            'url' => $a11yPayload['url'] ?? $prospect->website_url ?? '',
+            'load_error' => (string) $a11yPayload['error'],
+            'summary' => [
+                'critical' => 0,
+                'serious' => 0,
+                'moderate' => 0,
+                'minor' => 0,
+                'total' => 0,
+            ],
+            'pass_count' => (int) ($a11yPayload['pass_count'] ?? 0),
+            'incomplete_count' => (int) ($a11yPayload['incomplete_count'] ?? 0),
+            'top_violations' => [],
+            'all_violations' => [],
+            'lighthouse' => [
+                'performance' => null,
+                'accessibility' => null,
+                'seo' => null,
+                'best_practices' => null,
+            ],
+            'performance_score' => (int) $prospect->performance_score,
+        ];
     }
 
     private function auditedAt(Prospect $prospect): ?Carbon

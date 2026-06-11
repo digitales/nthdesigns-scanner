@@ -804,6 +804,25 @@ php artisan scanner:repair-audits --execute --only=stuck --stuck-after=10
 
 This command does **not** re-run Google Places / GBP scoring. It re-dispatches `AuditSiteJob` for stuck or failed site audits and `CaptureScreenshotJob` for failed/stuck screenshots. For incomplete audit *payloads* on finished prospects, use `scanner:backfill-audits` instead.
 
+**Repair stuck combine scores or missing reports**
+
+When prospects show `audit_status: complete` but **Generating report** never finishes, or `audit_status: pending` with an a11y score already saved (combine step never ran):
+
+```bash
+php artisan scanner:repair-reports --search=36              # dry-run
+php artisan scanner:repair-reports --search=36 --execute --delay=5
+php artisan scanner:repair-reports --execute --only=combine
+php artisan scanner:repair-reports --execute --only=reports
+```
+
+Typical recovery for a half-finished search (e.g. stuck at 50% audited):
+
+```bash
+php artisan queue:failed
+php artisan scanner:repair-audits --search=36 --execute --delay=5    # re-run until nothing stuck
+php artisan scanner:repair-reports --search=36 --execute --delay=5   # flush combine + report jobs
+```
+
 See `docs/superpowers/specs/2026-06-02-audit-repair-design.md`.
 
 ### Rate limiting

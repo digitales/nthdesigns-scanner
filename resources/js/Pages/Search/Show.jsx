@@ -274,6 +274,8 @@ function ProspectRow({
     const isFailed = p.audit_status === 'failed';
     const isPending = p.audit_status === 'pending';
     const isWarm = p.is_warm;
+    const siteLoadError = p.site_load_error ?? null;
+    const siteLoadFailed = Boolean(siteLoadError) && !isPending && !isFailed;
     const urlDisplay = p.website_url?.replace(/^https?:\/\//, '') ?? 'No website';
     const listMemberships = p.list_memberships ?? [];
     const memberListIds = new Set(listMemberships.map((m) => m.list_id));
@@ -315,10 +317,14 @@ function ProspectRow({
                         )}
                     </div>
                     <span
-                        className={`url${isFailed ? ' text-critical' : ''}`}
-                        title={isFailed ? undefined : urlDisplay}
+                        className={`url${isFailed || siteLoadFailed ? ' text-critical' : ''}`}
+                        title={isFailed || siteLoadFailed ? undefined : urlDisplay}
                     >
-                        {isFailed ? (p.audit_error ?? 'Audit failed') : urlDisplay}
+                        {isFailed
+                            ? (p.audit_error ?? 'Audit failed')
+                            : siteLoadFailed
+                              ? 'Site failed to load'
+                              : urlDisplay}
                     </span>
                 </td>
                 <td>
@@ -344,6 +350,8 @@ function ProspectRow({
                         <Status kind="failed">Audit failed</Status>
                     ) : isPending ? (
                         <Status kind="pending">{p.progress_flow?.status_message ?? 'Auditing site'}</Status>
+                    ) : !p.report_ready ? (
+                        <Status kind="pending">{p.progress_flow?.status_message ?? 'Generating report'}</Status>
                     ) : isWarm ? (
                         <Status kind="warm">Viewed {p.last_viewed}</Status>
                     ) : (

@@ -184,6 +184,26 @@ class ReportBuilderServiceTest extends TestCase
         $this->assertNull($this->service->buildOperatorAudit($prospect));
     }
 
+    public function test_build_operator_audit_returns_load_error_shape(): void
+    {
+        $prospect = new Prospect([
+            'audit_status' => 'complete',
+            'website_url' => 'https://example.com',
+            'performance_score' => 0,
+            'raw_a11y_payload' => [
+                'url' => 'https://example.com',
+                'error' => 'page.goto: Timeout 45000ms exceeded.',
+                'violations' => [],
+            ],
+        ]);
+
+        $audit = $this->service->buildOperatorAudit($prospect);
+
+        $this->assertNotNull($audit);
+        $this->assertSame('page.goto: Timeout 45000ms exceeded.', $audit['load_error']);
+        $this->assertSame([], $audit['all_violations']);
+    }
+
     public function test_build_operator_audit_returns_full_shape_when_complete(): void
     {
         $completedAt = now()->subHour();
