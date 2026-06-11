@@ -13,12 +13,12 @@ use App\Services\AuditRunnerService;
 use App\Services\CmsDetectionRunnerService;
 use App\Services\ScreenshotStorageService;
 use App\Services\SearchStatusService;
+use App\Support\AuditSiteJobTimeout;
 use App\Support\CmsDetectionPayload;
 use App\Support\ScannerJobContext;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Queue\Attributes\Timeout;
 use Illuminate\Queue\Attributes\Tries;
 use Illuminate\Queue\Attributes\WithoutRelations;
 use Illuminate\Queue\InteractsWithQueue;
@@ -27,17 +27,21 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 
 #[Tries(2)]
-#[Timeout(240)]
 class AuditSiteJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $backoff = 60;
 
+    /** @var int Queue worker timeout — audit HTTP + optional CMS fallback + buffer. */
+    public int $timeout;
+
     public function __construct(
         #[WithoutRelations]
         public Prospect $prospect,
-    ) {}
+    ) {
+        $this->timeout = AuditSiteJobTimeout::seconds();
+    }
 
     public function tries(): int
     {
@@ -103,7 +107,7 @@ class AuditSiteJob implements ShouldQueue
 
             $cms = CmsDetectionPayload::fromAuditPayload($payload);
 
-            if ($cms === null) {
+            if ($cms === null && CmsDetectionPayload::shouldRunFallback($payload)) {
                 try {
                     $cms = $cmsRunner->run($prospect->website_url);
                 } catch (\Throwable $e) {
