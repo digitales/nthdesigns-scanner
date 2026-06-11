@@ -11,6 +11,7 @@ use App\Services\GbpScoringService;
 use App\Services\GooglePlacesService;
 use App\Services\ProspectExclusionService;
 use App\Services\SearchStatusService;
+use App\Support\AuditSiteJobDispatch;
 use App\Support\ScannerJobContext;
 use App\Support\WebsiteUrlNormalizer;
 use Illuminate\Bus\Queueable;
@@ -111,7 +112,7 @@ class DirectUrlScanJob implements ShouldQueue
             }
 
             $search->update(['total_found' => 1]);
-            AuditSiteJob::dispatch($prospect);
+            AuditSiteJobDispatch::dispatch($prospect);
             $searchStatus->refresh($search->fresh());
         } catch (\Throwable $e) {
             Log::error('DirectUrlScanJob failed', [

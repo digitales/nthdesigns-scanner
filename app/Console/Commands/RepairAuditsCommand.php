@@ -3,10 +3,12 @@
 namespace App\Console\Commands;
 
 use App\Jobs\CaptureScreenshotJob;
+use App\Jobs\GenerateProspectReportJob;
 use App\Models\Prospect;
 use App\Models\ProspectReport;
 use App\Queries\FailedScreenshotQuery;
 use App\Queries\FailedSiteAuditQuery;
+use App\Queries\StuckReportQuery;
 use App\Queries\StuckSiteAuditQuery;
 use App\Services\ProspectAuditService;
 use App\Support\AuditingQueuePresence;
@@ -25,7 +27,8 @@ class RepairAuditsCommand extends Command
                             {--delay=5 : Seconds between each dispatch}
                             {--stuck-after=15 : Minutes before pending/running counts as stale}
                             {--only= : Restrict to stuck, failed, or screenshots}
-                            {--skip-screenshots : Skip screenshot repairs}';
+                            {--skip-screenshots : Skip screenshot repairs}
+                            {--with-reports : Also dispatch report jobs for complete prospects missing reports}';
 
     protected $description = 'Repair stuck site audits, retry failed site audits, and retry failed/stuck screenshots';
 
@@ -93,6 +96,7 @@ class RepairAuditsCommand extends Command
         $dispatchIndex = 0;
         $siteDispatched = 0;
         $screenshotDispatched = 0;
+        $reportDispatched = 0;
 
         foreach ($stuck as $prospect) {
             if ($maxPerBatch !== null && $dispatchIndex >= $maxPerBatch) {
@@ -142,7 +146,23 @@ class RepairAuditsCommand extends Command
             $screenshotDispatched++;
         }
 
-        $this->info("Dispatched {$siteDispatched} site audit(s), {$screenshotDispatched} screenshot(s).");
+        if ($this->option('with-reports')) {
+            $reports = StuckReportQuery::get($searchId, $prospectId, $limit);
+
+            foreach ($reports as $prospect) {
+                if ($maxPerBatch !== null && $dispatchIndex >= $maxPerBatch) {
+                    break;
+                }
+
+                GenerateProspectReportJob::dispatch($prospect->fresh())
+                    ->delay(now()->addSeconds(QueueDispatchDelay::forIndex($dispatchIndex, $delay)));
+
+                $dispatchIndex++;
+                $reportDispatched++;
+            }
+        }
+
+        $this->info("Dispatched {$siteDispatched} site audit(s), {$screenshotDispatched} screenshot(s), {$reportDispatched} report(s).");
 
         return self::SUCCESS;
     }

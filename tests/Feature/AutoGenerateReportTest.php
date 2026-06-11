@@ -47,7 +47,7 @@ class AutoGenerateReportTest extends TestCase
         $this->assertSame(70, $prospect->combined_score);
     }
 
-    public function test_combine_scores_skips_report_when_suppress_auto_report_set(): void
+    public function test_combine_scores_dispatches_report_after_clearing_suppress_flag(): void
     {
         Bus::fake();
 
@@ -68,7 +68,7 @@ class AutoGenerateReportTest extends TestCase
             app(SearchStatusService::class),
         );
 
-        Bus::assertNotDispatched(GenerateProspectReportJob::class);
+        Bus::assertDispatched(GenerateProspectReportJob::class, 1);
 
         $prospect->refresh();
         $this->assertFalse($prospect->suppress_auto_report);

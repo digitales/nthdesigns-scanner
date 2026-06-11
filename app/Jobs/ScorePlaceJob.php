@@ -11,6 +11,7 @@ use App\Services\GbpScoringService;
 use App\Services\GooglePlacesService;
 use App\Services\SearchStatusService;
 use App\Services\WebsiteDiscoveryService;
+use App\Support\AuditSiteJobDispatch;
 use App\Support\ScannerJobContext;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -119,7 +120,7 @@ class ScorePlaceJob implements ShouldQueue
             && ! empty($prospect->website_url);
 
         if ($needsA11yAudit) {
-            AuditSiteJob::dispatch($prospect);
+            AuditSiteJobDispatch::dispatch($prospect);
 
             if (config('scanner.audit_driver') === 'skip' && config('scanner.cms_detect_driver') !== 'skip') {
                 DetectCmsJob::dispatch($prospect);

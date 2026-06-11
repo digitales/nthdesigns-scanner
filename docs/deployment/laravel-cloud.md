@@ -800,9 +800,12 @@ When searches stay in **Auditing**, prospects remain `audit_status: pending` wit
 php artisan scanner:repair-audits              # dry-run (all categories)
 php artisan scanner:repair-audits --execute --delay=5
 php artisan scanner:repair-audits --execute --only=stuck --stuck-after=10
+php artisan scanner:repair-audits --execute --search=36 --with-reports --delay=5
 ```
 
-This command does **not** re-run Google Places / GBP scoring. It re-dispatches `AuditSiteJob` for stuck or failed site audits and `CaptureScreenshotJob` for failed/stuck screenshots. For incomplete audit *payloads* on finished prospects, use `scanner:backfill-audits` instead.
+This command does **not** re-run Google Places / GBP scoring. It re-dispatches `AuditSiteJob` for stuck or failed site audits and `CaptureScreenshotJob` for failed/stuck screenshots. Pass **`--with-reports`** to also queue `GenerateProspectReportJob` for complete prospects missing reports (or run `scanner:repair-reports` separately). For incomplete audit *payloads* on finished prospects, use `scanner:backfill-audits` instead.
+
+**Stagger new searches:** set `AUDIT_DISPATCH_STAGGER_SECONDS=30` (default) on Laravel Cloud so a 60-prospect search does not POST all audits to Fly at once. Each prospect waits `(ordinal − 1) × stagger` seconds before its audit job runs (capped at 900s for SQS).
 
 **Repair stuck combine scores or missing reports**
 

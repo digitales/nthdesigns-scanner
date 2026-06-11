@@ -64,7 +64,9 @@ class CombineScoresJob implements ShouldQueue
         if ($prospect && in_array($prospect->audit_status, [AuditStatus::Complete, AuditStatus::Skipped], true)) {
             if ($prospect->suppress_auto_report) {
                 $prospect->update(['suppress_auto_report' => false]);
-            } elseif (! ProspectReport::where('prospect_id', $prospect->id)->exists()) {
+            }
+
+            if (! ProspectReport::where('prospect_id', $prospect->id)->exists()) {
                 GenerateProspectReportJob::dispatch($prospect);
             }
         }

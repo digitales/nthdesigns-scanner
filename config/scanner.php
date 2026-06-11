@@ -38,6 +38,12 @@ return [
      */
     'audit_site_job_timeout' => (int) env('AUDIT_SITE_JOB_TIMEOUT', 0),
 
+    /**
+     * Seconds between AuditSiteJob dispatches within the same search (prospect 2 waits 1×, prospect 3 waits 2×, …).
+     * Caps at SQS DelaySeconds (900). Set 0 to disable stagger.
+     */
+    'audit_dispatch_stagger_seconds' => (int) env('AUDIT_DISPATCH_STAGGER_SECONDS', 30),
+
     // HTTP client timeout for Fly/browser-service /screenshot (goto 45s + capture 60s + headroom).
     'screenshot_timeout' => (int) env('SCREENSHOT_TIMEOUT', 150),
 

@@ -6,6 +6,7 @@ use App\Enums\AuditStatus;
 use App\Enums\ScanType;
 use App\Jobs\AuditSiteJob;
 use App\Models\Prospect;
+use App\Support\AuditSiteJobDispatch;
 use Illuminate\Validation\ValidationException;
 
 class ProspectAuditService
@@ -34,11 +35,7 @@ class ProspectAuditService
             'suppress_auto_report' => $suppressAutoReport,
         ]));
 
-        $dispatch = AuditSiteJob::dispatch($prospect->fresh());
-
-        if ($delaySeconds > 0) {
-            $dispatch->delay(now()->addSeconds($delaySeconds));
-        }
+        AuditSiteJobDispatch::dispatch($prospect->fresh(), $delaySeconds);
     }
 
     /**
@@ -65,11 +62,7 @@ class ProspectAuditService
             'suppress_auto_report' => $suppressAutoReport,
         ]));
 
-        $dispatch = AuditSiteJob::dispatch($prospect->fresh());
-
-        if ($delaySeconds > 0) {
-            $dispatch->delay(now()->addSeconds($delaySeconds));
-        }
+        AuditSiteJobDispatch::dispatch($prospect->fresh(), $delaySeconds);
     }
 
     /**

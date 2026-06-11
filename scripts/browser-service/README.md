@@ -15,7 +15,7 @@ HTTP wrapper around `scripts/audit.js` and `scripts/screenshot.js` for Laravel C
 
 Typical duration: **90–180s**. Laravel Cloud should set `AUDIT_TIMEOUT=210` (HTTP client) and queue workers `--timeout=270` (above `AuditSiteJob` at 240s).
 
-**Concurrency:** Fly runs on a single 2 GB VM by default. `server.mjs` limits concurrent Playwright jobs via `BROWSER_SERVICE_MAX_CONCURRENT` (default **2**). Dispatching hundreds of screenshot repairs at once without `--delay` can still queue jobs on Laravel; use `scanner:repair-audits --only=screenshots --delay=10 --limit=50 --execute` and re-run until clear.
+**Concurrency:** Fly runs on a single 2 GB VM by default. `server.mjs` limits concurrent Playwright jobs via `BROWSER_SERVICE_MAX_CONCURRENT` (default **2**). Laravel staggers `AuditSiteJob` dispatches per search via `AUDIT_DISPATCH_STAGGER_SECONDS` (default **30**) so HTTP clients do not time out while jobs queue on Fly. Dispatching hundreds of repairs at once without `--delay` can still overwhelm Fly; use `scanner:repair-audits --only=screenshots --delay=10 --limit=50 --execute` and re-run until clear.
 
 Prospects audited before Lighthouse/PSI worked on Fly keep `performance_score = 0` until re-audited — see [backfill](../../docs/deployment/laravel-cloud.md#e-lighthouse-on-fly-production) in the deployment guide.
 
