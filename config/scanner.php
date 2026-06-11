@@ -32,6 +32,12 @@ return [
     // HTTP client timeout for Fly/browser-service /audit (page + axe + lighthouse can exceed 120s).
     'audit_timeout' => (int) env('AUDIT_TIMEOUT', 210),
 
+    /**
+     * Queue worker timeout for AuditSiteJob. When 0, defaults to audit_timeout + cms_detect_timeout + 30s.
+     * Managed queue visibility and worker --timeout must exceed this value.
+     */
+    'audit_site_job_timeout' => (int) env('AUDIT_SITE_JOB_TIMEOUT', 0),
+
     // HTTP client timeout for Fly/browser-service /screenshot (goto 45s + capture 60s + headroom).
     'screenshot_timeout' => (int) env('SCREENSHOT_TIMEOUT', 150),
 

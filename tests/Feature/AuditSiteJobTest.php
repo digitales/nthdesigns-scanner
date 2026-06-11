@@ -148,4 +148,59 @@ class AuditSiteJobTest extends TestCase
         $prospect->refresh();
         $this->assertSame('wordpress', $prospect->cms_detection['platform']);
     }
+
+    public function test_skips_cms_fallback_when_audit_payload_has_error(): void
+    {
+        Queue::fake([CombineScoresJob::class]);
+
+        $prospect = $this->pendingProspect();
+
+        $this->mock(AuditRunnerService::class, function ($mock) {
+            $mock->shouldReceive('shouldSkip')->andReturn(false);
+            $mock->shouldReceive('run')->andReturn([
+                'url' => 'https://example.com',
+                'error' => 'Navigation timeout',
+                'violations' => [],
+                'pass_count' => 0,
+                'incomplete_count' => 0,
+                'violation_screenshots' => [],
+                'lighthouse' => null,
+            ]);
+        });
+
+        $this->mock(CmsDetectionRunnerService::class, function ($mock) {
+            $mock->shouldNotReceive('run');
+        });
+
+        $this->mock(ScreenshotStorageService::class, function ($mock) {
+            $mock->shouldReceive('storeViolationScreenshots')->andReturn([]);
+        });
+
+        (new AuditSiteJob($prospect))->handle(
+            app(AuditRunnerService::class),
+            app(A11yScoringService::class),
+            app(SearchStatusService::class),
+            app(ScreenshotStorageService::class),
+            app(AuditErrorRecorder::class),
+            app(CmsDetectionRunnerService::class),
+        );
+
+        $prospect->refresh();
+        $this->assertNull($prospect->cms_detection);
+        $this->assertSame(50, $prospect->a11y_score);
+        Queue::assertPushed(CombineScoresJob::class);
+    }
+
+    public function test_job_timeout_covers_audit_and_cms_http_budget(): void
+    {
+        config([
+            'scanner.audit_site_job_timeout' => 0,
+            'scanner.audit_timeout' => 210,
+            'scanner.cms_detect_timeout' => 90,
+        ]);
+
+        $prospect = $this->pendingProspect();
+
+        $this->assertSame(330, (new AuditSiteJob($prospect))->timeout);
+    }
 }
