@@ -1,4 +1,5 @@
-import { Head, Link, useForm } from "@inertiajs/react";
+import { Head, Link, router, useForm, usePage } from "@inertiajs/react";
+import { useEffect, useState } from "react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import SearchHistoryCard from "@/Components/Search/SearchHistoryCard";
 import {
@@ -37,7 +38,9 @@ const SCAN_INFO = {
 export default function SearchIndex({
   recentSearches,
   defaults = { country: "GB" },
+  googleAdsCpcAvailable = false,
 }) {
+  const { flash } = usePage().props;
   const { data, setData, post, processing, errors } = useForm({
     niche: "",
     city: "",
@@ -45,6 +48,44 @@ export default function SearchIndex({
     scan_type: "combined",
     cpc_benchmark: "",
   });
+  const [cpcLoading, setCpcLoading] = useState(false);
+  const [cpcFetching, setCpcFetching] = useState(false);
+
+  useEffect(() => {
+    const marketCpc = flash?.market_cpc;
+    if (!marketCpc?.cpc_benchmark) {
+      return;
+    }
+    setData("cpc_benchmark", marketCpc.cpc_benchmark);
+  }, [flash?.market_cpc, setData]);
+
+  const marketPayload = () => ({
+    niche: data.niche,
+    city: data.city,
+    country: data.country,
+  });
+
+  const loadSavedCpc = () => {
+    if (!data.niche.trim() || !data.city.trim()) {
+      return;
+    }
+    setCpcLoading(true);
+    router.post("/market-cpc/load", marketPayload(), {
+      preserveScroll: true,
+      onFinish: () => setCpcLoading(false),
+    });
+  };
+
+  const fetchCpcFromGoogleAds = () => {
+    if (!data.niche.trim() || !data.city.trim()) {
+      return;
+    }
+    setCpcFetching(true);
+    router.post("/market-cpc/fetch", marketPayload(), {
+      preserveScroll: true,
+      onFinish: () => setCpcFetching(false),
+    });
+  };
 
   const submit = (e) => {
     e.preventDefault();
@@ -57,6 +98,8 @@ export default function SearchIndex({
     e.preventDefault();
     directForm.post("/searches/direct");
   };
+
+  const keywordPreview = flash?.market_cpc?.cpc_keywords ?? [];
 
   return (
     <AuthenticatedLayout>
@@ -110,7 +153,7 @@ export default function SearchIndex({
                 <div className="mb-24">
                   <Field
                     label="CPC benchmark"
-                    hint="optional · GBP pitches only · from Keyword Planner"
+                    hint="Optional · GBP outreach only · lookup is separate from Run scan (no Places fees)"
                   >
                     <div className="input-with-prefix">
                       <span className="prefix">£</span>
@@ -123,9 +166,43 @@ export default function SearchIndex({
                         placeholder="e.g. 8.50"
                       />
                     </div>
+                    <Stack direction="row" gap={8} className="mt-8">
+                      <Button
+                        kind="ghost"
+                        size="sm"
+                        type="button"
+                        disabled={cpcLoading || !data.niche || !data.city}
+                        onClick={loadSavedCpc}
+                      >
+                        {cpcLoading ? "Loading…" : "Load saved"}
+                      </Button>
+                      {googleAdsCpcAvailable && (
+                        <Button
+                          kind="ghost"
+                          size="sm"
+                          type="button"
+                          disabled={cpcFetching || !data.niche || !data.city}
+                          onClick={fetchCpcFromGoogleAds}
+                        >
+                          {cpcFetching ? "Fetching…" : "Fetch from Google Ads"}
+                        </Button>
+                      )}
+                    </Stack>
+                    {keywordPreview.length > 0 && (
+                      <p className="micro text-stone mt-8 mb-0">
+                        Keywords: {keywordPreview.join(", ")}
+                      </p>
+                    )}
                     <FormError message={errors.cpc_benchmark} />
                   </Field>
                 </div>
+
+                {flash?.success && (
+                  <p className="micro text-positive mb-16">{flash.success}</p>
+                )}
+                {flash?.error && (
+                  <p className="micro text-critical mb-16">{flash.error}</p>
+                )}
 
                 <Field label="Scan type">
                   <Grid cols={3} gap={10} className="mt-4">

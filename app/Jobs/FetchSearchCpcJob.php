@@ -3,8 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Search;
-use App\Services\GoogleAds\GoogleAdsKeywordPlanService;
-use App\Services\MarketCpcDefaultService;
+use App\Services\MarketCpcLookupService;
 use App\Support\ScannerJobContext;
 use App\Support\SearchQueue;
 use Illuminate\Bus\Queueable;
@@ -32,10 +31,8 @@ class FetchSearchCpcJob implements ShouldQueue
         $this->onQueue(SearchQueue::NAME);
     }
 
-    public function handle(
-        GoogleAdsKeywordPlanService $keywordPlan,
-        MarketCpcDefaultService $marketDefaults,
-    ): void {
+    public function handle(MarketCpcLookupService $lookup): void
+    {
         ScannerJobContext::add(self::class, ['search_id' => $this->search->id]);
 
         $search = $this->search->fresh(['user']);
@@ -44,13 +41,18 @@ class FetchSearchCpcJob implements ShouldQueue
             return;
         }
 
-        if (! $keywordPlan->isAvailable() || $search->niche === null || $search->city === null) {
+        if ($search->niche === null || $search->city === null || $search->user === null) {
             return;
         }
 
-        $result = $keywordPlan->lookupForSearch($search);
+        $default = $lookup->fetchFromGoogleAds(
+            $search->user,
+            $search->niche,
+            $search->city,
+            $search->country ?? 'GB',
+        );
 
-        if ($result === null) {
+        if ($default === null) {
             Log::info('google_ads.cpc_not_resolved', [
                 'search_id' => $search->id,
                 'niche' => $search->niche,
@@ -61,24 +63,16 @@ class FetchSearchCpcJob implements ShouldQueue
         }
 
         $search->update([
-            'cpc_benchmark' => $result->benchmark,
-            'cpc_source' => $result->source,
-            'cpc_keywords' => $result->keywords,
-            'cpc_geo_target' => $result->geoTarget,
+            'cpc_benchmark' => $default->cpc_benchmark,
+            'cpc_source' => $default->cpc_source,
+            'cpc_keywords' => $default->cpc_keywords,
+            'cpc_geo_target' => $default->cpc_geo_target,
         ]);
-
-        $marketDefaults->syncFromResult(
-            $search->user,
-            $search->niche,
-            $search->city,
-            $search->country ?? 'GB',
-            $result,
-        );
 
         Log::info('google_ads.cpc_saved', [
             'search_id' => $search->id,
-            'cpc_benchmark' => $result->benchmark,
-            'keyword_count' => count($result->keywords),
+            'cpc_benchmark' => $default->cpc_benchmark,
+            'keyword_count' => count($default->cpc_keywords ?? []),
         ]);
     }
 }

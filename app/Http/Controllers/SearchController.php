@@ -43,6 +43,7 @@ class SearchController extends Controller
             'defaults' => [
                 'country' => $this->settings->defaultCountry($user),
             ],
+            'googleAdsCpcAvailable' => $this->googleAdsKeywordPlan->isAvailable(),
             'recentSearches' => $user
                 ->searches()
                 ->latest()

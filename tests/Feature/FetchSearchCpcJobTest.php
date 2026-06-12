@@ -45,10 +45,7 @@ class FetchSearchCpcJobTest extends TestCase
             'country' => 'GB',
         ]);
 
-        (new FetchSearchCpcJob($search))->handle(
-            app(\App\Services\GoogleAds\GoogleAdsKeywordPlanService::class),
-            app(\App\Services\MarketCpcDefaultService::class),
-        );
+        (new FetchSearchCpcJob($search))->handle(app(\App\Services\MarketCpcLookupService::class));
 
         $search->refresh();
 
@@ -73,10 +70,7 @@ class FetchSearchCpcJobTest extends TestCase
             'cpc_source' => 'manual',
         ]);
 
-        (new FetchSearchCpcJob($search))->handle(
-            app(\App\Services\GoogleAds\GoogleAdsKeywordPlanService::class),
-            app(\App\Services\MarketCpcDefaultService::class),
-        );
+        (new FetchSearchCpcJob($search))->handle(app(\App\Services\MarketCpcLookupService::class));
 
         $search->refresh();
 

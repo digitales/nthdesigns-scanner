@@ -48,7 +48,29 @@ php artisan google-ads:cpc "dental practice" Birmingham --country=GB
 
 Prints seed keywords, resolved geo target, and median CPC (£).
 
-## Automatic lookup
+## Standalone CPC lookup (no niche search)
+
+CPC lookup is **independent** of the Places discovery pipeline. By default `GOOGLE_ADS_CPC_AUTO_FETCH=false`, so creating a search does **not** call Google Ads.
+
+| Action | Places API | Google Ads API |
+|---|---|---|
+| **Run scan** (`POST /searches`) | Yes | No (unless auto-fetch enabled) |
+| **Fetch from Google Ads** on `/search` (`POST /market-cpc/fetch`) | No | Yes |
+| **Load saved** on `/search` (`POST /market-cpc/load`) | No | No (database only) |
+| **Fetch from Google Ads** on search results (existing search) | No | Yes |
+| **CLI** `google-ads:cpc` | No | Yes |
+
+Use **Fetch from Google Ads** on the new search page after entering niche + city — it saves the market default without running discovery. Then **Run scan** when you are ready (Places fees only).
+
+```bash
+# CLI — lookup only
+php artisan google-ads:cpc "dental practice" Birmingham
+
+# CLI — lookup and save market default for user 1
+php artisan google-ads:cpc "dental practice" Birmingham --save --user=1
+```
+
+## Automatic lookup on search create (opt-in)
 
 When `GOOGLE_ADS_CPC_AUTO_FETCH=true`, creating a search **without** a manual CPC dispatches `FetchSearchCpcJob` on the `searches` queue. The job:
 

@@ -11,6 +11,7 @@ use App\Http\Controllers\NicheScanController;
 use App\Http\Controllers\NicheScanSampleController;
 use App\Http\Controllers\OAuthServerController;
 use App\Http\Controllers\OAuthWellKnownController;
+use App\Http\Controllers\MarketCpcController;
 use App\Http\Controllers\OutreachController;
 use App\Http\Controllers\OutreachEmailController;
 use App\Http\Controllers\ProfileController;
@@ -96,6 +97,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/niches/ignore/remove', [NicheIgnoreController::class, 'destroy'])->name('niches.ignore.destroy');
 
     Route::get('/search', [SearchController::class, 'index'])->name('search.index');
+    Route::post('/market-cpc/load', [MarketCpcController::class, 'load'])->name('market-cpc.load');
+    Route::post('/market-cpc/fetch', [MarketCpcController::class, 'fetch'])->name('market-cpc.fetch');
     Route::get('/searches', [SearchController::class, 'history'])->name('searches.index');
     Route::post('/searches', [SearchController::class, 'store'])->name('searches.store');
     Route::post('/searches/direct', [SearchController::class, 'storeDirectUrl'])->name('searches.store-direct');
