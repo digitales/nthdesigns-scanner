@@ -63,6 +63,7 @@ export default function ProspectShow({
     const [form, setForm] = useState({
         business_name: prospect.business_name ?? '',
         phone: prospect.phone ?? '',
+        email: prospect.email ?? '',
         website_url: prospect.website_url ?? '',
         address: prospect.address ?? '',
     });
@@ -137,6 +138,14 @@ export default function ProspectShow({
 
     const unignoreProspect = () => {
         router.delete(`/prospects/${prospect.id}/ignore`, { preserveScroll: true });
+    };
+
+    const unsubscribeEmail = () => {
+        if (!window.confirm('Unsubscribe this email? Outreach will be blocked for all prospects using this address.')) {
+            return;
+        }
+
+        router.post(`/prospects/${prospect.id}/unsubscribe`, {}, { preserveScroll: true });
     };
 
     const auditPending = prospect.audit_status === 'pending';
@@ -585,6 +594,14 @@ export default function ProspectShow({
                                         value={form.phone}
                                         onChange={(e) => setForm({ ...form, phone: e.target.value })}
                                     />
+                                    <label className="micro">Email</label>
+                                    <input
+                                        className="input"
+                                        type="email"
+                                        value={form.email}
+                                        onChange={(e) => setForm({ ...form, email: e.target.value })}
+                                        placeholder="contact@example.com"
+                                    />
                                     <label className="micro">Website</label>
                                     <input
                                         className="input"
@@ -611,6 +628,19 @@ export default function ProspectShow({
                                         <div>
                                             <span className="micro">Phone </span>
                                             {prospect.phone || '—'}
+                                        </div>
+                                        <div>
+                                            <span className="micro">Email </span>
+                                            {prospect.email ? (
+                                                <>
+                                                    {prospect.email}
+                                                    {prospect.email_suppressed && (
+                                                        <Badge className="ml-4">Email unsubscribed</Badge>
+                                                    )}
+                                                </>
+                                            ) : (
+                                                '—'
+                                            )}
                                         </div>
                                         <div>
                                             <span className="micro">Website </span>
@@ -646,6 +676,11 @@ export default function ProspectShow({
                                     <Button kind="secondary" size="sm" onClick={() => setEditing(true)} className="mt-4">
                                         Edit details
                                     </Button>
+                                    {prospect.email && !prospect.email_suppressed && (
+                                        <Button kind="ghost" size="sm" onClick={unsubscribeEmail} className="mt-4 ml-4">
+                                            Unsubscribe email
+                                        </Button>
+                                    )}
                                 </>
                             )}
                         </Card>

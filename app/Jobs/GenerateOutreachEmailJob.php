@@ -5,7 +5,9 @@ namespace App\Jobs;
 use App\Models\OutreachEmail;
 use App\Models\Prospect;
 use App\Models\User;
+use App\Services\Outreach\CpcBenchmarkResolver;
 use App\Services\OutreachEmailGeneratorService;
+use App\Services\ProspectUnsubscribeService;
 use App\Support\ScannerJobContext;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -31,8 +33,11 @@ class GenerateOutreachEmailJob implements ShouldQueue
         public array $options = [],
     ) {}
 
-    public function handle(OutreachEmailGeneratorService $generator): void
-    {
+    public function handle(
+        OutreachEmailGeneratorService $generator,
+        CpcBenchmarkResolver $cpcBenchmarks,
+        ProspectUnsubscribeService $unsubscribe,
+    ): void {
         ScannerJobContext::add(self::class, [
             'prospect_id' => $this->prospect->id,
             'user_id' => $this->user->id,
@@ -41,6 +46,10 @@ class GenerateOutreachEmailJob implements ShouldQueue
         $prospect = $this->prospect->fresh(['search', 'report']);
 
         if (! $prospect) {
+            return;
+        }
+
+        if ($unsubscribe->outreachSkipReason($this->user, $prospect) !== null) {
             return;
         }
 
@@ -54,16 +63,28 @@ class GenerateOutreachEmailJob implements ShouldQueue
             return;
         }
 
+        $cpcMeta = $cpcBenchmarks->resolveForProspect($prospect, $this->options);
+        $generationOptions = array_merge($this->options, $cpcMeta);
+
         try {
-            $generated = $generator->generate($prospect, $prospect->report, $this->options);
+            $generated = $generator->generate($prospect, $prospect->report, $generationOptions);
+
+            $emailBody = $unsubscribe->appendUnsubscribeFooter(
+                $generated['email_body'],
+                $this->user,
+                $prospect,
+                $prospect->email,
+            );
 
             OutreachEmail::create([
                 'prospect_id' => $prospect->id,
                 'user_id' => $this->user->id,
                 'prospect_report_id' => $prospect->report?->id,
                 'pitch_angle' => $generated['pitch_angle'],
+                'cpc_benchmark' => $cpcMeta['cpc_benchmark'] ?? null,
+                'cpc_source' => $cpcMeta['cpc_source'] ?? null,
                 'subject_line' => $generated['subject_line'],
-                'email_body' => $generated['email_body'],
+                'email_body' => $emailBody,
                 'model_used' => $generated['model_used'],
                 'prompt_tokens' => $generated['prompt_tokens'],
                 'completion_tokens' => $generated['completion_tokens'],

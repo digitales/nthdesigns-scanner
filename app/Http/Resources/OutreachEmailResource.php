@@ -10,6 +10,7 @@ class OutreachEmailResource
     {
         return [
             'id' => $email->id,
+            'to_email' => $email->prospect?->email,
             'pitch_angle' => $email->pitch_angle,
             'subject_line' => $email->subject_line,
             'email_body' => $email->email_body,

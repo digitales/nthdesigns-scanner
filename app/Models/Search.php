@@ -16,7 +16,7 @@ class Search extends Model
 
     protected $fillable = [
         'user_id', 'source', 'submitted_url', 'niche', 'city', 'country', 'scan_type', 'status', 'total_found',
-        'benchmark_snapshot',
+        'benchmark_snapshot', 'cpc_benchmark', 'cpc_source', 'cpc_keywords', 'cpc_geo_target',
     ];
 
     protected function casts(): array
@@ -26,6 +26,8 @@ class Search extends Model
             'scan_type' => ScanType::class,
             'source' => SearchSource::class,
             'benchmark_snapshot' => 'array',
+            'cpc_benchmark' => 'decimal:2',
+            'cpc_keywords' => 'array',
         ];
     }
 

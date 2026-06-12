@@ -6,6 +6,7 @@ use App\Enums\IgnoredProspectReason;
 use App\Http\Requests\FilterIgnoredProspectsRequest;
 use App\Models\IgnoredProspect;
 use App\Services\ProspectExclusionService;
+use App\Services\ProspectUnsubscribeService;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -37,9 +38,11 @@ class IgnoredProspectController extends Controller
         ]);
     }
 
-    public function destroy(IgnoredProspect $ignoredProspect): RedirectResponse
+    public function destroy(IgnoredProspect $ignoredProspect, ProspectUnsubscribeService $unsubscribe): RedirectResponse
     {
         $this->authorize('delete', $ignoredProspect);
+
+        $unsubscribe->liftSuppressionForIgnored($ignoredProspect->user, $ignoredProspect);
 
         $ignoredProspect->delete();
 

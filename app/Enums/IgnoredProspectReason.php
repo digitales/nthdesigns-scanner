@@ -7,6 +7,7 @@ enum IgnoredProspectReason: string
     case Acquired = 'acquired';
     case Cold = 'cold';
     case OutreachFailed = 'outreach_failed';
+    case Unsubscribed = 'unsubscribed';
     case Other = 'other';
 
     public function label(): string
@@ -15,6 +16,7 @@ enum IgnoredProspectReason: string
             self::Acquired => 'Company acquired',
             self::Cold => 'Cold lead',
             self::OutreachFailed => 'Outreach did not work',
+            self::Unsubscribed => 'Unsubscribed',
             self::Other => 'Other',
         };
     }

@@ -15,6 +15,7 @@ use App\Services\ProspectAuditService;
 use App\Services\ProspectEnrichmentService;
 use App\Services\ProspectExclusionService;
 use App\Services\ProspectListMembershipService;
+use App\Services\ProspectUnsubscribeService;
 use App\Services\ReportBuilderService;
 use App\Services\TagService;
 use Illuminate\Http\RedirectResponse;
@@ -34,6 +35,7 @@ class ProspectController extends Controller
         ProspectListMembershipService $listMembership,
         TagService $tags,
         AgencyBookingService $agencyBooking,
+        ProspectUnsubscribeService $unsubscribe,
     ): Response {
         $this->authorize('view', $prospect);
 
@@ -56,6 +58,7 @@ class ProspectController extends Controller
             $listMembership,
             $tags,
             $agencyBooking,
+            $unsubscribe,
         ));
     }
 
@@ -88,9 +91,19 @@ class ProspectController extends Controller
         return back()->with('success', 'Report generation started. Refresh in a few seconds.');
     }
 
-    public function generateOutreach(Request $request, Prospect $prospect): RedirectResponse
+    public function generateOutreach(Request $request, Prospect $prospect, ProspectUnsubscribeService $unsubscribe): RedirectResponse
     {
         $this->authorize('view', $prospect);
+
+        if ($skipReason = $unsubscribe->outreachSkipReason($request->user(), $prospect)) {
+            return back()->withErrors([
+                'outreach' => match ($skipReason) {
+                    'no email' => 'Add a contact email before generating outreach.',
+                    'unsubscribed' => 'This email is unsubscribed and cannot receive outreach.',
+                    default => 'Cannot generate outreach for this prospect.',
+                },
+            ]);
+        }
 
         GenerateOutreachEmailJob::dispatch($prospect, $request->user());
 

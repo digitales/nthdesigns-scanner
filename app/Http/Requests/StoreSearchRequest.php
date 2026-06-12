@@ -20,6 +20,7 @@ class StoreSearchRequest extends FormRequest
             'city' => ['required', 'string', 'max:100'],
             'country' => ['required', 'string', 'size:2'],
             'scan_type' => ['required', Rule::enum(ScanType::class)],
+            'cpc_benchmark' => ['nullable', 'numeric', 'min:0', 'max:9999.99'],
         ];
     }
 }

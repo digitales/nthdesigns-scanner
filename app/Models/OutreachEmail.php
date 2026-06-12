@@ -13,6 +13,7 @@ class OutreachEmail extends Model
 
     protected $fillable = [
         'prospect_id', 'user_id', 'prospect_report_id', 'pitch_angle',
+        'cpc_benchmark', 'cpc_source',
         'subject_line', 'email_body', 'model_used', 'prompt_tokens',
         'completion_tokens', 'sent_at', 'response_received',
     ];
@@ -23,6 +24,7 @@ class OutreachEmail extends Model
             'sent_at' => 'datetime',
             'response_received' => 'boolean',
             'pitch_angle' => PitchAngle::class,
+            'cpc_benchmark' => 'decimal:2',
         ];
     }
 

@@ -12,6 +12,23 @@ class ExportProspectsTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_export_includes_email_column(): void
+    {
+        $user = User::factory()->create();
+        $search = Search::factory()->create(['user_id' => $user->id]);
+        Prospect::factory()->create([
+            'search_id' => $search->id,
+            'business_name' => 'Acme Dental',
+            'email' => 'hello@acme.test',
+        ]);
+
+        $response = $this->actingAs($user)->post('/exports');
+
+        $content = $response->streamedContent();
+        $this->assertStringContainsString('email', $content);
+        $this->assertStringContainsString('hello@acme.test', $content);
+    }
+
     public function test_export_streams_csv_and_creates_export_record(): void
     {
         $user = User::factory()->create();

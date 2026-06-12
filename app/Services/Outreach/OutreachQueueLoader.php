@@ -52,6 +52,7 @@ class OutreachQueueLoader
         }
 
         return OutreachEmail::query()
+            ->with('prospect')
             ->whereIn('id', $latestIds)
             ->get()
             ->groupBy('prospect_id')

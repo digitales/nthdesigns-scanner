@@ -7,11 +7,15 @@ use App\Enums\SearchSource;
 use App\Enums\SearchStatus;
 use App\Http\Requests\StoreDirectUrlSearchRequest;
 use App\Http\Requests\StoreSearchRequest;
+use App\Http\Requests\UpdateSearchCpcRequest;
 use App\Http\Resources\SearchProspectResource;
 use App\Http\Resources\SearchSummaryMapper;
 use App\Jobs\DirectUrlScanJob;
+use App\Jobs\FetchSearchCpcJob;
 use App\Jobs\ScrapeProspectsJob;
 use App\Models\Search;
+use App\Services\GoogleAds\GoogleAdsKeywordPlanService;
+use App\Services\MarketCpcDefaultService;
 use App\Services\ProgressFlowService;
 use App\Services\ProspectListMembershipService;
 use App\Services\ReportBuilderService;
@@ -25,7 +29,11 @@ use Inertia\Response;
 
 class SearchController extends Controller
 {
-    public function __construct(private UserSettingsService $settings) {}
+    public function __construct(
+        private UserSettingsService $settings,
+        private MarketCpcDefaultService $marketCpcDefaults,
+        private GoogleAdsKeywordPlanService $googleAdsKeywordPlan,
+    ) {}
 
     public function index(): Response
     {
@@ -83,11 +91,35 @@ class SearchController extends Controller
 
         RateLimiter::hit($rateKey, $decay);
 
-        $search = $user->searches()->create($validated);
+        $search = $user->searches()->create([
+            ...collect($validated)->only(['niche', 'city', 'country', 'scan_type'])->all(),
+            'cpc_benchmark' => $validated['cpc_benchmark'] ?? null,
+            'cpc_source' => isset($validated['cpc_benchmark']) ? 'manual' : null,
+        ]);
+
+        if (! isset($validated['cpc_benchmark'])) {
+            $this->marketCpcDefaults->applyFromDefault($search, $user);
+        }
 
         ScrapeProspectsJob::dispatch($search);
 
+        if ($this->shouldAutoFetchCpc($validated)) {
+            FetchSearchCpcJob::dispatch($search);
+        }
+
         return redirect()->route('searches.show', $search);
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     */
+    private function shouldAutoFetchCpc(array $validated): bool
+    {
+        if (! config('google_ads.auto_fetch_on_search') || ! config('google_ads.enabled')) {
+            return false;
+        }
+
+        return ! isset($validated['cpc_benchmark']) || $validated['cpc_benchmark'] === null || $validated['cpc_benchmark'] === '';
     }
 
     public function storeDirectUrl(StoreDirectUrlSearchRequest $request, WebsiteUrlNormalizer $normalizer): RedirectResponse
@@ -122,6 +154,60 @@ class SearchController extends Controller
         return redirect()->route('searches.show', $search);
     }
 
+    public function updateCpc(UpdateSearchCpcRequest $request, Search $search): RedirectResponse
+    {
+        $this->authorize('update', $search);
+
+        $validated = $request->validated();
+        $cpcBenchmark = $validated['cpc_benchmark'] ?? null;
+        $keywords = $request->normalizedKeywords();
+        $saveMarketDefault = $request->boolean('save_market_default', true);
+
+        $search->update([
+            'cpc_benchmark' => $cpcBenchmark,
+            'cpc_source' => $cpcBenchmark !== null
+                ? ($validated['cpc_source'] ?? 'manual')
+                : null,
+            'cpc_keywords' => $cpcBenchmark !== null ? $keywords : null,
+        ]);
+
+        if ($saveMarketDefault && $search->niche && $search->city && $cpcBenchmark !== null) {
+            $this->marketCpcDefaults->upsert(
+                $request->user(),
+                $search->niche,
+                $search->city,
+                $search->country ?? 'GB',
+                [
+                    'cpc_benchmark' => $cpcBenchmark,
+                    'cpc_source' => $validated['cpc_source'] ?? 'manual',
+                    'cpc_keywords' => $keywords,
+                    'cpc_geo_target' => $search->cpc_geo_target,
+                ],
+            );
+        }
+
+        return back()->with('success', $cpcBenchmark !== null
+            ? 'CPC benchmark saved for this search and as the default for this niche and city.'
+            : 'CPC benchmark cleared.');
+    }
+
+    public function fetchCpc(Search $search): RedirectResponse
+    {
+        $this->authorize('update', $search);
+
+        if ($search->niche === null || $search->city === null) {
+            return back()->with('error', 'CPC lookup requires a niche and city search.');
+        }
+
+        if (! $this->googleAdsKeywordPlan->isAvailable()) {
+            return back()->with('error', 'Google Ads CPC lookup is not configured.');
+        }
+
+        FetchSearchCpcJob::dispatch($search, force: true);
+
+        return back()->with('success', 'CPC lookup queued from Google Ads. Refresh in a few seconds.');
+    }
+
     public function show(
         Search $search,
         ReportBuilderService $reportBuilder,
@@ -154,6 +240,12 @@ class SearchController extends Controller
                 ->values(),
             'manualLists' => $listMembership->manualListsFor($user),
             'search' => SearchSummaryMapper::forShow($search, $searchFlow),
+            'marketCpcDefault' => $this->marketCpcDefaults->format(
+                $search->niche && $search->city
+                    ? $this->marketCpcDefaults->find($user, $search->niche, $search->city, $search->country ?? 'GB')
+                    : null,
+            ),
+            'googleAdsCpcAvailable' => $this->googleAdsKeywordPlan->isAvailable(),
             'prospects' => $prospects->map(function ($prospect) use (
                 $search,
                 $reportBuilder,

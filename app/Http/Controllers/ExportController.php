@@ -38,7 +38,7 @@ class ExportController extends Controller
         return response()->streamDownload(function () use ($prospects) {
             $out = fopen('php://output', 'w');
             fputcsv($out, [
-                'business_name', 'niche', 'city', 'country', 'phone', 'website_url',
+                'business_name', 'niche', 'city', 'country', 'phone', 'email', 'website_url',
                 'combined_score', 'gbp_score', 'a11y_score', 'dominant_angle',
                 'gbp_flags', 'a11y_flags', 'report_url',
                 'outreach_subject', 'outreach_sent_at', 'response_received',
@@ -52,6 +52,7 @@ class ExportController extends Controller
                     $prospect->search->city,
                     $prospect->search->country,
                     $prospect->phone,
+                    $prospect->email,
                     $prospect->website_url,
                     $prospect->combined_score,
                     $prospect->gbp_score,

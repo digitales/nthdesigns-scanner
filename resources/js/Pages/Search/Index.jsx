@@ -43,6 +43,7 @@ export default function SearchIndex({
     city: "",
     country: defaults.country,
     scan_type: "combined",
+    cpc_benchmark: "",
   });
 
   const submit = (e) => {
@@ -103,6 +104,26 @@ export default function SearchIndex({
                       <option value="IE">Ireland</option>
                       <option value="US">United States</option>
                     </Select>
+                  </Field>
+                </div>
+
+                <div className="mb-24">
+                  <Field
+                    label="CPC benchmark"
+                    hint="optional · GBP pitches only · from Keyword Planner"
+                  >
+                    <div className="input-with-prefix">
+                      <span className="prefix">£</span>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={data.cpc_benchmark}
+                        onChange={(e) => setData("cpc_benchmark", e.target.value)}
+                        placeholder="e.g. 8.50"
+                      />
+                    </div>
+                    <FormError message={errors.cpc_benchmark} />
                   </Field>
                 </div>
 

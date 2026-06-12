@@ -1,4 +1,4 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { Fragment, useMemo, useState } from 'react';
 import { useProgressReload } from '@/hooks/useProgressReload';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
@@ -21,12 +21,28 @@ import {
     RowActions,
     ScoreBadge,
     Segmented,
+    Stack,
     Status,
+    Textarea,
 } from '@/Components/ui';
 import { normalizeAngle } from '@/Components/ui/scoreBand';
 import { showA11yForSearch } from '@/utils/auditVisibility';
 
-export default function SearchShow({ search, prospects, outreachProspectIds = [], manualLists = [] }) {
+export default function SearchShow({
+    search,
+    prospects,
+    outreachProspectIds = [],
+    manualLists = [],
+    marketCpcDefault = null,
+    googleAdsCpcAvailable = false,
+}) {
+    const { flash } = usePage().props;
+    const cpcForm = useForm({
+        cpc_benchmark: search.cpc_benchmark ?? '',
+        cpc_keywords: (search.cpc_keywords ?? []).join('\n'),
+        save_market_default: true,
+    });
+    const [fetchingCpc, setFetchingCpc] = useState(false);
     const inQueue = new Set(outreachProspectIds);
     const flow = search.progress_flow ?? {};
     const phase = flow.phase ?? 'queued';
@@ -101,6 +117,32 @@ export default function SearchShow({ search, prospects, outreachProspectIds = []
         });
     };
 
+    const saveCpc = (e) => {
+        e.preventDefault();
+        router.patch(`/searches/${search.id}/cpc`, {
+            cpc_benchmark: cpcForm.data.cpc_benchmark === '' ? null : cpcForm.data.cpc_benchmark,
+            cpc_keywords: cpcForm.data.cpc_keywords
+                .split('\n')
+                .map((line) => line.trim())
+                .filter(Boolean),
+            save_market_default: true,
+        }, { preserveScroll: true });
+    };
+
+    const fetchCpcFromGoogleAds = () => {
+        setFetchingCpc(true);
+        router.post(`/searches/${search.id}/cpc/fetch`, {}, {
+            preserveScroll: true,
+            onFinish: () => setFetchingCpc(false),
+        });
+    };
+
+    const cpcSourceLabel = {
+        manual: 'Manual',
+        google_ads: 'Google Ads',
+        market_default: 'Market default',
+    }[search.cpc_source] ?? search.cpc_source;
+
     const selectedProspects = useMemo(
         () => prospects.filter((p) => selected[p.id]),
         [prospects, selected],
@@ -152,6 +194,86 @@ export default function SearchShow({ search, prospects, outreachProspectIds = []
                         ) : null
                     }
                 />
+
+                {!isDirectUrl && (
+                    <form onSubmit={saveCpc} className="skip-banner mb-16">
+                        <Stack gap={12}>
+                            <div className="filter-range-row">
+                                <Field
+                                    label={`CPC benchmark · ${search.niche} in ${search.city}`}
+                                    hint={
+                                        search.cpc_source === 'google_ads'
+                                            ? 'From Google Ads · saved as default for this niche and city'
+                                            : 'Used in GBP outreach · saved as default for this niche and city'
+                                    }
+                                >
+                                    <div className="input-with-prefix">
+                                        <span className="prefix">£</span>
+                                        <Input
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            value={cpcForm.data.cpc_benchmark}
+                                            onChange={(e) => cpcForm.setData('cpc_benchmark', e.target.value)}
+                                            placeholder={marketCpcDefault?.cpc_benchmark ?? 'e.g. 8.50'}
+                                        />
+                                    </div>
+                                </Field>
+                                <Stack direction="row" gap={8} className="self-end">
+                                    {googleAdsCpcAvailable && (
+                                        <Button
+                                            kind="ghost"
+                                            size="sm"
+                                            type="button"
+                                            disabled={fetchingCpc}
+                                            onClick={fetchCpcFromGoogleAds}
+                                        >
+                                            {fetchingCpc ? 'Fetching…' : 'Fetch from Google Ads'}
+                                        </Button>
+                                    )}
+                                    <Button
+                                        kind="secondary"
+                                        size="sm"
+                                        type="submit"
+                                        disabled={cpcForm.processing}
+                                    >
+                                        {cpcForm.processing ? 'Saving…' : 'Save default'}
+                                    </Button>
+                                </Stack>
+                            </div>
+
+                            <Field
+                                label="Seed keywords"
+                                hint="One per line · from Google Ads fetch or your Keyword Planner research"
+                            >
+                                <Textarea
+                                    rows={4}
+                                    value={cpcForm.data.cpc_keywords}
+                                    onChange={(e) => cpcForm.setData('cpc_keywords', e.target.value)}
+                                    placeholder={'dental practice Birmingham\ndentist Birmingham'}
+                                />
+                            </Field>
+
+                            <Stack direction="row" gap={12} align="center" className="micro text-stone">
+                                {search.cpc_source && (
+                                    <span>Source: {cpcSourceLabel}</span>
+                                )}
+                                {marketCpcDefault?.updated_at && (
+                                    <span>
+                                        Market default updated {new Date(marketCpcDefault.updated_at).toLocaleDateString('en-GB')}
+                                    </span>
+                                )}
+                            </Stack>
+
+                            {flash?.success && (
+                                <p className="micro text-positive mb-0">{flash.success}</p>
+                            )}
+                            {flash?.error && (
+                                <p className="micro text-critical mb-0">{flash.error}</p>
+                            )}
+                        </Stack>
+                    </form>
+                )}
 
                 {isRunning && (
                     <div className="progress-bar">

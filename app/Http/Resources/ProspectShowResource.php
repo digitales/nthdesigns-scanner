@@ -20,6 +20,7 @@ use App\Services\CombineScoresService;
 use App\Services\ProgressFlowService;
 use App\Services\ProspectExclusionService;
 use App\Services\ProspectListMembershipService;
+use App\Services\ProspectUnsubscribeService;
 use App\Services\ReportBuilderService;
 use App\Services\TagService;
 use Illuminate\Http\Request;
@@ -39,16 +40,18 @@ class ProspectShowResource
         ProspectListMembershipService $listMembership,
         TagService $tags,
         AgencyBookingService $agencyBooking,
+        ProspectUnsubscribeService $unsubscribe,
     ): array {
         $user = $request->user();
         $search = $prospect->search;
         $ignored = $exclusions->findForUser($user->id, $prospect->place_id);
+        $emailSuppressed = $unsubscribe->isSuppressed($user, $prospect->email);
         $listMemberships = $listMembership->membershipsForProspect($user, $prospect->id);
         $manualLists = $listMembership->manualListsFor($user);
 
         return [
             'navigation' => self::navigation($request, $prospect, $search),
-            'prospect' => self::prospect($prospect),
+            'prospect' => self::prospect($prospect, $emailSuppressed),
             'search' => self::search($prospect, $search, $combiner),
             'report' => self::report($prospect, $agencyBooking),
             'outreachEmails' => self::outreachEmails($prospect),
@@ -101,7 +104,7 @@ class ProspectShowResource
     /**
      * @return array<string, mixed>
      */
-    private static function prospect(Prospect $prospect): array
+    private static function prospect(Prospect $prospect, bool $emailSuppressed): array
     {
         return [
             'id' => $prospect->id,
@@ -109,6 +112,8 @@ class ProspectShowResource
             'business_name' => $prospect->business_name,
             'address' => $prospect->address,
             'phone' => $prospect->phone,
+            'email' => $prospect->email,
+            'email_suppressed' => $emailSuppressed,
             'website_url' => $prospect->website_url,
             'website_url_source' => $prospect->website_url_source ?? 'gbp',
             'website_discovery_confidence' => $prospect->website_discovery_confidence,
@@ -175,6 +180,7 @@ class ProspectShowResource
     {
         return $prospect->outreachEmails->map(fn ($e) => [
             'id' => $e->id,
+            'to_email' => $prospect->email,
             'pitch_angle' => $e->pitch_angle,
             'subject_line' => $e->subject_line,
             'email_body' => $e->email_body,

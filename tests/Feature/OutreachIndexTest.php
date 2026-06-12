@@ -66,4 +66,29 @@ class OutreachIndexTest extends TestCase
                 ->where('emailsByProspect.'.$prospect->id.'.0.subject_line', 'Quick question')
                 ->where('emailsByProspect.'.$prospect->id.'.0.pitch_angle', 'gbp'));
     }
+
+    public function test_index_prefills_cpc_from_search(): void
+    {
+        $user = User::factory()->create();
+        $search = Search::factory()->create([
+            'user_id' => $user->id,
+            'cpc_benchmark' => 8.50,
+            'cpc_source' => 'manual',
+        ]);
+        $prospect = Prospect::factory()->create(['search_id' => $search->id]);
+        ProspectReport::factory()->create(['prospect_id' => $prospect->id]);
+
+        OutreachSelection::create([
+            'user_id' => $user->id,
+            'prospect_id' => $prospect->id,
+        ]);
+
+        $this->actingAs($user)
+            ->get('/outreach')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('defaults.cpc_benchmark', '8.50')
+                ->where('defaults.cpc_from_search', true)
+                ->where('defaults.cpc_mixed', false));
+    }
 }

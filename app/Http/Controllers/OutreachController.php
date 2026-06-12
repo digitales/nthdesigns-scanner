@@ -8,7 +8,9 @@ use App\Http\Resources\OutreachSelectionResource;
 use App\Jobs\GenerateOutreachEmailJob;
 use App\Models\OutreachSelection;
 use App\Models\Prospect;
+use App\Services\Outreach\CpcBenchmarkResolver;
 use App\Services\Outreach\OutreachQueueLoader;
+use App\Services\ProspectUnsubscribeService;
 use App\Services\UserSettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,6 +22,8 @@ class OutreachController extends Controller
     public function __construct(
         private UserSettingsService $settings,
         private OutreachQueueLoader $queue,
+        private CpcBenchmarkResolver $cpcBenchmarks,
+        private ProspectUnsubscribeService $unsubscribe,
     ) {}
 
     public function index(Request $request): Response
@@ -28,6 +32,7 @@ class OutreachController extends Controller
         $bookedOnly = $request->boolean('booked');
         $selections = $this->queue->selections($user, $bookedOnly);
         $emailsByProspect = $this->queue->latestEmailsByProspect($user, $selections->pluck('prospect_id'));
+        $cpcDefaults = $this->cpcBenchmarks->formDefaults($selections);
 
         return Inertia::render('Outreach/Index', [
             'selection' => $selections
@@ -38,7 +43,9 @@ class OutreachController extends Controller
             'defaults' => [
                 'agency_name' => $this->settings->agencyName($user) ?? '',
                 'pitch_angle' => 'auto',
-                'cpc_benchmark' => '',
+                'cpc_benchmark' => $cpcDefaults['value'],
+                'cpc_mixed' => $cpcDefaults['mixed'],
+                'cpc_from_search' => $cpcDefaults['from_search'],
             ],
         ]);
     }
@@ -91,8 +98,9 @@ class OutreachController extends Controller
             $options['agency_name'] = $validated['agency_name'];
         }
 
-        if (isset($validated['cpc_benchmark'])) {
+        if (! empty($validated['cpc_benchmark'])) {
             $options['cpc_benchmark'] = (float) $validated['cpc_benchmark'];
+            $options['cpc_source'] = 'outreach_override';
         }
 
         $selections = $this->queue->selections($request->user(), bookedOnly: false, withReport: true);
@@ -100,14 +108,22 @@ class OutreachController extends Controller
         $skipped = [];
 
         foreach ($selections as $selection) {
-            if (! $selection->prospect->report) {
-                $skipped[] = $selection->prospect->business_name;
+            $prospect = $selection->prospect;
+
+            if (! $prospect->report) {
+                $skipped[] = $prospect->business_name;
+
+                continue;
+            }
+
+            if ($skipReason = $this->unsubscribe->outreachSkipReason($request->user(), $prospect)) {
+                $skipped[] = $prospect->business_name.' ('.$skipReason.')';
 
                 continue;
             }
 
             GenerateOutreachEmailJob::dispatch(
-                $selection->prospect,
+                $prospect,
                 $request->user(),
                 $options,
             );

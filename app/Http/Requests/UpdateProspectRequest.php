@@ -17,6 +17,7 @@ class UpdateProspectRequest extends FormRequest
         return [
             'business_name' => ['sometimes', 'required', 'string', 'max:255'],
             'phone' => ['sometimes', 'nullable', 'string', 'max:50'],
+            'email' => ['sometimes', 'nullable', 'email', 'max:255'],
             'website_url' => ['sometimes', 'nullable', 'url', 'max:500'],
             'address' => ['sometimes', 'nullable', 'string', 'max:500'],
         ];
@@ -25,7 +26,7 @@ class UpdateProspectRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {
-            if (! $this->hasAny(['business_name', 'phone', 'website_url', 'address'])) {
+            if (! $this->hasAny(['business_name', 'phone', 'email', 'website_url', 'address'])) {
                 $validator->errors()->add('business_name', 'Provide at least one field to update.');
             }
         });
@@ -33,6 +34,10 @@ class UpdateProspectRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        if ($this->has('email') && filled($this->input('email'))) {
+            $this->merge(['email' => strtolower(trim((string) $this->input('email')))]);
+        }
+
         if ($this->has('website_url') && filled($this->input('website_url'))) {
             $url = trim((string) $this->input('website_url'));
             if (! str_starts_with($url, 'http://') && ! str_starts_with($url, 'https://')) {

@@ -200,7 +200,16 @@ export default function OutreachIndex({
                     />
                   </Field>
                 </Grid>
-                <Field label="CPC benchmark" hint="optional">
+                <Field
+                  label="CPC benchmark"
+                  hint={
+                    defaults.cpc_mixed
+                      ? "Queue spans multiple searches — each prospect uses its search CPC unless you override here"
+                      : defaults.cpc_from_search
+                        ? "Pre-filled from search — override for this batch if needed"
+                        : "optional · GBP pitches · set on search or enter here"
+                  }
+                >
                   <div className="input-with-prefix">
                     <span className="prefix">£</span>
                     <Input
@@ -212,6 +221,11 @@ export default function OutreachIndex({
                     />
                   </div>
                 </Field>
+                {defaults.cpc_mixed && (
+                  <p className="micro text-stone mb-16">
+                    Mixed queue: leave blank to use each prospect&apos;s search CPC, or enter a value to override all.
+                  </p>
+                )}
                 <div className="mt-20">
                   <Button
                     kind="primary"

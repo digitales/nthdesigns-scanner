@@ -18,7 +18,7 @@ class Prospect extends Model
     use HasFactory;
 
     protected $fillable = [
-        'search_id', 'place_id', 'business_name', 'phone', 'website_url', 'website_url_source',
+        'search_id', 'place_id', 'business_name', 'phone', 'email', 'website_url', 'website_url_source',
         'website_discovery_confidence', 'website_discovered_at', 'address',
         'rating', 'review_count', 'photo_count', 'has_description', 'hours_complete',
         'gbp_score', 'gbp_flags', 'a11y_score', 'a11y_flags', 'performance_score',

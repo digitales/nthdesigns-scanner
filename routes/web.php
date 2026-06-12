@@ -19,6 +19,8 @@ use App\Http\Controllers\ProspectController;
 use App\Http\Controllers\ProspectIgnoreController;
 use App\Http\Controllers\ProspectListController;
 use App\Http\Controllers\ProspectNoteController;
+use App\Http\Controllers\ProspectUnsubscribeController;
+use App\Http\Controllers\PublicUnsubscribeController;
 use App\Http\Controllers\ProspectTagController;
 use App\Http\Controllers\PublicBookingController;
 use App\Http\Controllers\PublicReportBookingController;
@@ -73,6 +75,9 @@ Route::get('/r/{token}/booking.ics', [PublicReportBookingController::class, 'ics
     ->middleware('throttle:60,1')
     ->name('reports.public.booking.ics');
 Route::get('/book', [PublicBookingController::class, 'show'])->name('book.index');
+Route::get('/unsubscribe', [PublicUnsubscribeController::class, 'show'])
+    ->middleware('throttle:60,1')
+    ->name('unsubscribe');
 
 Route::get('/admin/horizon', function () {
     return redirect('/horizon');
@@ -95,6 +100,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/searches', [SearchController::class, 'store'])->name('searches.store');
     Route::post('/searches/direct', [SearchController::class, 'storeDirectUrl'])->name('searches.store-direct');
     Route::get('/searches/{search}', [SearchController::class, 'show'])->name('searches.show');
+    Route::patch('/searches/{search}/cpc', [SearchController::class, 'updateCpc'])->name('searches.cpc.update');
+    Route::post('/searches/{search}/cpc/fetch', [SearchController::class, 'fetchCpc'])->name('searches.cpc.fetch');
 
     Route::get('/saved', [SavedProspectController::class, 'index'])->name('saved.index');
 
@@ -131,6 +138,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/prospects/{prospect}/notes', [ProspectNoteController::class, 'store'])->name('prospects.notes.store');
     Route::post('/prospects/{prospect}/ignore', [ProspectIgnoreController::class, 'store'])->name('prospects.ignore.store');
     Route::delete('/prospects/{prospect}/ignore', [ProspectIgnoreController::class, 'destroy'])->name('prospects.ignore.destroy');
+    Route::post('/prospects/{prospect}/unsubscribe', [ProspectUnsubscribeController::class, 'store'])->name('prospects.unsubscribe.store');
     Route::post('/prospects/{prospect}/niche-scan', [ProspectController::class, 'refreshMarketScan'])->name('prospects.niche-scan');
     Route::post('/prospects/{prospect}/audit', [ProspectController::class, 'reauditSite'])->name('prospects.audit');
     Route::post('/prospects/{prospect}/report', [ProspectController::class, 'generateReport'])->name('prospects.report');

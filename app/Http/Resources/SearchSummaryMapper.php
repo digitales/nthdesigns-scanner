@@ -31,6 +31,12 @@ class SearchSummaryMapper
         return array_merge(self::format($search, $createdAtFormat), [
             'country' => $search->country,
             'scan_type' => $search->scan_type->value,
+            'cpc_benchmark' => $search->cpc_benchmark !== null
+                ? number_format((float) $search->cpc_benchmark, 2, '.', '')
+                : null,
+            'cpc_source' => $search->cpc_source,
+            'cpc_keywords' => $search->cpc_keywords ?? [],
+            'cpc_geo_target' => $search->cpc_geo_target,
         ]);
     }
 
