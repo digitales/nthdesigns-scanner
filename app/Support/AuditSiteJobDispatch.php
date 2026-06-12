@@ -15,7 +15,10 @@ final class AuditSiteJobDispatch
     public static function dispatch(Prospect $prospect, int $extraDelaySeconds = 0): PendingDispatch
     {
         $pending = AuditSiteJob::dispatch($prospect->fresh());
-        $delay = self::staggerDelaySeconds($prospect) + max(0, $extraDelaySeconds);
+        $delay = QueueDispatchDelay::combine(
+            self::staggerDelaySeconds($prospect),
+            $extraDelaySeconds,
+        );
 
         if ($delay > 0) {
             $pending->delay(now()->addSeconds($delay));

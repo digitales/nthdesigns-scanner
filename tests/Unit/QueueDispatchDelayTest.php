@@ -19,4 +19,10 @@ class QueueDispatchDelayTest extends TestCase
         $this->assertNull(QueueDispatchDelay::maxJobsPerBatch(0));
         $this->assertSame(181, QueueDispatchDelay::maxJobsPerBatch(5));
     }
+
+    public function test_combine_caps_total_at_sqs_max(): void
+    {
+        $this->assertSame(900, QueueDispatchDelay::combine(900, 20));
+        $this->assertSame(900, QueueDispatchDelay::combine(870, 50, 10));
+    }
 }

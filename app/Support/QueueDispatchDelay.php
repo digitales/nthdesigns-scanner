@@ -27,4 +27,18 @@ final class QueueDispatchDelay
 
         return intdiv(self::MAX_SECONDS, $stepSeconds) + 1;
     }
+
+    /**
+     * Sum delay parts for a single dispatch, capped at the SQS maximum.
+     */
+    public static function combine(int ...$parts): int
+    {
+        $total = 0;
+
+        foreach ($parts as $part) {
+            $total += max(0, $part);
+        }
+
+        return min($total, self::MAX_SECONDS);
+    }
 }

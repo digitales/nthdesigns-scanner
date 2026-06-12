@@ -79,4 +79,31 @@ class AuditSiteJobDispatchTest extends TestCase
 
         $this->assertSame(0, AuditSiteJobDispatch::staggerDelaySeconds($prospect));
     }
+
+    public function test_dispatch_caps_stagger_plus_extra_at_sqs_max(): void
+    {
+        Config::set('scanner.audit_dispatch_stagger_seconds', 30);
+
+        $user = User::factory()->create();
+        $search = Search::factory()->create(['user_id' => $user->id]);
+
+        for ($i = 0; $i < 30; $i++) {
+            Prospect::factory()->create(['search_id' => $search->id]);
+        }
+
+        $late = Prospect::factory()->create(['search_id' => $search->id]);
+
+        $this->assertSame(900, AuditSiteJobDispatch::staggerDelaySeconds($late));
+
+        Bus::fake();
+
+        AuditSiteJobDispatch::dispatch($late, extraDelaySeconds: 20);
+
+        Bus::assertDispatched(AuditSiteJob::class, function (AuditSiteJob $job) use ($late) {
+            return $job->prospect->id === $late->id
+                && $job->delay !== null
+                && $job->delay->lessThanOrEqualTo(now()->addSeconds(900))
+                && $job->delay->greaterThanOrEqualTo(now()->addSeconds(899));
+        });
+    }
 }
