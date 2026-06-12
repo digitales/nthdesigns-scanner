@@ -23,9 +23,9 @@ import {
     Segmented,
     Stack,
     Status,
-    Textarea,
 } from '@/Components/ui';
 import { normalizeAngle } from '@/Components/ui/scoreBand';
+import CpcBenchmarkPanel from '@/Components/Search/CpcBenchmarkPanel';
 import { showA11yForSearch } from '@/utils/auditVisibility';
 
 export default function SearchShow({
@@ -196,83 +196,24 @@ export default function SearchShow({
                 />
 
                 {!isDirectUrl && (
-                    <form onSubmit={saveCpc} className="skip-banner mb-16">
-                        <Stack gap={12}>
-                            <div className="filter-range-row">
-                                <Field
-                                    label={`CPC benchmark · ${search.niche} in ${search.city}`}
-                                    hint={
-                                        search.cpc_source === 'google_ads'
-                                            ? 'From Google Ads · saved as default for this niche and city'
-                                            : 'Used in GBP outreach · saved as default for this niche and city'
-                                    }
-                                >
-                                    <div className="input-with-prefix">
-                                        <span className="prefix">£</span>
-                                        <Input
-                                            type="number"
-                                            min="0"
-                                            step="0.01"
-                                            value={cpcForm.data.cpc_benchmark}
-                                            onChange={(e) => cpcForm.setData('cpc_benchmark', e.target.value)}
-                                            placeholder={marketCpcDefault?.cpc_benchmark ?? 'e.g. 8.50'}
-                                        />
-                                    </div>
-                                </Field>
-                                <Stack direction="row" gap={8} className="self-end">
-                                    {googleAdsCpcAvailable && (
-                                        <Button
-                                            kind="ghost"
-                                            size="sm"
-                                            type="button"
-                                            disabled={fetchingCpc}
-                                            onClick={fetchCpcFromGoogleAds}
-                                        >
-                                            {fetchingCpc ? 'Fetching…' : 'Fetch from Google Ads'}
-                                        </Button>
-                                    )}
-                                    <Button
-                                        kind="secondary"
-                                        size="sm"
-                                        type="submit"
-                                        disabled={cpcForm.processing}
-                                    >
-                                        {cpcForm.processing ? 'Saving…' : 'Save default'}
-                                    </Button>
-                                </Stack>
-                            </div>
-
-                            <Field
-                                label="Seed keywords"
-                                hint="One per line · from Google Ads fetch or your Keyword Planner research"
-                            >
-                                <Textarea
-                                    rows={4}
-                                    value={cpcForm.data.cpc_keywords}
-                                    onChange={(e) => cpcForm.setData('cpc_keywords', e.target.value)}
-                                    placeholder={'dental practice Birmingham\ndentist Birmingham'}
-                                />
-                            </Field>
-
-                            <Stack direction="row" gap={12} align="center" className="micro text-stone">
-                                {search.cpc_source && (
-                                    <span>Source: {cpcSourceLabel}</span>
-                                )}
-                                {marketCpcDefault?.updated_at && (
-                                    <span>
-                                        Market default updated {new Date(marketCpcDefault.updated_at).toLocaleDateString('en-GB')}
-                                    </span>
-                                )}
-                            </Stack>
-
-                            {flash?.success && (
-                                <p className="micro text-positive mb-0">{flash.success}</p>
-                            )}
-                            {flash?.error && (
-                                <p className="micro text-critical mb-0">{flash.error}</p>
-                            )}
-                        </Stack>
-                    </form>
+                    <CpcBenchmarkPanel
+                        niche={search.niche}
+                        city={search.city}
+                        cpcSource={search.cpc_source}
+                        cpcSourceLabel={cpcSourceLabel}
+                        cpcBenchmark={cpcForm.data.cpc_benchmark}
+                        cpcKeywords={cpcForm.data.cpc_keywords}
+                        marketCpcDefault={marketCpcDefault}
+                        marketDefaultUpdatedAt={marketCpcDefault?.updated_at}
+                        googleAdsCpcAvailable={googleAdsCpcAvailable}
+                        fetchingCpc={fetchingCpc}
+                        processing={cpcForm.processing}
+                        flash={flash}
+                        onBenchmarkChange={(value) => cpcForm.setData('cpc_benchmark', value)}
+                        onKeywordsChange={(value) => cpcForm.setData('cpc_keywords', value)}
+                        onSubmit={saveCpc}
+                        onFetchFromGoogleAds={fetchCpcFromGoogleAds}
+                    />
                 )}
 
                 {isRunning && (

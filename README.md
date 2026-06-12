@@ -42,6 +42,16 @@ Configure `.env`:
 | `AUDIT_SCRIPT_PATH` | Path to `scripts/audit.js` |
 | `REPORT_BOOKING_URL` | CTA on public reports |
 | `REPORT_EXPIRY_DAYS` | Report link expiry (default 30) |
+| `GOOGLE_ADS_*` | Optional CPC lookup for GBP outreach — see [docs/cpc-benchmarks.md](docs/cpc-benchmarks.md) |
+
+## Documentation
+
+| Doc | Contents |
+|-----|----------|
+| [docs/cpc-benchmarks.md](docs/cpc-benchmarks.md) | CPC workflow, market defaults, outreach inheritance, API fee separation |
+| [docs/integrations/google-ads-cpc.md](docs/integrations/google-ads-cpc.md) | Google Ads API setup, fetch routes, architecture |
+| [docs/deployment/laravel-cloud.md](docs/deployment/laravel-cloud.md) | Production deploy, queues, Fly browser service |
+| [docs/niches.md](docs/niches.md) | Niche opportunity scanner |
 
 ## Running
 
@@ -57,11 +67,12 @@ Production on [Laravel Cloud](docs/deployment/laravel-cloud.md) uses `QUEUE_CONN
 
 ## Workflow
 
-1. **Search** (`/search`) — niche + city + scan type (GBP only, accessibility only, or combined).
-2. **Results** (`/searches/{id}`) — scored prospects; click a business for detail.
-3. **Prospect** (`/prospects/{id}`) — generate public report, generate outreach email, track sent/response.
-4. **Public report** (`/r/{token}`) — shareable audit for the prospect (no login).
-5. **Horizon** (`/horizon`) — queue monitoring (auth required).
+1. **Search** (`/search`) — niche + city + scan type. Optionally set CPC first (Load saved / Fetch from Google Ads / manual) — see [CPC benchmarks](docs/cpc-benchmarks.md).
+2. **Results** (`/searches/{id}`) — scored prospects; edit CPC default and seed keywords; click a business for detail.
+3. **Prospect** (`/prospects/{id}`) — generate public report, add to outreach queue, track sent/response.
+4. **Outreach** (`/outreach`) — batch-generate emails; CPC pre-fills from search or market default.
+5. **Public report** (`/r/{token}`) — shareable audit for the prospect (no login).
+6. **Horizon** (`/horizon`) — queue monitoring (auth required).
 
 ## Tests
 

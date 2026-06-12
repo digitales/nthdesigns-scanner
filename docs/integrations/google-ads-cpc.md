@@ -1,8 +1,19 @@
 # Google Ads CPC integration
 
-Optional integration that fetches local keyword CPC benchmarks via the [Google Ads API](https://developers.google.com/google-ads/api/docs/start) and stores them on `searches.cpc_benchmark` with `cpc_source = google_ads`.
+Optional integration that fetches local keyword CPC benchmarks via the [Google Ads API](https://developers.google.com/google-ads/api/docs/start) REST API.
 
-Outreach inherits the value automatically (see search-level CPC).
+Results are stored in **`market_cpc_defaults`** (reusable per niche + city) and on individual **`searches`** when fetched from a search results page. Outreach inherits CPC automatically — see [CPC benchmarks for outreach](../cpc-benchmarks.md).
+
+---
+
+## Design principles
+
+1. **CPC lookup is separate from niche search** — Places discovery and Google Ads keyword planning are different APIs with different costs.
+2. **`GOOGLE_ADS_CPC_AUTO_FETCH` defaults to `false`** — no Google Ads call when you click Run scan unless you opt in.
+3. **Keywords are recorded** — seed phrases are stored in `cpc_keywords` for auditability and manual review.
+4. **Market defaults persist** — one row per user + niche + city; new searches inherit without re-fetching.
+
+---
 
 ## Prerequisites
 
@@ -13,97 +24,148 @@ Outreach inherits the value automatically (see search-level CPC).
    ```
    https://www.googleapis.com/auth/adwords
    ```
-5. **Customer ID** of the Ads account to query (digits only, no dashes). Use a GBP-denominated account for UK outreach copy.
+5. **Customer ID** of the Ads account to query (digits only, no dashes). Use a **GBP-denominated** account for UK outreach copy.
 
 If you manage client accounts from an MCC, set `GOOGLE_ADS_LOGIN_CUSTOMER_ID` to the manager account ID.
+
+---
 
 ## Environment
 
 ```env
+# Recommended production defaults
 GOOGLE_ADS_ENABLED=true
-GOOGLE_ADS_CPC_AUTO_FETCH=true   # dispatch FetchSearchCpcJob on new searches without manual CPC
+GOOGLE_ADS_CPC_AUTO_FETCH=false
+
+GOOGLE_ADS_API_VERSION=v18
 GOOGLE_ADS_DEVELOPER_TOKEN=
 GOOGLE_ADS_CUSTOMER_ID=
-GOOGLE_ADS_LOGIN_CUSTOMER_ID=    # optional
+GOOGLE_ADS_LOGIN_CUSTOMER_ID=    # optional MCC
 GOOGLE_ADS_CLIENT_ID=
 GOOGLE_ADS_CLIENT_SECRET=
 GOOGLE_ADS_REFRESH_TOKEN=
 ```
 
+Optional tuning in `config/google_ads.php`:
+
+| Key | Default | Purpose |
+|---|---|---|
+| `max_seed_keywords` | 5 | Seed phrases built from niche + city |
+| `page_size` | 50 | Max keyword ideas read from API |
+| `geo_targets` | `[]` | Static `city\|country` → geo constant map |
+
+---
+
 ## Obtaining a refresh token
 
 1. Create OAuth credentials in [Google Cloud Console](https://console.cloud.google.com/apis/credentials).
-2. Use the [OAuth 2.0 Playground](https://developers.google.com/oauthplayground/) or `google-ads:cpc` after a one-off auth script:
+2. Use the [OAuth 2.0 Playground](https://developers.google.com/oauthplayground/):
    - Authorise scope `https://www.googleapis.com/auth/adwords`
    - Exchange for refresh token
 3. Store the refresh token in `GOOGLE_ADS_REFRESH_TOKEN`.
 
-Google’s official [PHP client setup guide](https://developers.google.com/google-ads/api/docs/client-libs/php/oauth-web) walks through the same flow in more detail.
+Google’s [PHP client OAuth guide](https://developers.google.com/google-ads/api/docs/client-libs/php/oauth-web) covers the same flow in more detail.
 
-## Manual lookup
+---
+
+## How to fetch CPC (without running a search)
+
+### UI — new search page (`/search`)
+
+1. Enter **niche** and **city** (and country).
+2. Click **Fetch from Google Ads** — calls `POST /market-cpc/fetch` only.
+3. CPC and keywords pre-fill; **no Places API call**, no search row created.
+4. Click **Run scan** when ready (Places fees only).
+
+**Load saved** reads a previous market default from the database (free).
+
+### UI — search results (`/searches/{id}`)
+
+**Fetch from Google Ads** re-runs the lookup for that search’s niche + city and updates the search row and market default. Does not re-run prospect discovery.
+
+### CLI
 
 ```bash
+# Lookup only — prints median CPC and seed keywords
 php artisan google-ads:cpc "dental practice" Birmingham --country=GB
-```
 
-Prints seed keywords, resolved geo target, and median CPC (£).
-
-## Standalone CPC lookup (no niche search)
-
-CPC lookup is **independent** of the Places discovery pipeline. By default `GOOGLE_ADS_CPC_AUTO_FETCH=false`, so creating a search does **not** call Google Ads.
-
-| Action | Places API | Google Ads API |
-|---|---|---|
-| **Run scan** (`POST /searches`) | Yes | No (unless auto-fetch enabled) |
-| **Fetch from Google Ads** on `/search` (`POST /market-cpc/fetch`) | No | Yes |
-| **Load saved** on `/search` (`POST /market-cpc/load`) | No | No (database only) |
-| **Fetch from Google Ads** on search results (existing search) | No | Yes |
-| **CLI** `google-ads:cpc` | No | Yes |
-
-Use **Fetch from Google Ads** on the new search page after entering niche + city — it saves the market default without running discovery. Then **Run scan** when you are ready (Places fees only).
-
-```bash
-# CLI — lookup only
-php artisan google-ads:cpc "dental practice" Birmingham
-
-# CLI — lookup and save market default for user 1
+# Lookup and persist market default
 php artisan google-ads:cpc "dental practice" Birmingham --save --user=1
 ```
 
+---
+
+## API cost matrix
+
+| Action | Places API | Google Ads API |
+|---|---|---|
+| Run scan (`POST /searches`) | Yes | No (unless `GOOGLE_ADS_CPC_AUTO_FETCH=true`) |
+| Fetch on `/search` (`POST /market-cpc/fetch`) | No | Yes |
+| Load saved (`POST /market-cpc/load`) | No | No |
+| Fetch on search results (`POST /searches/{id}/cpc/fetch`) | No | Yes |
+| CLI `google-ads:cpc` | No | Yes |
+| Generate outreach | No | No |
+
+---
+
 ## Automatic lookup on search create (opt-in)
 
-When `GOOGLE_ADS_CPC_AUTO_FETCH=true`, creating a search **without** a manual CPC dispatches `FetchSearchCpcJob` on the `searches` queue. The job:
+When `GOOGLE_ADS_CPC_AUTO_FETCH=true` and `GOOGLE_ADS_ENABLED=true`, creating a search **without** a manual CPC dispatches `FetchSearchCpcJob` on the `searches` queue.
 
-1. Builds commercial seed keywords from niche + city
-2. Resolves geo target (config map or `suggestGeoTargetConstants`)
-3. Calls `generateKeywordIdeas`
-4. Takes the **median** of `averageCpcMicros`, falling back to top-of-page bid micros
-5. Writes `searches.cpc_benchmark` unless already set
-6. Upserts **`market_cpc_defaults`** (per user + niche + city) and stores **`cpc_keywords`** on both the search and the market default
+The job:
 
-Failures are logged and do not block the search pipeline.
+1. Builds seed keywords via `CpcKeywordSeeder` (e.g. `dental practice Birmingham`, `dental practice in Birmingham`)
+2. Resolves geo target (`config/google_ads.php` map or `suggestGeoTargetConstants`)
+3. Calls `customers/{id}:generateKeywordIdeas`
+4. Computes **median** CPC from `averageCpcMicros`, falling back to top-of-page bid micros
+5. Upserts `market_cpc_defaults` and updates the search row with CPC + keywords
 
-## Market defaults and keywords
+Failures are logged; the search pipeline continues.
 
-| Store | Purpose |
-|---|---|
-| `market_cpc_defaults` | Reusable default for a niche + city — applied to new searches automatically |
-| `searches.cpc_*` | Snapshot for this specific search run |
-| `cpc_keywords` (JSON) | Seed keywords used for the lookup (editable on search results) |
+---
 
-Saving CPC on the **search results page** updates both the current search and the market default. Yes — **recording keywords is worth it**: it makes manual overrides auditable, shows what the Google Ads fetch used, and helps when revisiting a market months later.
+## Lookup algorithm
 
-## Optional geo overrides
+**Seed keywords** (`CpcKeywordSeeder`):
 
-Add static geo IDs to `config/google_ads.php` under `geo_targets` to skip the suggest call:
-
-```php
-'geo_targets' => [
-    'birmingham|GB' => 'geoTargetConstants/9041139',
-],
+```text
+{niche} {city}
+{niche} in {city}
+local {niche} {city}
+best {niche} {city}
+{niche} near {city}
 ```
 
-Find IDs via the API or [Geo targets reference](https://developers.google.com/google-ads/api/data/geotargets).
+For `GB`, also: `{niche} {city} uk`. Capped at `max_seed_keywords` (default 5).
+
+**CPC value:** median of positive micros values across returned keyword ideas. Stored in pounds (account currency assumed GBP for UK operators).
+
+---
+
+## Database
+
+### `market_cpc_defaults`
+
+| Column | Type | Notes |
+|---|---|---|
+| `user_id` | FK | Per operator |
+| `niche`, `city`, `country` | string | Normalised lowercase niche/city |
+| `cpc_benchmark` | decimal | £ per click |
+| `cpc_source` | string | `google_ads`, `manual`, … |
+| `cpc_keywords` | json | Seed keyword array |
+| `cpc_geo_target` | string | e.g. `geoTargetConstants/9041139` |
+
+Unique on `(user_id, niche, city, country)`.
+
+### `searches` (CPC columns)
+
+`cpc_benchmark`, `cpc_source`, `cpc_keywords`, `cpc_geo_target` — snapshot for the search run.
+
+### `outreach_emails` (CPC columns)
+
+`cpc_benchmark`, `cpc_source` — what was used when the email was generated.
+
+---
 
 ## Architecture
 
@@ -113,14 +175,47 @@ Find IDs via the API or [Geo targets reference](https://developers.google.com/go
 | `GoogleAdsClient` | REST client (developer token + bearer auth) |
 | `GoogleAdsGeoTargetResolver` | City → `geoTargetConstants/{id}` |
 | `CpcKeywordSeeder` | Niche + city → seed keyword list |
-| `GoogleAdsKeywordPlanService` | Orchestrates lookup, returns £ CPC |
-| `FetchSearchCpcJob` | Persists CPC on a `Search` row |
+| `GoogleAdsKeywordPlanService` | `generateKeywordIdeas` → `CpcBenchmarkResult` |
+| `MarketCpcLookupService` | Fetch + save to market defaults (no Places) |
+| `MarketCpcDefaultService` | CRUD + apply default to new searches |
+| `MarketCpcController` | `POST /market-cpc/load` and `/fetch` |
+| `FetchSearchCpcJob` | Async fetch for a search row |
+| `CpcBenchmarkResolver` | Resolve CPC at outreach generate time |
 
 Uses the REST API directly (no `googleads/google-ads-php` dependency).
 
-## Limitations (v1 scaffold)
+---
 
-- Account currency must match outreach market (GBP assumed for UK copy).
-- Low-volume niches may return empty CPC metrics — set CPC manually on the search page.
-- No UI for OAuth yet; credentials are env-only.
-- Rate limits apply per developer token; auto-fetch is one API call per search.
+## Optional geo overrides
+
+Add static geo IDs to `config/google_ads.php` to skip the suggest API call:
+
+```php
+'geo_targets' => [
+    'birmingham|GB' => 'geoTargetConstants/9041139',
+],
+```
+
+Find IDs via the [Geo targets reference](https://developers.google.com/google-ads/api/data/geotargets).
+
+---
+
+## Limitations
+
+- Account currency should match outreach market (GBP for UK copy).
+- Low-volume niches may return empty metrics — set CPC manually.
+- No in-app OAuth UI; credentials are env-only.
+- Google Ads rate limits apply per developer token.
+- `cpc_keywords` on manual save are operator-provided; Google Ads fetch populates them automatically.
+
+---
+
+## Troubleshooting
+
+| Symptom | Check |
+|---|---|
+| Fetch button hidden | `GOOGLE_ADS_ENABLED=true` and all OAuth/token env vars set |
+| “No CPC data returned” | Niche too obscure; try manual Keyword Planner entry |
+| Wrong £ amount | Account currency not GBP; or sparse keyword ideas — verify seeds |
+| CPC not in outreach | Pitch angle is A11y-only, or no CPC on search and no form override |
+| Places charged on CPC fetch | You ran **Run scan** — CPC fetch alone does not call Places |

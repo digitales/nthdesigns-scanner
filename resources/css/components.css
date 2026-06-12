@@ -2091,6 +2091,94 @@
   .input-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
   .input-grow { flex: 1; min-width: 160px; }
   .filter-range-row { display: flex; align-items: center; gap: 10px; padding-top: 6px; }
+
+  /* CPC benchmark panel (search results) */
+  .cpc-benchmark-panel {
+    background: var(--color-paper);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+  .page-header + .cpc-benchmark-panel {
+    margin-top: -8px;
+  }
+  .cpc-benchmark-panel__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px 20px;
+    background: var(--color-sev-moderate-soft);
+    border-bottom: 1px solid oklch(0.610 0.085 85 / 0.2);
+  }
+  .cpc-benchmark-panel__title {
+    margin: 0 0 4px;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-stone-600);
+  }
+  .cpc-benchmark-panel__market {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--color-ink);
+    line-height: 1.3;
+  }
+  .cpc-benchmark-panel__desc {
+    margin: 6px 0 0;
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: oklch(0.42 0.07 80);
+  }
+  .cpc-benchmark-panel__body {
+    display: grid;
+    grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+    gap: 20px 28px;
+    align-items: start;
+    padding: 18px 20px;
+  }
+  .cpc-benchmark-panel__input-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+  .cpc-benchmark-panel__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .input-with-prefix--narrow {
+    width: 118px;
+    flex-shrink: 0;
+  }
+  .cpc-benchmark-panel__footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 20px;
+    padding: 10px 20px;
+    border-top: 1px solid var(--color-line);
+    background: var(--color-paper-2);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--color-stone-500);
+  }
+  .cpc-benchmark-panel__flash--success { color: var(--color-positive); }
+  .cpc-benchmark-panel__flash--error { color: var(--color-sev-critical); }
+  @media (max-width: 720px) {
+    .cpc-benchmark-panel__body {
+      grid-template-columns: 1fr;
+    }
+    .cpc-benchmark-panel__header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
   .min-w-36 { min-width: 36px; }
   .biz-title-row { display: flex; align-items: center; gap: 8px; }
   .badge--queue { font-size: 10px; background: var(--color-stone-200); }
