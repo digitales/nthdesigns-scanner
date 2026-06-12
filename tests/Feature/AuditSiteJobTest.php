@@ -15,6 +15,7 @@ use App\Services\AuditRunnerService;
 use App\Services\CmsDetectionRunnerService;
 use App\Services\ScreenshotStorageService;
 use App\Services\SearchStatusService;
+use App\Services\SiteScanPreflightGate;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use RuntimeException;
@@ -23,6 +24,12 @@ use Tests\TestCase;
 class AuditSiteJobTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        config(['scanner.site_preflight_enabled' => false]);
+    }
 
     private function pendingProspect(): Prospect
     {
@@ -64,6 +71,7 @@ class AuditSiteJobTest extends TestCase
                 app(ScreenshotStorageService::class),
                 app(AuditErrorRecorder::class),
                 app(CmsDetectionRunnerService::class),
+                app(SiteScanPreflightGate::class),
             );
             $this->fail('Expected RuntimeException was not thrown.');
         } catch (RuntimeException $e) {
@@ -98,6 +106,7 @@ class AuditSiteJobTest extends TestCase
                 app(ScreenshotStorageService::class),
                 app(AuditErrorRecorder::class),
                 app(CmsDetectionRunnerService::class),
+                app(SiteScanPreflightGate::class),
             );
             $this->fail('Expected RuntimeException was not thrown.');
         } catch (RuntimeException) {
@@ -143,6 +152,7 @@ class AuditSiteJobTest extends TestCase
             app(ScreenshotStorageService::class),
             app(AuditErrorRecorder::class),
             app(CmsDetectionRunnerService::class),
+            app(SiteScanPreflightGate::class),
         );
 
         $prospect->refresh();
@@ -183,6 +193,7 @@ class AuditSiteJobTest extends TestCase
             app(ScreenshotStorageService::class),
             app(AuditErrorRecorder::class),
             app(CmsDetectionRunnerService::class),
+            app(SiteScanPreflightGate::class),
         );
 
         $prospect->refresh();

@@ -7,6 +7,7 @@ use App\Enums\ScanType;
 use App\Enums\SearchStatus;
 use App\Models\Prospect;
 use App\Models\Search;
+use App\Support\ProspectSiteScan;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -61,7 +62,7 @@ class ProgressFlowService
             'current_step' => $step,
             'step_started_at' => $startedAt?->toIso8601String(),
             'step_duration_bucket' => $this->durationBucket($startedAt ?? $prospect->updated_at ?? $prospect->created_at),
-            'status_message' => $this->prospectMessage($step, $search),
+            'status_message' => $this->prospectMessage($step, $search, $prospect),
         ];
     }
 
@@ -132,8 +133,13 @@ class ProgressFlowService
         return 'a11y';
     }
 
-    private function prospectMessage(string $step, Search $search): string
+    private function prospectMessage(string $step, Search $search, Prospect $prospect): string
     {
+        if (($prospect->audit_status ?? AuditStatus::Pending) === AuditStatus::Failed
+            && ProspectSiteScan::siteUnreachable($prospect)) {
+            return 'Site unreachable';
+        }
+
         return match ($step) {
             'discovery' => 'Discovering business profile',
             'gbp' => 'Scoring Google Business Profile',

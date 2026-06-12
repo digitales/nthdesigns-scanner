@@ -47,6 +47,16 @@ return [
     // HTTP client timeout for Fly/browser-service /screenshot (goto 45s + capture 60s + headroom).
     'screenshot_timeout' => (int) env('SCREENSHOT_TIMEOUT', 150),
 
+    'site_preflight_enabled' => filter_var(env('SITE_PREFLIGHT_ENABLED', true), FILTER_VALIDATE_BOOL),
+
+    'site_preflight_timeout' => (int) env('SITE_PREFLIGHT_TIMEOUT', 10),
+
+    'site_preflight_connect_timeout' => (int) env('SITE_PREFLIGHT_CONNECT_TIMEOUT', 5),
+
+    'site_preflight_retries' => (int) env('SITE_PREFLIGHT_RETRIES', 2),
+
+    'site_preflight_user_agent' => env('SITE_PREFLIGHT_USER_AGENT', 'nthdesigns-scanner-preflight/1.0'),
+
     'report_booking_url' => env('REPORT_BOOKING_URL'),
 
     'report_expiry_days' => (int) env('REPORT_EXPIRY_DAYS', 30),

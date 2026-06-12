@@ -13,6 +13,7 @@ use App\Services\AuditRunnerService;
 use App\Services\CmsDetectionRunnerService;
 use App\Services\ScreenshotStorageService;
 use App\Services\SearchStatusService;
+use App\Services\SiteScanPreflightGate;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
@@ -20,6 +21,12 @@ use Tests\TestCase;
 class CmsDetectionIntegrationTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        config(['scanner.site_preflight_enabled' => false]);
+    }
 
     public function test_enrichment_dispatches_detect_cms_for_gbp_only_when_url_added(): void
     {
@@ -89,6 +96,7 @@ class CmsDetectionIntegrationTest extends TestCase
             app(ScreenshotStorageService::class),
             app(AuditErrorRecorder::class),
             app(CmsDetectionRunnerService::class),
+            app(SiteScanPreflightGate::class),
         );
 
         $prospect->refresh();

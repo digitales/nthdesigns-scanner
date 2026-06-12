@@ -449,7 +449,9 @@ export default function ProspectShow({
                             )}
                             {prospect.audit_status === 'failed' && (
                                 <p className="micro mt-4 text-critical">
-                                    Site audit failed. Use Re-run site audit above, or fix the website URL and save.
+                                    {prospect.site_unreachable
+                                        ? 'Site unreachable. Fix the website URL and re-run site audit above.'
+                                        : 'Site audit failed. Use Re-run site audit above, or fix the website URL and save.'}
                                 </p>
                             )}
                         </Card>

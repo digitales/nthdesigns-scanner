@@ -13,6 +13,7 @@ use App\Services\AuditRunnerService;
 use App\Services\CmsDetectionRunnerService;
 use App\Services\ScreenshotStorageService;
 use App\Services\SearchStatusService;
+use App\Services\SiteScanPreflightGate;
 use App\Support\AuditSiteJobTimeout;
 use App\Support\CmsDetectionPayload;
 use App\Support\ScannerJobContext;
@@ -52,6 +53,7 @@ class AuditSiteJob implements ShouldQueue
         ScreenshotStorageService $storage,
         AuditErrorRecorder $errorRecorder,
         CmsDetectionRunnerService $cmsRunner,
+        SiteScanPreflightGate $preflightGate,
     ): void {
         ScannerJobContext::add(self::class, ['prospect_id' => $this->prospect->id]);
 
@@ -69,6 +71,16 @@ class AuditSiteJob implements ShouldQueue
             CombineScoresJob::dispatch($prospect);
             $searchStatus->refresh($prospect->search);
 
+            return;
+        }
+
+        if (! $preflightGate->passOrFail($prospect)) {
+            return;
+        }
+
+        $prospect = $prospect->fresh();
+
+        if (! $prospect || $prospect->audit_status !== AuditStatus::Pending) {
             return;
         }
 

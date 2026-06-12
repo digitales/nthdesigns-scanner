@@ -6,6 +6,7 @@ use App\Enums\AuditJobStatus;
 use App\Enums\AuditStatus;
 use App\Models\Prospect;
 use App\Models\Search;
+use App\Support\ProspectSiteScan;
 use App\Services\ProgressFlowService;
 use App\Services\ReportBuilderService;
 
@@ -33,6 +34,7 @@ class SearchProspectResource
             'audit_status' => ($prospect->audit_status ?? AuditStatus::Pending)->value,
             'audit_error' => self::auditError($prospect),
             'site_load_error' => self::siteLoadError($prospect),
+            'site_unreachable' => self::siteUnreachable($prospect),
             'gbp_flags' => $prospect->gbp_flags ?? [],
             'a11y_flags' => $prospect->a11y_flags ?? [],
             'report_ready' => $prospect->report !== null,
@@ -76,6 +78,7 @@ class SearchProspectResource
             'audit_status' => ($prospect->audit_status ?? AuditStatus::Pending)->value,
             'audit_error' => self::auditError($prospect),
             'site_load_error' => self::siteLoadError($prospect),
+            'site_unreachable' => self::siteUnreachable($prospect),
             'report_ready' => $prospect->report !== null,
             'report_url' => $prospect->report ? url('/r/'.$prospect->report->token) : null,
             'is_warm' => $prospect->report?->viewed_at !== null
@@ -109,5 +112,10 @@ class SearchProspectResource
         }
 
         return (string) $payload['error'];
+    }
+
+    private static function siteUnreachable(Prospect $prospect): bool
+    {
+        return ProspectSiteScan::siteUnreachable($prospect);
     }
 }

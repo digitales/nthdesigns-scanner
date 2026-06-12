@@ -273,6 +273,7 @@ function ProspectRow({
 }) {
     const isFailed = p.audit_status === 'failed';
     const isPending = p.audit_status === 'pending';
+    const isSiteUnreachable = Boolean(p.site_unreachable);
     const isWarm = p.is_warm;
     const siteLoadError = p.site_load_error ?? null;
     const siteLoadFailed = Boolean(siteLoadError) && !isPending && !isFailed;
@@ -347,7 +348,7 @@ function ProspectRow({
                 </td>
                 <td>
                     {isFailed ? (
-                        <Status kind="failed">Audit failed</Status>
+                        <Status kind="failed">{isSiteUnreachable ? 'Site unreachable' : 'Audit failed'}</Status>
                     ) : isPending ? (
                         <Status kind="pending">{p.progress_flow?.status_message ?? 'Auditing site'}</Status>
                     ) : !p.report_ready ? (

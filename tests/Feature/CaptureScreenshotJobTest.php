@@ -128,4 +128,51 @@ class CaptureScreenshotJobTest extends TestCase
             'job_type' => 'screenshot',
         ]);
     }
+
+    public function test_skips_when_audit_status_failed(): void
+    {
+        $report = $this->reportWithWebsite();
+        $report->prospect->update(['audit_status' => AuditStatus::Failed]);
+
+        $this->mock(ScreenshotCaptureService::class, function ($mock) {
+            $mock->shouldNotReceive('captureDesktop');
+        });
+
+        (new CaptureScreenshotJob($report))->handle(
+            app(ScreenshotCaptureService::class),
+            app(ScreenshotStorageService::class),
+            app(AuditErrorRecorder::class),
+        );
+
+        $this->assertDatabaseMissing('audit_jobs', [
+            'prospect_id' => $report->prospect_id,
+            'job_type' => 'screenshot',
+        ]);
+    }
+
+    public function test_page_load_error_does_not_rethrow(): void
+    {
+        $report = $this->reportWithWebsite();
+
+        $this->mock(ScreenshotCaptureService::class, function ($mock) {
+            $mock->shouldReceive('captureDesktop')
+                ->once()
+                ->andThrow(new \App\Exceptions\ScreenshotPageLoadException('page.goto: net::ERR_NAME_NOT_RESOLVED'));
+        });
+
+        (new CaptureScreenshotJob($report))->handle(
+            app(ScreenshotCaptureService::class),
+            app(ScreenshotStorageService::class),
+            app(AuditErrorRecorder::class),
+        );
+
+        $auditJob = AuditJob::query()
+            ->where('prospect_id', $report->prospect_id)
+            ->where('job_type', 'screenshot')
+            ->first();
+
+        $this->assertNotNull($auditJob);
+        $this->assertSame(AuditJobStatus::Failed, $auditJob->status);
+        $this->assertNull($report->fresh()->screenshot_paths['desktop'] ?? null);
+    }
 }

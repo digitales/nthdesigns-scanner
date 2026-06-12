@@ -4,11 +4,14 @@ namespace App\Jobs;
 
 use App\Enums\AuditJobStatus;
 use App\Enums\AuditJobType;
+use App\Enums\AuditStatus;
+use App\Exceptions\ScreenshotPageLoadException;
 use App\Models\AuditJob;
 use App\Models\ProspectReport;
 use App\Services\AuditErrorRecorder;
 use App\Services\ScreenshotCaptureService;
 use App\Services\ScreenshotStorageService;
+use App\Support\ProspectSiteScan;
 use App\Support\ScannerJobContext;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -79,6 +82,11 @@ class CaptureScreenshotJob implements ShouldQueue
             return;
         }
 
+        if ($report->prospect->audit_status === AuditStatus::Failed
+            || ProspectSiteScan::preflightFailed($report->prospect->raw_a11y_payload)) {
+            return;
+        }
+
         $paths = $report->screenshot_paths ?? [];
 
         if (! empty($paths['desktop'])) {
@@ -108,6 +116,18 @@ class CaptureScreenshotJob implements ShouldQueue
                 'status' => AuditJobStatus::Complete,
                 'completed_at' => now(),
             ]);
+        } catch (ScreenshotPageLoadException $e) {
+            Log::warning('CaptureScreenshotJob skipped unreachable site', [
+                'report_id' => $report->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            $auditJob->update([
+                'status' => AuditJobStatus::Failed,
+                'completed_at' => now(),
+            ]);
+
+            $errorRecorder->recordFailure($auditJob, $errorRecorder->formatThrowable($e));
         } catch (\Throwable $e) {
             Log::warning('CaptureScreenshotJob failed', [
                 'report_id' => $report->id,

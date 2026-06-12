@@ -16,6 +16,7 @@ use App\Services\CmsDetectionRunnerService;
 use App\Services\CombineScoresService;
 use App\Services\ScreenshotStorageService;
 use App\Services\SearchStatusService;
+use App\Services\SiteScanPreflightGate;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Config;
@@ -24,6 +25,12 @@ use Tests\TestCase;
 class AuditDriverTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        config(['scanner.site_preflight_enabled' => false]);
+    }
 
     public function test_audit_site_job_skips_to_combine_when_driver_is_skip(): void
     {
@@ -49,6 +56,7 @@ class AuditDriverTest extends TestCase
             app(ScreenshotStorageService::class),
             app(AuditErrorRecorder::class),
             app(CmsDetectionRunnerService::class),
+            app(SiteScanPreflightGate::class),
         );
 
         Bus::assertDispatched(CombineScoresJob::class);

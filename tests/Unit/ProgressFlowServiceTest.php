@@ -214,6 +214,24 @@ class ProgressFlowServiceTest extends TestCase
     }
 
     #[Test]
+    public function test_prospect_flow_unreachable_failed_message(): void
+    {
+        $search = Search::factory()->create();
+        $prospect = Prospect::factory()->for($search)->make([
+            'audit_status' => 'failed',
+            'raw_a11y_payload' => [
+                'url' => 'https://dead.example',
+                'error' => 'Could not resolve host',
+                'preflight_failed' => true,
+            ],
+        ]);
+
+        $flow = $this->service->prospectFlow($prospect, $search);
+
+        $this->assertSame('Site unreachable', $flow['status_message']);
+    }
+
+    #[Test]
     public function test_prospect_flow_uses_latest_audit_job_started_at(): void
     {
         Carbon::setTestNow('2026-06-05 12:01:00');

@@ -12,6 +12,7 @@ use App\Models\IgnoredProspect;
 use App\Models\NicheScan;
 use App\Models\Prospect;
 use App\Models\Search;
+use App\Support\ProspectSiteScan;
 use App\Queries\LatestNicheScanQuery;
 use App\Services\AgencyBookingService;
 use App\Services\Booking\BookingPresentation;
@@ -119,6 +120,7 @@ class ProspectShowResource
             'combined_score' => $prospect->combined_score,
             'dominant_angle' => $prospect->dominant_angle,
             'audit_status' => $prospect->audit_status,
+            'site_unreachable' => ProspectSiteScan::siteUnreachable($prospect),
         ];
     }
 

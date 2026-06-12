@@ -1,1 +1,2 @@
-app="nth-scanner-browser"
+app = 'nth-scanner-browser'
+primary_region = 'lhr'

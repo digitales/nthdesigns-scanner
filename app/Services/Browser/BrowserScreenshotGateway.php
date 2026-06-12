@@ -2,6 +2,7 @@
 
 namespace App\Services\Browser;
 
+use App\Exceptions\ScreenshotPageLoadException;
 use Illuminate\Http\Client\ConnectionException;
 
 class BrowserScreenshotGateway
@@ -22,7 +23,7 @@ class BrowserScreenshotGateway
             $payload = $this->parseFailedResponse($response->body());
 
             if ($payload !== null && ! empty($payload['error'])) {
-                throw new \RuntimeException((string) $payload['error']);
+                throw new ScreenshotPageLoadException((string) $payload['error']);
             }
 
             throw new \RuntimeException(
@@ -33,7 +34,7 @@ class BrowserScreenshotGateway
         $payload = $response->json();
 
         if (! is_array($payload) || ! empty($payload['error'])) {
-            throw new \RuntimeException($payload['error'] ?? 'Screenshot service returned invalid JSON');
+            throw new ScreenshotPageLoadException($payload['error'] ?? 'Screenshot service returned invalid JSON');
         }
 
         $base64 = $payload['content_base64'] ?? null;

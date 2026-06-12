@@ -107,7 +107,7 @@ class BrowserServiceClientTest extends TestCase
             ]),
         ]);
 
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(\App\Exceptions\ScreenshotPageLoadException::class);
         $this->expectExceptionMessage('page.screenshot: Timeout 30000ms exceeded.');
 
         $dir = storage_path('app/temp/browser-screenshot-error-test');
