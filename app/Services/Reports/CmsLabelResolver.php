@@ -56,6 +56,7 @@ class CmsLabelResolver
             'webflow' => 'Webflow',
             'joomla' => 'Joomla',
             'drupal' => 'Drupal',
+            'craft' => 'Craft CMS',
             'unknown' => 'Unknown',
         ];
 
@@ -82,6 +83,7 @@ class CmsLabelResolver
             'webflow' => 'Webflow',
             'joomla' => 'Joomla',
             'drupal' => 'Drupal',
+            'craft' => 'Craft',
             default => '?',
         };
     }

@@ -108,3 +108,47 @@ test('returns fetch_failed signal on error', () => {
     assert.equal(result.platform, 'unknown');
     assert.ok(result.signals.some((s) => s.id === 'fetch_failed' && s.matched));
 });
+
+test('detects Craft CMS from CraftSessionId Set-Cookie header', () => {
+    const result = resolveCmsFromInputs({
+        html: '<html><body></body></html>',
+        bodyClass: '',
+        headers: {
+            'set-cookie': 'CraftSessionId=abc123; path=/; secure; HttpOnly',
+        },
+        finalUrl: 'https://www.example-dental.co.uk/',
+    });
+
+    assert.equal(result.platform, 'craft');
+    assert.equal(result.confidence, 'high');
+    assert.ok(result.signals.some((s) => s.id === 'cookie_craft_session' && s.matched));
+});
+
+test('detects Craft CMS from browser cookie names', () => {
+    const result = resolveCmsFromInputs({
+        html: '<html><body></body></html>',
+        bodyClass: '',
+        headers: {},
+        cookieNames: ['OptanonConsent', 'CraftSessionId'],
+        finalUrl: 'https://www.example-dental.co.uk/',
+    });
+
+    assert.equal(result.platform, 'craft');
+    assert.equal(result.confidence, 'high');
+});
+
+test('detects Craft CMS from HTML markers with version', () => {
+    const html = load('craft-cpresources.html');
+    const result = resolveCmsFromInputs({
+        html,
+        bodyClass: 'home',
+        headers: {},
+        finalUrl: 'https://example.com/',
+    });
+
+    assert.equal(result.platform, 'craft');
+    assert.equal(result.version, '4.14.0');
+    assert.equal(result.confidence, 'high');
+    assert.ok(result.signals.some((s) => s.id === 'meta_generator_craft' && s.matched));
+    assert.ok(result.signals.some((s) => s.id === 'html_cpresources' && s.matched));
+});

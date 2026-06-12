@@ -1,3 +1,6 @@
+import https from 'node:https';
+import http from 'node:http';
+
 const PLATFORMS = [
     'wordpress',
     'shopify',
@@ -6,6 +9,7 @@ const PLATFORMS = [
     'webflow',
     'joomla',
     'drupal',
+    'craft',
 ];
 
 const RULES = [
@@ -152,7 +156,53 @@ const RULES = [
             || htmlLower.includes('/sites/default/'),
         detail: () => 'Drupal assets or paths',
     },
+    {
+        id: 'cookie_craft_session',
+        platform: 'craft',
+        weight: 10,
+        test: ({ headers, cookieNames }) => craftCookiePattern.test(craftCookieSource(headers, cookieNames)),
+        detail: ({ headers, cookieNames }) => {
+            const match = craftCookieSource(headers, cookieNames).match(/(?:CraftSessionId|CRAFT_CSRF_TOKEN)[^;\s]*/i);
+
+            return match?.[0] ?? 'Craft session cookie';
+        },
+    },
+    {
+        id: 'meta_generator_craft',
+        platform: 'craft',
+        weight: 10,
+        test: ({ generator }) => /craft\s+cms/i.test(generator ?? ''),
+        detail: ({ generator }) => generator,
+        version: ({ generator }) => {
+            const match = (generator ?? '').match(/Craft CMS\s*([\d.]+)/i);
+
+            return match?.[1] ?? null;
+        },
+    },
+    {
+        id: 'html_cpresources',
+        platform: 'craft',
+        weight: 8,
+        test: ({ htmlLower }) => htmlLower.includes('/cpresources/'),
+        detail: () => 'Craft cpresources path in HTML',
+    },
+    {
+        id: 'html_craft_actions',
+        platform: 'craft',
+        weight: 6,
+        test: ({ htmlLower }) => htmlLower.includes('/actions/'),
+        detail: () => 'Craft actions path in HTML',
+    },
 ];
+
+const craftCookiePattern = /CraftSessionId|CRAFT_CSRF_TOKEN/i;
+
+function craftCookieSource(headers, cookieNames = []) {
+    return [
+        headers?.['set-cookie'] ?? '',
+        cookieNames.join('; '),
+    ].join('; ');
+}
 
 function parseGenerator(html) {
     const match = html.match(/<meta[^>]+name=["']generator["'][^>]*>/i);
@@ -206,6 +256,21 @@ function resolveConfidence(platform, matchedRules, totalScore) {
         return 'low';
     }
 
+    if (platform === 'craft') {
+        const hasSessionCookie = strong.some((rule) => rule.id === 'cookie_craft_session');
+        const hasGenerator = strong.some((rule) => rule.id === 'meta_generator_craft');
+
+        if (hasSessionCookie || hasGenerator) {
+            return 'high';
+        }
+
+        if (strong.length >= 1 || medium.length >= 2) {
+            return 'medium';
+        }
+
+        return 'low';
+    }
+
     if (strong.length >= 2) {
         return 'high';
     }
@@ -218,9 +283,54 @@ function resolveConfidence(platform, matchedRules, totalScore) {
 }
 
 /**
- * @param {{ html: string, bodyClass: string, headers: Record<string, string>, finalUrl: string, error?: string|null }} inputs
+ * Lightweight HEAD probe for Set-Cookie headers Playwright may omit on cached document responses.
+ *
+ * @param {string} url
+ * @param {number} timeoutMs
+ * @returns {Promise<Record<string, string>>}
  */
-export function resolveCmsFromInputs({ html, bodyClass, headers, finalUrl, error = null }) {
+export function fetchDocumentHeaders(url, timeoutMs = 10000) {
+    return new Promise((resolve) => {
+        let parsed;
+
+        try {
+            parsed = new URL(url);
+        } catch {
+            resolve({});
+
+            return;
+        }
+
+        const client = parsed.protocol === 'https:' ? https : http;
+
+        const req = client.request(url, {
+            method: 'HEAD',
+            headers: { 'User-Agent': 'nthdesigns-scanner-cms-detect/1.0' },
+            timeout: timeoutMs,
+        }, (res) => {
+            const headers = {};
+
+            for (const [key, value] of Object.entries(res.headers)) {
+                headers[key.toLowerCase()] = Array.isArray(value) ? value.join('\n') : String(value);
+            }
+
+            res.resume();
+            resolve(headers);
+        });
+
+        req.on('error', () => resolve({}));
+        req.on('timeout', () => {
+            req.destroy();
+            resolve({});
+        });
+        req.end();
+    });
+}
+
+/**
+ * @param {{ html: string, bodyClass: string, headers: Record<string, string>, cookieNames?: string[], finalUrl: string, error?: string|null }} inputs
+ */
+export function resolveCmsFromInputs({ html, bodyClass, headers, cookieNames = [], finalUrl, error = null }) {
     const detectedAt = new Date().toISOString();
 
     if (error) {
@@ -241,6 +351,7 @@ export function resolveCmsFromInputs({ html, bodyClass, headers, finalUrl, error
         htmlLower,
         bodyClass: bodyClass ?? '',
         headers: normalizeHeaders(headers),
+        cookieNames,
         generator,
     };
 
@@ -305,16 +416,35 @@ export function resolveCmsFromInputs({ html, bodyClass, headers, finalUrl, error
 export async function detectCms(page, response = null) {
     const html = await page.content();
     const bodyClass = (await page.locator('body').getAttribute('class')) ?? '';
-    const headers = response
-        ? Object.fromEntries(
-            Object.entries(response.headers()).map(([key, value]) => [key.toLowerCase(), value]),
-        )
-        : {};
+    let headers = {};
+
+    if (response) {
+        try {
+            headers = await response.allHeaders();
+        } catch {
+            headers = response.headers();
+        }
+
+        headers = normalizeHeaders(headers);
+    }
+
+    const cookieNames = (await page.context().cookies()).map((cookie) => cookie.name);
+
+    if (!craftCookiePattern.test(craftCookieSource(headers, cookieNames))) {
+        const probed = normalizeHeaders(await fetchDocumentHeaders(page.url()));
+
+        if (probed['set-cookie']) {
+            headers['set-cookie'] = headers['set-cookie']
+                ? `${headers['set-cookie']}\n${probed['set-cookie']}`
+                : probed['set-cookie'];
+        }
+    }
 
     return resolveCmsFromInputs({
         html,
         bodyClass,
         headers,
+        cookieNames,
         finalUrl: page.url(),
     });
 }
