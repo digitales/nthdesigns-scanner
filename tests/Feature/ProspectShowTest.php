@@ -8,6 +8,7 @@ use App\Enums\ProspectListType;
 use App\Models\AuditJob;
 use App\Models\NicheScan;
 use App\Models\AuditJobErrorDetail;
+use App\Models\OutreachSelection;
 use App\Models\Prospect;
 use App\Models\ProspectList;
 use App\Models\ProspectListItem;
@@ -384,5 +385,40 @@ class ProspectShowTest extends TestCase
                 ->has('addableLists', 1)
                 ->where('addableLists.0.id', $openList->id)
                 ->where('addableLists.0.name', 'Future follow-up'));
+    }
+
+    public function test_show_includes_in_outreach_false_by_default(): void
+    {
+        $user = User::factory()->create();
+        $prospect = Prospect::factory()->create([
+            'search_id' => Search::factory()->create(['user_id' => $user->id])->id,
+        ]);
+
+        $this->actingAs($user)
+            ->get("/prospects/{$prospect->id}")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Prospect/Show')
+                ->where('inOutreach', false));
+    }
+
+    public function test_show_includes_in_outreach_when_queued(): void
+    {
+        $user = User::factory()->create();
+        $prospect = Prospect::factory()->create([
+            'search_id' => Search::factory()->create(['user_id' => $user->id])->id,
+        ]);
+
+        OutreachSelection::create([
+            'user_id' => $user->id,
+            'prospect_id' => $prospect->id,
+        ]);
+
+        $this->actingAs($user)
+            ->get("/prospects/{$prospect->id}")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Prospect/Show')
+                ->where('inOutreach', true));
     }
 }

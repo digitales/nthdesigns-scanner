@@ -52,6 +52,9 @@ class ProspectShowResource
             'search' => self::search($prospect, $search, $combiner),
             'report' => self::report($prospect, $agencyBooking),
             'outreachEmails' => self::outreachEmails($prospect),
+            'inOutreach' => $user->outreachSelections()
+                ->where('prospect_id', $prospect->id)
+                ->exists(),
             'auditFailure' => self::auditFailureFor($prospect),
             'audit' => $reportBuilder->buildOperatorAudit($prospect),
             'cms' => $reportBuilder->cmsForProspect($prospect),

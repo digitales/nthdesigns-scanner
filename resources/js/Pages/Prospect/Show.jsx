@@ -16,6 +16,7 @@ import {
     Button,
     Card,
     Grid,
+    LinkButton,
     Page,
     PageHeader,
     ScoreCard,
@@ -37,6 +38,7 @@ export default function ProspectShow({
     navigation,
     report,
     outreachEmails,
+    inOutreach = false,
     auditFailure,
     audit,
     cms,
@@ -463,6 +465,18 @@ export default function ProspectShow({
                                     <Status kind={latestOutreach.sent_at ? 'ready' : 'pending'}>
                                         {latestOutreach.sent_at ? 'Sent' : 'Drafted'}
                                     </Status>
+                                </>
+                            ) : inOutreach ? (
+                                <>
+                                    <Stack direction="row" gap={8} align="center" className="mb-8">
+                                        <span className="badge badge--queue">In outreach</span>
+                                    </Stack>
+                                    <p className="micro mb-8">
+                                        In outreach queue. Generate emails from the outreach page.
+                                    </p>
+                                    <LinkButton kind="secondary" size="sm" href="/outreach">
+                                        Open outreach →
+                                    </LinkButton>
                                 </>
                             ) : (
                                 <>
