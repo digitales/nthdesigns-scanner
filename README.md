@@ -49,6 +49,8 @@ Configure `.env`:
 | Doc | Contents |
 |-----|----------|
 | [docs/cpc-benchmarks.md](docs/cpc-benchmarks.md) | CPC workflow via Keyword Planner, market defaults, outreach inheritance |
+| [docs/nthdesigns-prospect-scanner-product-summary.md](docs/nthdesigns-prospect-scanner-product-summary.md) | Product summary, saleable features, marketing analysis |
+| [docs/nthdesigns-prospect-scanner-sales-sheet.md](docs/nthdesigns-prospect-scanner-sales-sheet.md) | One-page sales sheet + homepage recommendations |
 | [docs/integrations/google-ads-cpc.md](docs/integrations/google-ads-cpc.md) | Dormant Google Ads API integration (not approved for keyword-only use) |
 | [docs/integrations/google-ads-api-design-document.md](docs/integrations/google-ads-api-design-document.md) | Design doc for Basic Access application (export to PDF) |
 | [docs/deployment/laravel-cloud.md](docs/deployment/laravel-cloud.md) | Production deploy, queues, Fly browser service |

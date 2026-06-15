@@ -1,8 +1,8 @@
 import { Link } from '@inertiajs/react';
 import { Brand, Button, LinkButton } from '@/Components/ui';
-import Arrow from './Arrow';
+import Arrow from '../../Welcome/components/Arrow';
 
-export default function Nav({ scrollTo, canLogin, canRegister }) {
+export default function AgencyNav({ scrollTo, canLogin, canRegister }) {
   const jump = (id) => (e) => {
     e.preventDefault();
     scrollTo(id);
@@ -10,15 +10,14 @@ export default function Nav({ scrollTo, canLogin, canRegister }) {
 
   return (
     <nav className="site-nav">
-      <Brand href="/" className="nav-brand" />
+      <Brand href="/for-agencies" className="nav-brand" />
       <div className="nav-links">
-        <button type="button" onClick={jump('how')}>How it works</button>
-        <button type="button" onClick={jump('sample')}>Sample report</button>
-        <button type="button" onClick={jump('evidence')}>Evidence</button>
+        <button type="button" onClick={jump('workflow')}>Workflow</button>
+        <button type="button" onClick={jump('features')}>Features</button>
         <button type="button" onClick={jump('compare')}>vs SEO tools</button>
         <button type="button" onClick={jump('pricing')}>Pricing</button>
         <button type="button" onClick={jump('faq')}>FAQ</button>
-        <Link href={route('marketing.for-agencies')} className="nav-text-link">For agencies</Link>
+        <Link href="/" className="nav-text-link">SME audits</Link>
       </div>
       <div className="nav-cta">
         {canLogin ? (
@@ -31,8 +30,8 @@ export default function Nav({ scrollTo, canLogin, canRegister }) {
             Register
           </LinkButton>
         ) : null}
-        <Button type="button" kind="primary" size="sm" onClick={() => scrollTo('hero')}>
-          Get your audit <Arrow />
+        <Button type="button" kind="primary" size="sm" onClick={() => scrollTo('cta')}>
+          Request access <Arrow />
         </Button>
       </div>
     </nav>

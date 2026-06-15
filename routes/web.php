@@ -58,6 +58,17 @@ Route::get('/', function () {
     ]);
 });
 
+Route::get('/for-agencies', function () {
+    if (auth()->check()) {
+        return redirect()->route('search.index');
+    }
+
+    return Inertia::render('ForAgencies', [
+        'canLogin' => Route::has('login'),
+        'canRegister' => Route::has('register'),
+    ]);
+})->name('marketing.for-agencies');
+
 Route::get('/dashboard', function () {
     return redirect()->route('search.index');
 })->middleware(['auth', 'verified'])->name('dashboard');

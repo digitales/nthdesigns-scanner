@@ -9,6 +9,7 @@ import Compare from './components/Compare';
 import Testimonials from './components/Testimonials';
 import Pricing from './components/Pricing';
 import SelfCheck from './components/SelfCheck';
+import WhoItsFor from './components/WhoItsFor';
 import FAQ from './components/FAQ';
 import FooterCTA from './components/FooterCTA';
 import SiteFooter from './components/SiteFooter';
@@ -30,13 +31,14 @@ export default function HomePage({ canLogin, canRegister }) {
       <SampleReportExcerpt />
       <WhyNow />
       <Evidence />
+      <WhoItsFor />
       <Compare />
       <Pricing scrollTo={scrollTo} />
       <Testimonials />
       <SelfCheck />
       <FAQ />
       <FooterCTA scrollTo={scrollTo} />
-      <SiteFooter scrollTo={scrollTo} />
+      <SiteFooter scrollTo={scrollTo} marketingPath="/" />
     </div>
   );
 }

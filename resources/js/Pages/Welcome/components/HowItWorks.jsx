@@ -11,6 +11,9 @@ export default function HowItWorks() {
           neither tells you which one is actually losing you bookings. We measure both,
           then tell you which to fix first.
         </p>
+        <p className="note note-accent mono">
+          Dental practices in Birmingham pay ~£6.50 per Google Ads click. A strong GBP delivers equivalent visibility organically.
+        </p>
       </div>
 
       <div className="signals">
@@ -44,6 +47,7 @@ export default function HowItWorks() {
             <li>Service list completeness, booking link present</li>
             <li>The single competitor most likely to take your enquiry</li>
           </ul>
+          <p className="signal-priority mono">We tell you whether to fix the website, the Google profile, or both first.</p>
         </div>
       </div>
     </section>

@@ -26,6 +26,11 @@ export default function WhyNow() {
             of our largest retainer. The cost of fixing it before one arrives is usually under
             half a day.
           </p>
+          <p className="why-now-copy">
+            For businesses serving EU customers, the European Accessibility Act enforcement
+            window also closed in 2025. UK firms with EU-facing booking flows face the same
+            objective audit standard — not just EHRC guidance at home.
+          </p>
         </div>
 
         <div className="key-dates">

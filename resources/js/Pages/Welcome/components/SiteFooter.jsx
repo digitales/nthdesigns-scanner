@@ -1,15 +1,30 @@
-export default function SiteFooter({ scrollTo }) {
+import { Link } from '@inertiajs/react';
+
+export default function SiteFooter({ scrollTo, marketingPath = '/' }) {
+  const productLinks = [
+    { label: 'How it works', href: marketingPath === '/' ? '#how' : '/#how' },
+    { label: 'Sample report', href: marketingPath === '/' ? '#sample' : '/#sample' },
+    { label: 'Pricing', href: marketingPath === '/' ? '#pricing' : '/#pricing' },
+    { label: 'For agencies', href: route('marketing.for-agencies') },
+  ];
+
+  const resourceLinks = [
+    { label: 'SME audits', href: '/' },
+    { label: 'Prospect Scanner', href: route('marketing.for-agencies') },
+    { label: 'hello@nthdesigns.co.uk', href: 'mailto:hello@nthdesigns.co.uk' },
+  ];
+
   return (
     <footer className="site">
       <div className="inner">
         <div className="pillar">
-          <div className="nav-brand footer-brand">
+          <Link href="/" className="nav-brand footer-brand">
             <span className="brand-mark" />
             <span className="brand-name">nthdesigns</span>
-          </div>
+          </Link>
           <p>
             An independent design and accessibility consultancy in the UK.<br />
-            We work with three new clients a quarter. We don't take retainers under £900/mo.
+            We work with three new clients a quarter. We don&apos;t take retainers under £900/mo.
           </p>
           <p className="mono footer-location">
             Birmingham · Manchester · remote across the UK
@@ -18,29 +33,29 @@ export default function SiteFooter({ scrollTo }) {
         <div>
           <h5>Product</h5>
           <div className="links">
-            <a>How it works</a>
-            <a>Sample report</a>
-            <a>Pricing</a>
-            <a>Methodology</a>
-            <a>Changelog</a>
+            {productLinks.map((l) => (
+              <Link key={l.label} href={l.href}>{l.label}</Link>
+            ))}
           </div>
         </div>
         <div>
           <h5>Resources</h5>
           <div className="links">
-            <a>WCAG 2.2 explained</a>
-            <a>EHRC guidance summary</a>
-            <a>Audit checklist (PDF)</a>
-            <a>For agencies (white-label)</a>
+            {resourceLinks.map((l) => (
+              l.href.startsWith('mailto:') ? (
+                <a key={l.label} href={l.href}>{l.label}</a>
+              ) : (
+                <Link key={l.label} href={l.href}>{l.label}</Link>
+              )
+            ))}
           </div>
         </div>
         <div>
           <h5>Company</h5>
           <div className="links">
-            <a>About</a>
-            <a>Past work</a>
-            <a>hello@nthdesigns.co.uk</a>
-            <a>Privacy &amp; data</a>
+            <a href="mailto:hello@nthdesigns.co.uk">hello@nthdesigns.co.uk</a>
+            <Link href="/">Free SME audit</Link>
+            <Link href={route('marketing.for-agencies')}>Agency early access</Link>
           </div>
         </div>
       </div>

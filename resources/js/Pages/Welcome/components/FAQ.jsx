@@ -1,3 +1,4 @@
+import { Link } from '@inertiajs/react';
 import { useState } from 'react';
 
 export default function FAQ() {
@@ -22,6 +23,15 @@ export default function FAQ() {
     {
       q: "Can I run a scan on a competitor?",
       a: "Yes — there's nothing to stop you, and we won't ask why. The audit only inspects what their site already publishes to the public web.",
+    },
+    {
+      q: "Is this the same tool agencies use for prospecting?",
+      a: (
+        <>
+          No — this page is for business owners who want an audit. Agencies and freelancers use our internal{' '}
+          <Link href={route('marketing.for-agencies')}>Prospect Scanner</Link> to find, score, and outreach to local prospects at scale.
+        </>
+      ),
     },
     {
       q: "Who is nthdesigns?",

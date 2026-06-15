@@ -57,7 +57,25 @@ export default function SampleReportExcerpt() {
               <SampleViol n={2} sev="critical" wcag="1.1.1 · Non-text content" title="42 images have no alternative text"
                 impact="Screen readers announce these as &quot;image&quot; with no further context — including every staff portrait on the About page."
                 fix="Add an alt attribute to each <img>. &quot;Dr Sarah Kavanagh, lead dentist&quot; beats both empty and &quot;image of dentist&quot;."
+                showScreenshot
               />
+            </div>
+
+            <div className="sr-booking-path">
+              <div className="sr-booking-step">
+                <span className="mono">1</span>
+                <div>
+                  <strong>Read the report</strong>
+                  <p>No login. Specific violations with screenshots — not a generic score.</p>
+                </div>
+              </div>
+              <div className="sr-booking-step">
+                <span className="mono">2</span>
+                <div>
+                  <strong>Book a 30-minute call</strong>
+                  <p>Inline calendar on the report page. Walk through fixes or hand the brief to your developer.</p>
+                </div>
+              </div>
             </div>
 
             <div className="sr-cta-row">
@@ -70,17 +88,30 @@ export default function SampleReportExcerpt() {
   );
 }
 
-function SampleViol({ n, sev, wcag, title, impact, fix }) {
+function SampleViol({ n, sev, wcag, title, impact, fix, showScreenshot = false }) {
   return (
     <article className="sr-viol">
       <div className="ss">
         <div className="ss-bar demo" />
         <div className="ss-tag demo">{sev === "critical" ? "2.1:1" : "issue"}</div>
-        <div className="sr-viol-demo">
-          <div className="sr-viol-demo-text">
-            Modern dentistry in<br />the heart of Birmingham
+        {showScreenshot ? (
+          <div className="sr-screenshot-panel">
+            <div className="sr-screenshot-label mono">Captured element · homepage hero</div>
+            <div className="sr-viol-demo sr-screenshot-demo">
+              <div className="sr-viol-demo-text">
+                Modern dentistry in<br />the heart of Birmingham
+              </div>
+              <div className="sr-screenshot-pin" aria-hidden="true" />
+            </div>
+            <div className="sr-screenshot-caption mono">Contrast 2.1 : 1 · fails WCAG AA</div>
           </div>
-        </div>
+        ) : (
+          <div className="sr-viol-demo">
+            <div className="sr-viol-demo-text">
+              Modern dentistry in<br />the heart of Birmingham
+            </div>
+          </div>
+        )}
         <div className="sr-viol-skeleton">
           <span />
           <span />
