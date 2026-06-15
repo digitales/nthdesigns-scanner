@@ -42,14 +42,15 @@ Configure `.env`:
 | `AUDIT_SCRIPT_PATH` | Path to `scripts/audit.js` |
 | `REPORT_BOOKING_URL` | CTA on public reports |
 | `REPORT_EXPIRY_DAYS` | Report link expiry (default 30) |
-| `GOOGLE_ADS_*` | Optional CPC lookup for GBP outreach — see [docs/cpc-benchmarks.md](docs/cpc-benchmarks.md) |
+| `GOOGLE_ADS_*` | Dormant — Google does not approve keyword-only API use; CPC via Keyword Planner — see [docs/cpc-benchmarks.md](docs/cpc-benchmarks.md) |
 
 ## Documentation
 
 | Doc | Contents |
 |-----|----------|
-| [docs/cpc-benchmarks.md](docs/cpc-benchmarks.md) | CPC workflow, market defaults, outreach inheritance, API fee separation |
-| [docs/integrations/google-ads-cpc.md](docs/integrations/google-ads-cpc.md) | Google Ads API setup, fetch routes, architecture |
+| [docs/cpc-benchmarks.md](docs/cpc-benchmarks.md) | CPC workflow via Keyword Planner, market defaults, outreach inheritance |
+| [docs/integrations/google-ads-cpc.md](docs/integrations/google-ads-cpc.md) | Dormant Google Ads API integration (not approved for keyword-only use) |
+| [docs/integrations/google-ads-api-design-document.md](docs/integrations/google-ads-api-design-document.md) | Design doc for Basic Access application (export to PDF) |
 | [docs/deployment/laravel-cloud.md](docs/deployment/laravel-cloud.md) | Production deploy, queues, Fly browser service |
 | [docs/niches.md](docs/niches.md) | Niche opportunity scanner |
 
@@ -67,8 +68,8 @@ Production on [Laravel Cloud](docs/deployment/laravel-cloud.md) uses `QUEUE_CONN
 
 ## Workflow
 
-1. **Search** (`/search`) — niche + city + scan type. Optionally set CPC first (Load saved / Fetch from Google Ads / manual) — see [CPC benchmarks](docs/cpc-benchmarks.md).
-2. **Results** (`/searches/{id}`) — scored prospects; edit CPC default and seed keywords; click a business for detail.
+1. **Search** (`/search`) — niche + city + scan type. Set CPC from Keyword Planner or **Load saved** — see [CPC benchmarks](docs/cpc-benchmarks.md).
+2. **Results** (`/searches/{id}`) — scored prospects; edit CPC and seed keywords → **Save default**; click a business for detail.
 3. **Prospect** (`/prospects/{id}`) — generate public report, add to outreach queue, track sent/response.
 4. **Outreach** (`/outreach`) — batch-generate emails; CPC pre-fills from search or market default.
 5. **Public report** (`/r/{token}`) — shareable audit for the prospect (no login).

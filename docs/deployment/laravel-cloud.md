@@ -518,19 +518,7 @@ OPENROUTER_API_KEY=
 OPENROUTER_MODEL=anthropic/claude-sonnet-4
 ```
 
-Optional — CPC benchmarks for GBP outreach (see [CPC benchmarks](../cpc-benchmarks.md) and [Google Ads integration](../integrations/google-ads-cpc.md)):
-
-```env
-GOOGLE_ADS_ENABLED=false
-GOOGLE_ADS_CPC_AUTO_FETCH=false
-GOOGLE_ADS_DEVELOPER_TOKEN=
-GOOGLE_ADS_CUSTOMER_ID=
-GOOGLE_ADS_CLIENT_ID=
-GOOGLE_ADS_CLIENT_SECRET=
-GOOGLE_ADS_REFRESH_TOKEN=
-```
-
-Keep `GOOGLE_ADS_CPC_AUTO_FETCH=false` in production unless you want every new search to call Google Ads automatically. Operators can fetch CPC from `/search` without running Places discovery.
+Leave `GOOGLE_ADS_ENABLED=false` in production. CPC is set via Keyword Planner and manual entry on search results — see [CPC benchmarks](../cpc-benchmarks.md). API integration docs: [google-ads-cpc.md](../integrations/google-ads-cpc.md) (dormant).
 
 ### Scanner behaviour
 

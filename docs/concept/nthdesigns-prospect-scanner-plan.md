@@ -768,7 +768,7 @@ HORIZON_PREFIX=nth-scanner
 
 4. **Sole trader exclusion**: will the outreach feature warn users when a prospect appears to be a sole trader? Relevant for PECR compliance on cold email.
 
-5. **CPC benchmark source**: **Resolved (2026-06):** per-user `market_cpc_defaults` (niche + city), optional [Google Ads API](../integrations/google-ads-cpc.md) fetch, manual entry on `/search` and search results. Seed keywords in `cpc_keywords`. See [CPC benchmarks](../cpc-benchmarks.md).
+5. **CPC benchmark source**: **Resolved (2026-06):** per-user `market_cpc_defaults` (niche + city), **Keyword Planner (manual)** → entry on `/search` and search results. Google Ads API rejected for keyword-only use. Seed keywords in `cpc_keywords`. See [CPC benchmarks](../cpc-benchmarks.md).
 
 6. **Booking/CTA provider**: Calendly is the obvious choice for the report page CTA. TidyCal (one-time fee) is a reasonable alternative if you want to avoid a recurring subscription. Decide before building the report page so the URL is wired through settings correctly.
 
