@@ -171,4 +171,79 @@ class SearchCpcTest extends TestCase
             ->patch("/searches/{$search->id}/cpc", ['cpc_benchmark' => 5])
             ->assertForbidden();
     }
+
+    public function test_import_keyword_planner_csv_saves_search_and_market_default(): void
+    {
+        $user = User::factory()->create();
+        $search = Search::factory()->create([
+            'user_id' => $user->id,
+            'niche' => 'management consulting',
+            'city' => 'London',
+            'country' => 'GB',
+        ]);
+
+        $file = new \Illuminate\Http\UploadedFile(
+            base_path('tests/fixtures/keyword-planner-export.csv'),
+            'keyword-planner-export.csv',
+            'text/csv',
+            null,
+            true,
+        );
+
+        $this->actingAs($user)
+            ->post("/searches/{$search->id}/cpc/import", ['file' => $file])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $search->refresh();
+
+        $this->assertSame('7.00', $search->cpc_benchmark);
+        $this->assertSame('keyword_planner_csv', $search->cpc_source);
+        $this->assertContains('business consultant uk', $search->cpc_keywords);
+
+        $this->assertDatabaseHas('market_cpc_defaults', [
+            'user_id' => $user->id,
+            'niche' => 'management consulting',
+            'city' => 'london',
+            'cpc_source' => 'keyword_planner_csv',
+        ]);
+    }
+
+    public function test_import_keyword_planner_csv_requires_niche_and_city(): void
+    {
+        $user = User::factory()->create();
+        $search = Search::factory()->directUrl()->create(['user_id' => $user->id]);
+
+        $file = new \Illuminate\Http\UploadedFile(
+            base_path('tests/fixtures/keyword-planner-export.csv'),
+            'keyword-planner-export.csv',
+            'text/csv',
+            null,
+            true,
+        );
+
+        $this->actingAs($user)
+            ->post("/searches/{$search->id}/cpc/import", ['file' => $file])
+            ->assertRedirect()
+            ->assertSessionHas('error', 'CPC import requires a niche and city search.');
+    }
+
+    public function test_other_user_cannot_import_search_cpc(): void
+    {
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+        $search = Search::factory()->create(['user_id' => $owner->id]);
+
+        $file = new \Illuminate\Http\UploadedFile(
+            base_path('tests/fixtures/keyword-planner-export.csv'),
+            'keyword-planner-export.csv',
+            'text/csv',
+            null,
+            true,
+        );
+
+        $this->actingAs($other)
+            ->post("/searches/{$search->id}/cpc/import", ['file' => $file])
+            ->assertForbidden();
+    }
 }

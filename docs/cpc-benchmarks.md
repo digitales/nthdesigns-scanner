@@ -28,6 +28,8 @@ The in-app **Fetch from Google Ads** button remains in the codebase for operator
 
 **Keywords** (`cpc_keywords` JSON array) record the seed phrases from your Keyword Planner research. They are editable on the search results page and saved with the market default.
 
+**CPC sources:** `manual`, `keyword_planner_csv`, `google_ads`, `market_default`
+
 ---
 
 ## How CPC flows into outreach
@@ -50,9 +52,20 @@ CPC entry is **independent** of niche search — running a scan never requires K
 1. Keyword Planner — research CPC for niche + city (2–3 min)
 2. /search — enter niche + city + CPC (or Load saved from a previous market)
 3. Run scan — Places API only
-4. /searches/{id} — adjust CPC/keywords if needed → Save default
+4. /searches/{id} — import Keyword Planner CSV or adjust CPC/keywords → Save default
 5. Generate reports → queue outreach → generate emails
 ```
+
+### Import from Keyword Planner
+
+On the search results page, use **Import from Keyword Planner** to upload the CSV export from Google Ads (Discover new keywords → download). The import:
+
+1. Stores every keyword row that has a **top of page bid (high range)** value
+2. Excludes non-commercial terms (graduate, jobs, careers, etc.) when calculating the CPC median
+3. Rounds the median to the nearest £0.50
+4. Saves immediately to this search and the market default (`cpc_source = keyword_planner_csv`)
+
+Manual entry and **Save default** still work if you prefer to paste keywords or tweak the CPC after import.
 
 | Step | Places API | Keyword Planner |
 |---|---|---|
@@ -111,6 +124,7 @@ New searches **without** a manual CPC inherit the market default automatically i
 ### Search results (`/searches/{id}`)
 
 - Edit **CPC benchmark** and **seed keywords** (one per line)
+- **Import from Keyword Planner** — upload CSV export; auto-calculates CPC and saves
 - **Save default** — updates this search and `market_cpc_defaults` (`cpc_source = manual`)
 
 ### Outreach (`/outreach`)
@@ -129,6 +143,7 @@ Prospects without a report are skipped on generate.
 |---|---|---|
 | `POST` | `/market-cpc/load` | Load saved market default (DB only) |
 | `PATCH` | `/searches/{id}/cpc` | Update search + market default |
+| `POST` | `/searches/{id}/cpc/import` | Import Keyword Planner CSV |
 
 ---
 

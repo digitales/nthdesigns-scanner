@@ -1,5 +1,5 @@
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useProgressReload } from '@/hooks/useProgressReload';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import CmsBadge from '@/Components/cms/CmsBadge';
@@ -43,6 +43,7 @@ export default function SearchShow({
         save_market_default: true,
     });
     const [fetchingCpc, setFetchingCpc] = useState(false);
+    const [importingCpc, setImportingCpc] = useState(false);
     const inQueue = new Set(outreachProspectIds);
     const flow = search.progress_flow ?? {};
     const phase = flow.phase ?? 'queued';
@@ -55,6 +56,13 @@ export default function SearchShow({
     const [minScore, setMinScore] = useState(0);
 
     useProgressReload(isRunning, ['search', 'prospects']);
+
+    useEffect(() => {
+        cpcForm.setData({
+            cpc_benchmark: search.cpc_benchmark ?? '',
+            cpc_keywords: (search.cpc_keywords ?? []).join('\n'),
+        });
+    }, [search.cpc_benchmark, search.cpc_keywords]);
 
     const visible = useMemo(() => {
         return prospects.filter((p) => {
@@ -137,10 +145,20 @@ export default function SearchShow({
         });
     };
 
+    const importKeywordPlannerCsv = (file) => {
+        setImportingCpc(true);
+        router.post(`/searches/${search.id}/cpc/import`, { file }, {
+            preserveScroll: true,
+            forceFormData: true,
+            onFinish: () => setImportingCpc(false),
+        });
+    };
+
     const cpcSourceLabel = {
         manual: 'Manual',
         google_ads: 'Google Ads',
         market_default: 'Market default',
+        keyword_planner_csv: 'Keyword Planner CSV',
     }[search.cpc_source] ?? search.cpc_source;
 
     const selectedProspects = useMemo(
@@ -207,12 +225,14 @@ export default function SearchShow({
                         marketDefaultUpdatedAt={marketCpcDefault?.updated_at}
                         googleAdsCpcAvailable={googleAdsCpcAvailable}
                         fetchingCpc={fetchingCpc}
+                        importingCpc={importingCpc}
                         processing={cpcForm.processing}
                         flash={flash}
                         onBenchmarkChange={(value) => cpcForm.setData('cpc_benchmark', value)}
                         onKeywordsChange={(value) => cpcForm.setData('cpc_keywords', value)}
                         onSubmit={saveCpc}
                         onFetchFromGoogleAds={fetchCpcFromGoogleAds}
+                        onImportKeywordPlanner={importKeywordPlannerCsv}
                     />
                 )}
 

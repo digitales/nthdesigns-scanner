@@ -124,6 +124,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/searches/direct', [SearchController::class, 'storeDirectUrl'])->name('searches.store-direct');
     Route::get('/searches/{search}', [SearchController::class, 'show'])->name('searches.show');
     Route::patch('/searches/{search}/cpc', [SearchController::class, 'updateCpc'])->name('searches.cpc.update');
+    Route::post('/searches/{search}/cpc/import', [SearchController::class, 'importCpc'])->name('searches.cpc.import');
     Route::post('/searches/{search}/cpc/fetch', [SearchController::class, 'fetchCpc'])->name('searches.cpc.fetch');
 
     Route::get('/saved', [SavedProspectController::class, 'index'])->name('saved.index');

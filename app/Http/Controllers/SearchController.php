@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\ScanType;
 use App\Enums\SearchSource;
 use App\Enums\SearchStatus;
+use App\Http\Requests\ImportSearchCpcRequest;
 use App\Http\Requests\StoreDirectUrlSearchRequest;
 use App\Http\Requests\StoreSearchRequest;
 use App\Http\Requests\UpdateSearchCpcRequest;
@@ -14,7 +15,10 @@ use App\Jobs\DirectUrlScanJob;
 use App\Jobs\FetchSearchCpcJob;
 use App\Jobs\ScrapeProspectsJob;
 use App\Models\Search;
+use App\Models\User;
 use App\Services\GoogleAds\GoogleAdsKeywordPlanService;
+use App\Services\KeywordPlanner\KeywordPlannerCsvImporter;
+use App\Services\KeywordPlanner\KeywordPlannerImportException;
 use App\Services\MarketCpcDefaultService;
 use App\Services\ProgressFlowService;
 use App\Services\ProspectListMembershipService;
@@ -164,32 +168,51 @@ class SearchController extends Controller
         $keywords = $request->normalizedKeywords();
         $saveMarketDefault = $request->boolean('save_market_default', true);
 
-        $search->update([
-            'cpc_benchmark' => $cpcBenchmark,
-            'cpc_source' => $cpcBenchmark !== null
-                ? ($validated['cpc_source'] ?? 'manual')
-                : null,
-            'cpc_keywords' => $cpcBenchmark !== null ? $keywords : null,
-        ]);
-
-        if ($saveMarketDefault && $search->niche && $search->city && $cpcBenchmark !== null) {
-            $this->marketCpcDefaults->upsert(
-                $request->user(),
-                $search->niche,
-                $search->city,
-                $search->country ?? 'GB',
-                [
-                    'cpc_benchmark' => $cpcBenchmark,
-                    'cpc_source' => $validated['cpc_source'] ?? 'manual',
-                    'cpc_keywords' => $keywords,
-                    'cpc_geo_target' => $search->cpc_geo_target,
-                ],
-            );
-        }
+        $this->persistCpc(
+            $search,
+            $request->user(),
+            $cpcBenchmark !== null ? (float) $cpcBenchmark : null,
+            $keywords,
+            $validated['cpc_source'] ?? 'manual',
+            $saveMarketDefault,
+        );
 
         return back()->with('success', $cpcBenchmark !== null
             ? 'CPC benchmark saved for this search and as the default for this niche and city.'
             : 'CPC benchmark cleared.');
+    }
+
+    public function importCpc(
+        ImportSearchCpcRequest $request,
+        Search $search,
+        KeywordPlannerCsvImporter $importer,
+    ): RedirectResponse {
+        $this->authorize('update', $search);
+
+        if ($search->niche === null || $search->city === null) {
+            return back()->with('error', 'CPC import requires a niche and city search.');
+        }
+
+        try {
+            $result = $importer->import($request->file('file'));
+        } catch (KeywordPlannerImportException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        $this->persistCpc(
+            $search,
+            $request->user(),
+            $result->benchmark,
+            $result->keywords,
+            'keyword_planner_csv',
+        );
+
+        return back()->with('success', sprintf(
+            'Imported %d keywords · CPC £%s (median of %d commercial terms)',
+            $result->totalCount,
+            number_format($result->benchmark, 2),
+            $result->commercialCount,
+        ));
     }
 
     public function fetchCpc(Search $search): RedirectResponse
@@ -207,6 +230,39 @@ class SearchController extends Controller
         FetchSearchCpcJob::dispatch($search, force: true);
 
         return back()->with('success', 'CPC lookup queued from Google Ads. Refresh in a few seconds.');
+    }
+
+    /**
+     * @param  list<string>  $keywords
+     */
+    private function persistCpc(
+        Search $search,
+        User $user,
+        ?float $cpcBenchmark,
+        array $keywords,
+        string $cpcSource,
+        bool $saveMarketDefault = true,
+    ): void {
+        $search->update([
+            'cpc_benchmark' => $cpcBenchmark,
+            'cpc_source' => $cpcBenchmark !== null ? $cpcSource : null,
+            'cpc_keywords' => $cpcBenchmark !== null ? $keywords : null,
+        ]);
+
+        if ($saveMarketDefault && $search->niche && $search->city && $cpcBenchmark !== null) {
+            $this->marketCpcDefaults->upsert(
+                $user,
+                $search->niche,
+                $search->city,
+                $search->country ?? 'GB',
+                [
+                    'cpc_benchmark' => $cpcBenchmark,
+                    'cpc_source' => $cpcSource,
+                    'cpc_keywords' => $keywords,
+                    'cpc_geo_target' => $search->cpc_geo_target,
+                ],
+            );
+        }
     }
 
     public function show(

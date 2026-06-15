@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { Button, Field, Input, Status, Textarea } from '@/Components/ui';
 
 export default function CpcBenchmarkPanel({
@@ -11,17 +12,37 @@ export default function CpcBenchmarkPanel({
     marketDefaultUpdatedAt,
     googleAdsCpcAvailable,
     fetchingCpc,
+    importingCpc,
     processing,
     flash,
     onBenchmarkChange,
     onKeywordsChange,
     onSubmit,
     onFetchFromGoogleAds,
+    onImportKeywordPlanner,
 }) {
+    const fileInputRef = useRef(null);
     const fromGoogleAds = cpcSource === 'google_ads';
+    const fromKeywordPlanner = cpcSource === 'keyword_planner_csv';
     const headerHint = fromGoogleAds
         ? 'Fetched from Google Ads · saved as default for this niche and city'
-        : 'Used in GBP outreach · saved as default for this niche and city';
+        : fromKeywordPlanner
+            ? 'Imported from Keyword Planner · saved as default for this niche and city'
+            : 'Used in GBP outreach · saved as default for this niche and city';
+
+    const handleImportClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = (event) => {
+        const file = event.target.files?.[0];
+
+        if (file) {
+            onImportKeywordPlanner(file);
+        }
+
+        event.target.value = '';
+    };
 
     return (
         <form onSubmit={onSubmit} className="cpc-benchmark-panel">
@@ -34,7 +55,7 @@ export default function CpcBenchmarkPanel({
                     <p className="cpc-benchmark-panel__desc">{headerHint}</p>
                 </div>
                 {cpcSource && (
-                    <Status kind={fromGoogleAds ? 'warm' : 'ready'}>{cpcSourceLabel}</Status>
+                    <Status kind={fromGoogleAds || fromKeywordPlanner ? 'warm' : 'ready'}>{cpcSourceLabel}</Status>
                 )}
             </header>
 
@@ -54,6 +75,22 @@ export default function CpcBenchmarkPanel({
                                 />
                             </div>
                             <div className="cpc-benchmark-panel__actions">
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept=".csv"
+                                    hidden
+                                    onChange={handleFileChange}
+                                />
+                                <Button
+                                    kind="ghost"
+                                    size="sm"
+                                    type="button"
+                                    disabled={importingCpc}
+                                    onClick={handleImportClick}
+                                >
+                                    {importingCpc ? 'Importing…' : 'Import from Keyword Planner'}
+                                </Button>
                                 {googleAdsCpcAvailable && (
                                     <Button
                                         kind="ghost"
@@ -80,7 +117,7 @@ export default function CpcBenchmarkPanel({
 
                 <Field
                     label="Seed keywords"
-                    hint="One per line · from Google Ads or Keyword Planner"
+                    hint="One per line · from Keyword Planner export or manual entry"
                 >
                     <Textarea
                         rows={3}
