@@ -1,6 +1,6 @@
 import AuditWidget from './AuditWidget';
 
-export default function HeroEditorial() {
+export default function HeroEditorial({ homepageAuditEnabled = true }) {
   return (
     <div className="hero-editorial" id="hero">
       <div className="eyebrow-strip">
@@ -15,7 +15,7 @@ export default function HeroEditorial() {
         best-performing competitor in your postcode. You get a written report, a fix list,
         and the option of a 30-minute call to walk through them. No retainer required.
       </p>
-      <AuditWidget kind="primary" />
+      <AuditWidget kind="primary" enabled={homepageAuditEnabled} />
     </div>
   );
 }

@@ -1,42 +1,131 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/Components/ui';
 import Arrow from './Arrow';
 
-export default function AuditWidget({ kind = "primary", autoStart = false }) {
-  const [url, setUrl] = useState("");
-  const [phase, setPhase] = useState(autoStart ? "running" : "idle");
-  const [tick, setTick] = useState(0);
+const PROGRESS_STEPS = [
+  { threshold: 'discovering', label: 'Discovered profile on Google Places' },
+  { threshold: 'auditing', label: 'Fetched page sample from your site' },
+  { threshold: 'auditing', label: 'Running axe-core + Lighthouse' },
+  { threshold: 'reporting', label: 'Compiling report' },
+];
 
-  useEffect(() => {
-    if (autoStart) {
-      setUrl("birminghamdentalpractice.co.uk");
-      const t = setTimeout(() => setPhase("complete"), 1400);
-      return () => clearTimeout(t);
+const PHASE_ORDER = ['queued', 'discovering', 'auditing', 'reporting', 'complete'];
+
+function phaseIndex(phase) {
+  const index = PHASE_ORDER.indexOf(phase);
+  return index === -1 ? 0 : index;
+}
+
+function csrfToken() {
+  return document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+}
+
+export default function AuditWidget({ kind = 'primary', enabled = true }) {
+  const [url, setUrl] = useState('');
+  const [uiState, setUiState] = useState('idle');
+  const [remotePhase, setRemotePhase] = useState('queued');
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+  const pollTokenRef = useRef(null);
+  const pollTimerRef = useRef(null);
+
+  const clearPoll = useCallback(() => {
+    if (pollTimerRef.current) {
+      clearInterval(pollTimerRef.current);
+      pollTimerRef.current = null;
     }
-  }, [autoStart]);
+  }, []);
 
-  useEffect(() => {
-    if (phase !== "running") return;
-    const id = setInterval(() => setTick(t => t + 1), 80);
-    return () => clearInterval(id);
-  }, [phase]);
+  useEffect(() => () => clearPoll(), [clearPoll]);
 
-  const run = () => {
-    if (!url.trim()) return;
-    setPhase("running");
-    setTimeout(() => setPhase("complete"), 1900);
+  const pollStatus = useCallback((token) => {
+    clearPoll();
+
+    const checkStatus = async () => {
+      try {
+        const res = await fetch(`/audit/${token}`, {
+          headers: { Accept: 'application/json' },
+        });
+
+        if (!res.ok) {
+          throw new Error('Could not check audit status.');
+        }
+
+        const data = await res.json();
+        setRemotePhase(data.failed ? 'failed' : data.phase);
+        setMessage(data.message ?? '');
+
+        if (data.report_url) {
+          clearPoll();
+          window.location.href = data.report_url;
+        } else if (data.failed) {
+          clearPoll();
+          setError(data.message ?? 'We could not complete this audit.');
+          setUiState('failed');
+        }
+      } catch {
+        clearPoll();
+        setError('Lost connection while checking audit status. Try again.');
+        setUiState('failed');
+      }
+    };
+
+    checkStatus();
+    pollTimerRef.current = setInterval(checkStatus, 3000);
+  }, [clearPoll]);
+
+  const run = async () => {
+    if (!url.trim() || uiState === 'running') {
+      return;
+    }
+
+    if (!enabled) {
+      setError('Audits are not available right now. Please try again later.');
+      setUiState('failed');
+      return;
+    }
+
+    setError('');
+    setMessage('Starting your audit…');
+    setRemotePhase('queued');
+    setUiState('running');
+
+    try {
+      const res = await fetch('/audit', {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': csrfToken(),
+        },
+        body: JSON.stringify({ website_url: url.trim() }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.message ?? 'Could not start audit.');
+      }
+
+      pollTokenRef.current = data.token;
+      pollStatus(data.token);
+    } catch (err) {
+      setError(err.message ?? 'Could not start audit.');
+      setUiState('failed');
+    }
   };
 
-  // Demo scores derived deterministically from URL hash
-  const result = useMemo(() => {
-    const h = [...(url || "demo")].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
-    const combined = 55 + (h % 40);
-    const a11y = 50 + ((h >> 3) % 45);
-    const gbp = 45 + ((h >> 6) % 45);
-    const perf = 18 + ((h >> 9) % 45);
-    const grade = combined >= 85 ? "D" : combined >= 70 ? "C" : combined >= 50 ? "C+" : "B";
-    return { combined, a11y, gbp, perf, grade };
-  }, [url]);
+  const reset = () => {
+    clearPoll();
+    pollTokenRef.current = null;
+    setUiState('idle');
+    setRemotePhase('queued');
+    setMessage('');
+    setError('');
+  };
+
+  const currentPhaseIndex = phaseIndex(remotePhase);
+  const isRunning = uiState === 'running';
 
   return (
     <div className="audit-widget">
@@ -48,15 +137,20 @@ export default function AuditWidget({ kind = "primary", autoStart = false }) {
             placeholder="your-business.co.uk"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && run()}
-            disabled={phase === "running"}
+            onKeyDown={(e) => e.key === 'Enter' && run()}
+            disabled={isRunning}
           />
         </div>
-        <Button kind={kind === "accent" ? "accent" : "primary"} size="lg" onClick={run} disabled={phase === "running"}>
-          {phase === "running"
+        <Button
+          kind={kind === 'accent' ? 'accent' : 'primary'}
+          size="lg"
+          onClick={uiState === 'failed' ? reset : run}
+          disabled={isRunning}
+        >
+          {isRunning
             ? <><span className="spinner" /> Running audit</>
-            : phase === "complete"
-              ? <>Run another <Arrow /></>
+            : uiState === 'failed'
+              ? <>Try again <Arrow /></>
               : <>Run audit <Arrow /></>}
         </Button>
       </div>
@@ -64,59 +158,28 @@ export default function AuditWidget({ kind = "primary", autoStart = false }) {
         We'll check WCAG 2.2 compliance and Google Business Profile health. No login. No email required to see the result.
       </div>
 
-      {phase === "running" && (
+      {isRunning && (
         <div className="fade-in audit-phase-panel">
           <div className="mono audit-progress-mono">
-            <div>{tick > 0  ? "✓" : "·"} Discovered profile on Google Places</div>
-            <div>{tick > 3  ? "✓" : "·"} Fetched 12 page sample from your site</div>
-            <div>{tick > 6  ? "✓" : "·"} Running axe-core + Lighthouse</div>
-            <div>{tick > 10 ? "✓" : "·"} Comparing GBP to top 3 competitors</div>
-            <div>{tick > 14 ? "✓" : "·"} Compiling report</div>
+            {message && <div className="audit-progress-status">{message}</div>}
+            {PROGRESS_STEPS.map((step) => {
+              const done = currentPhaseIndex >= phaseIndex(step.threshold) && remotePhase !== 'queued';
+
+              return (
+                <div key={step.label}>
+                  {done ? '✓' : '·'} {step.label}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
 
-      {phase === "complete" && (
+      {uiState === 'failed' && error && (
         <div className="fade-in audit-phase-panel">
-          <CompleteAuditCard result={result} url={url || "your-business.co.uk"} />
+          <p className="body-sm text-critical">{error}</p>
         </div>
       )}
-    </div>
-  );
-}
-
-function CompleteAuditCard({ result, url }) {
-  const gradeClass = result.combined >= 85 ? "grade-critical" : result.combined >= 70 ? "grade-warm" : "grade-positive";
-
-  return (
-    <div>
-      <div className="audit-complete-header">
-        <div>
-          <div className="mono audit-complete-url">{url}</div>
-          <div className="audit-complete-grade">
-            Grade <em className={gradeClass}>{result.grade}</em> · {result.combined}/100 opportunity
-          </div>
-        </div>
-        <Button kind="accent" size="sm">View full report <Arrow /></Button>
-      </div>
-      <div className="audit-complete-scores">
-        <MiniScore label="A11y" value={result.a11y} kind={result.a11y < 50 ? "crit" : result.a11y > 70 ? "warm" : ""} />
-        <MiniScore label="GBP" value={result.gbp} kind={result.gbp < 50 ? "crit" : result.gbp > 70 ? "warm" : ""} />
-        <MiniScore label="Perf" value={result.perf} kind={result.perf < 30 ? "crit" : ""} />
-        <MiniScore label="Issues" value={Math.round(result.combined / 7)} kind={result.combined > 80 ? "crit" : ""} suffix=" found" />
-      </div>
-      <div className="mono audit-complete-footnote">
-        Live demo · numbers generated from a deterministic hash. Real audits take ~90 seconds and run server-side.
-      </div>
-    </div>
-  );
-}
-
-function MiniScore({ label, value, kind, suffix }) {
-  return (
-    <div className={`mini-score${kind ? ` ${kind}` : ''}`}>
-      <div className="ms-label">{label}</div>
-      <div className={`ms-value ${kind || ""}`}>{value}{suffix || ""}</div>
     </div>
   );
 }

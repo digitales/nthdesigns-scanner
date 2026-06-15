@@ -2,7 +2,7 @@ import { Head } from '@inertiajs/react';
 import HomePage from './Welcome/HomePage';
 import '../../css/homepage.css';
 
-export default function Welcome({ canLogin, canRegister }) {
+export default function Welcome({ canLogin, canRegister, homepageAuditEnabled = true }) {
     return (
         <>
             <Head>
@@ -13,7 +13,11 @@ export default function Welcome({ canLogin, canRegister }) {
                 />
             </Head>
             <div className="marketing-page">
-                <HomePage canLogin={canLogin} canRegister={canRegister} />
+                <HomePage
+                    canLogin={canLogin}
+                    canRegister={canRegister}
+                    homepageAuditEnabled={homepageAuditEnabled}
+                />
             </div>
         </>
     );

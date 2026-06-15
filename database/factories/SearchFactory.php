@@ -5,6 +5,7 @@ namespace Database\Factories;
 use App\Models\Search;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
 
 /** @extends Factory<Search> */
 class SearchFactory extends Factory
@@ -29,6 +30,19 @@ class SearchFactory extends Factory
     {
         return $this->state(fn () => [
             'source' => 'direct_url',
+            'submitted_url' => $url,
+            'niche' => null,
+            'city' => null,
+            'scan_type' => 'combined',
+            'total_found' => 1,
+        ]);
+    }
+
+    public function homepage(string $url = 'https://example.com', ?string $publicToken = null): static
+    {
+        return $this->state(fn () => [
+            'source' => 'homepage',
+            'public_token' => $publicToken ?? (string) Str::uuid(),
             'submitted_url' => $url,
             'niche' => null,
             'city' => null,

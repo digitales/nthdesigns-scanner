@@ -47,7 +47,7 @@ class DirectUrlScanJob implements ShouldQueue
 
         $search = $this->search->fresh();
 
-        if (! $search || ! $search->isDirectUrl() || ! $search->submitted_url) {
+        if (! $search || ! $search->isSingleSiteAudit() || ! $search->submitted_url) {
             return;
         }
 

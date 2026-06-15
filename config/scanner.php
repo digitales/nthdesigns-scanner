@@ -67,6 +67,13 @@ return [
 
     'search_rate_limit_seconds' => (int) env('SEARCH_RATE_LIMIT_SECONDS', 30),
 
+    'homepage_audit' => [
+        'enabled' => filter_var(env('HOMEPAGE_AUDIT_ENABLED', true), FILTER_VALIDATE_BOOL),
+        'user_id' => env('HOMEPAGE_AUDIT_USER_ID') !== null ? (int) env('HOMEPAGE_AUDIT_USER_ID') : null,
+        'rate_limit_seconds' => (int) env('HOMEPAGE_AUDIT_RATE_LIMIT_SECONDS', 60),
+        'hourly_limit' => (int) env('HOMEPAGE_AUDIT_HOURLY_LIMIT', 5),
+    ],
+
     'search_queue_connection' => env('SEARCH_QUEUE_CONNECTION', env('QUEUE_CONNECTION', 'database')),
 
     'niche_queue_connection' => env('NICHE_QUEUE_CONNECTION', env('SCRAPING_QUEUE_CONNECTION', env('QUEUE_CONNECTION', 'database'))),

@@ -6,4 +6,5 @@ enum SearchSource: string
 {
     case Discovery = 'discovery';
     case DirectUrl = 'direct_url';
+    case Homepage = 'homepage';
 }

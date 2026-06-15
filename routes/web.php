@@ -5,13 +5,13 @@ use App\Http\Controllers\ApiQuotaSettingsController;
 use App\Http\Controllers\BookingDashboardController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\IgnoredProspectController;
+use App\Http\Controllers\MarketCpcController;
 use App\Http\Controllers\NicheAnnotationController;
 use App\Http\Controllers\NicheIgnoreController;
 use App\Http\Controllers\NicheScanController;
 use App\Http\Controllers\NicheScanSampleController;
 use App\Http\Controllers\OAuthServerController;
 use App\Http\Controllers\OAuthWellKnownController;
-use App\Http\Controllers\MarketCpcController;
 use App\Http\Controllers\OutreachController;
 use App\Http\Controllers\OutreachEmailController;
 use App\Http\Controllers\ProfileController;
@@ -20,13 +20,14 @@ use App\Http\Controllers\ProspectController;
 use App\Http\Controllers\ProspectIgnoreController;
 use App\Http\Controllers\ProspectListController;
 use App\Http\Controllers\ProspectNoteController;
-use App\Http\Controllers\ProspectUnsubscribeController;
-use App\Http\Controllers\PublicUnsubscribeController;
 use App\Http\Controllers\ProspectTagController;
+use App\Http\Controllers\ProspectUnsubscribeController;
 use App\Http\Controllers\PublicBookingController;
+use App\Http\Controllers\PublicHomepageAuditController;
 use App\Http\Controllers\PublicReportBookingController;
 use App\Http\Controllers\PublicReportController;
 use App\Http\Controllers\PublicSharedListController;
+use App\Http\Controllers\PublicUnsubscribeController;
 use App\Http\Controllers\ReportDashboardController;
 use App\Http\Controllers\SavedProspectController;
 use App\Http\Controllers\SearchController;
@@ -34,6 +35,7 @@ use App\Http\Controllers\Settings\ConnectedAppsController;
 use App\Http\Controllers\Settings\McpKeyController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SharedListController;
+use App\Services\HomepageAuditService;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -55,6 +57,7 @@ Route::get('/', function () {
     return Inertia::render('Welcome', [
         'canLogin' => Route::has('login'),
         'canRegister' => Route::has('register'),
+        'homepageAuditEnabled' => app(HomepageAuditService::class)->isEnabled(),
     ]);
 });
 
@@ -74,6 +77,12 @@ Route::get('/dashboard', function () {
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::get('/r/{token}', [PublicReportController::class, 'show'])->name('reports.public');
+Route::post('/audit', [PublicHomepageAuditController::class, 'store'])
+    ->middleware('throttle:20,1')
+    ->name('homepage-audit.store');
+Route::get('/audit/{token}', [PublicHomepageAuditController::class, 'show'])
+    ->middleware('throttle:120,1')
+    ->name('homepage-audit.status');
 Route::get('/s/{token}', [PublicSharedListController::class, 'show'])
     ->middleware('throttle:60,1')
     ->name('lists.public');

@@ -14,7 +14,7 @@ import FAQ from './components/FAQ';
 import FooterCTA from './components/FooterCTA';
 import SiteFooter from './components/SiteFooter';
 
-export default function HomePage({ canLogin, canRegister }) {
+export default function HomePage({ canLogin, canRegister, homepageAuditEnabled = true }) {
   const scrollTo = useCallback((id) => {
     const el = document.getElementById(id);
     if (el) {
@@ -26,7 +26,7 @@ export default function HomePage({ canLogin, canRegister }) {
   return (
     <div className="page-frame">
       <Nav scrollTo={scrollTo} canLogin={canLogin} canRegister={canRegister} />
-      <HeroEditorial />
+      <HeroEditorial homepageAuditEnabled={homepageAuditEnabled} />
       <HowItWorks />
       <SampleReportExcerpt />
       <WhyNow />

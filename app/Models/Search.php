@@ -15,7 +15,7 @@ class Search extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id', 'source', 'submitted_url', 'niche', 'city', 'country', 'scan_type', 'status', 'total_found',
+        'user_id', 'source', 'public_token', 'submitted_url', 'niche', 'city', 'country', 'scan_type', 'status', 'total_found',
         'benchmark_snapshot', 'cpc_benchmark', 'cpc_source', 'cpc_keywords', 'cpc_geo_target',
     ];
 
@@ -44,5 +44,15 @@ class Search extends Model
     public function isDirectUrl(): bool
     {
         return $this->source === SearchSource::DirectUrl;
+    }
+
+    public function isHomepage(): bool
+    {
+        return $this->source === SearchSource::Homepage;
+    }
+
+    public function isSingleSiteAudit(): bool
+    {
+        return in_array($this->source, [SearchSource::DirectUrl, SearchSource::Homepage], true);
     }
 }
