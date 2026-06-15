@@ -41,7 +41,7 @@ class KeywordPlannerCsvImporter
             );
         }
 
-        $contents = ltrim($contents, "\xEF\xBB\xBF");
+        $contents = $this->normalizeEncoding($contents);
         $lines = preg_split('/\R/', $contents) ?: [];
 
         if (count($lines) < 3) {
@@ -146,5 +146,22 @@ class KeywordPlannerCsvImporter
         }
 
         return false;
+    }
+
+    private function normalizeEncoding(string $contents): string
+    {
+        if (str_starts_with($contents, "\xEF\xBB\xBF")) {
+            $contents = substr($contents, 3);
+        }
+
+        if (str_starts_with($contents, "\xFF\xFE")) {
+            return mb_convert_encoding(substr($contents, 2), 'UTF-8', 'UTF-16LE');
+        }
+
+        if (str_starts_with($contents, "\xFE\xFF")) {
+            return mb_convert_encoding(substr($contents, 2), 'UTF-8', 'UTF-16BE');
+        }
+
+        return $contents;
     }
 }

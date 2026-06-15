@@ -96,6 +96,23 @@ CSV;
         $this->importer->import($this->fixture('keyword-planner-non-commercial-only.csv'));
     }
 
+    public function test_parses_utf16_keyword_planner_export(): void
+    {
+        $path = base_path('docs/inputs/Keyword Stats 2026-06-15 at 21_38_13.csv');
+
+        if (! is_readable($path)) {
+            $this->markTestSkipped('Real Keyword Planner export fixture not available.');
+        }
+
+        $file = new UploadedFile($path, 'keyword-planner-export.csv', 'text/csv', null, true);
+        $result = $this->importer->import($file);
+
+        $this->assertGreaterThan(0, $result->totalCount);
+        $this->assertGreaterThan(0, $result->commercialCount);
+        $this->assertGreaterThan(0, $result->benchmark);
+        $this->assertContains('business consultant uk', $result->keywords);
+    }
+
     private function fixture(string $filename): UploadedFile
     {
         return new UploadedFile(
