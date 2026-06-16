@@ -16,6 +16,7 @@ use App\Jobs\DirectUrlScanJob;
 use App\Jobs\FetchSearchCpcJob;
 use App\Jobs\ScrapeProspectsJob;
 use App\Models\Search;
+use App\Models\SharedSearch;
 use App\Models\User;
 use App\Services\BulkProspectAuditService;
 use App\Services\GoogleAds\GoogleAdsKeywordPlanService;
@@ -25,10 +26,13 @@ use App\Services\MarketCpcDefaultService;
 use App\Services\ProgressFlowService;
 use App\Services\ProspectListMembershipService;
 use App\Services\ReportBuilderService;
+use App\Services\SharedSearchSnapshotBuilder;
 use App\Services\UserSettingsService;
 use App\Support\WebsiteUrlNormalizer;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -309,6 +313,34 @@ class SearchController extends Controller
         $result = $bulkAudits->dispatch($ordered, $request->validated('mode'));
 
         return back()->with('success', $result->flashMessage());
+    }
+
+    public function share(
+        Request $request,
+        Search $search,
+        SharedSearchSnapshotBuilder $builder,
+    ): RedirectResponse {
+        $this->authorize('view', $search);
+
+        $prospectCount = $search->prospects()->count();
+
+        if ($prospectCount === 0) {
+            throw ValidationException::withMessages([
+                'search' => 'Add prospects before sharing this search.',
+            ]);
+        }
+
+        $shared = SharedSearch::create([
+            'user_id' => $request->user()->id,
+            'search_id' => $search->id,
+            'token' => (string) Str::uuid(),
+            'snapshot' => $builder->build($search),
+        ]);
+
+        return back()->with([
+            'success' => 'Share link created.',
+            'shared_url' => url('/q/'.$shared->token),
+        ]);
     }
 
     public function show(

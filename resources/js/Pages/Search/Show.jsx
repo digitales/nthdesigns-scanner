@@ -8,6 +8,7 @@ import {
     AnglePill,
     Badge,
     Button,
+    Card,
     Checkbox,
     DataTable,
     EmptyState,
@@ -54,8 +55,16 @@ export default function SearchShow({
     const [expanded, setExpanded] = useState(null);
     const [angleFilter, setAngleFilter] = useState('all');
     const [minScore, setMinScore] = useState(0);
+    const [sharedUrl, setSharedUrl] = useState(null);
+    const [copied, setCopied] = useState(false);
 
     useProgressReload(isRunning, ['search', 'prospects']);
+
+    useEffect(() => {
+        if (flash?.shared_url) {
+            setSharedUrl(flash.shared_url);
+        }
+    }, [flash?.shared_url]);
 
     useEffect(() => {
         cpcForm.setData({
@@ -154,6 +163,18 @@ export default function SearchShow({
         });
     };
 
+    const shareSearch = () => {
+        router.post(`/searches/${search.id}/share`, {}, { preserveScroll: true });
+    };
+
+    const copyShareLink = () => {
+        if (!sharedUrl) return;
+
+        navigator.clipboard.writeText(sharedUrl);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
     const cpcSourceLabel = {
         manual: 'Manual',
         google_ads: 'Google Ads',
@@ -217,40 +238,67 @@ export default function SearchShow({
                     back="Back to search"
                     onBack={() => router.visit('/search')}
                     actions={
-                        selectedIds.length > 0 ? (
-                            <>
-                                <Button
-                                    kind="secondary"
-                                    size="sm"
-                                    disabled={failedEligibleCount === 0 || !canBulkAudit}
-                                    title={!canBulkAudit ? bulkAuditBlockedTitle : undefined}
-                                    onClick={() => bulkAudit('failed')}
-                                >
-                                    Re-audit {failedEligibleCount} failed
+                        <>
+                            {prospects.length > 0 && (
+                                <Button kind="secondary" size="sm" icon={Icons.Share} onClick={shareSearch}>
+                                    Share
                                 </Button>
-                                <Button
-                                    kind="secondary"
-                                    size="sm"
-                                    disabled={forceEligibleCount === 0 || !canBulkAudit}
-                                    title={!canBulkAudit ? bulkAuditBlockedTitle : undefined}
-                                    onClick={() => bulkAudit('force')}
-                                >
-                                    Force re-audit {forceEligibleCount}
-                                </Button>
-                                <Button kind="primary" size="sm" icon={Icons.Plus} onClick={addSelectedToOutreach}>
-                                    Add {selectedIds.length} to outreach
-                                </Button>
-                                {bulkAddableLists.length > 0 && (
-                                    <ListPicker
-                                        lists={bulkAddableLists}
-                                        placeholder={`Add ${selectedIds.length} to list…`}
-                                        onSelect={addSelectedToList}
-                                    />
-                                )}
-                            </>
-                        ) : null
+                            )}
+                            {selectedIds.length > 0 ? (
+                                <>
+                                    <Button
+                                        kind="secondary"
+                                        size="sm"
+                                        disabled={failedEligibleCount === 0 || !canBulkAudit}
+                                        title={!canBulkAudit ? bulkAuditBlockedTitle : undefined}
+                                        onClick={() => bulkAudit('failed')}
+                                    >
+                                        Re-audit {failedEligibleCount} failed
+                                    </Button>
+                                    <Button
+                                        kind="secondary"
+                                        size="sm"
+                                        disabled={forceEligibleCount === 0 || !canBulkAudit}
+                                        title={!canBulkAudit ? bulkAuditBlockedTitle : undefined}
+                                        onClick={() => bulkAudit('force')}
+                                    >
+                                        Force re-audit {forceEligibleCount}
+                                    </Button>
+                                    <Button kind="primary" size="sm" icon={Icons.Plus} onClick={addSelectedToOutreach}>
+                                        Add {selectedIds.length} to outreach
+                                    </Button>
+                                    {bulkAddableLists.length > 0 && (
+                                        <ListPicker
+                                            lists={bulkAddableLists}
+                                            placeholder={`Add ${selectedIds.length} to list…`}
+                                            onSelect={addSelectedToList}
+                                        />
+                                    )}
+                                </>
+                            ) : null}
+                        </>
                     }
                 />
+
+                {sharedUrl && (
+                    <Card className="banner-muted">
+                        <div className="micro mb-4">
+                            Share link created — anyone with this link can view a snapshot of this search.
+                        </div>
+                        <div className="micro mb-8 break-all">{sharedUrl}</div>
+                        <Stack direction="row" gap={8}>
+                            <Button kind="secondary" size="sm" onClick={copyShareLink}>
+                                {copied ? 'Copied' : 'Copy link'}
+                            </Button>
+                            <a href={sharedUrl} target="_blank" rel="noopener noreferrer">
+                                <Button kind="ghost" size="sm">Open</Button>
+                            </a>
+                            <Button kind="ghost" size="sm" onClick={() => setSharedUrl(null)}>
+                                Dismiss
+                            </Button>
+                        </Stack>
+                    </Card>
+                )}
 
                 {!isDirectUrl && (
                     <CpcBenchmarkPanel

@@ -27,6 +27,7 @@ use App\Http\Controllers\PublicHomepageAuditController;
 use App\Http\Controllers\PublicReportBookingController;
 use App\Http\Controllers\PublicReportController;
 use App\Http\Controllers\PublicSharedListController;
+use App\Http\Controllers\PublicSharedSearchController;
 use App\Http\Controllers\PublicUnsubscribeController;
 use App\Http\Controllers\ReportDashboardController;
 use App\Http\Controllers\SavedProspectController;
@@ -35,6 +36,7 @@ use App\Http\Controllers\Settings\ConnectedAppsController;
 use App\Http\Controllers\Settings\McpKeyController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SharedListController;
+use App\Http\Controllers\SharedSearchController;
 use App\Services\HomepageAuditService;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -86,6 +88,9 @@ Route::get('/audit/{token}', [PublicHomepageAuditController::class, 'show'])
 Route::get('/s/{token}', [PublicSharedListController::class, 'show'])
     ->middleware('throttle:60,1')
     ->name('lists.public');
+Route::get('/q/{token}', [PublicSharedSearchController::class, 'show'])
+    ->middleware('throttle:60,1')
+    ->name('searches.public');
 Route::get('/r/{token}/slots', [PublicReportBookingController::class, 'slots'])
     ->middleware('throttle:60,1')
     ->name('reports.public.slots');
@@ -123,6 +128,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/searches', [SearchController::class, 'store'])->name('searches.store');
     Route::post('/searches/direct', [SearchController::class, 'storeDirectUrl'])->name('searches.store-direct');
     Route::get('/searches/{search}', [SearchController::class, 'show'])->name('searches.show');
+    Route::post('/searches/{search}/share', [SearchController::class, 'share'])->name('searches.share');
     Route::patch('/searches/{search}/cpc', [SearchController::class, 'updateCpc'])->name('searches.cpc.update');
     Route::post('/searches/{search}/cpc/import', [SearchController::class, 'importCpc'])->name('searches.cpc.import');
     Route::post('/searches/{search}/cpc/fetch', [SearchController::class, 'fetchCpc'])->name('searches.cpc.fetch');
@@ -141,6 +147,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/lists/{list}/items/{item}', [ProspectListController::class, 'destroyItem'])->name('lists.items.destroy');
     Route::post('/lists/{list}/share', [ProspectListController::class, 'share'])->name('lists.share');
     Route::delete('/shared-lists/{sharedList}', [SharedListController::class, 'destroy'])->name('shared-lists.destroy');
+    Route::delete('/shared-searches/{sharedSearch}', [SharedSearchController::class, 'destroy'])->name('shared-searches.destroy');
 
     Route::get('/niches/annotations', [NicheAnnotationController::class, 'show'])->name('niches.annotations.show');
     Route::post('/niche-notes', [NicheAnnotationController::class, 'storeNote'])->name('niche-notes.store');
