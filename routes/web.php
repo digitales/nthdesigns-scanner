@@ -126,6 +126,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/searches/{search}/cpc', [SearchController::class, 'updateCpc'])->name('searches.cpc.update');
     Route::post('/searches/{search}/cpc/import', [SearchController::class, 'importCpc'])->name('searches.cpc.import');
     Route::post('/searches/{search}/cpc/fetch', [SearchController::class, 'fetchCpc'])->name('searches.cpc.fetch');
+    Route::post('/searches/{search}/bulk-audit', [SearchController::class, 'bulkAudit'])->name('searches.bulk-audit');
 
     Route::get('/saved', [SavedProspectController::class, 'index'])->name('saved.index');
 

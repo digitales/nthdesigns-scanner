@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\ScanType;
 use App\Enums\SearchSource;
 use App\Enums\SearchStatus;
+use App\Http\Requests\BulkProspectAuditRequest;
 use App\Http\Requests\ImportSearchCpcRequest;
 use App\Http\Requests\StoreDirectUrlSearchRequest;
 use App\Http\Requests\StoreSearchRequest;
@@ -16,6 +17,7 @@ use App\Jobs\FetchSearchCpcJob;
 use App\Jobs\ScrapeProspectsJob;
 use App\Models\Search;
 use App\Models\User;
+use App\Services\BulkProspectAuditService;
 use App\Services\GoogleAds\GoogleAdsKeywordPlanService;
 use App\Services\KeywordPlanner\KeywordPlannerCsvImporter;
 use App\Services\KeywordPlanner\KeywordPlannerImportException;
@@ -263,6 +265,50 @@ class SearchController extends Controller
                 ],
             );
         }
+    }
+
+    public function bulkAudit(
+        BulkProspectAuditRequest $request,
+        Search $search,
+        ProgressFlowService $progressFlow,
+        BulkProspectAuditService $bulkAudits,
+    ): RedirectResponse {
+        $this->authorize('view', $search);
+
+        $phase = $progressFlow->searchFlow($search, $search->prospects()->get())['phase'];
+
+        if (in_array($phase, ['queued', 'discovering'], true)) {
+            throw ValidationException::withMessages([
+                'prospect_ids' => 'Bulk site audits are not available until discovery finishes.',
+            ]);
+        }
+
+        $ids = collect($request->validated('prospect_ids'))
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        $prospects = $search->prospects()->with('search')->whereIn('id', $ids)->get();
+
+        if ($prospects->count() !== count($ids)) {
+            throw ValidationException::withMessages([
+                'prospect_ids' => 'One or more prospects do not belong to this search.',
+            ]);
+        }
+
+        $prospectsById = $prospects->keyBy('id');
+        $ordered = collect($ids)
+            ->map(fn (int $id) => $prospectsById->get($id))
+            ->filter();
+
+        foreach ($ordered as $prospect) {
+            $this->authorize('view', $prospect);
+        }
+
+        $result = $bulkAudits->dispatch($ordered, $request->validated('mode'));
+
+        return back()->with('success', $result->flashMessage());
     }
 
     public function show(

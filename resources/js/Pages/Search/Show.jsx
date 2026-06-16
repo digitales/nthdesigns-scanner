@@ -180,6 +180,27 @@ export default function SearchShow({
         );
     }, [manualLists, selectedProspects]);
 
+    const canBulkAudit = ['auditing', 'complete', 'failed'].includes(phase);
+    const bulkAuditBlockedTitle = 'Wait until discovery finishes before bulk re-auditing.';
+    const failedEligibleCount = useMemo(
+        () => selectedProspects.filter((p) => p.audit_status === 'failed' && p.website_url).length,
+        [selectedProspects],
+    );
+    const forceEligibleCount = useMemo(
+        () => selectedProspects.filter((p) => p.website_url).length,
+        [selectedProspects],
+    );
+
+    const bulkAudit = (mode) => {
+        router.post(`/searches/${search.id}/bulk-audit`, {
+            prospect_ids: selectedIds.map(Number),
+            mode,
+        }, {
+            preserveScroll: true,
+            onSuccess: () => setSelected({}),
+        });
+    };
+
     return (
         <AuthenticatedLayout>
             <Head title={pageTitle} />
@@ -198,6 +219,24 @@ export default function SearchShow({
                     actions={
                         selectedIds.length > 0 ? (
                             <>
+                                <Button
+                                    kind="secondary"
+                                    size="sm"
+                                    disabled={failedEligibleCount === 0 || !canBulkAudit}
+                                    title={!canBulkAudit ? bulkAuditBlockedTitle : undefined}
+                                    onClick={() => bulkAudit('failed')}
+                                >
+                                    Re-audit {failedEligibleCount} failed
+                                </Button>
+                                <Button
+                                    kind="secondary"
+                                    size="sm"
+                                    disabled={forceEligibleCount === 0 || !canBulkAudit}
+                                    title={!canBulkAudit ? bulkAuditBlockedTitle : undefined}
+                                    onClick={() => bulkAudit('force')}
+                                >
+                                    Force re-audit {forceEligibleCount}
+                                </Button>
                                 <Button kind="primary" size="sm" icon={Icons.Plus} onClick={addSelectedToOutreach}>
                                     Add {selectedIds.length} to outreach
                                 </Button>
