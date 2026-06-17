@@ -39,6 +39,10 @@ class ProspectListResource
                 && ! ($latest?->response_received ?? false),
             'cms_badge' => $cms['badge'] ?? null,
             'cms_pending' => $cms['pending'] ?? false,
+            'qualification_status' => $prospect->qualification_status,
+            'qualification_summary' => $prospect->qualification_summary,
+            'qualification_flags' => $prospect->qualification_flags ?? [],
+            'qualification_ran_at' => $prospect->qualification_ran_at?->toISOString(),
             'tags' => $prospect->relationLoaded('tags')
                 ? $prospect->tags->pluck('name')->values()->all()
                 : [],

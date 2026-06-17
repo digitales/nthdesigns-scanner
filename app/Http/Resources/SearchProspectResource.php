@@ -6,9 +6,9 @@ use App\Enums\AuditJobStatus;
 use App\Enums\AuditStatus;
 use App\Models\Prospect;
 use App\Models\Search;
-use App\Support\ProspectSiteScan;
 use App\Services\ProgressFlowService;
 use App\Services\ReportBuilderService;
+use App\Support\ProspectSiteScan;
 
 class SearchProspectResource
 {
@@ -87,6 +87,10 @@ class SearchProspectResource
             'last_viewed' => $prospect->report?->viewed_at?->diffForHumans(),
             'cms_badge' => $cms['badge'] ?? null,
             'cms_pending' => $cms['pending'] ?? false,
+            'qualification_status' => $prospect->qualification_status,
+            'qualification_summary' => $prospect->qualification_summary,
+            'qualification_flags' => $prospect->qualification_flags ?? [],
+            'qualification_ran_at' => $prospect->qualification_ran_at?->toISOString(),
             'progress_flow' => $progressFlow->prospectFlow($prospect, $search),
         ];
     }

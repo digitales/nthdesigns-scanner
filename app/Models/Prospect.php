@@ -9,8 +9,8 @@ use App\Enums\WebsiteUrlSource;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Prospect extends Model
@@ -23,7 +23,9 @@ class Prospect extends Model
         'rating', 'review_count', 'photo_count', 'has_description', 'hours_complete',
         'gbp_score', 'gbp_flags', 'a11y_score', 'a11y_flags', 'performance_score',
         'combined_score', 'dominant_angle', 'audit_status', 'suppress_auto_report',
-        'raw_gbp_payload', 'raw_a11y_payload', 'raw_lighthouse_payload', 'cms_detection', 'expires_at',
+        'raw_gbp_payload', 'raw_a11y_payload', 'raw_lighthouse_payload', 'cms_detection',
+        'qualification_status', 'qualification_summary', 'qualification_flags', 'qualification_ran_at',
+        'expires_at',
     ];
 
     protected function casts(): array
@@ -35,6 +37,8 @@ class Prospect extends Model
             'raw_a11y_payload' => 'array',
             'raw_lighthouse_payload' => 'array',
             'cms_detection' => 'array',
+            'qualification_flags' => 'array',
+            'qualification_ran_at' => 'datetime',
             'has_description' => 'boolean',
             'hours_complete' => 'boolean',
             'rating' => 'decimal:1',

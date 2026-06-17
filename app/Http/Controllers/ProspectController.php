@@ -7,6 +7,7 @@ use App\Http\Requests\UpdateProspectRequest;
 use App\Http\Resources\ProspectShowResource;
 use App\Jobs\GenerateOutreachEmailJob;
 use App\Jobs\GenerateProspectReportJob;
+use App\Jobs\QualifyProspectJob;
 use App\Models\Prospect;
 use App\Services\AgencyBookingService;
 use App\Services\CombineScoresService;
@@ -18,6 +19,7 @@ use App\Services\ProspectListMembershipService;
 use App\Services\ProspectUnsubscribeService;
 use App\Services\ReportBuilderService;
 use App\Services\TagService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -135,5 +137,18 @@ class ProspectController extends Controller
         }
 
         return back()->with('success', "Market scan queued for {$search->niche} in {$search->city}.");
+    }
+
+    public function qualify(Prospect $prospect): JsonResponse
+    {
+        $this->authorize('view', $prospect);
+
+        if ($prospect->qualification_ran_at && $prospect->qualification_ran_at->gt(now()->subMinutes(5))) {
+            return response()->json(['message' => 'Qualification recently completed.'], 200);
+        }
+
+        QualifyProspectJob::dispatch($prospect);
+
+        return response()->json(['message' => 'Qualification queued.'], 202);
     }
 }

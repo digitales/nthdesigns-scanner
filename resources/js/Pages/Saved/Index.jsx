@@ -1,6 +1,11 @@
 import { Head, Link, router } from "@inertiajs/react";
-import { useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import QualificationControl, {
+  QualificationDetails,
+  qualifyProspectsWithStagger,
+} from "@/Components/QualificationControl";
+import { useProgressReload } from "@/hooks/useProgressReload";
 import {
   AnglePill,
   Button,
@@ -23,6 +28,58 @@ import {
 
 export default function SavedIndex({ prospects, warmLeads, filters, meta }) {
   const [toast, setToast] = useState(null);
+  const [expandedQualification, setExpandedQualification] = useState(null);
+  const [qualifyingIds, setQualifyingIds] = useState(() => new Set());
+
+  const qualificationPolling = useMemo(() => {
+    if (qualifyingIds.size === 0) {
+      return false;
+    }
+
+    return prospects.some(
+      (p) => qualifyingIds.has(p.id) && !p.qualification_status,
+    );
+  }, [prospects, qualifyingIds]);
+
+  useProgressReload(qualificationPolling, ["prospects"], 5000);
+
+  useEffect(() => {
+    setQualifyingIds((prev) => {
+      if (prev.size === 0) {
+        return prev;
+      }
+
+      const next = new Set(prev);
+      let changed = false;
+
+      for (const id of prev) {
+        const prospect = prospects.find((p) => p.id === id);
+        if (prospect?.qualification_status) {
+          next.delete(id);
+          changed = true;
+        }
+      }
+
+      return changed ? next : prev;
+    });
+  }, [prospects]);
+
+  const unqualifiedCount = useMemo(
+    () => prospects.filter((p) => !p.qualification_status).length,
+    [prospects],
+  );
+
+  const markQualifying = (id) => {
+    setQualifyingIds((prev) => new Set(prev).add(id));
+  };
+
+  const qualifyAll = () => {
+    const ids = prospects
+      .filter((p) => !p.qualification_status)
+      .map((p) => p.id);
+
+    qualifyProspectsWithStagger(ids, markQualifying);
+  };
 
   const submitFilters = (e) => {
     e.preventDefault();
@@ -77,14 +134,21 @@ export default function SavedIndex({ prospects, warmLeads, filters, meta }) {
           title={`${meta.total} prospect${meta.total !== 1 ? "s" : ""} across searches.`}
           sub="Filter by niche, score, or warm-lead status. Export matches your current filters as CSV."
           actions={
-            <Button
-              kind="secondary"
-              size="sm"
-              icon={Icons.Download}
-              onClick={exportCsv}
-            >
-              Export CSV
-            </Button>
+            <>
+              {unqualifiedCount > 0 && (
+                <Button kind="secondary" size="sm" onClick={qualifyAll}>
+                  Qualify all ({unqualifiedCount})
+                </Button>
+              )}
+              <Button
+                kind="secondary"
+                size="sm"
+                icon={Icons.Download}
+                onClick={exportCsv}
+              >
+                Export CSV
+              </Button>
+            </>
           }
         />
 
@@ -201,65 +265,87 @@ export default function SavedIndex({ prospects, warmLeads, filters, meta }) {
                 <th>GBP</th>
                 <th>A11y</th>
                 <th>Angle</th>
+                <th>Qualify</th>
                 <th>Outreach history</th>
                 <th className="text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
               {prospects.map((p) => (
-                <tr
-                  key={p.id}
-                  className={p.is_warm ? "warm" : ""}
-                  onClick={() => router.visit(`/prospects/${p.id}`)}
-                >
-                  <td className="biz">{p.business_name}</td>
-                  <td className="micro">
-                    {p.niche} · {p.city}
-                  </td>
-                  <td>
-                    <ScoreBadge value={p.combined_score} withBar={false} />
-                  </td>
-                  <td className="num">{p.gbp_score ?? "—"}</td>
-                  <td className="num">{p.a11y_score ?? "—"}</td>
-                  <td>
-                    <AnglePill angle={p.dominant_angle} />
-                  </td>
-                  <td onClick={(e) => e.stopPropagation()}>
-                    {p.outreach_sent_label ? (
-                      <div className="micro">
-                        Sent {p.outreach_sent_label}
-                        {p.report_viewed_label && (
-                          <div className="text-accent-ink mt-4">
-                            Viewed {p.report_viewed_label}
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="micro">—</span>
-                    )}
-                  </td>
-                  <td
-                    className="text-right"
-                    onClick={(e) => e.stopPropagation()}
+                <Fragment key={p.id}>
+                  <tr
+                    className={p.is_warm ? "warm" : ""}
+                    onClick={() => router.visit(`/prospects/${p.id}`)}
                   >
-                    <RowActions>
-                      {p.report_url && (
-                        <IconButton
-                          icon={Icons.Copy}
-                          title="Copy report URL"
-                          onClick={() => copyUrl(p.report_url)}
-                        />
+                    <td className="biz">{p.business_name}</td>
+                    <td className="micro">
+                      {p.niche} · {p.city}
+                    </td>
+                    <td>
+                      <ScoreBadge value={p.combined_score} withBar={false} />
+                    </td>
+                    <td className="num">{p.gbp_score ?? "—"}</td>
+                    <td className="num">{p.a11y_score ?? "—"}</td>
+                    <td>
+                      <AnglePill angle={p.dominant_angle} />
+                    </td>
+                    <td onClick={(e) => e.stopPropagation()}>
+                      <QualificationControl
+                        prospect={p}
+                        isPending={qualifyingIds.has(p.id)}
+                        isExpanded={expandedQualification === p.id}
+                        onToggleExpand={() =>
+                          setExpandedQualification(
+                            expandedQualification === p.id ? null : p.id,
+                          )
+                        }
+                        onQualifyStart={markQualifying}
+                      />
+                    </td>
+                    <td onClick={(e) => e.stopPropagation()}>
+                      {p.outreach_sent_label ? (
+                        <div className="micro">
+                          Sent {p.outreach_sent_label}
+                          {p.report_viewed_label && (
+                            <div className="text-accent-ink mt-4">
+                              Viewed {p.report_viewed_label}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="micro">—</span>
                       )}
-                      <button
-                        type="button"
-                        className="btn-ghost btn-xs"
-                        onClick={() => addToOutreach(p.id)}
-                      >
-                        + Queue
-                      </button>
-                    </RowActions>
-                  </td>
-                </tr>
+                    </td>
+                    <td
+                      className="text-right"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <RowActions>
+                        {p.report_url && (
+                          <IconButton
+                            icon={Icons.Copy}
+                            title="Copy report URL"
+                            onClick={() => copyUrl(p.report_url)}
+                          />
+                        )}
+                        <button
+                          type="button"
+                          className="btn-ghost btn-xs"
+                          onClick={() => addToOutreach(p.id)}
+                        >
+                          + Queue
+                        </button>
+                      </RowActions>
+                    </td>
+                  </tr>
+                  {expandedQualification === p.id && (
+                    <tr className="expanded-row qualification-expanded-row">
+                      <td colSpan={9}>
+                        <QualificationDetails prospect={p} />
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               ))}
             </tbody>
           </DataTable>

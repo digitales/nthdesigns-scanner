@@ -27,6 +27,10 @@ import {
 } from '@/Components/ui';
 import { normalizeAngle } from '@/Components/ui/scoreBand';
 import CpcBenchmarkPanel from '@/Components/Search/CpcBenchmarkPanel';
+import QualificationControl, {
+    QualificationDetails,
+    qualifyProspectsWithStagger,
+} from '@/Components/QualificationControl';
 import { showA11yForSearch } from '@/utils/auditVisibility';
 
 export default function SearchShow({
@@ -53,12 +57,47 @@ export default function SearchShow({
 
     const [selected, setSelected] = useState({});
     const [expanded, setExpanded] = useState(null);
+    const [expandedQualification, setExpandedQualification] = useState(null);
+    const [qualifyingIds, setQualifyingIds] = useState(() => new Set());
     const [angleFilter, setAngleFilter] = useState('all');
     const [minScore, setMinScore] = useState(0);
     const [sharedUrl, setSharedUrl] = useState(null);
     const [copied, setCopied] = useState(false);
 
     useProgressReload(isRunning, ['search', 'prospects']);
+
+    const qualificationPolling = useMemo(() => {
+        if (qualifyingIds.size === 0) {
+            return false;
+        }
+
+        return prospects.some(
+            (p) => qualifyingIds.has(p.id) && !p.qualification_status,
+        );
+    }, [prospects, qualifyingIds]);
+
+    useProgressReload(qualificationPolling, ['prospects'], 5000);
+
+    useEffect(() => {
+        setQualifyingIds((prev) => {
+            if (prev.size === 0) {
+                return prev;
+            }
+
+            const next = new Set(prev);
+            let changed = false;
+
+            for (const id of prev) {
+                const prospect = prospects.find((p) => p.id === id);
+                if (prospect?.qualification_status) {
+                    next.delete(id);
+                    changed = true;
+                }
+            }
+
+            return changed ? next : prev;
+        });
+    }, [prospects]);
 
     useEffect(() => {
         if (flash?.shared_url) {
@@ -80,6 +119,23 @@ export default function SearchShow({
             return normalizeAngle(p.dominant_angle) === angleFilter;
         });
     }, [prospects, minScore, angleFilter]);
+
+    const unqualifiedCount = useMemo(
+        () => visible.filter((p) => !p.qualification_status).length,
+        [visible],
+    );
+
+    const markQualifying = (id) => {
+        setQualifyingIds((prev) => new Set(prev).add(id));
+    };
+
+    const qualifyAll = () => {
+        const ids = visible
+            .filter((p) => !p.qualification_status)
+            .map((p) => p.id);
+
+        qualifyProspectsWithStagger(ids, markQualifying);
+    };
 
     const selectedIds = Object.keys(selected).filter((id) => selected[id]);
     const total = search.total_found ?? prospects.length;
@@ -244,6 +300,11 @@ export default function SearchShow({
                                     Share
                                 </Button>
                             )}
+                            {unqualifiedCount > 0 && (
+                                <Button kind="secondary" size="sm" onClick={qualifyAll}>
+                                    Qualify all ({unqualifiedCount})
+                                </Button>
+                            )}
                             {selectedIds.length > 0 ? (
                                 <>
                                     <Button
@@ -397,6 +458,7 @@ export default function SearchShow({
                                     )}
                                     <th className="col-cms">CMS</th>
                                     <th className="col-angle">Angle</th>
+                                    <th className="col-qualify">Qualify</th>
                                     <th className="col-report">Report status</th>
                                     <th className="col-actions">Actions</th>
                                 </tr>
@@ -410,15 +472,21 @@ export default function SearchShow({
                                         inQueue={inQueue.has(p.id)}
                                         manualLists={manualLists}
                                         isExpanded={expanded === p.id}
+                                        isQualificationExpanded={expandedQualification === p.id}
+                                        isQualifying={qualifyingIds.has(p.id)}
                                         isSelected={!!selected[p.id]}
                                         onToggleSelect={() => toggleRow(p.id)}
                                         onToggleExpand={() => setExpanded(expanded === p.id ? null : p.id)}
+                                        onToggleQualificationExpand={() => setExpandedQualification(
+                                            expandedQualification === p.id ? null : p.id,
+                                        )}
+                                        onQualifyStart={markQualifying}
                                     />
                                 ))}
                                 {isRunning &&
                                     Array.from({ length: Math.max(0, 3) }).map((_, i) => (
                                         <tr key={`skel-${i}`}>
-                                            <td colSpan={showA11y ? 10 : 7} className="skel-row">
+                                            <td colSpan={showA11y ? 11 : 8} className="skel-row">
                                                 <span className="skel skel-block" />
                                             </td>
                                         </tr>
@@ -437,9 +505,13 @@ function ProspectRow({
     inQueue,
     manualLists = [],
     isExpanded,
+    isQualificationExpanded,
+    isQualifying,
     isSelected,
     onToggleSelect,
     onToggleExpand,
+    onToggleQualificationExpand,
+    onQualifyStart,
 }) {
     const isFailed = p.audit_status === 'failed';
     const isPending = p.audit_status === 'pending';
@@ -516,6 +588,15 @@ function ProspectRow({
                 <td>
                     <AnglePill angle={p.dominant_angle} />
                 </td>
+                <td onClick={(e) => e.stopPropagation()}>
+                    <QualificationControl
+                        prospect={p}
+                        isPending={isQualifying}
+                        isExpanded={isQualificationExpanded}
+                        onToggleExpand={onToggleQualificationExpand}
+                        onQualifyStart={onQualifyStart}
+                    />
+                </td>
                 <td>
                     {isFailed ? (
                         <Status kind="failed">{isSiteUnreachable ? 'Site unreachable' : 'Audit failed'}</Status>
@@ -568,9 +649,16 @@ function ProspectRow({
                     </RowActions>
                 </td>
             </tr>
+            {isQualificationExpanded && (
+                <tr className="expanded-row qualification-expanded-row">
+                    <td colSpan={showA11y ? 11 : 8}>
+                        <QualificationDetails prospect={p} />
+                    </td>
+                </tr>
+            )}
             {isExpanded && (
                 <tr className="expanded-row">
-                    <td colSpan={showA11y ? 9 : 6}>
+                    <td colSpan={showA11y ? 11 : 8}>
                         <div className="ex-inner">
                             <div className="detail-grid-2">
                                 <div>
