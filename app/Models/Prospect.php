@@ -4,6 +4,8 @@ namespace App\Models;
 
 use App\Enums\AuditStatus;
 use App\Enums\DominantAngle;
+use App\Enums\ProspectOutreachChannel;
+use App\Enums\UseFormOutreach;
 use App\Enums\WebsiteDiscoveryConfidence;
 use App\Enums\WebsiteUrlSource;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -18,12 +20,13 @@ class Prospect extends Model
     use HasFactory;
 
     protected $fillable = [
-        'search_id', 'place_id', 'business_name', 'phone', 'email', 'website_url', 'website_url_source',
+        'search_id', 'place_id', 'business_name', 'phone', 'email', 'linkedin_url', 'contact_page_url',
+        'use_form_outreach', 'outreach_channel', 'website_url', 'website_url_source',
         'website_discovery_confidence', 'website_discovered_at', 'address',
         'rating', 'review_count', 'photo_count', 'has_description', 'hours_complete',
         'gbp_score', 'gbp_flags', 'a11y_score', 'a11y_flags', 'performance_score',
         'combined_score', 'dominant_angle', 'audit_status', 'suppress_auto_report',
-        'raw_gbp_payload', 'raw_a11y_payload', 'raw_lighthouse_payload', 'cms_detection',
+        'raw_gbp_payload', 'raw_a11y_payload', 'raw_lighthouse_payload', 'cms_detection', 'contact_signals',
         'qualification_status', 'qualification_summary', 'qualification_flags', 'qualification_ran_at',
         'expires_at',
     ];
@@ -37,6 +40,7 @@ class Prospect extends Model
             'raw_a11y_payload' => 'array',
             'raw_lighthouse_payload' => 'array',
             'cms_detection' => 'array',
+            'contact_signals' => 'array',
             'qualification_flags' => 'array',
             'qualification_ran_at' => 'datetime',
             'has_description' => 'boolean',
@@ -49,6 +53,8 @@ class Prospect extends Model
             'dominant_angle' => DominantAngle::class,
             'website_url_source' => WebsiteUrlSource::class,
             'website_discovery_confidence' => WebsiteDiscoveryConfidence::class,
+            'use_form_outreach' => UseFormOutreach::class,
+            'outreach_channel' => ProspectOutreachChannel::class,
         ];
     }
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\DispatchMarketScanRefresh;
+use App\Enums\OutreachChannel;
 use App\Http\Requests\UpdateProspectRequest;
 use App\Http\Resources\ProspectShowResource;
 use App\Jobs\GenerateOutreachEmailJob;
@@ -12,6 +13,7 @@ use App\Models\Prospect;
 use App\Services\AgencyBookingService;
 use App\Services\CombineScoresService;
 use App\Services\ProgressFlowService;
+use App\Services\Outreach\OutreachChannelResolver;
 use App\Services\ProspectAuditService;
 use App\Services\ProspectEnrichmentService;
 use App\Services\ProspectExclusionService;
@@ -93,23 +95,41 @@ class ProspectController extends Controller
         return back()->with('success', 'Report generation started. Refresh in a few seconds.');
     }
 
-    public function generateOutreach(Request $request, Prospect $prospect, ProspectUnsubscribeService $unsubscribe): RedirectResponse
-    {
+    public function generateOutreach(
+        Request $request,
+        Prospect $prospect,
+        ProspectUnsubscribeService $unsubscribe,
+        OutreachChannelResolver $channels,
+    ): RedirectResponse {
         $this->authorize('view', $prospect);
 
-        if ($skipReason = $unsubscribe->outreachSkipReason($request->user(), $prospect)) {
+        $resolved = $channels->channelsFor($prospect);
+
+        if ($resolved === []) {
             return back()->withErrors([
-                'outreach' => match ($skipReason) {
-                    'no email' => 'Add a contact email before generating outreach.',
-                    'unsubscribed' => 'This email is unsubscribed and cannot receive outreach.',
-                    default => 'Cannot generate outreach for this prospect.',
-                },
+                'outreach' => 'No outreach path available. Add an email or confirm form outreach.',
             ]);
         }
 
-        GenerateOutreachEmailJob::dispatch($prospect, $request->user());
+        $queued = 0;
 
-        return back()->with('success', 'Outreach email generation started. Refresh in a few seconds.');
+        foreach ($resolved as $channel) {
+            if ($channel === OutreachChannel::Email
+                && $unsubscribe->outreachSkipReason($request->user(), $prospect) !== null) {
+                continue;
+            }
+
+            GenerateOutreachEmailJob::dispatch($prospect, $request->user(), [], $channel);
+            $queued++;
+        }
+
+        if ($queued === 0) {
+            return back()->withErrors([
+                'outreach' => 'This email is unsubscribed and cannot receive outreach.',
+            ]);
+        }
+
+        return back()->with('success', 'Outreach generation started. Refresh in a few seconds.');
     }
 
     public function refreshMarketScan(Request $request, Prospect $prospect, DispatchMarketScanRefresh $dispatch): RedirectResponse

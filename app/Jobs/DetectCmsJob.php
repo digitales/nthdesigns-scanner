@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Prospect;
 use App\Services\CmsDetectionRunnerService;
+use App\Support\ContactDetectionPayload;
 use App\Support\ScannerJobContext;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -46,7 +47,23 @@ class DetectCmsJob implements ShouldQueue
 
         try {
             $payload = $runner->run($prospect->website_url);
-            $prospect->update(['cms_detection' => $payload]);
+            $split = ContactDetectionPayload::splitSiteMetadataPayload($payload);
+            $updates = [];
+
+            if ($split['cms'] !== null) {
+                $updates['cms_detection'] = $split['cms'];
+            }
+
+            if ($split['contact'] !== null) {
+                $updates = array_merge(
+                    $updates,
+                    ContactDetectionPayload::prospectUpdatesFromDetection($prospect, $split['contact']),
+                );
+            }
+
+            if ($updates !== []) {
+                $prospect->update($updates);
+            }
         } catch (\Throwable $e) {
             Log::warning('DetectCmsJob failed', [
                 'prospect_id' => $prospect->id,

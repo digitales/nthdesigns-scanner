@@ -6,7 +6,7 @@ import AuditFailureSection from '@/Components/audit/AuditFailureSection';
 import SiteAuditSection from '@/Components/audit/SiteAuditSection';
 import TechnologySection from '@/Components/cms/TechnologySection';
 import PageSpeedSection from '@/Components/audit/PageSpeedSection';
-import OutreachEmailCard from '@/Components/OutreachEmailCard';
+import OutreachChannelCard from '@/Components/OutreachChannelCard';
 import TagInput from '@/Components/TagInput';
 import ListPicker from '@/Components/ListPicker';
 import { shouldShowA11yAudit } from '@/utils/auditVisibility';
@@ -64,6 +64,10 @@ export default function ProspectShow({
         business_name: prospect.business_name ?? '',
         phone: prospect.phone ?? '',
         email: prospect.email ?? '',
+        linkedin_url: prospect.linkedin_url ?? '',
+        contact_page_url: prospect.contact_page_url ?? '',
+        use_form_outreach: prospect.use_form_outreach ?? 'auto',
+        outreach_channel: prospect.outreach_channel ?? 'auto',
         website_url: prospect.website_url ?? '',
         address: prospect.address ?? '',
     });
@@ -146,6 +150,20 @@ export default function ProspectShow({
         }
 
         router.post(`/prospects/${prospect.id}/unsubscribe`, {}, { preserveScroll: true });
+    };
+
+    const contactSignals = prospect.contact_signals ?? null;
+    const showFormSuggestion = contactSignals?.has_contact_form
+        && (prospect.use_form_outreach ?? 'auto') === 'auto'
+        && !prospect.email;
+
+    const confirmFormOutreach = (value) => {
+        router.patch(`/prospects/${prospect.id}`, { use_form_outreach: value }, { preserveScroll: true });
+    };
+
+    const useSuggestedEmail = (email) => {
+        setForm((current) => ({ ...current, email }));
+        setEditing(true);
     };
 
     const auditPending = prospect.audit_status === 'pending';
@@ -360,15 +378,43 @@ export default function ProspectShow({
                             </div>
                         )}
 
+                        {showFormSuggestion && (
+                            <div className="skip-banner mb-16">
+                                Contact form detected
+                                {contactSignals.contact_page_url ? ` on ${contactSignals.contact_page_url.replace(/^https?:\/\/[^/]+/, '')}` : ''}.
+                                {' '}
+                                <button type="button" className="btn-ghost btn-xs" onClick={() => confirmFormOutreach('yes')}>Use form outreach</button>
+                                {' · '}
+                                <button type="button" className="btn-ghost btn-xs" onClick={() => confirmFormOutreach('no')}>Dismiss</button>
+                            </div>
+                        )}
+
+                        {contactSignals?.suggested_emails?.length > 0 && !prospect.email && (
+                            <div className="skip-banner mb-16">
+                                Found on site:
+                                {' '}
+                                {contactSignals.suggested_emails.map((email) => (
+                                    <button
+                                        key={email}
+                                        type="button"
+                                        className="btn-ghost btn-xs"
+                                        onClick={() => useSuggestedEmail(email)}
+                                    >
+                                        {email}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+
                         <SiteAuditSection audit={audit} />
 
                         {outreachEmails.length > 0 && (
                             <section>
-                                <div className="card-title">Outreach emails</div>
+                                <div className="card-title">Outreach</div>
                                 <Stack gap={16}>
                                 {outreachEmails.map((email) => (
                                     <div key={email.id}>
-                                        <OutreachEmailCard
+                                        <OutreachChannelCard
                                             email={{ ...email, combined_score: prospect.combined_score }}
                                             reportUrl={report?.public_url}
                                             performanceScore={prospect.performance_score}
@@ -602,6 +648,42 @@ export default function ProspectShow({
                                         onChange={(e) => setForm({ ...form, email: e.target.value })}
                                         placeholder="contact@example.com"
                                     />
+                                    <label className="micro">LinkedIn URL</label>
+                                    <input
+                                        className="input"
+                                        type="url"
+                                        value={form.linkedin_url}
+                                        onChange={(e) => setForm({ ...form, linkedin_url: e.target.value })}
+                                        placeholder="https://linkedin.com/company/..."
+                                    />
+                                    <label className="micro">Contact page URL</label>
+                                    <input
+                                        className="input"
+                                        type="url"
+                                        value={form.contact_page_url}
+                                        onChange={(e) => setForm({ ...form, contact_page_url: e.target.value })}
+                                        placeholder="https://example.com/contact"
+                                    />
+                                    <label className="micro">Outreach channel</label>
+                                    <select
+                                        className="input"
+                                        value={form.outreach_channel}
+                                        onChange={(e) => setForm({ ...form, outreach_channel: e.target.value })}
+                                    >
+                                        <option value="auto">Auto</option>
+                                        <option value="email">Email</option>
+                                        <option value="alternative">Form + LinkedIn</option>
+                                    </select>
+                                    <label className="micro">Form outreach</label>
+                                    <select
+                                        className="input"
+                                        value={form.use_form_outreach}
+                                        onChange={(e) => setForm({ ...form, use_form_outreach: e.target.value })}
+                                    >
+                                        <option value="auto">Auto</option>
+                                        <option value="yes">Yes</option>
+                                        <option value="no">No</option>
+                                    </select>
                                     <label className="micro">Website</label>
                                     <input
                                         className="input"
@@ -641,6 +723,30 @@ export default function ProspectShow({
                                             ) : (
                                                 '—'
                                             )}
+                                        </div>
+                                        <div>
+                                            <span className="micro">LinkedIn </span>
+                                            {prospect.linkedin_url ? (
+                                                <a href={prospect.linkedin_url} target="_blank" rel="noopener noreferrer" className="micro">
+                                                    {prospect.linkedin_url.replace(/^https?:\/\//, '')}
+                                                </a>
+                                            ) : (
+                                                '—'
+                                            )}
+                                        </div>
+                                        <div>
+                                            <span className="micro">Contact page </span>
+                                            {prospect.contact_page_url ? (
+                                                <a href={prospect.contact_page_url} target="_blank" rel="noopener noreferrer" className="micro">
+                                                    {prospect.contact_page_url.replace(/^https?:\/\//, '')}
+                                                </a>
+                                            ) : (
+                                                '—'
+                                            )}
+                                        </div>
+                                        <div>
+                                            <span className="micro">Outreach channel </span>
+                                            {prospect.outreach_channel ?? 'auto'}
                                         </div>
                                         <div>
                                             <span className="micro">Website </span>

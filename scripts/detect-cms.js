@@ -3,6 +3,7 @@
 import { chromium } from 'playwright';
 import { chromiumLaunchOptions } from './browser.js';
 import { detectCms, resolveCmsFromInputs } from './cms-detect.js';
+import { detectContactSignals } from './contact-detect.js';
 import { navigateForCapture } from './navigate.js';
 
 const url = process.argv[2];
@@ -20,7 +21,8 @@ async function main() {
     try {
         const response = await navigateForCapture(page, url);
         const cms = await detectCms(page, response);
-        process.stdout.write(JSON.stringify(cms));
+        const contact = await detectContactSignals(page);
+        process.stdout.write(JSON.stringify({ cms, contact }));
     } catch (error) {
         const cms = resolveCmsFromInputs({
             html: '',
@@ -29,7 +31,7 @@ async function main() {
             finalUrl: url,
             error: error.message,
         });
-        process.stdout.write(JSON.stringify(cms));
+        process.stdout.write(JSON.stringify({ cms, contact: null }));
         process.exit(1);
     } finally {
         await context.close();

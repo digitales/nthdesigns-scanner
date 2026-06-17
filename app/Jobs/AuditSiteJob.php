@@ -16,6 +16,7 @@ use App\Services\SearchStatusService;
 use App\Services\SiteScanPreflightGate;
 use App\Support\AuditSiteJobTimeout;
 use App\Support\CmsDetectionPayload;
+use App\Support\ContactDetectionPayload;
 use App\Support\ScannerJobContext;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -131,6 +132,15 @@ class AuditSiteJob implements ShouldQueue
 
             if ($cms !== null) {
                 $updates['cms_detection'] = $cms;
+            }
+
+            $contact = ContactDetectionPayload::fromAuditPayload($payload);
+
+            if ($contact !== null) {
+                $updates = array_merge(
+                    $updates,
+                    ContactDetectionPayload::prospectUpdatesFromDetection($prospect, $contact),
+                );
             }
 
             $prospect->update($updates);

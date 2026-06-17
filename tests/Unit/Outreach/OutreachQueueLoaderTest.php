@@ -18,7 +18,10 @@ class OutreachQueueLoaderTest extends TestCase
     {
         $user = User::factory()->create();
         $search = Search::factory()->create(['user_id' => $user->id]);
-        $prospect = Prospect::factory()->create(['search_id' => $search->id]);
+        $prospect = Prospect::factory()->create([
+            'search_id' => $search->id,
+            'email' => 'owner@example.com',
+        ]);
 
         OutreachEmail::factory()->create([
             'user_id' => $user->id,

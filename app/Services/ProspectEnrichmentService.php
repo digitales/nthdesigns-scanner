@@ -33,7 +33,8 @@ class ProspectEnrichmentService
         $previousWebsite = $this->normalizeWebsiteUrl($prospect->website_url);
 
         $prospect->fill(collect($data)->only([
-            'business_name', 'phone', 'email', 'website_url', 'address',
+            'business_name', 'phone', 'email', 'linkedin_url', 'contact_page_url',
+            'use_form_outreach', 'outreach_channel', 'website_url', 'address',
         ])->all());
 
         $newWebsite = $this->normalizeWebsiteUrl($prospect->website_url);
@@ -43,7 +44,10 @@ class ProspectEnrichmentService
         $combined = $this->combiner->combineForProspect($prospect);
 
         $updates = array_merge(
-            $prospect->only(['business_name', 'phone', 'email', 'website_url', 'address']),
+            $prospect->only([
+                'business_name', 'phone', 'email', 'linkedin_url', 'contact_page_url',
+                'use_form_outreach', 'outreach_channel', 'website_url', 'address',
+            ]),
             $combined,
             [
                 'gbp_score' => $scored['score'],

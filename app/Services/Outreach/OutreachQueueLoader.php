@@ -2,6 +2,7 @@
 
 namespace App\Services\Outreach;
 
+use App\Enums\OutreachChannel;
 use App\Http\Resources\OutreachEmailResource;
 use App\Models\OutreachEmail;
 use App\Models\User;
@@ -10,6 +11,10 @@ use Illuminate\Support\Collection;
 
 class OutreachQueueLoader
 {
+    public function __construct(
+        private OutreachChannelResolver $channelResolver,
+    ) {}
+
     public function selections(User $user, bool $bookedOnly, bool $withReport = false): EloquentCollection
     {
         $relations = ['prospect.search', 'prospect.report.booking'];
@@ -44,7 +49,7 @@ class OutreachQueueLoader
             ->selectRaw('MAX(id) as id')
             ->where('user_id', $user->id)
             ->whereIn('prospect_id', $prospectIds)
-            ->groupBy('prospect_id')
+            ->groupBy('prospect_id', 'channel')
             ->pluck('id');
 
         if ($latestIds->isEmpty()) {
@@ -56,10 +61,24 @@ class OutreachQueueLoader
             ->whereIn('id', $latestIds)
             ->get()
             ->groupBy('prospect_id')
-            ->map(fn ($group) => $group
-                ->map(fn (OutreachEmail $email) => OutreachEmailResource::format($email))
-                ->values()
-                ->all())
+            ->map(function ($group) {
+                $prospect = $group->first()->prospect;
+                $visibleChannels = $prospect
+                    ? $this->channelResolver->channelsFor($prospect)
+                    : [];
+
+                return $group
+                    ->filter(function (OutreachEmail $email) use ($visibleChannels) {
+                        $channel = $email->channel instanceof OutreachChannel
+                            ? $email->channel
+                            : OutreachChannel::tryFrom($email->getAttributes()['channel'] ?? 'email') ?? OutreachChannel::Email;
+
+                        return in_array($channel, $visibleChannels, true);
+                    })
+                    ->map(fn (OutreachEmail $email) => OutreachEmailResource::format($email))
+                    ->values()
+                    ->all();
+            })
             ->all();
     }
 }

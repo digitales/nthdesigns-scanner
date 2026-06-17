@@ -12,6 +12,7 @@ import { join } from 'node:path';
 import { buildLighthousePayload } from './lighthouse-detail.js';
 import { fetchPageSpeedLighthouse } from './pagespeed-fetch.js';
 import { detectCms } from './cms-detect.js';
+import { detectContactSignals } from './contact-detect.js';
 import { formatAuditError } from './audit-error-format.js';
 import { navigateForCapture } from './navigate.js';
 
@@ -161,6 +162,7 @@ async function main() {
 
         const response = await navigateForCapture(page, url);
         const cms = await detectCms(page, response);
+        const contact = await detectContactSignals(page);
         const axe = await runAxe(page);
         const violationScreenshots = await captureViolationScreenshots(page, axe.violations);
         const lighthouse = await lighthousePromise;
@@ -173,6 +175,7 @@ async function main() {
             violation_screenshots: violationScreenshots,
             lighthouse,
             cms,
+            contact,
         };
 
         process.stdout.write(JSON.stringify(payload));

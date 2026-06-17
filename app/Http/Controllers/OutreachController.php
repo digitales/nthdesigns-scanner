@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\OutreachChannel;
 use App\Http\Requests\GenerateOutreachEmailRequest;
 use App\Http\Requests\StoreOutreachSelectionRequest;
 use App\Http\Resources\OutreachSelectionResource;
@@ -9,6 +10,7 @@ use App\Jobs\GenerateOutreachEmailJob;
 use App\Models\OutreachSelection;
 use App\Models\Prospect;
 use App\Services\Outreach\CpcBenchmarkResolver;
+use App\Services\Outreach\OutreachChannelResolver;
 use App\Services\Outreach\OutreachQueueLoader;
 use App\Services\ProspectUnsubscribeService;
 use App\Services\UserSettingsService;
@@ -24,6 +26,7 @@ class OutreachController extends Controller
         private OutreachQueueLoader $queue,
         private CpcBenchmarkResolver $cpcBenchmarks,
         private ProspectUnsubscribeService $unsubscribe,
+        private OutreachChannelResolver $channels,
     ) {}
 
     public function index(Request $request): Response
@@ -111,28 +114,48 @@ class OutreachController extends Controller
             $prospect = $selection->prospect;
 
             if (! $prospect->report) {
-                $skipped[] = $prospect->business_name;
+                $skipped[] = $prospect->business_name.' (no report)';
 
                 continue;
             }
 
-            if ($skipReason = $this->unsubscribe->outreachSkipReason($request->user(), $prospect)) {
-                $skipped[] = $prospect->business_name.' ('.$skipReason.')';
+            $channels = $this->channels->channelsFor($prospect);
+
+            if ($channels === []) {
+                $skipped[] = $prospect->business_name.' (no contact path)';
 
                 continue;
             }
 
-            GenerateOutreachEmailJob::dispatch(
-                $prospect,
-                $request->user(),
-                $options,
-            );
+            $queuedForProspect = 0;
+
+            foreach ($channels as $channel) {
+                if ($channel === OutreachChannel::Email
+                    && $this->unsubscribe->outreachSkipReason($request->user(), $prospect) !== null) {
+                    continue;
+                }
+
+                GenerateOutreachEmailJob::dispatch(
+                    $prospect,
+                    $request->user(),
+                    $options,
+                    $channel,
+                );
+
+                $queuedForProspect++;
+            }
+
+            if ($queuedForProspect === 0) {
+                $skipped[] = $prospect->business_name.' (unsubscribed)';
+
+                continue;
+            }
 
             $dispatched++;
         }
 
         return back()->with([
-            'success' => "{$dispatched} email(s) queued for generation.",
+            'success' => "{$dispatched} prospect(s) queued for outreach generation.",
             'skipped' => $skipped,
         ]);
     }

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\OutreachChannel;
 use App\Jobs\GenerateOutreachEmailJob;
 use App\Models\OutreachEmail;
 use App\Models\Prospect;
@@ -17,6 +18,17 @@ use Tests\TestCase;
 class GenerateOutreachEmailJobTest extends TestCase
 {
     use RefreshDatabase;
+
+    private function runJob(GenerateOutreachEmailJob $job): void
+    {
+        $job->handle(
+            app(OutreachEmailGeneratorService::class),
+            app(\App\Services\Outreach\OutreachFormMessageGeneratorService::class),
+            app(\App\Services\Outreach\OutreachLinkedInTemplateService::class),
+            app(\App\Services\Outreach\CpcBenchmarkResolver::class),
+            app(\App\Services\ProspectUnsubscribeService::class),
+        );
+    }
 
     public function test_routes_to_searches_queue(): void
     {
@@ -53,11 +65,7 @@ class GenerateOutreachEmailJobTest extends TestCase
             $mock->shouldNotReceive('generate');
         });
 
-        (new GenerateOutreachEmailJob($prospect, $user, ['pitch_angle' => 'auto']))->handle(
-            app(OutreachEmailGeneratorService::class),
-            app(\App\Services\Outreach\CpcBenchmarkResolver::class),
-            app(\App\Services\ProspectUnsubscribeService::class),
-        );
+        $this->runJob(new GenerateOutreachEmailJob($prospect, $user, ['pitch_angle' => 'auto']));
 
         $this->assertSame(1, OutreachEmail::where('prospect_id', $prospect->id)->count());
         $this->assertNotNull($report->id);
@@ -85,16 +93,13 @@ class GenerateOutreachEmailJobTest extends TestCase
             ]);
         });
 
-        (new GenerateOutreachEmailJob($prospect, $user, ['pitch_angle' => 'gbp']))->handle(
-            app(OutreachEmailGeneratorService::class),
-            app(\App\Services\Outreach\CpcBenchmarkResolver::class),
-            app(\App\Services\ProspectUnsubscribeService::class),
-        );
+        $this->runJob(new GenerateOutreachEmailJob($prospect, $user, ['pitch_angle' => 'gbp']));
 
         $this->assertDatabaseHas('outreach_emails', [
             'prospect_id' => $prospect->id,
             'user_id' => $user->id,
             'pitch_angle' => 'gbp',
+            'channel' => 'email',
             'subject_line' => 'Quick question',
         ]);
     }
@@ -125,11 +130,7 @@ class GenerateOutreachEmailJobTest extends TestCase
             ]);
         });
 
-        (new GenerateOutreachEmailJob($prospect, $user, ['pitch_angle' => 'gbp']))->handle(
-            app(OutreachEmailGeneratorService::class),
-            app(\App\Services\Outreach\CpcBenchmarkResolver::class),
-            app(\App\Services\ProspectUnsubscribeService::class),
-        );
+        $this->runJob(new GenerateOutreachEmailJob($prospect, $user, ['pitch_angle' => 'gbp']));
 
         $this->assertDatabaseHas('outreach_emails', [
             'prospect_id' => $prospect->id,
@@ -152,11 +153,7 @@ class GenerateOutreachEmailJobTest extends TestCase
             $mock->shouldNotReceive('generate');
         });
 
-        (new GenerateOutreachEmailJob($prospect, $user))->handle(
-            app(OutreachEmailGeneratorService::class),
-            app(\App\Services\Outreach\CpcBenchmarkResolver::class),
-            app(\App\Services\ProspectUnsubscribeService::class),
-        );
+        $this->runJob(new GenerateOutreachEmailJob($prospect, $user));
 
         $this->assertSame(0, OutreachEmail::count());
     }
@@ -181,11 +178,7 @@ class GenerateOutreachEmailJobTest extends TestCase
             $mock->shouldNotReceive('generate');
         });
 
-        (new GenerateOutreachEmailJob($prospect, $user))->handle(
-            app(OutreachEmailGeneratorService::class),
-            app(\App\Services\Outreach\CpcBenchmarkResolver::class),
-            app(\App\Services\ProspectUnsubscribeService::class),
-        );
+        $this->runJob(new GenerateOutreachEmailJob($prospect, $user));
 
         $this->assertSame(0, OutreachEmail::count());
     }
@@ -212,14 +205,40 @@ class GenerateOutreachEmailJobTest extends TestCase
             ]);
         });
 
-        (new GenerateOutreachEmailJob($prospect, $user, ['pitch_angle' => 'gbp']))->handle(
-            app(OutreachEmailGeneratorService::class),
-            app(\App\Services\Outreach\CpcBenchmarkResolver::class),
-            app(\App\Services\ProspectUnsubscribeService::class),
-        );
+        $this->runJob(new GenerateOutreachEmailJob($prospect, $user, ['pitch_angle' => 'gbp']));
 
         $email = OutreachEmail::first();
         $this->assertStringContainsString('unsubscribe here:', $email->email_body);
         $this->assertStringContainsString('/unsubscribe?', $email->email_body);
+    }
+
+    public function test_creates_linkedin_message_without_llm(): void
+    {
+        $user = User::factory()->create();
+        $search = Search::factory()->create(['user_id' => $user->id]);
+        $prospect = Prospect::factory()->create([
+            'search_id' => $search->id,
+            'email' => null,
+            'linkedin_url' => 'https://linkedin.com/company/acme',
+        ]);
+        ProspectReport::factory()->create(['prospect_id' => $prospect->id]);
+
+        $this->mock(OutreachEmailGeneratorService::class, function ($mock) {
+            $mock->shouldReceive('resolvedPitchAngle')->andReturn('gbp');
+            $mock->shouldNotReceive('generate');
+        });
+
+        $this->runJob(new GenerateOutreachEmailJob(
+            $prospect,
+            $user,
+            ['pitch_angle' => 'gbp', 'agency_name' => 'nthdesigns'],
+            OutreachChannel::Linkedin,
+        ));
+
+        $this->assertDatabaseHas('outreach_emails', [
+            'prospect_id' => $prospect->id,
+            'channel' => 'linkedin',
+            'model_used' => 'template',
+        ]);
     }
 }

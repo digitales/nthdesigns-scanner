@@ -1,7 +1,7 @@
 import { Head, Link, router, useForm } from "@inertiajs/react";
 import { useState } from "react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
-import OutreachEmailCard from "@/Components/OutreachEmailCard";
+import OutreachChannelCard from "@/Components/OutreachChannelCard";
 import {
   AnglePill,
   Button,
@@ -69,7 +69,7 @@ export default function OutreachIndex({
         <PageHeader
           eyebrow="Outreach workspace"
           title={`${selection.length} prospect${selection.length !== 1 ? "s" : ""} in queue.`}
-          sub="Batch-generate personalised emails. Prospects without a report are skipped automatically."
+          sub="Batch-generate personalised outreach. Prospects without a report or contact path are skipped automatically."
         />
 
         {flash?.success && (
@@ -81,7 +81,7 @@ export default function OutreachIndex({
         {flash?.skipped?.length > 0 && (
           <div className="skip-banner">
             <Icon d={Icons.Lock} size={14} />
-            Skipped (no report): {flash.skipped.join(", ")}
+            Skipped: {flash.skipped.join(", ")}
           </div>
         )}
 
@@ -177,7 +177,7 @@ export default function OutreachIndex({
           </section>
 
           <section>
-            <Card title="Generate emails" className="mb-24">
+            <Card title="Generate outreach" className="mb-24">
               <form onSubmit={generateAll}>
                 <Grid cols={2} gap={16} className="mb-16">
                   <Field label="Pitch angle">
@@ -237,7 +237,7 @@ export default function OutreachIndex({
                   >
                     {processing
                       ? "Generating…"
-                      : `Generate ${eligibleCount} email${eligibleCount !== 1 ? "s" : ""}`}
+                      : `Generate for ${eligibleCount} prospect${eligibleCount !== 1 ? "s" : ""}`}
                   </Button>
                 </div>
               </form>
@@ -253,7 +253,7 @@ export default function OutreachIndex({
                   </h3>
                   {emails.map((email) => (
                     <div key={email.id} className="mb-16">
-                      <OutreachEmailCard
+                      <OutreachChannelCard
                         email={{
                           ...email,
                           combined_score: item.combined_score,

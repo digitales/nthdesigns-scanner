@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\OutreachChannel;
 use App\Enums\PitchAngle;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -12,7 +13,7 @@ class OutreachEmail extends Model
     use HasFactory;
 
     protected $fillable = [
-        'prospect_id', 'user_id', 'prospect_report_id', 'pitch_angle',
+        'prospect_id', 'user_id', 'prospect_report_id', 'pitch_angle', 'channel',
         'cpc_benchmark', 'cpc_source',
         'subject_line', 'email_body', 'model_used', 'prompt_tokens',
         'completion_tokens', 'sent_at', 'response_received',
@@ -24,6 +25,7 @@ class OutreachEmail extends Model
             'sent_at' => 'datetime',
             'response_received' => 'boolean',
             'pitch_angle' => PitchAngle::class,
+            'channel' => OutreachChannel::class,
             'cpc_benchmark' => 'decimal:2',
         ];
     }

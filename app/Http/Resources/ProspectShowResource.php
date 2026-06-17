@@ -114,6 +114,11 @@ class ProspectShowResource
             'phone' => $prospect->phone,
             'email' => $prospect->email,
             'email_suppressed' => $emailSuppressed,
+            'linkedin_url' => $prospect->linkedin_url,
+            'contact_page_url' => $prospect->contact_page_url,
+            'use_form_outreach' => $prospect->use_form_outreach?->value ?? 'auto',
+            'outreach_channel' => $prospect->outreach_channel?->value ?? 'auto',
+            'contact_signals' => $prospect->contact_signals,
             'website_url' => $prospect->website_url,
             'website_url_source' => $prospect->website_url_source ?? 'gbp',
             'website_discovery_confidence' => $prospect->website_discovery_confidence,
@@ -180,7 +185,10 @@ class ProspectShowResource
     {
         return $prospect->outreachEmails->map(fn ($e) => [
             'id' => $e->id,
+            'channel' => $e->channel?->value ?? 'email',
             'to_email' => $prospect->email,
+            'contact_page_url' => $prospect->contact_page_url,
+            'linkedin_url' => $prospect->linkedin_url,
             'pitch_angle' => $e->pitch_angle,
             'subject_line' => $e->subject_line,
             'email_body' => $e->email_body,
