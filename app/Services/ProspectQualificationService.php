@@ -103,9 +103,12 @@ PROMPT;
 
         try {
             $response = $this->openRouter->complete($systemPrompt, $userMessage);
-            $decoded = json_decode($response['content'], true);
+            $decoded = $this->parseAssessmentResponse($response['content']);
 
-            if (json_last_error() !== JSON_ERROR_NONE || ! isset($decoded['status'])) {
+            if ($decoded === null) {
+                Log::warning('ProspectQualificationService: unparseable Claude response', [
+                    'content' => substr($response['content'], 0, 500),
+                ]);
                 throw new \RuntimeException('Invalid JSON response from Claude');
             }
 
@@ -123,5 +126,58 @@ PROMPT;
                 'flags' => ['Claude assessment error: '.$e->getMessage()],
             ];
         }
+    }
+
+    /**
+     * @return array{status: string, summary?: string, flags?: array<string>}|null
+     */
+    private function parseAssessmentResponse(string $content): ?array
+    {
+        $content = trim($content);
+
+        if ($content === '') {
+            return null;
+        }
+
+        if (preg_match('/^```(?:json)?\s*([\s\S]*?)\s*```$/i', $content, $matches)) {
+            $content = trim($matches[1]);
+        }
+
+        $decoded = json_decode($content, true);
+
+        if (is_array($decoded) && isset($decoded['status'])) {
+            return $this->normaliseAssessment($decoded);
+        }
+
+        if (preg_match('/\{[\s\S]*\}/', $content, $matches)) {
+            $decoded = json_decode($matches[0], true);
+
+            if (is_array($decoded) && isset($decoded['status'])) {
+                return $this->normaliseAssessment($decoded);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $decoded
+     * @return array{status: string, summary?: string, flags?: array<string>}|null
+     */
+    private function normaliseAssessment(array $decoded): ?array
+    {
+        $status = $decoded['status'] ?? null;
+
+        if (! in_array($status, ['qualified', 'caution', 'skip'], true)) {
+            return null;
+        }
+
+        return [
+            'status' => $status,
+            'summary' => is_string($decoded['summary'] ?? null) ? $decoded['summary'] : '',
+            'flags' => is_array($decoded['flags'] ?? null)
+                ? array_values(array_filter($decoded['flags'], 'is_string'))
+                : [],
+        ];
     }
 }

@@ -78,6 +78,35 @@ class ProspectQualificationServiceTest extends TestCase
         $this->assertNotNull($prospect->qualification_ran_at);
     }
 
+    public function test_qualify_parses_json_wrapped_in_markdown_fences(): void
+    {
+        $prospect = $this->makeProspect(['website_url' => 'https://example.com']);
+
+        Http::fake([
+            '*' => Http::response('<html>Dr Jones family practice</html>', 200),
+        ]);
+
+        $this->mock(OpenRouterService::class, function ($mock) {
+            $mock->shouldReceive('complete')->once()->andReturn([
+                'content' => "```json\n".json_encode([
+                    'status' => 'qualified',
+                    'summary' => 'Independent family-run practice.',
+                    'flags' => ['Named dentist visible'],
+                ])."\n```",
+                'model' => 'anthropic/claude-sonnet-4',
+                'prompt_tokens' => 100,
+                'completion_tokens' => 50,
+            ]);
+        });
+
+        app(ProspectQualificationService::class)->qualify($prospect);
+
+        $prospect->refresh();
+
+        $this->assertSame('qualified', $prospect->qualification_status);
+        $this->assertSame('Independent family-run practice.', $prospect->qualification_summary);
+    }
+
     public function test_qualify_falls_back_to_caution_on_malformed_claude_response(): void
     {
         $prospect = $this->makeProspect(['website_url' => 'https://example.com']);
