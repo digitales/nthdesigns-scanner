@@ -16,6 +16,7 @@ class McpJsonRpcDispatcher
         private McpSessionService $mcpSessions,
         private McpSearchService $searches,
         private McpSingleSiteAuditService $singleSiteAudits,
+        private McpWarmupService $warmup,
         private McpProgressStreamHandler $progressStream,
     ) {}
 
@@ -31,6 +32,8 @@ class McpJsonRpcDispatcher
             'get_search_progress_flow',
             'watch_search_progress',
             'start_single_site_audit',
+            'list_warmup_mailboxes',
+            'get_warmup_mailbox',
         ];
     }
 
@@ -204,6 +207,27 @@ class McpJsonRpcDispatcher
                     'required' => ['search_id'],
                 ],
             ],
+            [
+                'name' => 'list_warmup_mailboxes',
+                'description' => 'List email warmup mailboxes with plan limits, usage, and setup status.',
+                'inputSchema' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'status' => ['type' => 'string', 'description' => 'Optional filter: pending, warming, ready, at_risk, paused, failed'],
+                    ],
+                ],
+            ],
+            [
+                'name' => 'get_warmup_mailbox',
+                'description' => 'Get warmup mailbox detail: weekly stats, recent sends, alerts, estimated ready date.',
+                'inputSchema' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'mailbox_id' => ['type' => 'integer', 'description' => 'Warmup mailbox ID'],
+                    ],
+                    'required' => ['mailbox_id'],
+                ],
+            ],
         ];
     }
 
@@ -308,6 +332,14 @@ class McpJsonRpcDispatcher
             'start_single_site_audit' => $this->singleSiteAudits->start(
                 $user,
                 (string) ($params['website_url'] ?? ''),
+            ),
+            'list_warmup_mailboxes' => $this->warmup->listWarmupMailboxes(
+                $user,
+                isset($params['status']) ? (string) $params['status'] : null,
+            ),
+            'get_warmup_mailbox' => $this->warmup->getWarmupMailbox(
+                $user,
+                (int) ($params['mailbox_id'] ?? 0),
             ),
             default => throw new \InvalidArgumentException('Method not found'),
         };

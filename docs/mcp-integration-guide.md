@@ -1,6 +1,6 @@
 # MCP integration (prospect scanner)
 
-Connect Cursor, Claude, or ChatGPT to monitor operator searches and start single-site URL audits from agent chat.
+Connect Cursor, Claude, or ChatGPT to monitor operator searches, email warmup health, and start single-site URL audits from agent chat.
 
 ## Prerequisites
 
@@ -37,13 +37,21 @@ For clients that only support a static header:
 | `get_search_progress_flow` | Search/prospect progress flow snapshot (phase, step, coarse duration buckets) |
 | `watch_search_progress` | Bounded progress watch (supports streamable progress notifications) |
 | `start_single_site_audit` | Submit a URL (`direct_url` scan) |
+| `list_warmup_mailboxes` | Email warmup mailboxes with plan limits and setup status |
+| `get_warmup_mailbox` | Warmup mailbox detail: weekly stats, recent sends, alerts |
 
-## Monitoring workflow
+## Scan monitoring workflow
 
 1. `start_single_site_audit` → `search_id`
 2. Poll `get_search_progress_flow` (or `get_search`) until `progress_flow.search_complete` is true
 3. Use `list_search_prospects` or `get_search` with `include_prospects: true` for failures/scores
 4. Open `app_url` in the browser for full UI
+
+## Warmup monitoring workflow
+
+1. `list_warmup_mailboxes` → check `plan.setup_complete`, scan for `has_unread_alerts` or `status: at_risk`
+2. `get_warmup_mailbox` with `mailbox_id` → inspect stats, recent sends, alert messages
+3. Open `app_url` in the browser for connect, pause, and configuration
 
 ### Streamable progress notifications (v1.1)
 
