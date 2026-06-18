@@ -66,4 +66,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(Tag::class);
     }
+
+    public function warmupMailboxes(): HasMany
+    {
+        return $this->hasMany(WarmupMailbox::class);
+    }
 }

@@ -37,6 +37,7 @@ use App\Http\Controllers\Settings\McpKeyController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SharedListController;
 use App\Http\Controllers\SharedSearchController;
+use App\Http\Controllers\WarmupController;
 use App\Services\HomepageAuditService;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -164,6 +165,15 @@ Route::middleware('auth')->group(function () {
     Route::delete('/outreach/selections', [OutreachController::class, 'clearSelections'])->name('outreach.selections.clear');
     Route::delete('/outreach/selections/{prospect}', [OutreachController::class, 'destroySelection'])->name('outreach.selections.destroy');
     Route::post('/outreach/generate', [OutreachController::class, 'generate'])->name('outreach.generate');
+
+    Route::get('/warmup', [WarmupController::class, 'index'])->name('warmup.index');
+    Route::get('/warmup/connect', [WarmupController::class, 'connect'])->name('warmup.connect');
+    Route::post('/warmup', [WarmupController::class, 'store'])->name('warmup.store');
+    Route::post('/warmup/test-connection', [WarmupController::class, 'testConnection'])->name('warmup.test-connection');
+    Route::get('/warmup/{mailbox}', [WarmupController::class, 'show'])->name('warmup.show');
+    Route::post('/warmup/{mailbox}/start', [WarmupController::class, 'startWarmup'])->name('warmup.start');
+    Route::post('/warmup/{mailbox}/toggle-pause', [WarmupController::class, 'togglePause'])->name('warmup.toggle-pause');
+    Route::delete('/warmup/{mailbox}', [WarmupController::class, 'destroy'])->name('warmup.destroy');
 
     Route::get('/prospects/{prospect}', [ProspectController::class, 'show'])->name('prospects.show');
     Route::patch('/prospects/{prospect}', [ProspectController::class, 'update'])->name('prospects.update');

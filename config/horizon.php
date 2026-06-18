@@ -244,6 +244,15 @@ return [
                 'timeout' => 180,
                 'nice' => 0,
             ],
+            'warmup-supervisor' => [
+                'connection' => 'redis',
+                'queue' => ['warmup'],
+                'balance' => 'auto',
+                'maxProcesses' => 2,
+                'memory' => 256,
+                'timeout' => 180,
+                'nice' => 0,
+            ],
         ],
         'local' => [
             'searches-supervisor' => [
@@ -268,6 +277,14 @@ return [
                 'balance' => 'simple',
                 'maxProcesses' => 1,
                 'memory' => 512,
+                'timeout' => 180,
+            ],
+            'warmup-supervisor' => [
+                'connection' => 'redis',
+                'queue' => ['warmup'],
+                'balance' => 'simple',
+                'maxProcesses' => 1,
+                'memory' => 256,
                 'timeout' => 180,
             ],
         ],
