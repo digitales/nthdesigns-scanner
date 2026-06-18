@@ -12,6 +12,7 @@ import {
     IconButton,
     Icons,
     Input,
+    RowActions,
     ScoreBadge,
     Segmented,
     Status,
@@ -227,20 +228,24 @@ function ProspectRow({ prospect: p, showA11y, isExpanded, onToggleExpand }) {
                     )}
                 </td>
                 <td className="col-actions">
-                    <IconButton
-                        icon={isExpanded ? Icons.ChevronU : Icons.ChevronD}
-                        title="Expand weaknesses"
-                        onClick={onToggleExpand}
-                    />
-                    {p.report_url && !isFailed && !isPending && (
+                    <RowActions>
                         <IconButton
-                            icon={Icons.Eye}
-                            title="Preview report"
-                            href={p.report_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                            icon={isExpanded ? Icons.ChevronU : Icons.ChevronD}
+                            title="Expand weaknesses"
+                            onClick={onToggleExpand}
                         />
-                    )}
+                        {p.report_url && !isFailed && !isPending ? (
+                            <IconButton
+                                icon={Icons.Eye}
+                                title="Preview report"
+                                href={p.report_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            />
+                        ) : (
+                            <IconButton icon={Icons.Eye} title="Preview report" disabled />
+                        )}
+                    </RowActions>
                 </td>
             </tr>
             {isExpanded && (
