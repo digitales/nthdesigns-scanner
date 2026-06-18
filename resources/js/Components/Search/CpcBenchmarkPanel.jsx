@@ -1,5 +1,7 @@
-import { useRef } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Button, Field, Input, Status, Textarea } from '@/Components/ui';
+
+const KEYWORD_PREVIEW_LIMIT = 5;
 
 export default function CpcBenchmarkPanel({
     niche,
@@ -23,6 +25,7 @@ export default function CpcBenchmarkPanel({
     onImportKeywordPlanner,
 }) {
     const fileInputRef = useRef(null);
+    const [keywordsExpanded, setKeywordsExpanded] = useState(false);
     const fromGoogleAds = cpcSource === 'google_ads';
     const fromKeywordPlanner = cpcSource === 'keyword_planner_csv';
     const headerHint = readOnly
@@ -47,9 +50,18 @@ export default function CpcBenchmarkPanel({
         event.target.value = '';
     };
 
-    const keywordsText = typeof cpcKeywords === 'string'
-        ? cpcKeywords
-        : (cpcKeywords ?? []).join('\n');
+    const keywordList = useMemo(() => {
+        if (typeof cpcKeywords === 'string') {
+            return cpcKeywords.split('\n').map((keyword) => keyword.trim()).filter(Boolean);
+        }
+
+        return (cpcKeywords ?? []).map((keyword) => String(keyword).trim()).filter(Boolean);
+    }, [cpcKeywords]);
+    const hasMoreKeywords = keywordList.length > KEYWORD_PREVIEW_LIMIT;
+    const visibleKeywords = readOnly && !keywordsExpanded && hasMoreKeywords
+        ? keywordList.slice(0, KEYWORD_PREVIEW_LIMIT)
+        : keywordList;
+    const keywordsText = visibleKeywords.join('\n');
     const displayCpc = cpcBenchmark !== '' && cpcBenchmark != null
         ? cpcBenchmark
         : (marketCpcDefault?.cpc_benchmark ?? null);
@@ -137,9 +149,22 @@ export default function CpcBenchmarkPanel({
                     hint={readOnly ? undefined : 'One per line · from Keyword Planner export or manual entry'}
                 >
                     {readOnly ? (
-                        <div className="micro whitespace-pre-wrap">
-                            {keywordsText.trim() ? keywordsText : '—'}
-                        </div>
+                        <>
+                            <div className="micro whitespace-pre-wrap">
+                                {keywordsText.trim() ? keywordsText : '—'}
+                            </div>
+                            {hasMoreKeywords && (
+                                <button
+                                    type="button"
+                                    className="cpc-benchmark-panel__expand"
+                                    onClick={() => setKeywordsExpanded((expanded) => !expanded)}
+                                >
+                                    {keywordsExpanded
+                                        ? 'Show fewer'
+                                        : `Show all ${keywordList.length} keywords`}
+                                </button>
+                            )}
+                        </>
                     ) : (
                         <Textarea
                             rows={3}
