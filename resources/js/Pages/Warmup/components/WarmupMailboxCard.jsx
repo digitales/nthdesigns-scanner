@@ -16,6 +16,19 @@ const STATUS_LABELS = {
     failed: 'Failed',
 };
 
+function getMailboxStatusDisplay(mailbox) {
+    const isSeedOnly = mailbox.is_seed_mailbox && !mailbox.is_outreach_mailbox;
+
+    if (isSeedOnly && mailbox.status === 'pending') {
+        return { kind: 'ready', label: 'Connected' };
+    }
+
+    return {
+        kind: STATUS_KIND[mailbox.status] ?? 'pending',
+        label: STATUS_LABELS[mailbox.status] ?? mailbox.status,
+    };
+}
+
 export default function WarmupMailboxCard({
     mailbox,
     needsSeeds,
@@ -24,6 +37,7 @@ export default function WarmupMailboxCard({
     onRemove,
 }) {
     const isOutreach = mailbox.is_outreach_mailbox;
+    const statusDisplay = getMailboxStatusDisplay(mailbox);
 
     return (
         <article className="card card-pad warmup-mailbox-card">
@@ -40,8 +54,8 @@ export default function WarmupMailboxCard({
                         )}
                     </div>
                 </div>
-                <Status kind={STATUS_KIND[mailbox.status] ?? 'pending'}>
-                    {STATUS_LABELS[mailbox.status] ?? mailbox.status}
+                <Status kind={statusDisplay.kind}>
+                    {statusDisplay.label}
                 </Status>
             </div>
 
