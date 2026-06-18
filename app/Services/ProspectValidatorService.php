@@ -17,6 +17,18 @@ class ProspectValidatorService
         'corporate booking', 'group entity', 'part of',
     ];
 
+    /**
+     * combined_score is a composite WEAKNESS score (higher = more GBP gaps +
+     * accessibility violations + performance issues = more opportunity for the agency).
+     *
+     * Thresholds:
+     *   > 60  — significant weaknesses, strong outreach case
+     *   25–60  — moderate, still viable
+     *   < 25  — business is already digitally strong, limited opportunity
+     */
+    private const WEAKNESS_THRESHOLD_HIGH = 60;
+    private const WEAKNESS_THRESHOLD_STRONG = 25;
+
     public function validate(Prospect $prospect): void
     {
         [$status, $summary, $flags] = $this->assess($prospect);
@@ -80,24 +92,25 @@ class ProspectValidatorService
             $flags[] = 'no_direct_contact';
         }
 
-        $hasDigitalWeakness = $score !== null && $score < 60;
-        $hasStrongPresence = $score !== null && $score > 80;
+        // combined_score is a weakness score: high = lots of GBP gaps + accessibility issues.
+        $hasSignificantWeakness = $score !== null && $score > self::WEAKNESS_THRESHOLD_HIGH;
+        $isAlreadyStrong = $score !== null && $score < self::WEAKNESS_THRESHOLD_STRONG;
 
-        if ($hasDigitalWeakness) {
+        if ($hasSignificantWeakness) {
             $flags[] = 'significant_digital_gaps';
         }
 
-        // Independently verified with clear weaknesses — best possible outreach candidate.
-        if ($qualStatus === 'qualified' && $hasDigitalWeakness) {
+        // Independently verified + clear digital weaknesses — best outreach candidate.
+        if ($qualStatus === 'qualified' && $hasSignificantWeakness) {
             return [
                 ProspectValidatorStatus::HighChance,
-                'Independent practice with clear digital gaps — strong outreach candidate.',
+                'Independent practice with significant GBP and accessibility gaps — strong outreach candidate.',
                 $flags,
             ];
         }
 
-        // Independently verified, viable target even without a severe weakness.
-        if ($qualStatus === 'qualified' && ! $hasStrongPresence) {
+        // Independently verified, some weakness but still a viable target.
+        if ($qualStatus === 'qualified' && ! $isAlreadyStrong) {
             return [
                 ProspectValidatorStatus::HighChance,
                 'Independent practice verified — suitable for outreach.',
@@ -105,12 +118,12 @@ class ProspectValidatorService
             ];
         }
 
-        // Already has a strong digital presence — limited opportunity to add value.
-        if ($hasStrongPresence) {
+        // Already strong digitally — limited opportunity to add value.
+        if ($isAlreadyStrong) {
             return [
                 ProspectValidatorStatus::LowChance,
                 'Business already has a strong digital presence — limited improvement opportunity.',
-                array_merge($flags, ['strong_digital_presence']),
+                array_merge($flags, ['already_digitally_strong']),
             ];
         }
 
