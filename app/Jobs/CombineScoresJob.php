@@ -69,6 +69,8 @@ class CombineScoresJob implements ShouldQueue
             if (! ProspectReport::where('prospect_id', $prospect->id)->exists()) {
                 GenerateProspectReportJob::dispatch($prospect);
             }
+
+            QualifyProspectJob::dispatch($prospect);
         }
 
         $searchStatus->refresh($search);

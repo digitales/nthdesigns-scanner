@@ -3,7 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Prospect;
-use App\Services\ProspectQualificationService;
+use App\Services\ProspectValidatorService;
 use App\Support\ScannerJobContext;
 use App\Support\SearchQueue;
 use Illuminate\Bus\Queueable;
@@ -16,8 +16,8 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 
 #[Tries(2)]
-#[Timeout(30)]
-class QualifyProspectJob implements ShouldQueue
+#[Timeout(15)]
+class ValidateProspectJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -29,7 +29,7 @@ class QualifyProspectJob implements ShouldQueue
         $this->onQueue(SearchQueue::NAME);
     }
 
-    public function handle(ProspectQualificationService $service): void
+    public function handle(ProspectValidatorService $service): void
     {
         ScannerJobContext::add(self::class, ['prospect_id' => $this->prospect->id]);
 
@@ -39,8 +39,6 @@ class QualifyProspectJob implements ShouldQueue
             return;
         }
 
-        $service->qualify($prospect);
-
-        ValidateProspectJob::dispatch($prospect->fresh());
+        $service->validate($prospect);
     }
 }
