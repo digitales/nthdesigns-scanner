@@ -23,6 +23,7 @@ use App\Http\Controllers\ProspectListController;
 use App\Http\Controllers\ProspectNoteController;
 use App\Http\Controllers\ProspectTagController;
 use App\Http\Controllers\ProspectUnsubscribeController;
+use App\Http\Controllers\ProspectValidatorController;
 use App\Http\Controllers\PublicBookingController;
 use App\Http\Controllers\PublicHomepageAuditController;
 use App\Http\Controllers\PublicReportBookingController;
@@ -35,6 +36,7 @@ use App\Http\Controllers\SavedProspectController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\Settings\ConnectedAppsController;
 use App\Http\Controllers\Settings\McpKeyController;
+use App\Http\Controllers\Settings\ValidationRulesController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SharedListController;
 use App\Http\Controllers\SharedSearchController;
@@ -194,6 +196,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/prospects/{prospect}/report', [ProspectController::class, 'generateReport'])->name('prospects.report');
     Route::post('/prospects/{prospect}/outreach', [ProspectController::class, 'generateOutreach'])->name('prospects.outreach');
     Route::post('/prospects/{prospect}/qualify', [ProspectController::class, 'qualify'])->name('prospects.qualify');
+    Route::post('/prospects/{prospect}/validate', [ProspectValidatorController::class, 'validateProspect'])->name('prospects.validate');
+    Route::post('/prospects/{prospect}/validator-override', [ProspectValidatorController::class, 'storeOverride'])->name('prospects.validator-override.store');
+    Route::delete('/prospects/{prospect}/validator-override', [ProspectValidatorController::class, 'destroyOverride'])->name('prospects.validator-override.destroy');
     Route::post('/prospects/{prospect}/booking/resend-confirmation', [ProspectBookingController::class, 'resendConfirmation'])->name('prospects.booking.resend');
 
     Route::patch('/outreach-emails/{outreachEmail}/sent', [OutreachEmailController::class, 'markSent'])->name('outreach.sent');
@@ -213,6 +218,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/settings/agency-booking/test', [AgencyBookingSettingsController::class, 'testConnection'])->name('settings.agency-booking.test');
     Route::post('/settings/niches/scan', [SettingsController::class, 'scanNiches'])->name('settings.niches.scan');
     Route::post('/settings/niches/bootstrap', [SettingsController::class, 'bootstrapNiches'])->name('settings.niches.bootstrap');
+    Route::get('/settings/validation-rules', [ValidationRulesController::class, 'index'])->name('settings.validation-rules.index');
+    Route::post('/settings/validation-rules', [ValidationRulesController::class, 'store'])->name('settings.validation-rules.store');
+    Route::patch('/settings/validation-rules/{prospectValidationSignal}', [ValidationRulesController::class, 'update'])->name('settings.validation-rules.update');
+    Route::delete('/settings/validation-rules/{prospectValidationSignal}', [ValidationRulesController::class, 'destroy'])->name('settings.validation-rules.destroy');
 });
 
 require __DIR__.'/auth.php';

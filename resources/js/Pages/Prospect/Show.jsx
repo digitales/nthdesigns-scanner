@@ -9,6 +9,7 @@ import PageSpeedSection from '@/Components/audit/PageSpeedSection';
 import OutreachChannelCard from '@/Components/OutreachChannelCard';
 import TagInput from '@/Components/TagInput';
 import ListPicker from '@/Components/ListPicker';
+import ValidationControl from '@/Components/ValidationControl';
 import { shouldShowA11yAudit } from '@/utils/auditVisibility';
 import {
     AnglePill,
@@ -352,6 +353,10 @@ export default function ProspectShow({
                                     </div>
                                 )}
                             </Grid>
+                        </Card>
+
+                        <Card title="Validation" className="mb-24">
+                            <ValidationControl prospect={prospect} />
                         </Card>
 
                         <PageSpeedSection pageSpeed={pageSpeed} />

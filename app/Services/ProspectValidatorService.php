@@ -7,27 +7,10 @@ use App\Models\Prospect;
 
 class ProspectValidatorService
 {
-    /**
-     * Known franchise/corporate brand signals — businesses where the decision-maker
-     * is not at practice level, making the sales cycle prohibitively long.
-     */
-    private const FRANCHISE_SIGNALS = [
-        'portman', 'mydentist', 'bupa dental', 'dental care alliance',
-        'hsone', 'dentalnode', 'multiple location', 'national coverage',
-        'corporate booking', 'group entity', 'part of',
-    ];
-
-    /**
-     * combined_score is a composite WEAKNESS score (higher = more GBP gaps +
-     * accessibility violations + performance issues = more opportunity for the agency).
-     *
-     * Thresholds:
-     *   > 60  — significant weaknesses, strong outreach case
-     *   25–60  — moderate, still viable
-     *   < 25  — business is already digitally strong, limited opportunity
-     */
-    private const WEAKNESS_THRESHOLD_HIGH = 60;
-    private const WEAKNESS_THRESHOLD_STRONG = 25;
+    public function __construct(
+        private ProspectValidationRulesService $rules,
+        private ProspectValidationSignalMatcher $matcher,
+    ) {}
 
     public function validate(Prospect $prospect): void
     {
@@ -46,12 +29,22 @@ class ProspectValidatorService
      */
     private function assess(Prospect $prospect): array
     {
+        if (filled($prospect->validator_override_status)) {
+            $status = $prospect->validator_override_status instanceof ProspectValidatorStatus
+                ? $prospect->validator_override_status
+                : ProspectValidatorStatus::from($prospect->validator_override_status);
+            $note = trim((string) $prospect->validator_override_note);
+            $summary = $note !== ''
+                ? "Operator override — {$note}."
+                : 'Operator override — manual validation decision.';
+
+            return [$status, $summary, ['operator_override']];
+        }
+
         $qualStatus = $prospect->qualification_status;
-        $qualFlags = array_map('strtolower', $prospect->qualification_flags ?? []);
         $score = $prospect->combined_score;
         $flags = [];
 
-        // Definitive franchise/corporate — decision-making is not at practice level.
         if ($qualStatus === 'skip') {
             return [
                 ProspectValidatorStatus::LowChance,
@@ -60,20 +53,15 @@ class ProspectValidatorService
             ];
         }
 
-        // Check for franchise brand signals buried in qualification flags.
-        $hasFranchiseSignal = false;
+        $franchiseMatch = $this->matcher->match(
+            $prospect,
+            $this->rules->activeFranchiseSignals(),
+            $this->rules->matchFields(),
+        );
 
-        foreach (self::FRANCHISE_SIGNALS as $signal) {
-            foreach ($qualFlags as $flag) {
-                if (str_contains($flag, $signal)) {
-                    $hasFranchiseSignal = true;
-                    $flags[] = 'franchise_signal_in_flags';
-                    break 2;
-                }
-            }
-        }
+        if ($franchiseMatch !== null) {
+            $flags[] = $this->franchiseFlag($franchiseMatch);
 
-        if ($hasFranchiseSignal) {
             return [
                 ProspectValidatorStatus::LowChance,
                 'Franchise or corporate group signals found — decision process likely extended.',
@@ -81,26 +69,25 @@ class ProspectValidatorService
             ];
         }
 
-        // High review count can indicate a larger, slower-moving organisation.
         $reviewCount = $prospect->review_count ?? 0;
-        if ($reviewCount > 500) {
+
+        if ($reviewCount > $this->rules->highReviewCount()) {
             $flags[] = 'high_review_count';
         }
 
         $hasDirectContact = filled($prospect->email) || filled($prospect->phone);
+
         if (! $hasDirectContact) {
             $flags[] = 'no_direct_contact';
         }
 
-        // combined_score is a weakness score: high = lots of GBP gaps + accessibility issues.
-        $hasSignificantWeakness = $score !== null && $score > self::WEAKNESS_THRESHOLD_HIGH;
-        $isAlreadyStrong = $score !== null && $score < self::WEAKNESS_THRESHOLD_STRONG;
+        $hasSignificantWeakness = $score !== null && $score > $this->rules->weaknessThresholdHigh();
+        $isAlreadyStrong = $score !== null && $score < $this->rules->weaknessThresholdStrong();
 
         if ($hasSignificantWeakness) {
             $flags[] = 'significant_digital_gaps';
         }
 
-        // Independently verified + clear digital weaknesses — best outreach candidate.
         if ($qualStatus === 'qualified' && $hasSignificantWeakness) {
             return [
                 ProspectValidatorStatus::HighChance,
@@ -109,7 +96,6 @@ class ProspectValidatorService
             ];
         }
 
-        // Independently verified, some weakness but still a viable target.
         if ($qualStatus === 'qualified' && ! $isAlreadyStrong) {
             return [
                 ProspectValidatorStatus::HighChance,
@@ -118,7 +104,6 @@ class ProspectValidatorService
             ];
         }
 
-        // Already strong digitally — limited opportunity to add value.
         if ($isAlreadyStrong) {
             return [
                 ProspectValidatorStatus::LowChance,
@@ -127,11 +112,18 @@ class ProspectValidatorService
             ];
         }
 
-        // Caution status or no qualification data — not confident enough to recommend.
         return [
             ProspectValidatorStatus::LowChance,
             'Mixed signals or insufficient qualification data — not recommended for cold outreach.',
             array_merge($flags, ['insufficient_qualification_data']),
         ];
+    }
+
+    /**
+     * @param  array{pattern: string, field: string, source: string, signal_id: int|null}  $match
+     */
+    private function franchiseFlag(array $match): string
+    {
+        return 'franchise_signal:'.$match['pattern'].':'.$match['field'];
     }
 }

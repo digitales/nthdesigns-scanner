@@ -30,6 +30,7 @@ class Prospect extends Model
         'raw_gbp_payload', 'raw_a11y_payload', 'raw_lighthouse_payload', 'cms_detection', 'contact_signals',
         'qualification_status', 'qualification_summary', 'qualification_flags', 'qualification_ran_at',
         'validator_status', 'validator_summary', 'validator_flags', 'validator_ran_at',
+        'validator_override_status', 'validator_override_note', 'validator_override_by', 'validator_override_at',
         'expires_at',
     ];
 
@@ -48,6 +49,8 @@ class Prospect extends Model
             'validator_flags' => 'array',
             'validator_ran_at' => 'datetime',
             'validator_status' => ProspectValidatorStatus::class,
+            'validator_override_status' => ProspectValidatorStatus::class,
+            'validator_override_at' => 'datetime',
             'has_description' => 'boolean',
             'hours_complete' => 'boolean',
             'rating' => 'decimal:1',

@@ -12,7 +12,6 @@ use App\Models\IgnoredProspect;
 use App\Models\NicheScan;
 use App\Models\Prospect;
 use App\Models\Search;
-use App\Support\ProspectSiteScan;
 use App\Queries\LatestNicheScanQuery;
 use App\Services\AgencyBookingService;
 use App\Services\Booking\BookingPresentation;
@@ -23,6 +22,7 @@ use App\Services\ProspectListMembershipService;
 use App\Services\ProspectUnsubscribeService;
 use App\Services\ReportBuilderService;
 use App\Services\TagService;
+use App\Support\ProspectSiteScan;
 use Illuminate\Http\Request;
 
 class ProspectShowResource
@@ -134,6 +134,17 @@ class ProspectShowResource
             'dominant_angle' => $prospect->dominant_angle,
             'audit_status' => $prospect->audit_status,
             'site_unreachable' => ProspectSiteScan::siteUnreachable($prospect),
+            'qualification_status' => $prospect->qualification_status,
+            'qualification_summary' => $prospect->qualification_summary,
+            'qualification_flags' => $prospect->qualification_flags ?? [],
+            'qualification_ran_at' => $prospect->qualification_ran_at?->toISOString(),
+            'validator_status' => $prospect->validator_status?->value,
+            'validator_summary' => $prospect->validator_summary,
+            'validator_flags' => $prospect->validator_flags ?? [],
+            'validator_ran_at' => $prospect->validator_ran_at?->toISOString(),
+            'validator_override_status' => $prospect->validator_override_status?->value,
+            'validator_override_note' => $prospect->validator_override_note,
+            'validator_override_at' => $prospect->validator_override_at?->toISOString(),
         ];
     }
 

@@ -59,6 +59,9 @@ export default function SettingsIndex({ settings, agencyBooking, nicheMaintenanc
                             <Link href="/settings/mcp-keys" className="micro text-medium">
                                 MCP keys (header auth) →
                             </Link>
+                            <Link href="/settings/validation-rules" className="micro text-medium">
+                                Validation rules →
+                            </Link>
                         </Stack>
                     </Card>
 
