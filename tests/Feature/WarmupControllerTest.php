@@ -167,6 +167,10 @@ class WarmupControllerTest extends TestCase
         \Illuminate\Support\Facades\Bus::fake([\App\Jobs\ProcessWarmupJob::class]);
 
         $user = User::factory()->create();
+        WarmupMailbox::factory()->count(2)->create([
+            'user_id' => $user->id,
+            'is_seed_mailbox' => true,
+        ]);
         $mailbox = WarmupMailbox::factory()->outreach()->create([
             'user_id' => $user->id,
             'status' => 'pending',

@@ -6,12 +6,14 @@ use App\Models\User;
 use App\Models\WarmupAlert;
 use App\Models\WarmupMailbox;
 use App\Models\WarmupSend;
+use App\Services\WarmupSeedPoolService;
 use App\Services\WarmupSendService;
 
 class McpWarmupService
 {
     public function __construct(
         private WarmupSendService $sendService,
+        private WarmupSeedPoolService $poolService,
     ) {}
 
     /**
@@ -34,6 +36,11 @@ class McpWarmupService
         $outreachCount = $user->warmupMailboxes()->where('is_outreach_mailbox', true)->count();
         $seedCount = $user->warmupMailboxes()->where('is_seed_mailbox', true)->count();
         $limits = $user->warmupTierLimits();
+        $poolReady = $this->poolService->poolReady();
+        $setupComplete = $outreachCount >= 1 && (
+            $seedCount >= 2
+            || ($limits['pool_participation_allowed'] && $poolReady)
+        );
 
         return [
             'plan' => [
@@ -47,7 +54,13 @@ class McpWarmupService
                     'outreach_mailboxes' => $outreachCount,
                     'seed_mailboxes' => $seedCount,
                 ],
-                'setup_complete' => $outreachCount >= 1 && $seedCount >= 1,
+                'pool' => [
+                    'active_count' => $this->poolService->countActivePoolSeeds(),
+                    'min_size' => config('warmup_pool.min_size'),
+                    'pool_ready' => $poolReady,
+                    'can_use_pool' => $limits['pool_participation_allowed'],
+                ],
+                'setup_complete' => $setupComplete,
             ],
             'mailboxes' => $mailboxes->map(fn (WarmupMailbox $mailbox) => [
                 'id' => $mailbox->id,
@@ -80,9 +93,10 @@ class McpWarmupService
 
         $recentSends = WarmupSend::query()
             ->where('from_mailbox_id', $mailbox->id)
+            ->with('toMailbox:id,user_id,email')
             ->orderByDesc('sent_at')
             ->limit(50)
-            ->get(['id', 'subject', 'sent_at', 'status', 'opened_at', 'replied_at', 'rescued_from_spam_at']);
+            ->get(['id', 'from_mailbox_id', 'to_mailbox_id', 'subject', 'sent_at', 'status', 'opened_at', 'replied_at', 'rescued_from_spam_at']);
 
         $alerts = WarmupAlert::query()
             ->where('warmup_mailbox_id', $mailbox->id)
@@ -123,6 +137,7 @@ class McpWarmupService
             ],
             'recent_sends' => $recentSends->map(fn (WarmupSend $send) => [
                 'id' => $send->id,
+                'to_email' => $send->recipientLabel(),
                 'subject' => $send->subject,
                 'sent_at' => $send->sent_at?->toIso8601String(),
                 'status' => $send->status,

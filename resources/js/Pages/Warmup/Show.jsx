@@ -129,6 +129,7 @@ export default function WarmupShow({ mailbox, sends, stats, estimated_ready_date
                                 <thead>
                                     <tr>
                                         <th>Sent</th>
+                                        <th>Recipient</th>
                                         <th>Subject</th>
                                         <th>Status</th>
                                         <th>Opened</th>
@@ -142,6 +143,7 @@ export default function WarmupShow({ mailbox, sends, stats, estimated_ready_date
                                             <td>
                                                 <div className="body-sm-medium-tight">{formatDate(row.sent_at)}</div>
                                             </td>
+                                            <td className="micro text-stone">{row.recipient ?? '—'}</td>
                                             <td className="note-cell">
                                                 <div className="body-sm-medium-tight truncate" title={row.subject}>
                                                     {row.subject}

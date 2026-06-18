@@ -4,6 +4,7 @@ namespace App\Exceptions;
 
 use App\Support\WarmupCredentialScrubber;
 use Exception;
+use Illuminate\Support\Str;
 
 class WarmupTransportException extends Exception
 {
@@ -14,5 +15,32 @@ class WarmupTransportException extends Exception
             (int) $e->getCode(),
             $e,
         );
+    }
+
+    public function isRecipientRejected(): bool
+    {
+        $message = Str::lower($this->getMessage());
+
+        $patterns = [
+            '550',
+            '551',
+            '552',
+            '553',
+            '554',
+            'recipient rejected',
+            'recipient address rejected',
+            'user unknown',
+            'mailbox unavailable',
+            'does not exist',
+            'no such user',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (str_contains($message, $pattern)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

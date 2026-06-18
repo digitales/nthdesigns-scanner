@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\WarmupMailbox;
-use App\Models\WarmupSend;
 use App\Support\WarmupCredentialScrubber;
 use Illuminate\Support\Collection;
 use RuntimeException;
@@ -13,6 +12,10 @@ use Webklex\PHPIMAP\ClientManager;
 
 class WarmupMailboxService
 {
+    public function __construct(
+        private WarmupSeedPoolService $seedPoolService,
+    ) {}
+
     public function connect(array $data): WarmupMailbox
     {
         $testMailbox = new WarmupMailbox($data);
@@ -49,17 +52,15 @@ class WarmupMailboxService
 
     public function getSeedPool(WarmupMailbox $outbox): Collection
     {
-        $recentlyUsed = WarmupSend::query()
-            ->where('from_mailbox_id', $outbox->id)
-            ->where('sent_at', '>=', now()->subHours(24))
-            ->pluck('to_mailbox_id');
+        return $this->seedPoolService->eligibleSeedsForOutbox($outbox);
+    }
 
-        return WarmupMailbox::query()
-            ->where('user_id', $outbox->user_id)
-            ->where('id', '!=', $outbox->id)
-            ->where('is_seed_mailbox', true)
-            ->whereNotIn('id', $recentlyUsed)
-            ->get();
+    /**
+     * @return array{own: Collection<int, WarmupMailbox>, pool: Collection<int, WarmupMailbox>}
+     */
+    public function getSeedGroups(WarmupMailbox $outbox): array
+    {
+        return $this->seedPoolService->seedGroupsForOutbox($outbox);
     }
 
     private function testImap(WarmupMailbox $mailbox): void

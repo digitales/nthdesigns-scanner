@@ -55,7 +55,7 @@ const PROVIDERS = {
     },
 };
 
-export default function WarmupConnect() {
+export default function WarmupConnect({ pool_participation_allowed: poolParticipationAllowed = false }) {
     const { data, setData, post, processing, errors } = useForm({
         email: '',
         provider: 'fastmail',
@@ -67,6 +67,8 @@ export default function WarmupConnect() {
         password: '',
         is_outreach_mailbox: true,
         is_seed_mailbox: false,
+        is_pool_participant: true,
+        pool_consent_acknowledged: false,
     });
 
     const [connectionTest, setConnectionTest] = useState(null);
@@ -249,6 +251,36 @@ export default function WarmupConnect() {
                                             />
                                             Seed mailbox — receives and replies to warmup emails
                                         </Stack>
+                                        {poolParticipationAllowed && data.is_seed_mailbox && (
+                                            <Stack gap={8}>
+                                                <Stack as="label" className="micro" direction="row" gap={8} align="center">
+                                                    <Checkbox
+                                                        checked={data.is_pool_participant}
+                                                        onChange={(checked) => {
+                                                            setData('is_pool_participant', checked);
+                                                            if (! checked) {
+                                                                setData('pool_consent_acknowledged', false);
+                                                            }
+                                                        }}
+                                                    />
+                                                    Join shared seed network
+                                                </Stack>
+                                                {data.is_pool_participant && (
+                                                    <>
+                                                        <p className="micro text-muted m-0">
+                                                            Your seed mailbox may receive warmup emails from other users&apos; domains. Email addresses are never shared between accounts.
+                                                        </p>
+                                                        <Stack as="label" className="micro" direction="row" gap={8} align="center">
+                                                            <Checkbox
+                                                                checked={data.pool_consent_acknowledged}
+                                                                onChange={(checked) => setData('pool_consent_acknowledged', checked)}
+                                                            />
+                                                            I understand and agree
+                                                        </Stack>
+                                                    </>
+                                                )}
+                                            </Stack>
+                                        )}
                                     </Stack>
                                 </FormSection>
 

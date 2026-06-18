@@ -15,18 +15,32 @@ import {
     StatsStrip,
 } from '@/Components/ui';
 
-export default function WarmupIndex({ mailboxes, seedCount }) {
+export default function WarmupIndex({
+    mailboxes,
+    seedCount,
+    can_start_warmup: canStartWarmup = false,
+    needs_seeds: needsSeeds = true,
+    using_network_only: usingNetworkOnly = false,
+    pool = {},
+    tier = {},
+}) {
     const { flash } = usePage().props;
 
     const outreachMailboxes = mailboxes.filter((m) => m.is_outreach_mailbox);
     const seedMailboxes = mailboxes.filter((m) => m.is_seed_mailbox);
     const hasOutreach = outreachMailboxes.length > 0;
-    const needsSeeds = seedCount < 2;
     const warmingCount = outreachMailboxes.filter((m) => m.status === 'warming').length;
     const readyCount = outreachMailboxes.filter((m) => m.status === 'ready').length;
+    const poolParticipationAllowed = tier.pool_participation_allowed ?? false;
 
     const startWarmup = (id) => router.post(`/warmup/${id}/start`);
     const togglePause = (id) => router.post(`/warmup/${id}/toggle-pause`);
+    const togglePool = (id, participating) => {
+        router.post(`/warmup/${id}/toggle-pool`, {
+            is_pool_participant: participating,
+            pool_consent_acknowledged: participating,
+        });
+    };
     const removeMailbox = (id, email) => {
         if (!window.confirm(`Remove ${email}? Send history will be deleted.`)) return;
         router.delete(`/warmup/${id}`);
@@ -52,6 +66,13 @@ export default function WarmupIndex({ mailboxes, seedCount }) {
                     <StatsStrip>
                         <StatTile label="Connected" value={mailboxes.length} />
                         <StatTile label="Seed accounts" value={seedCount} warm={needsSeeds && hasOutreach} />
+                        {poolParticipationAllowed && (
+                            <StatTile
+                                label="Network seeds"
+                                value={pool.active_count ?? 0}
+                                warm={pool.pool_ready}
+                            />
+                        )}
                         <StatTile label="Warming" value={warmingCount} />
                         <StatTile label="Ready" value={readyCount} warm={readyCount > 0} />
                     </StatsStrip>
@@ -60,7 +81,15 @@ export default function WarmupIndex({ mailboxes, seedCount }) {
                 {needsSeeds && hasOutreach && (
                     <div className="skip-banner">
                         <Icon d={Icons.Lock} size={14} />
-                        Add at least 2 seed mailboxes before starting warmup.
+                        {poolParticipationAllowed
+                            ? `Add at least 2 seed mailboxes, or wait until the network pool reaches ${pool.min_size ?? 10} active seeds.`
+                            : 'Add at least 2 seed mailboxes before starting warmup.'}
+                    </div>
+                )}
+
+                {usingNetworkOnly && (
+                    <div className="skip-banner banner-positive">
+                        Using network seeds — add your own seeds to improve warmup diversity.
                     </div>
                 )}
 
@@ -97,9 +126,11 @@ export default function WarmupIndex({ mailboxes, seedCount }) {
                                             <WarmupMailboxCard
                                                 key={mailbox.id}
                                                 mailbox={mailbox}
-                                                needsSeeds={needsSeeds}
+                                                canStartWarmup={canStartWarmup}
+                                                poolParticipationAllowed={poolParticipationAllowed}
                                                 onStart={startWarmup}
                                                 onTogglePause={togglePause}
+                                                onTogglePool={togglePool}
                                                 onRemove={removeMailbox}
                                             />
                                         ))}
@@ -117,9 +148,11 @@ export default function WarmupIndex({ mailboxes, seedCount }) {
                                                 <WarmupMailboxCard
                                                     key={mailbox.id}
                                                     mailbox={mailbox}
-                                                    needsSeeds={false}
+                                                    canStartWarmup={canStartWarmup}
+                                                    poolParticipationAllowed={poolParticipationAllowed}
                                                     onStart={startWarmup}
                                                     onTogglePause={togglePause}
+                                                    onTogglePool={togglePool}
                                                     onRemove={removeMailbox}
                                                 />
                                             ))}

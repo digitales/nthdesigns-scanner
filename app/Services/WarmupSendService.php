@@ -52,6 +52,21 @@ class WarmupSendService
         ]);
     }
 
+    public function recordBouncedSend(WarmupMailbox $from, WarmupMailbox $to): WarmupSend
+    {
+        $host = parse_url(config('app.url'), PHP_URL_HOST) ?: 'localhost';
+        $messageId = sprintf('%s@%s', (string) Str::uuid(), $host);
+
+        return WarmupSend::create([
+            'from_mailbox_id' => $from->id,
+            'to_mailbox_id' => $to->id,
+            'message_id' => $messageId,
+            'subject' => 'Undelivered warmup',
+            'sent_at' => now(),
+            'status' => 'bounced',
+        ]);
+    }
+
     public function processInbox(WarmupMailbox $mailbox): void
     {
         $client = $this->mailboxService->makeImapClient($mailbox);

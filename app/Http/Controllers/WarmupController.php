@@ -6,6 +6,7 @@ use App\Jobs\ProcessWarmupJob;
 use App\Models\WarmupMailbox;
 use App\Models\WarmupSend;
 use App\Services\WarmupMailboxService;
+use App\Services\WarmupSeedPoolService;
 use App\Services\WarmupSendService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -16,10 +17,13 @@ use RuntimeException;
 
 class WarmupController extends Controller
 {
-    public function index(): Response
+    public function index(WarmupSeedPoolService $poolService): Response
     {
+        $user = auth()->user();
+        $limits = $user->warmupTierLimits();
+
         $mailboxes = WarmupMailbox::query()
-            ->where('user_id', auth()->id())
+            ->where('user_id', $user->id)
             ->withCount([
                 'sendsFrom as sends_today' => function ($q) {
                     $q->whereDate('sent_at', today());
@@ -35,6 +39,7 @@ class WarmupController extends Controller
                 'provider' => $m->provider,
                 'is_outreach_mailbox' => $m->is_outreach_mailbox,
                 'is_seed_mailbox' => $m->is_seed_mailbox,
+                'is_pool_participant' => $m->is_pool_participant,
                 'status' => $m->status,
                 'deliverability_score' => $m->deliverability_score,
                 'days_warming' => $m->days_warming,
@@ -44,10 +49,23 @@ class WarmupController extends Controller
             ]);
 
         $seedCount = $mailboxes->where('is_seed_mailbox', true)->count();
+        $canStartWarmup = $poolService->canStartWarmup($user);
 
         return Inertia::render('Warmup/Index', [
             'mailboxes' => $mailboxes,
             'seedCount' => $seedCount,
+            'can_start_warmup' => $canStartWarmup,
+            'needs_seeds' => ! $canStartWarmup,
+            'using_network_only' => $canStartWarmup && $seedCount < 2 && $limits['pool_participation_allowed'],
+            'pool' => [
+                'active_count' => $poolService->countActivePoolSeeds(),
+                'min_size' => config('warmup_pool.min_size'),
+                'can_use_pool' => $limits['pool_participation_allowed'],
+                'pool_ready' => $poolService->poolReady(),
+            ],
+            'tier' => [
+                'pool_participation_allowed' => $limits['pool_participation_allowed'],
+            ],
         ]);
     }
 
@@ -57,9 +75,10 @@ class WarmupController extends Controller
 
         $sends = WarmupSend::query()
             ->where('from_mailbox_id', $mailbox->id)
+            ->with('toMailbox:id,user_id,email')
             ->orderByDesc('sent_at')
             ->limit(50)
-            ->get(['id', 'subject', 'sent_at', 'status', 'opened_at', 'replied_at', 'rescued_from_spam_at']);
+            ->get(['id', 'from_mailbox_id', 'to_mailbox_id', 'subject', 'sent_at', 'status', 'opened_at', 'replied_at', 'rescued_from_spam_at']);
 
         $weekStart = now()->startOfWeek();
 
@@ -74,7 +93,16 @@ class WarmupController extends Controller
                 'warmup_enabled' => $mailbox->warmup_enabled,
                 'last_imap_check_at' => $mailbox->last_imap_check_at?->toIso8601String(),
             ],
-            'sends' => $sends,
+            'sends' => $sends->map(fn (WarmupSend $send) => [
+                'id' => $send->id,
+                'recipient' => $send->recipientLabel(),
+                'subject' => $send->subject,
+                'sent_at' => $send->sent_at?->toIso8601String(),
+                'status' => $send->status,
+                'opened_at' => $send->opened_at?->toIso8601String(),
+                'replied_at' => $send->replied_at?->toIso8601String(),
+                'rescued_from_spam_at' => $send->rescued_from_spam_at?->toIso8601String(),
+            ]),
             'stats' => [
                 'sends_this_week' => WarmupSend::query()
                     ->where('from_mailbox_id', $mailbox->id)
@@ -97,7 +125,11 @@ class WarmupController extends Controller
 
     public function connect(): Response
     {
-        return Inertia::render('Warmup/Connect');
+        $limits = auth()->user()->warmupTierLimits();
+
+        return Inertia::render('Warmup/Connect', [
+            'pool_participation_allowed' => $limits['pool_participation_allowed'],
+        ]);
     }
 
     public function store(Request $request, WarmupMailboxService $mailboxService): RedirectResponse
@@ -113,6 +145,8 @@ class WarmupController extends Controller
             'password' => 'required|string',
             'is_outreach_mailbox' => 'boolean',
             'is_seed_mailbox' => 'boolean',
+            'is_pool_participant' => 'boolean',
+            'pool_consent_acknowledged' => 'boolean',
             'send_window_start' => 'nullable|date_format:H:i',
             'send_window_end' => 'nullable|date_format:H:i',
             'send_on_weekends' => 'boolean',
@@ -159,7 +193,20 @@ class WarmupController extends Controller
 
         if (! $limits['pool_participation_allowed']) {
             $data['is_pool_participant'] = false;
+        } elseif ($request->boolean('is_seed_mailbox') && $request->boolean('is_pool_participant', true)) {
+            if (! $request->boolean('pool_consent_acknowledged')) {
+                return back()->withErrors([
+                    'connection' => 'Please acknowledge the shared seed network consent before joining the pool.',
+                ]);
+            }
+            $data['is_pool_participant'] = true;
+        } elseif ($request->boolean('is_seed_mailbox')) {
+            $data['is_pool_participant'] = false;
+        } else {
+            $data['is_pool_participant'] = false;
         }
+
+        unset($data['pool_consent_acknowledged']);
 
         $data['password_encrypted'] = $data['password'];
         $data['user_id'] = $user->id;
@@ -198,11 +245,13 @@ class WarmupController extends Controller
         }
     }
 
-    public function startWarmup(WarmupMailbox $mailbox): RedirectResponse
+    public function startWarmup(WarmupMailbox $mailbox, WarmupSeedPoolService $poolService): RedirectResponse
     {
         abort_unless($mailbox->user_id === auth()->id(), 403);
 
         abort_unless($mailbox->is_outreach_mailbox, 422);
+
+        abort_unless($poolService->canStartWarmup(auth()->user()), 422);
 
         $mailbox->update([
             'warmup_enabled' => true,
@@ -221,6 +270,27 @@ class WarmupController extends Controller
 
         $newStatus = $mailbox->status === 'paused' ? 'warming' : 'paused';
         $mailbox->update(['status' => $newStatus]);
+
+        return back();
+    }
+
+    public function togglePoolParticipation(Request $request, WarmupMailbox $mailbox): RedirectResponse
+    {
+        abort_unless($mailbox->user_id === auth()->id(), 403);
+        abort_unless($mailbox->is_seed_mailbox, 422);
+
+        $limits = auth()->user()->warmupTierLimits();
+        abort_unless($limits['pool_participation_allowed'], 403);
+
+        $participating = $request->boolean('is_pool_participant');
+
+        if ($participating && ! $request->boolean('pool_consent_acknowledged')) {
+            return back()->withErrors([
+                'connection' => 'Please acknowledge the shared seed network consent before joining the pool.',
+            ]);
+        }
+
+        $mailbox->update(['is_pool_participant' => $participating]);
 
         return back();
     }

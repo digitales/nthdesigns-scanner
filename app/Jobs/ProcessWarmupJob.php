@@ -46,14 +46,14 @@ class ProcessWarmupJob implements ShouldQueue
             }
 
             $volume = $mailboxService->getDailyVolume($outbox);
-            $seeds = $mailboxService->getSeedPool($outbox);
+            $seedGroups = $mailboxService->getSeedGroups($outbox);
 
-            if ($seeds->isEmpty()) {
+            if ($seedGroups['own']->isEmpty() && $seedGroups['pool']->isEmpty()) {
                 continue;
             }
 
             $sendTimes = $this->buildSendSchedule($outbox, $volume);
-            $seedCycle = $this->buildSeedCycle($seeds, $volume);
+            $seedCycle = $this->buildSeedCycle($seedGroups['own'], $seedGroups['pool'], $volume);
 
             foreach ($sendTimes as $index => $sendAt) {
                 $seed = $seedCycle[$index];
@@ -125,19 +125,35 @@ class ProcessWarmupJob implements ShouldQueue
     /**
      * @return array<int, WarmupMailbox>
      */
-    private function buildSeedCycle(Collection $seeds, int $volume): array
+    private function buildSeedCycle(Collection $ownSeeds, Collection $poolSeeds, int $volume): array
     {
+        $own = $ownSeeds->shuffle()->values();
+        $pool = $poolSeeds->shuffle()->values();
         $cycle = [];
-        $pool = $seeds->values();
+        $ownPass = 0;
 
         while (count($cycle) < $volume) {
-            $shuffled = $pool->shuffle()->values();
-            foreach ($shuffled as $seed) {
-                $cycle[] = $seed;
-                if (count($cycle) >= $volume) {
-                    break;
-                }
+            if ($ownPass < $own->count()) {
+                $cycle[] = $own[$ownPass];
+                $ownPass++;
+
+                continue;
             }
+
+            if ($pool->isNotEmpty()) {
+                $poolOffset = count($cycle) - $own->count();
+                $cycle[] = $pool[$poolOffset % $pool->count()];
+
+                continue;
+            }
+
+            if ($own->isNotEmpty()) {
+                $cycle[] = $own[count($cycle) % $own->count()];
+
+                continue;
+            }
+
+            break;
         }
 
         return $cycle;

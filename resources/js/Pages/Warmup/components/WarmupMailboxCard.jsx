@@ -31,12 +31,15 @@ function getMailboxStatusDisplay(mailbox) {
 
 export default function WarmupMailboxCard({
     mailbox,
-    needsSeeds,
+    canStartWarmup,
+    poolParticipationAllowed,
     onStart,
     onTogglePause,
+    onTogglePool,
     onRemove,
 }) {
     const isOutreach = mailbox.is_outreach_mailbox;
+    const isSeedOnly = mailbox.is_seed_mailbox && !mailbox.is_outreach_mailbox;
     const statusDisplay = getMailboxStatusDisplay(mailbox);
 
     return (
@@ -51,6 +54,9 @@ export default function WarmupMailboxCard({
                         )}
                         {mailbox.is_seed_mailbox && (
                             <span className="warmup-role-tag">Seed</span>
+                        )}
+                        {isSeedOnly && poolParticipationAllowed && mailbox.is_pool_participant && (
+                            <span className="warmup-role-tag">Network</span>
                         )}
                     </div>
                 </div>
@@ -69,7 +75,7 @@ export default function WarmupMailboxCard({
             )}
 
             <div className="warmup-mailbox-card__actions">
-                {isOutreach && mailbox.status === 'pending' && !needsSeeds && (
+                {isOutreach && mailbox.status === 'pending' && canStartWarmup && (
                     <Button type="button" onClick={() => onStart(mailbox.id)}>
                         Start warmup
                     </Button>
@@ -78,6 +84,16 @@ export default function WarmupMailboxCard({
                 {isOutreach && ['warming', 'ready', 'paused'].includes(mailbox.status) && (
                     <Button type="button" kind="secondary" onClick={() => onTogglePause(mailbox.id)}>
                         {mailbox.status === 'paused' ? 'Resume' : 'Pause'}
+                    </Button>
+                )}
+
+                {isSeedOnly && poolParticipationAllowed && (
+                    <Button
+                        type="button"
+                        kind="secondary"
+                        onClick={() => onTogglePool(mailbox.id, !mailbox.is_pool_participant)}
+                    >
+                        {mailbox.is_pool_participant ? 'Leave network' : 'Join network'}
                     </Button>
                 )}
 

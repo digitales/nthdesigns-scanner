@@ -38,6 +38,7 @@ use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SharedListController;
 use App\Http\Controllers\SharedSearchController;
 use App\Http\Controllers\WarmupController;
+use App\Http\Controllers\WarmupPoolController;
 use App\Services\HomepageAuditService;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -173,7 +174,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/warmup/{mailbox}', [WarmupController::class, 'show'])->name('warmup.show');
     Route::post('/warmup/{mailbox}/start', [WarmupController::class, 'startWarmup'])->name('warmup.start');
     Route::post('/warmup/{mailbox}/toggle-pause', [WarmupController::class, 'togglePause'])->name('warmup.toggle-pause');
+    Route::post('/warmup/{mailbox}/toggle-pool', [WarmupController::class, 'togglePoolParticipation'])->name('warmup.toggle-pool');
     Route::delete('/warmup/{mailbox}', [WarmupController::class, 'destroy'])->name('warmup.destroy');
+
+    Route::get('/admin/warmup-pool', [WarmupPoolController::class, 'index'])->name('admin.warmup-pool');
 
     Route::get('/prospects/{prospect}', [ProspectController::class, 'show'])->name('prospects.show');
     Route::patch('/prospects/{prospect}', [ProspectController::class, 'update'])->name('prospects.update');

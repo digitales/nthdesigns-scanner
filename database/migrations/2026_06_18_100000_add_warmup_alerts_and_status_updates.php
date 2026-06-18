@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('warmup_alerts', function (Blueprint $table) {
             $table->id();
             $table->foreignId('warmup_mailbox_id')->constrained()->cascadeOnDelete();
-            $table->enum('type', ['connection_failed', 'ready', 'at_risk']);
+            $table->enum('type', ['connection_failed', 'ready', 'at_risk', 'pool_excluded']);
             $table->text('message');
             $table->timestamp('created_at')->useCurrent();
             $table->timestamp('read_at')->nullable();

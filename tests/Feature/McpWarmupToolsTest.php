@@ -90,6 +90,10 @@ class McpWarmupToolsTest extends TestCase
             'is_outreach_mailbox' => false,
             'is_seed_mailbox' => true,
         ]);
+        WarmupMailbox::factory()->for($user)->create([
+            'is_outreach_mailbox' => false,
+            'is_seed_mailbox' => true,
+        ]);
 
         WarmupSend::factory()->create([
             'from_mailbox_id' => $outreach->id,
@@ -109,9 +113,9 @@ class McpWarmupToolsTest extends TestCase
         $response->assertOk();
         $response->assertJsonPath('result.plan.tier', 'solo');
         $response->assertJsonPath('result.plan.usage.outreach_mailboxes', 1);
-        $response->assertJsonPath('result.plan.usage.seed_mailboxes', 1);
+        $response->assertJsonPath('result.plan.usage.seed_mailboxes', 2);
         $response->assertJsonPath('result.plan.setup_complete', true);
-        $response->assertJsonCount(2, 'result.mailboxes');
+        $response->assertJsonCount(3, 'result.mailboxes');
 
         $outreachRow = collect($response->json('result.mailboxes'))
             ->firstWhere('email', 'outreach@example.com');

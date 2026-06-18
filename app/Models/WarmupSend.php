@@ -34,4 +34,20 @@ class WarmupSend extends Model
     {
         return $this->belongsTo(WarmupMailbox::class, 'to_mailbox_id');
     }
+
+    public function isNetworkRecipient(): bool
+    {
+        $this->loadMissing(['fromMailbox', 'toMailbox']);
+
+        if (! $this->fromMailbox || ! $this->toMailbox) {
+            return false;
+        }
+
+        return $this->fromMailbox->user_id !== $this->toMailbox->user_id;
+    }
+
+    public function recipientLabel(): string
+    {
+        return $this->isNetworkRecipient() ? 'Network seed' : ($this->toMailbox?->email ?? '—');
+    }
 }

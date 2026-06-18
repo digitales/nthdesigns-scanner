@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Exceptions\WarmupTransportException;
 use App\Models\WarmupAlert;
 use App\Models\WarmupMailbox;
 use App\Services\WarmupSendService;
@@ -30,7 +31,17 @@ class SendWarmupEmailJob implements ShouldQueue
         $from = WarmupMailbox::findOrFail($this->fromMailboxId);
         $to = WarmupMailbox::findOrFail($this->toMailboxId);
 
-        $sendService->sendWarmupEmail($from, $to);
+        try {
+            $sendService->sendWarmupEmail($from, $to);
+        } catch (WarmupTransportException $e) {
+            if ($e->isRecipientRejected()) {
+                $sendService->recordBouncedSend($from, $to);
+
+                return;
+            }
+
+            throw $e;
+        }
 
         $from->update(['consecutive_failures' => 0]);
     }
