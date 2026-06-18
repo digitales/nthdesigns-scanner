@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\AuditStatus;
 use App\Enums\DominantAngle;
 use App\Enums\ProspectOutreachChannel;
+use App\Enums\ProspectValidatorStatus;
 use App\Enums\UseFormOutreach;
 use App\Enums\WebsiteDiscoveryConfidence;
 use App\Enums\WebsiteUrlSource;
@@ -28,6 +29,7 @@ class Prospect extends Model
         'combined_score', 'dominant_angle', 'audit_status', 'suppress_auto_report',
         'raw_gbp_payload', 'raw_a11y_payload', 'raw_lighthouse_payload', 'cms_detection', 'contact_signals',
         'qualification_status', 'qualification_summary', 'qualification_flags', 'qualification_ran_at',
+        'validator_status', 'validator_summary', 'validator_flags', 'validator_ran_at',
         'expires_at',
     ];
 
@@ -43,6 +45,9 @@ class Prospect extends Model
             'contact_signals' => 'array',
             'qualification_flags' => 'array',
             'qualification_ran_at' => 'datetime',
+            'validator_flags' => 'array',
+            'validator_ran_at' => 'datetime',
+            'validator_status' => ProspectValidatorStatus::class,
             'has_description' => 'boolean',
             'hours_complete' => 'boolean',
             'rating' => 'decimal:1',
@@ -56,6 +61,16 @@ class Prospect extends Model
             'use_form_outreach' => UseFormOutreach::class,
             'outreach_channel' => ProspectOutreachChannel::class,
         ];
+    }
+
+    public function isHighChance(): bool
+    {
+        return $this->validator_status === ProspectValidatorStatus::HighChance;
+    }
+
+    public function isLowChance(): bool
+    {
+        return $this->validator_status === ProspectValidatorStatus::LowChance;
     }
 
     public function search(): BelongsTo
