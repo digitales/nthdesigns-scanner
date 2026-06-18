@@ -70,7 +70,7 @@ class CombineScoresJob implements ShouldQueue
                 GenerateProspectReportJob::dispatch($prospect);
             }
 
-            QualifyProspectJob::dispatch($prospect);
+            ValidateProspectJob::dispatch($prospect, chainQualification: true);
         }
 
         $searchStatus->refresh($search);

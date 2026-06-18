@@ -24,6 +24,8 @@ class ValidateProspectJob implements ShouldQueue
     public function __construct(
         #[WithoutRelations]
         public Prospect $prospect,
+        public bool $chainQualification = false,
+        public bool $forceQualification = false,
     ) {
         $this->onConnection(SearchQueue::connection());
         $this->onQueue(SearchQueue::NAME);
@@ -40,5 +42,19 @@ class ValidateProspectJob implements ShouldQueue
         }
 
         $service->validate($prospect);
+
+        if (! $this->chainQualification) {
+            return;
+        }
+
+        $prospect = $prospect->fresh();
+
+        if (! $prospect) {
+            return;
+        }
+
+        if ($this->forceQualification || ! $service->shouldSkipQualification($prospect)) {
+            QualifyProspectJob::dispatch($prospect);
+        }
     }
 }

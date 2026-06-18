@@ -24,6 +24,43 @@ class ProspectValidatorService
         ]);
     }
 
+    public function shouldSkipQualification(Prospect $prospect): bool
+    {
+        [$status, , $flags] = $this->assess($prospect);
+
+        if ($status !== ProspectValidatorStatus::LowChance) {
+            return false;
+        }
+
+        return $this->isDefinitiveLowChance($flags, $prospect);
+    }
+
+    /**
+     * @param  array<string>  $flags
+     */
+    private function isDefinitiveLowChance(array $flags, Prospect $prospect): bool
+    {
+        if ($prospect->qualification_status === 'skip') {
+            return true;
+        }
+
+        if (in_array('already_digitally_strong', $flags, true)) {
+            return true;
+        }
+
+        if (in_array('corporate_or_franchise_confirmed', $flags, true)) {
+            return true;
+        }
+
+        foreach ($flags as $flag) {
+            if (str_starts_with($flag, 'franchise_signal:')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /**
      * @return array{0: ProspectValidatorStatus, 1: string, 2: array<string>}
      */

@@ -163,7 +163,9 @@ class ProspectController extends Controller
     {
         $this->authorize('view', $prospect);
 
-        if ($prospect->qualification_ran_at && $prospect->qualification_ran_at->gt(now()->subMinutes(5))) {
+        $force = request()->boolean('force');
+
+        if (! $force && $prospect->qualification_ran_at && $prospect->qualification_ran_at->gt(now()->subMinutes(5))) {
             return response()->json(['message' => 'Qualification recently completed.'], 200);
         }
 

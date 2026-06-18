@@ -109,4 +109,48 @@ class ProspectValidatorServiceTest extends TestCase
 
         $this->assertSame(ProspectValidatorStatus::HighChance, $prospect->validator_status);
     }
+
+    public function test_should_skip_qualification_for_franchise_signal_in_business_name(): void
+    {
+        $prospect = Prospect::factory()->create([
+            'business_name' => 'Portman Dental Care Leeds',
+            'qualification_status' => null,
+            'combined_score' => 75,
+        ]);
+
+        $this->assertTrue($this->service->shouldSkipQualification($prospect));
+    }
+
+    public function test_should_skip_qualification_when_already_digitally_strong(): void
+    {
+        $prospect = Prospect::factory()->create([
+            'business_name' => 'Independent Dental',
+            'qualification_status' => null,
+            'combined_score' => 10,
+        ]);
+
+        $this->assertTrue($this->service->shouldSkipQualification($prospect));
+    }
+
+    public function test_should_skip_qualification_when_qualification_status_is_skip(): void
+    {
+        $prospect = Prospect::factory()->create([
+            'business_name' => 'Independent Dental',
+            'qualification_status' => 'skip',
+            'combined_score' => 75,
+        ]);
+
+        $this->assertTrue($this->service->shouldSkipQualification($prospect));
+    }
+
+    public function test_should_not_skip_qualification_for_insufficient_qualification_data(): void
+    {
+        $prospect = Prospect::factory()->create([
+            'business_name' => 'Independent Dental',
+            'qualification_status' => null,
+            'combined_score' => 40,
+        ]);
+
+        $this->assertFalse($this->service->shouldSkipQualification($prospect));
+    }
 }

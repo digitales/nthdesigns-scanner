@@ -29,6 +29,25 @@ export async function requestProspectValidation(prospectId) {
     return res.json();
 }
 
+export async function requestProspectForceQualification(prospectId) {
+    const res = await fetch(`/prospects/${prospectId}/qualify`, {
+        method: 'POST',
+        headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken(),
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: JSON.stringify({ force: true }),
+    });
+
+    if (!res.ok && res.status !== 202) {
+        throw new Error('Force qualification request failed');
+    }
+
+    return res.json();
+}
+
 function suggestPattern(prospect) {
     const franchiseFlag = (prospect.validator_flags ?? []).find((flag) => flag.startsWith('franchise_signal:'));
     if (franchiseFlag) {
@@ -43,6 +62,7 @@ function suggestPattern(prospect) {
 
 export default function ValidationControl({ prospect }) {
     const [validating, setValidating] = useState(false);
+    const [qualifying, setQualifying] = useState(false);
     const [showOverrideForm, setShowOverrideForm] = useState(false);
     const [showSignalForm, setShowSignalForm] = useState(false);
     const [overrideStatus, setOverrideStatus] = useState('high_chance');
@@ -66,6 +86,21 @@ export default function ValidationControl({ prospect }) {
             router.reload({ only: ['prospect'], preserveScroll: true });
         } catch {
             setValidating(false);
+        }
+    };
+
+    const handleForceQualify = async () => {
+        if (qualifying) {
+            return;
+        }
+
+        setQualifying(true);
+
+        try {
+            await requestProspectForceQualification(prospect.id);
+            router.reload({ only: ['prospect'], preserveScroll: true });
+        } catch {
+            setQualifying(false);
         }
     };
 
@@ -154,6 +189,14 @@ export default function ValidationControl({ prospect }) {
                     disabled={validating}
                 >
                     {validating ? 'Validating…' : 'Re-validate'}
+                </Button>
+                <Button
+                    kind="ghost"
+                    size="sm"
+                    onClick={handleForceQualify}
+                    disabled={qualifying}
+                >
+                    {qualifying ? 'Qualifying…' : 'Force qualify'}
                 </Button>
                 {!showOverrideForm ? (
                     <Button kind="ghost" size="sm" onClick={() => setShowOverrideForm(true)}>
