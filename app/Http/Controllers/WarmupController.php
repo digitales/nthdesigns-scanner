@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\ProcessWarmupJob;
 use App\Models\WarmupMailbox;
 use App\Models\WarmupSend;
 use App\Services\WarmupMailboxService;
@@ -201,13 +202,17 @@ class WarmupController extends Controller
     {
         abort_unless($mailbox->user_id === auth()->id(), 403);
 
+        abort_unless($mailbox->is_outreach_mailbox, 422);
+
         $mailbox->update([
             'warmup_enabled' => true,
             'warmup_started_at' => now(),
             'status' => 'warming',
         ]);
 
-        return back()->with('success', 'Warmup started.');
+        ProcessWarmupJob::dispatch($mailbox->id);
+
+        return back()->with('success', 'Warmup started. First sends will go out shortly if you are within your send window.');
     }
 
     public function togglePause(WarmupMailbox $mailbox): RedirectResponse

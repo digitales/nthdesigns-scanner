@@ -14,7 +14,7 @@ const STEPS = [
     {
         id: 'start',
         title: 'Start warmup',
-        body: 'The engine sends low-volume emails and seeds reply automatically.',
+        body: 'Click Start on your outreach mailbox. Sends begin immediately within your send window (default 08:00–18:00), then repeat daily at 08:00.',
     },
     {
         id: 'ready',

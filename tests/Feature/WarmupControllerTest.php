@@ -161,4 +161,30 @@ class WarmupControllerTest extends TestCase
             ]))
             ->assertRedirect(route('warmup.index'));
     }
+
+    public function test_start_warmup_dispatches_process_job_for_outreach_mailbox(): void
+    {
+        \Illuminate\Support\Facades\Bus::fake([\App\Jobs\ProcessWarmupJob::class]);
+
+        $user = User::factory()->create();
+        $mailbox = WarmupMailbox::factory()->outreach()->create([
+            'user_id' => $user->id,
+            'status' => 'pending',
+            'warmup_enabled' => false,
+        ]);
+
+        $this->actingAs($user)
+            ->post("/warmup/{$mailbox->id}/start")
+            ->assertRedirect();
+
+        $mailbox->refresh();
+        $this->assertTrue($mailbox->warmup_enabled);
+        $this->assertSame('warming', $mailbox->status);
+        $this->assertNotNull($mailbox->warmup_started_at);
+
+        \Illuminate\Support\Facades\Bus::assertDispatched(
+            \App\Jobs\ProcessWarmupJob::class,
+            fn (\App\Jobs\ProcessWarmupJob $job) => $job->outboxId === $mailbox->id,
+        );
+    }
 }

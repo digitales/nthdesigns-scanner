@@ -307,6 +307,7 @@ Use a **Managed queue** named `auditing` for Playwright audits (Cloud scales wor
 |---------|---------|
 | Search worker | `php artisan queue:work database --queue=searches --timeout=90 --tries=3 --sleep=3` |
 | Niche worker | `php artisan queue:work database --queue=niches --timeout=90 --tries=3 --sleep=5` |
+| Warmup worker | `php artisan queue:work database --queue=warmup --timeout=180 --tries=2 --sleep=5` |
 
 Cloud runs managed workers for `auditing` — do **not** add a `queue:work` process for `auditing`.
 

@@ -137,4 +137,89 @@ class ProcessWarmupJobTest extends TestCase
             $this->assertLessThanOrEqual($ceiling, $count);
         }
     }
+
+    public function test_skips_outbox_when_sends_already_sent_today(): void
+    {
+        Bus::fake([SendWarmupEmailJob::class, ProcessWarmupInboxJob::class]);
+
+        Carbon::setTestNow('2026-06-18 10:00:00');
+
+        $user = User::factory()->create();
+
+        $outbox = WarmupMailbox::factory()->outreach()->warming()->create([
+            'user_id' => $user->id,
+        ]);
+
+        $seed = WarmupMailbox::factory()->create([
+            'user_id' => $user->id,
+            'is_seed_mailbox' => true,
+        ]);
+
+        \App\Models\WarmupSend::factory()->create([
+            'from_mailbox_id' => $outbox->id,
+            'to_mailbox_id' => $seed->id,
+            'sent_at' => now(),
+        ]);
+
+        (new ProcessWarmupJob)->handle(app(WarmupMailboxService::class));
+
+        Bus::assertNotDispatched(SendWarmupEmailJob::class);
+    }
+
+    public function test_midday_start_schedules_sends_from_now_until_window_end(): void
+    {
+        Bus::fake([SendWarmupEmailJob::class, ProcessWarmupInboxJob::class]);
+
+        Carbon::setTestNow('2026-06-18 14:00:00');
+
+        $user = User::factory()->create();
+
+        WarmupMailbox::factory()->outreach()->warming()->create([
+            'user_id' => $user->id,
+            'warmup_started_at' => now(),
+            'send_window_start' => '08:00:00',
+            'send_window_end' => '18:00:00',
+        ]);
+
+        WarmupMailbox::factory()->count(2)->create([
+            'user_id' => $user->id,
+            'is_seed_mailbox' => true,
+        ]);
+
+        (new ProcessWarmupJob)->handle(app(WarmupMailboxService::class));
+
+        $windowStart = Carbon::parse('2026-06-18 14:00:00');
+        $windowEnd = Carbon::parse('2026-06-18 18:00:00');
+
+        Bus::assertDispatched(SendWarmupEmailJob::class, function (SendWarmupEmailJob $job) use ($windowStart, $windowEnd) {
+            $delay = $job->delay;
+            $sendAt = $delay instanceof \DateTimeInterface ? Carbon::instance($delay) : now()->add($delay);
+
+            return $sendAt->greaterThanOrEqualTo($windowStart) && $sendAt->lessThanOrEqualTo($windowEnd);
+        });
+    }
+
+    public function test_does_not_schedule_sends_after_send_window_has_closed(): void
+    {
+        Bus::fake([SendWarmupEmailJob::class, ProcessWarmupInboxJob::class]);
+
+        Carbon::setTestNow('2026-06-18 19:00:00');
+
+        $user = User::factory()->create();
+
+        WarmupMailbox::factory()->outreach()->warming()->create([
+            'user_id' => $user->id,
+            'send_window_start' => '08:00:00',
+            'send_window_end' => '18:00:00',
+        ]);
+
+        WarmupMailbox::factory()->count(2)->create([
+            'user_id' => $user->id,
+            'is_seed_mailbox' => true,
+        ]);
+
+        (new ProcessWarmupJob)->handle(app(WarmupMailboxService::class));
+
+        Bus::assertNotDispatched(SendWarmupEmailJob::class);
+    }
 }

@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\WarmupMailbox;
+use App\Models\WarmupSend;
 use App\Services\WarmupMailboxService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -17,7 +18,7 @@ class ProcessWarmupJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public function __construct()
+    public function __construct(public readonly ?int $outboxId = null)
     {
         $this->onQueue('warmup');
     }
@@ -27,10 +28,20 @@ class ProcessWarmupJob implements ShouldQueue
         $outboxes = WarmupMailbox::query()
             ->active()
             ->where('is_outreach_mailbox', true)
+            ->when($this->outboxId, fn ($query) => $query->whereKey($this->outboxId))
             ->get();
 
         foreach ($outboxes as $outbox) {
             if (! $outbox->send_on_weekends && now()->isWeekend()) {
+                continue;
+            }
+
+            $alreadySentToday = WarmupSend::query()
+                ->where('from_mailbox_id', $outbox->id)
+                ->whereDate('sent_at', today())
+                ->exists();
+
+            if ($alreadySentToday) {
                 continue;
             }
 
@@ -69,7 +80,14 @@ class ProcessWarmupJob implements ShouldQueue
 
         $windowStart = $this->windowTimeToday($outbox->send_window_start);
         $windowEnd = $this->windowTimeToday($outbox->send_window_end);
-        $windowMinutes = max(1, $windowStart->diffInMinutes($windowEnd));
+        $now = now();
+
+        if ($now->greaterThanOrEqualTo($windowEnd)) {
+            return [];
+        }
+
+        $effectiveStart = $now->greaterThan($windowStart) ? $now->copy() : $windowStart;
+        $windowMinutes = max(1, $effectiveStart->diffInMinutes($windowEnd));
 
         $baseGap = $windowMinutes / $volume;
         if ($baseGap < 1) {
@@ -82,11 +100,10 @@ class ProcessWarmupJob implements ShouldQueue
         }
 
         $schedule = [];
-        $cursor = $windowStart->copy();
 
         for ($i = 0; $i < $volume; $i++) {
-            $slotStart = $windowStart->copy()->addMinutes((int) round($i * $baseGap));
-            $slotEnd = $windowStart->copy()->addMinutes((int) round(($i + 1) * $baseGap));
+            $slotStart = $effectiveStart->copy()->addMinutes((int) round($i * $baseGap));
+            $slotEnd = $effectiveStart->copy()->addMinutes((int) round(($i + 1) * $baseGap));
             $slotEnd = $slotEnd->greaterThan($windowEnd) ? $windowEnd->copy() : $slotEnd;
 
             $jitterMinutes = $slotEnd->greaterThan($slotStart)
@@ -100,7 +117,6 @@ class ProcessWarmupJob implements ShouldQueue
             }
 
             $schedule[] = $sendAt;
-            $cursor = $sendAt;
         }
 
         return $schedule;

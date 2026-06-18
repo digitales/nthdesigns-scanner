@@ -64,7 +64,7 @@ function readinessMessage(mailbox, score) {
         return 'Deliverability is low — check SPF and DKIM records on your sending domain.';
     }
     if (mailbox.status === 'warming') {
-        return 'Warmup is running. Score updates daily once seed inboxes process emails.';
+        return 'Warmup is running. First sends go out within your send window; score updates daily once seed inboxes process emails.';
     }
     return 'Start warmup from the dashboard once seed accounts are connected.';
 }
