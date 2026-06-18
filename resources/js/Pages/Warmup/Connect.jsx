@@ -1,18 +1,23 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import FormSection from '@/Pages/Warmup/components/FormSection';
+import WarmupSetupAside from '@/Pages/Warmup/components/WarmupSetupAside';
 import {
     Button,
     Card,
     Checkbox,
     Field,
     FormError,
+    Grid,
     Input,
     LinkButton,
     Page,
     PageHeader,
     Segmented,
+    SidebarLayout,
     Stack,
+    Status,
 } from '@/Components/ui';
 
 const PROVIDERS = {
@@ -105,7 +110,7 @@ export default function WarmupConnect() {
             const result = await response.json();
 
             if (response.ok) {
-                setConnectionTest({ ok: true, imap: result.imap, smtp: result.smtp });
+                setConnectionTest({ ok: true });
             } else {
                 setConnectionTest({ ok: false, error: result.error ?? 'Connection failed' });
             }
@@ -127,133 +132,160 @@ export default function WarmupConnect() {
         <AuthenticatedLayout>
             <Head title="Connect mailbox" />
 
-            <Page width="narrow">
+            <Page width="wide" className="page-wide">
                 <PageHeader
                     eyebrow="Warmup"
                     title="Connect a mailbox."
                     sub="Use an app password, not your main account password. Test the connection before saving."
+                    back="Warmup"
+                    onBack={() => router.visit('/warmup')}
                 />
 
-                <Card>
-                    <form onSubmit={submit}>
-                        <Stack gap={16}>
-                            <Field label="Provider">
-                                <Segmented
-                                    value={data.provider}
-                                    onChange={selectProvider}
-                                    options={Object.entries(PROVIDERS).map(([value, { label }]) => ({
-                                        value,
-                                        label,
-                                    }))}
-                                />
-                            </Field>
-
-                            {providerHint && (
-                                <p className="micro text-muted m-0">{providerHint}</p>
-                            )}
-
-                            <Field label="Email address">
-                                <Input
-                                    type="email"
-                                    value={data.email}
-                                    onChange={(e) => setData('email', e.target.value)}
-                                    autoComplete="email"
-                                />
-                                <FormError message={errors.email} />
-                            </Field>
-
-                            <Field label="Username">
-                                <Input
-                                    value={data.username}
-                                    onChange={(e) => setData('username', e.target.value)}
-                                    autoComplete="username"
-                                />
-                                <FormError message={errors.username} />
-                            </Field>
-
-                            <Field label="App password">
-                                <Input
-                                    type="password"
-                                    value={data.password}
-                                    onChange={(e) => {
-                                        setData('password', e.target.value);
-                                        setConnectionTest(null);
-                                    }}
-                                    autoComplete="new-password"
-                                />
-                                <FormError message={errors.password} />
-                            </Field>
-
-                            <div className="grid grid-cols-2 gap-12">
-                                <Field label="IMAP host">
-                                    <Input
-                                        value={data.imap_host}
-                                        onChange={(e) => setData('imap_host', e.target.value)}
+                <SidebarLayout>
+                    <Card>
+                        <form onSubmit={submit}>
+                            <Stack gap={24}>
+                                <FormSection title="Provider">
+                                    <Segmented
+                                        value={data.provider}
+                                        onChange={selectProvider}
+                                        options={Object.entries(PROVIDERS).map(([value, { label }]) => ({
+                                            value,
+                                            label,
+                                        }))}
                                     />
-                                </Field>
-                                <Field label="IMAP port">
-                                    <Input
-                                        type="number"
-                                        value={data.imap_port}
-                                        onChange={(e) => setData('imap_port', Number(e.target.value))}
-                                    />
-                                </Field>
-                                <Field label="SMTP host">
-                                    <Input
-                                        value={data.smtp_host}
-                                        onChange={(e) => setData('smtp_host', e.target.value)}
-                                    />
-                                </Field>
-                                <Field label="SMTP port">
-                                    <Input
-                                        type="number"
-                                        value={data.smtp_port}
-                                        onChange={(e) => setData('smtp_port', Number(e.target.value))}
-                                    />
-                                </Field>
-                            </div>
+                                    {providerHint && (
+                                        <div className="warm-panel warm-panel--compact">
+                                            <p className="micro m-0">{providerHint}</p>
+                                        </div>
+                                    )}
+                                </FormSection>
 
-                            <Stack as="label" className="micro" direction="row" gap={8} align="center">
-                                <Checkbox
-                                    checked={data.is_outreach_mailbox}
-                                    onChange={(checked) => setData('is_outreach_mailbox', checked)}
-                                />
-                                Use as outreach mailbox (being warmed)
+                                <FormSection title="Account">
+                                    <Field label="Email address">
+                                        <Input
+                                            type="email"
+                                            name="email"
+                                            value={data.email}
+                                            onChange={(e) => setData('email', e.target.value)}
+                                            autoComplete="email"
+                                        />
+                                        <FormError message={errors.email} />
+                                    </Field>
+
+                                    <Field label="Username">
+                                        <Input
+                                            name="username"
+                                            value={data.username}
+                                            onChange={(e) => setData('username', e.target.value)}
+                                            autoComplete="username"
+                                        />
+                                        <FormError message={errors.username} />
+                                    </Field>
+
+                                    <Field label="App password">
+                                        <Input
+                                            type="password"
+                                            name="password"
+                                            value={data.password}
+                                            onChange={(e) => {
+                                                setData('password', e.target.value);
+                                                setConnectionTest(null);
+                                            }}
+                                            autoComplete="new-password"
+                                        />
+                                        <FormError message={errors.password} />
+                                    </Field>
+                                </FormSection>
+
+                                <FormSection title="Server settings">
+                                    <Grid cols={2} gap={12}>
+                                        <Field label="IMAP host">
+                                            <Input
+                                                name="imap_host"
+                                                value={data.imap_host}
+                                                onChange={(e) => setData('imap_host', e.target.value)}
+                                            />
+                                        </Field>
+                                        <Field label="IMAP port">
+                                            <Input
+                                                type="number"
+                                                name="imap_port"
+                                                value={data.imap_port}
+                                                onChange={(e) => setData('imap_port', Number(e.target.value))}
+                                            />
+                                        </Field>
+                                        <Field label="SMTP host">
+                                            <Input
+                                                name="smtp_host"
+                                                value={data.smtp_host}
+                                                onChange={(e) => setData('smtp_host', e.target.value)}
+                                            />
+                                        </Field>
+                                        <Field label="SMTP port">
+                                            <Input
+                                                type="number"
+                                                name="smtp_port"
+                                                value={data.smtp_port}
+                                                onChange={(e) => setData('smtp_port', Number(e.target.value))}
+                                            />
+                                        </Field>
+                                    </Grid>
+                                </FormSection>
+
+                                <FormSection title="Mailbox role">
+                                    <Stack gap={10}>
+                                        <Stack as="label" className="micro" direction="row" gap={8} align="center">
+                                            <Checkbox
+                                                checked={data.is_outreach_mailbox}
+                                                onChange={(checked) => setData('is_outreach_mailbox', checked)}
+                                            />
+                                            Outreach mailbox — being warmed for cold email
+                                        </Stack>
+                                        <Stack as="label" className="micro" direction="row" gap={8} align="center">
+                                            <Checkbox
+                                                checked={data.is_seed_mailbox}
+                                                onChange={(checked) => setData('is_seed_mailbox', checked)}
+                                            />
+                                            Seed mailbox — receives and replies to warmup emails
+                                        </Stack>
+                                    </Stack>
+                                </FormSection>
+
+                                <FormError message={errors.connection} />
+
+                                <div className="warmup-connect-test">
+                                    <Button type="button" kind="secondary" onClick={testConnection} disabled={testing}>
+                                        {testing ? 'Testing…' : 'Test connection'}
+                                    </Button>
+                                    {connectionTest?.ok && (
+                                        <Status kind="ready">IMAP and SMTP connected</Status>
+                                    )}
+                                    {connectionTest && !connectionTest.ok && (
+                                        <span className="micro text-critical">{connectionTest.error}</span>
+                                    )}
+                                </div>
+
+                                <div className="warmup-mailbox-card__actions">
+                                    <Button type="submit" disabled={processing || !connectionTest?.ok}>
+                                        Save mailbox
+                                    </Button>
+                                    <LinkButton href="/warmup" kind="secondary">
+                                        Cancel
+                                    </LinkButton>
+                                </div>
                             </Stack>
-                            <Stack as="label" className="micro" direction="row" gap={8} align="center">
-                                <Checkbox
-                                    checked={data.is_seed_mailbox}
-                                    onChange={(checked) => setData('is_seed_mailbox', checked)}
-                                />
-                                Use as seed mailbox (receives and replies to warmup emails)
-                            </Stack>
+                        </form>
+                    </Card>
 
-                            <FormError message={errors.connection} />
-
-                            <div className="flex flex-wrap gap-8 items-center">
-                                <Button type="button" kind="secondary" onClick={testConnection} disabled={testing}>
-                                    {testing ? 'Testing…' : 'Test connection'}
-                                </Button>
-
-                                {connectionTest?.ok && (
-                                    <span className="micro text-positive">IMAP and SMTP OK</span>
-                                )}
-                                {connectionTest && !connectionTest.ok && (
-                                    <span className="micro text-critical">{connectionTest.error}</span>
-                                )}
-                            </div>
-
-                            <div className="flex gap-8">
-                                <Button type="submit" disabled={processing || !connectionTest?.ok}>
-                                    Save mailbox
-                                </Button>
-                                <LinkButton href="/warmup" kind="secondary">
-                                    Cancel
-                                </LinkButton>
-                            </div>
-                        </Stack>
-                    </form>
-                </Card>
+                    <WarmupSetupAside
+                        hasOutreach={data.is_outreach_mailbox}
+                        seedCount={data.is_seed_mailbox ? 1 : 0}
+                        hasWarming={false}
+                        hasReady={false}
+                        compact
+                    />
+                </SidebarLayout>
             </Page>
         </AuthenticatedLayout>
     );
