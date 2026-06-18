@@ -19,9 +19,14 @@ class WarmupController extends Controller
     {
         $mailboxes = WarmupMailbox::query()
             ->where('user_id', auth()->id())
-            ->withCount(['sendsFrom as sends_today' => function ($q) {
-                $q->whereDate('sent_at', today());
-            }])
+            ->withCount([
+                'sendsFrom as sends_today' => function ($q) {
+                    $q->whereDate('sent_at', today());
+                },
+                'alerts as unread_alerts_count' => function ($q) {
+                    $q->whereNull('read_at');
+                },
+            ])
             ->get()
             ->map(fn (WarmupMailbox $m) => [
                 'id' => $m->id,
@@ -34,6 +39,7 @@ class WarmupController extends Controller
                 'days_warming' => $m->days_warming,
                 'sends_today' => $m->sends_today,
                 'warmup_enabled' => $m->warmup_enabled,
+                'has_alert' => $m->unread_alerts_count > 0,
             ]);
 
         $seedCount = $mailboxes->where('is_seed_mailbox', true)->count();
@@ -106,10 +112,56 @@ class WarmupController extends Controller
             'password' => 'required|string',
             'is_outreach_mailbox' => 'boolean',
             'is_seed_mailbox' => 'boolean',
+            'send_window_start' => 'nullable|date_format:H:i',
+            'send_window_end' => 'nullable|date_format:H:i',
+            'send_on_weekends' => 'boolean',
         ]);
 
+        $user = $request->user();
+        $limits = $user->warmupTierLimits();
+
+        if ($request->boolean('is_outreach_mailbox')) {
+            $outreachCount = WarmupMailbox::query()
+                ->where('user_id', $user->id)
+                ->where('is_outreach_mailbox', true)
+                ->count();
+
+            if ($outreachCount >= $limits['max_outreach_mailboxes']) {
+                return back()->withErrors([
+                    'connection' => 'Your plan allows up to '.$limits['max_outreach_mailboxes'].' outreach mailbox'
+                        .($limits['max_outreach_mailboxes'] === 1 ? '' : 'es').'.',
+                ]);
+            }
+        }
+
+        if ($request->boolean('is_seed_mailbox')) {
+            $seedCount = WarmupMailbox::query()
+                ->where('user_id', $user->id)
+                ->where('is_seed_mailbox', true)
+                ->count();
+
+            if ($seedCount >= $limits['max_seed_mailboxes']) {
+                return back()->withErrors([
+                    'connection' => 'Your plan allows up to '.$limits['max_seed_mailboxes'].' seed mailboxes.',
+                ]);
+            }
+        }
+
+        if (! $limits['send_window_customisation_allowed']) {
+            $data['send_window_start'] = '08:00:00';
+            $data['send_window_end'] = '18:00:00';
+        }
+
+        if (! $limits['weekend_volume_control_allowed']) {
+            $data['send_on_weekends'] = true;
+        }
+
+        if (! $limits['pool_participation_allowed']) {
+            $data['is_pool_participant'] = false;
+        }
+
         $data['password_encrypted'] = $data['password'];
-        $data['user_id'] = auth()->id();
+        $data['user_id'] = $user->id;
         unset($data['password']);
 
         try {

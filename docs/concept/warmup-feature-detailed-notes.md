@@ -101,6 +101,16 @@ All warmup emails are plain text. No HTML, no links, no tracking pixels, no unsu
 
 Each send picks randomly from pools. Same subject/body pair avoided in quick succession.
 
+### Message Tracking
+
+Every warmup email is correlated across both mailboxes by its Message-ID header -- the same RFC 5322 header email clients use for threading.
+
+- At send time, the Message-ID is generated explicitly and set on the outgoing email's headers before sending -- never read back from the mail transport after the fact. The exact same value is stored on the new `WarmupSend` row's `message_id` column.
+- At inbox-scan time, `ProcessWarmupInboxJob` reads the Message-ID off each message actually found via IMAP and looks up the matching `WarmupSend` by `message_id` + `to_mailbox_id`. A match updates that row's status (`opened`, `rescued`) and the corresponding timestamp.
+- At reply time, the original send's stored `message_id` is set as the `In-Reply-To` (and `References`) header on the reply, so it threads correctly in the recipient's mail client, and `replied_at` is recorded on the same row.
+
+This one ID is the only link between "we sent this" and "this showed up in someone's inbox/spam/reply" across two independent mail systems. It must be generated up front, not re-derived after sending -- doing the latter risks a mismatch that leaves a send permanently unmatched, with no visible error.
+
 ### Inbox Processing
 
 `ProcessWarmupInboxJob` runs 2 hours after sends. For each seed mailbox that received mail:
@@ -198,7 +208,7 @@ created_at, updated_at
 id
 from_mailbox_id         (FK warmup_mailboxes)
 to_mailbox_id           (FK warmup_mailboxes)
-message_id              (string, indexed)
+message_id              (string, indexed)  -- RFC 5322 Message-ID, set explicitly at send time (see Message Tracking)
 subject                 (string)
 sent_at                 (timestamp)
 opened_at               (timestamp, nullable)

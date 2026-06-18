@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\WarmupMailbox;
 use App\Models\WarmupSend;
+use App\Support\WarmupCredentialScrubber;
 use Illuminate\Support\Collection;
 use RuntimeException;
 use Symfony\Component\Mailer\Transport;
@@ -68,7 +69,7 @@ class WarmupMailboxService
             $client->connect();
             $client->disconnect();
         } catch (\Throwable $e) {
-            throw new RuntimeException('IMAP connection failed: '.$e->getMessage());
+            throw new RuntimeException('IMAP connection failed: '.WarmupCredentialScrubber::scrub($e->getMessage()));
         }
     }
 
@@ -77,7 +78,7 @@ class WarmupMailboxService
         try {
             Transport::fromDsn($this->smtpDsn($mailbox));
         } catch (\Throwable $e) {
-            throw new RuntimeException('SMTP configuration invalid: '.$e->getMessage());
+            throw new RuntimeException('SMTP configuration invalid: '.WarmupCredentialScrubber::scrub($e->getMessage()));
         }
     }
 

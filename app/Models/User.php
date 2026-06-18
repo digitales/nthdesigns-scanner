@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password'])]
+#[Fillable(['name', 'email', 'password', 'subscription_tier'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -70,5 +70,18 @@ class User extends Authenticatable
     public function warmupMailboxes(): HasMany
     {
         return $this->hasMany(WarmupMailbox::class);
+    }
+
+    public function warmupTier(): string
+    {
+        return $this->subscription_tier ?? 'solo';
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function warmupTierLimits(): array
+    {
+        return config('warmup_tiers.'.$this->warmupTier(), config('warmup_tiers.solo'));
     }
 }

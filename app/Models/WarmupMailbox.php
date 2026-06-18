@@ -19,6 +19,7 @@ class WarmupMailbox extends Model
         'warmup_enabled', 'warmup_started_at', 'warmup_target_volume',
         'warmup_ramp_days', 'send_window_start', 'send_window_end',
         'send_on_weekends', 'status', 'deliverability_score', 'last_imap_check_at',
+        'consecutive_failures',
     ];
 
     protected function casts(): array
@@ -59,6 +60,26 @@ class WarmupMailbox extends Model
         return $this->hasMany(WarmupSend::class, 'to_mailbox_id');
     }
 
+    public function alerts(): HasMany
+    {
+        return $this->hasMany(WarmupAlert::class);
+    }
+
+    public static function statusForScore(int $score, int $daysWarming, int $rampDays, ?string $currentStatus = null): string
+    {
+        if ($score >= 80 && $daysWarming >= $rampDays) {
+            return 'ready';
+        }
+
+        $hasWarmedBefore = in_array($currentStatus, ['warming', 'ready', 'at_risk'], true);
+
+        if ($score < 50 && $hasWarmedBefore) {
+            return 'at_risk';
+        }
+
+        return 'warming';
+    }
+
     public function getDaysWarmingAttribute(): int
     {
         if (! $this->warmup_started_at) {
@@ -71,6 +92,6 @@ class WarmupMailbox extends Model
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('warmup_enabled', true)
-            ->whereIn('status', ['warming', 'ready']);
+            ->whereIn('status', ['warming', 'ready', 'at_risk']);
     }
 }

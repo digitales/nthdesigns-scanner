@@ -29,9 +29,10 @@ return new class extends Migration
             $table->time('send_window_start')->default('08:00:00');
             $table->time('send_window_end')->default('18:00:00');
             $table->boolean('send_on_weekends')->default(true);
-            $table->enum('status', ['pending', 'warming', 'ready', 'paused', 'failed'])->default('pending');
+            $table->enum('status', ['pending', 'warming', 'ready', 'at_risk', 'paused', 'failed'])->default('pending');
             $table->unsignedSmallInteger('deliverability_score')->nullable();
             $table->timestamp('last_imap_check_at')->nullable();
+            $table->unsignedSmallInteger('consecutive_failures')->default(0);
             $table->timestamps();
 
             $table->index(['user_id', 'status']);

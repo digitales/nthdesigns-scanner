@@ -2,11 +2,14 @@
 
 namespace App\Services;
 
+use App\Exceptions\WarmupTransportException;
 use App\Models\WarmupMailbox;
 use App\Models\WarmupSend;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 use Symfony\Component\Mailer\Mailer;
 use Symfony\Component\Mailer\Transport;
+use Symfony\Component\Mailer\Transport\TransportInterface;
 use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\Email;
 
@@ -23,8 +26,11 @@ class WarmupSendService
         $body = $templates['bodies'][array_rand($templates['bodies'])];
         $senderName = $templates['sender_names'][array_rand($templates['sender_names'])];
 
-        $transport = Transport::fromDsn($this->mailboxService->smtpDsn($from));
+        $transport = $this->createTransport($from);
         $mailer = new Mailer($transport);
+
+        $host = parse_url(config('app.url'), PHP_URL_HOST) ?: 'localhost';
+        $messageId = sprintf('%s@%s', (string) Str::uuid(), $host);
 
         $email = (new Email)
             ->from(new Address($from->email, $senderName))
@@ -32,14 +38,14 @@ class WarmupSendService
             ->subject($subject)
             ->text($body);
 
-        $mailer->send($email);
+        $email->getHeaders()->addIdHeader('Message-ID', $messageId);
 
-        $messageId = $email->getHeaders()->get('Message-ID')?->getBodyAsString() ?? uniqid('warmup-', true);
+        $this->sendEmail($mailer, $email);
 
         return WarmupSend::create([
             'from_mailbox_id' => $from->id,
             'to_mailbox_id' => $to->id,
-            'message_id' => trim($messageId, '<>'),
+            'message_id' => $messageId,
             'subject' => $subject,
             'sent_at' => now(),
             'status' => 'sent',
@@ -51,21 +57,32 @@ class WarmupSendService
         $client = $this->mailboxService->makeImapClient($mailbox);
         $client->connect();
 
-        $inbox = $client->getFolder('INBOX');
-        $this->processFolder($inbox, $mailbox, false);
+        try {
+            $inbox = $client->getFolder('INBOX');
+            $this->processFolder($inbox, $mailbox, false);
 
-        foreach (['Spam', 'Junk', 'INBOX.Spam', 'INBOX.Junk'] as $folderName) {
-            try {
-                $spamFolder = $client->getFolder($folderName);
-                $this->processFolder($spamFolder, $mailbox, true);
-            } catch (\Throwable) {
-                // Folder doesn't exist on this provider.
+            foreach ($client->getFolders(false) as $folder) {
+                $folderName = $folder->full_name ?? $folder->name;
+
+                if (strcasecmp($folderName, 'INBOX') === 0) {
+                    continue;
+                }
+
+                if (! preg_match('/spam|junk/i', $folderName)) {
+                    continue;
+                }
+
+                try {
+                    $this->processFolder($folder, $mailbox, true);
+                } catch (\Throwable) {
+                    // Folder may be inaccessible on this provider.
+                }
             }
+
+            $mailbox->update(['last_imap_check_at' => now()]);
+        } finally {
+            $client->disconnect();
         }
-
-        $client->disconnect();
-
-        $mailbox->update(['last_imap_check_at' => now()]);
     }
 
     public function replyToWarmupEmail(WarmupSend $send, WarmupMailbox $from): void
@@ -73,7 +90,7 @@ class WarmupSendService
         $templates = config('warmup_templates');
         $replyBody = $templates['replies'][array_rand($templates['replies'])];
 
-        $transport = Transport::fromDsn($this->mailboxService->smtpDsn($from));
+        $transport = $this->createTransport($from);
         $mailer = new Mailer($transport);
 
         $email = (new Email)
@@ -88,8 +105,9 @@ class WarmupSendService
         }
 
         $email->getHeaders()->addTextHeader('In-Reply-To', $inReplyTo);
+        $email->getHeaders()->addTextHeader('References', $inReplyTo);
 
-        $mailer->send($email);
+        $this->sendEmail($mailer, $email);
 
         $send->update([
             'replied_at' => now(),
@@ -144,7 +162,9 @@ class WarmupSendService
 
     private function processFolder($folder, WarmupMailbox $mailbox, bool $isSpam): void
     {
-        $messages = $folder->messages()->all()->get();
+        $since = $mailbox->last_imap_check_at ?? now()->subDays(2);
+
+        $messages = $folder->messages()->since($since)->get();
 
         foreach ($messages as $message) {
             $messageId = trim((string) $message->getMessageId(), '<>');
@@ -172,6 +192,24 @@ class WarmupSendService
             }
 
             $message->setFlag('Seen');
+        }
+    }
+
+    protected function createTransport(WarmupMailbox $from): TransportInterface
+    {
+        try {
+            return Transport::fromDsn($this->mailboxService->smtpDsn($from));
+        } catch (\Throwable $e) {
+            throw WarmupTransportException::fromThrowable($e);
+        }
+    }
+
+    protected function sendEmail(Mailer $mailer, Email $email): void
+    {
+        try {
+            $mailer->send($email);
+        } catch (\Throwable $e) {
+            throw WarmupTransportException::fromThrowable($e);
         }
     }
 }

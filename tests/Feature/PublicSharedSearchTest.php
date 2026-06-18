@@ -50,6 +50,23 @@ class PublicSharedSearchTest extends TestCase
         return SharedSearch::firstOrFail();
     }
 
+    public function test_share_flash_includes_shared_url_on_search_show(): void
+    {
+        $user = User::factory()->create();
+        $search = Search::factory()->for($user)->create();
+        Prospect::factory()->create(['search_id' => $search->id]);
+
+        $this->actingAs($user)
+            ->from(route('searches.show', $search))
+            ->post(route('searches.share', $search))
+            ->assertRedirect(route('searches.show', $search));
+
+        $this->get(route('searches.show', $search))
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Search/Show')
+                ->where('flash.shared_url', fn ($url) => is_string($url) && str_contains($url, '/q/')));
+    }
+
     public function test_share_creates_public_snapshot_with_expected_fields(): void
     {
         $user = User::factory()->create();

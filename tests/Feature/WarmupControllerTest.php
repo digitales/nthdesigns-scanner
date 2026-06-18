@@ -4,12 +4,29 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use App\Models\WarmupMailbox;
+use App\Services\WarmupMailboxService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class WarmupControllerTest extends TestCase
 {
     use RefreshDatabase;
+
+    private function mailboxPayload(array $overrides = []): array
+    {
+        return array_merge([
+            'email' => 'test@example.com',
+            'provider' => 'fastmail',
+            'imap_host' => 'imap.fastmail.com',
+            'imap_port' => 993,
+            'smtp_host' => 'smtp.fastmail.com',
+            'smtp_port' => 587,
+            'username' => 'test@example.com',
+            'password' => 'secret',
+            'is_outreach_mailbox' => true,
+            'is_seed_mailbox' => false,
+        ], $overrides);
+    }
 
     public function test_warmup_index_requires_auth(): void
     {
@@ -51,5 +68,97 @@ class WarmupControllerTest extends TestCase
         $this->actingAs($user)
             ->get("/warmup/{$mailbox->id}")
             ->assertForbidden();
+    }
+
+    public function test_solo_tier_allows_first_outreach_mailbox(): void
+    {
+        $user = User::factory()->create(['subscription_tier' => 'solo']);
+
+        $this->mock(WarmupMailboxService::class, function ($mock) {
+            $mock->shouldReceive('connect')->once()->andReturn(WarmupMailbox::factory()->make());
+        });
+
+        $this->actingAs($user)
+            ->post('/warmup', $this->mailboxPayload())
+            ->assertRedirect(route('warmup.index'));
+    }
+
+    public function test_solo_tier_rejects_second_outreach_mailbox(): void
+    {
+        $user = User::factory()->create(['subscription_tier' => 'solo']);
+
+        WarmupMailbox::factory()->outreach()->create(['user_id' => $user->id]);
+
+        $this->actingAs($user)
+            ->post('/warmup', $this->mailboxPayload(['email' => 'second@example.com']))
+            ->assertSessionHasErrors('connection');
+    }
+
+    public function test_agency_tier_allows_up_to_three_outreach_mailboxes(): void
+    {
+        $user = User::factory()->create(['subscription_tier' => 'agency']);
+
+        WarmupMailbox::factory()->outreach()->count(2)->create(['user_id' => $user->id]);
+
+        $this->mock(WarmupMailboxService::class, function ($mock) {
+            $mock->shouldReceive('connect')->once()->andReturn(WarmupMailbox::factory()->make());
+        });
+
+        $this->actingAs($user)
+            ->post('/warmup', $this->mailboxPayload(['email' => 'third@example.com']))
+            ->assertRedirect(route('warmup.index'));
+    }
+
+    public function test_agency_tier_rejects_fourth_outreach_mailbox(): void
+    {
+        $user = User::factory()->create(['subscription_tier' => 'agency']);
+
+        WarmupMailbox::factory()->outreach()->count(3)->create(['user_id' => $user->id]);
+
+        $this->actingAs($user)
+            ->post('/warmup', $this->mailboxPayload(['email' => 'fourth@example.com']))
+            ->assertSessionHasErrors('connection');
+    }
+
+    public function test_solo_tier_rejects_fourth_seed_mailbox(): void
+    {
+        $user = User::factory()->create(['subscription_tier' => 'solo']);
+
+        WarmupMailbox::factory()->count(3)->create([
+            'user_id' => $user->id,
+            'is_seed_mailbox' => true,
+        ]);
+
+        $this->actingAs($user)
+            ->post('/warmup', $this->mailboxPayload([
+                'email' => 'seed4@example.com',
+                'is_outreach_mailbox' => false,
+                'is_seed_mailbox' => true,
+            ]))
+            ->assertSessionHasErrors('connection');
+    }
+
+    public function test_solo_tier_resets_send_window_fields_to_defaults(): void
+    {
+        $user = User::factory()->create(['subscription_tier' => 'solo']);
+
+        $mailbox = WarmupMailbox::factory()->make();
+
+        $this->mock(WarmupMailboxService::class, function ($mock) use ($mailbox) {
+            $mock->shouldReceive('connect')->once()->with(\Mockery::on(function (array $data) {
+                return $data['send_window_start'] === '08:00:00'
+                    && $data['send_window_end'] === '18:00:00'
+                    && $data['send_on_weekends'] === true;
+
+            }))->andReturn($mailbox);
+        });
+
+        $this->actingAs($user)
+            ->post('/warmup', $this->mailboxPayload([
+                'send_window_start' => '06:00',
+                'send_window_end' => '22:00',
+                'send_on_weekends' => false,
+            ]))
+            ->assertRedirect(route('warmup.index'));
     }
 }
