@@ -19,7 +19,7 @@ class ProspectValidationSignalMatcher
         foreach ($signals as $signal) {
             foreach ($fieldValues as $field => $values) {
                 foreach ($values as $value) {
-                    if ($value !== '' && str_contains($value, $signal['pattern'])) {
+                    if ($value !== '' && $this->patternMatches($value, $signal['pattern'], $field)) {
                         return [
                             'pattern' => $signal['pattern'],
                             'field' => $field,
@@ -32,6 +32,30 @@ class ProspectValidationSignalMatcher
         }
 
         return null;
+    }
+
+    private function patternMatches(string $value, string $pattern, string $field): bool
+    {
+        if (! str_contains($value, $pattern)) {
+            return false;
+        }
+
+        if ($field !== 'qualification_flags') {
+            return true;
+        }
+
+        return ! $this->isNegatedQualificationFlag($value, $pattern);
+    }
+
+    private function isNegatedQualificationFlag(string $value, string $pattern): bool
+    {
+        if (preg_match('/^(no|not|without|none)\b/i', $value)) {
+            return true;
+        }
+
+        $escaped = preg_quote($pattern, '/');
+
+        return (bool) preg_match('/\b(no|not|without|absence of|lack of|lacks)\s+'.$escaped.'/i', $value);
     }
 
     /**

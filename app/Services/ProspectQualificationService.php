@@ -38,7 +38,7 @@ class ProspectQualificationService
             return;
         }
 
-        $result = $this->assessWithClaude($html, $prospect->website_url);
+        $result = $this->assessWithClaude($html, $prospect->website_url, $this->targetNiche($prospect));
 
         $prospect->update([
             'qualification_status' => $result['status'],
@@ -67,37 +67,17 @@ class ProspectQualificationService
         }
     }
 
-    private function assessWithClaude(string $html, string $url): array
+    private function targetNiche(Prospect $prospect): string
     {
-        $systemPrompt = <<<'PROMPT'
-You are assessing whether a UK dental practice website belongs to an independent owner-operated business or a corporate/chain organisation, for the purpose of cold outreach qualification by a web design and accessibility agency.
+        $prospect->loadMissing('search');
+        $niche = trim((string) ($prospect->search?->niche ?? ''));
 
-Analyse the HTML content provided and return a JSON object with exactly these keys:
-- "status": one of "qualified", "caution", or "skip"
-- "summary": a single sentence plain-English explanation of your decision
-- "flags": an array of specific strings describing what you found (positive and negative signals)
+        return $niche !== '' ? $niche : 'local business';
+    }
 
-Definitions:
-- "qualified" = independently owned practice with an identifiable decision-maker and a realistic route to contact
-- "caution" = signals are mixed or ambiguous — worth manual review before outreach
-- "skip" = corporate chain, franchise, or managed group (e.g. Portman Healthcare, mydentist, Bupa Dental, Dental Care Alliance, Portman PDC, or similar) — no single decision-maker reachable by cold email
-
-Signals that indicate SKIP:
-- Parent company branding in footer (e.g. "trading name of Portman Healthcare Limited", "part of mydentist", "Bupa Dental Care")
-- Registered company number in footer with a Cheltenham, Manchester, or other non-local registered office address inconsistent with a single practice
-- Booking URLs hosted on corporate dental SaaS platforms (hsone.app, dentalnode.com) — these are strong chain indicators
-- More than 5 locations listed with national coverage
-- Copyright notice belonging to a group entity rather than the practice name
-
-Signals that indicate QUALIFIED:
-- Named dentist/owner visible on homepage or about page (e.g. "Dr Smith established this practice in...")
-- Family-run or "established by" language
-- Single location
-- Contact email address present directly on the page
-- Independent booking system or no booking system
-
-Return ONLY valid JSON. No preamble, no markdown fences.
-PROMPT;
+    private function assessWithClaude(string $html, string $url, string $niche): array
+    {
+        $systemPrompt = $this->systemPrompt($niche);
 
         $userMessage = "Website URL: {$url}\n\nHTML content:\n\n{$html}";
 
@@ -126,6 +106,45 @@ PROMPT;
                 'flags' => ['Claude assessment error: '.$e->getMessage()],
             ];
         }
+    }
+
+    private function systemPrompt(string $niche): string
+    {
+        return <<<PROMPT
+You are assessing whether a UK {$niche} business website belongs to an independent owner-operated business or a corporate/chain organisation, for the purpose of cold outreach qualification by a web design and accessibility agency.
+
+Analyse the HTML content provided and return a JSON object with exactly these keys:
+- "status": one of "qualified", "caution", or "skip"
+- "summary": a single sentence plain-English explanation of your decision
+- "flags": an array of specific strings describing what you found (positive and negative signals)
+
+Definitions:
+- "qualified" = independently owned business with an identifiable decision-maker and a realistic route to contact
+- "caution" = signals are mixed or ambiguous — worth manual review before outreach
+- "skip" = not suitable for cold outreach — use one of the skip reasons below
+
+Skip reasons (always include the matching flag string in "flags" when status is "skip"):
+- "wrong_niche" = the website is not a {$niche} business (wrong industry, unrelated business, or irrelevant listing)
+- "corporate_chain" = corporate chain, franchise, or managed group with no single local decision-maker reachable by cold email
+
+Signals that indicate skip with flag "wrong_niche":
+- Website content is clearly a different industry or business type than {$niche}
+- No evidence the business operates in the {$niche} category
+
+Signals that indicate skip with flag "corporate_chain":
+- Parent company or group branding in footer
+- National or multi-location coverage inconsistent with a single local outlet
+- Copyright or legal entity belonging to a group rather than the trading name
+- Booking or contact flows owned by a corporate platform rather than the local business
+
+Signals that indicate QUALIFIED:
+- Named owner or principal visible on homepage or about page
+- Family-run or "established by" language
+- Single location or clearly local operation
+- Contact email address present directly on the page
+
+Return ONLY valid JSON. No preamble, no markdown fences.
+PROMPT;
     }
 
     /**

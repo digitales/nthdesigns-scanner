@@ -134,6 +134,44 @@ class ProspectQualificationServiceTest extends TestCase
         $this->assertNotNull($prospect->qualification_ran_at);
     }
 
+    public function test_qualify_prompt_uses_search_niche(): void
+    {
+        $user = User::factory()->create();
+        $search = Search::factory()->create([
+            'user_id' => $user->id,
+            'niche' => 'accountancy firm',
+        ]);
+        $prospect = Prospect::factory()->create([
+            'search_id' => $search->id,
+            'website_url' => 'https://example.com',
+        ]);
+
+        Http::fake([
+            '*' => Http::response('<html>Local accountants</html>', 200),
+        ]);
+
+        $this->mock(OpenRouterService::class, function ($mock) {
+            $mock->shouldReceive('complete')
+                ->once()
+                ->with(
+                    \Mockery::on(fn (string $prompt) => str_contains($prompt, 'accountancy firm')),
+                    \Mockery::type('string'),
+                )
+                ->andReturn([
+                    'content' => json_encode([
+                        'status' => 'qualified',
+                        'summary' => 'Independent local firm.',
+                        'flags' => ['Named partner visible'],
+                    ]),
+                    'model' => 'anthropic/claude-sonnet-4',
+                    'prompt_tokens' => 100,
+                    'completion_tokens' => 50,
+                ]);
+        });
+
+        app(ProspectQualificationService::class)->qualify($prospect);
+    }
+
     private function makeProspect(array $attributes = []): Prospect
     {
         $user = User::factory()->create();

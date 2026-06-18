@@ -135,8 +135,9 @@ class ProspectValidatorServiceTest extends TestCase
     public function test_should_skip_qualification_when_qualification_status_is_skip(): void
     {
         $prospect = Prospect::factory()->create([
-            'business_name' => 'Independent Dental',
+            'business_name' => 'Portman Dental Group',
             'qualification_status' => 'skip',
+            'qualification_flags' => ['corporate_chain'],
             'combined_score' => 75,
         ]);
 
@@ -152,5 +153,76 @@ class ProspectValidatorServiceTest extends TestCase
         ]);
 
         $this->assertFalse($this->service->shouldSkipQualification($prospect));
+    }
+
+    public function test_wrong_niche_skip_uses_qualification_summary_not_corporate_message(): void
+    {
+        $user = User::factory()->create();
+        $search = \App\Models\Search::factory()->create([
+            'user_id' => $user->id,
+            'niche' => 'dental practice',
+        ]);
+
+        $prospect = Prospect::factory()->create([
+            'search_id' => $search->id,
+            'qualification_status' => 'skip',
+            'qualification_summary' => 'Website is a business consultancy, not a dental practice.',
+            'qualification_flags' => [
+                'Not a dental practice',
+                'Business consultancy website',
+            ],
+        ]);
+
+        $this->service->validate($prospect);
+
+        $prospect->refresh();
+
+        $this->assertSame(ProspectValidatorStatus::LowChance, $prospect->validator_status);
+        $this->assertStringContainsString('consultancy', $prospect->validator_summary);
+        $this->assertStringNotContainsString('Corporate group or franchise', $prospect->validator_summary);
+        $this->assertContains('wrong_niche_match', $prospect->validator_flags);
+        $this->assertNotContains('corporate_or_franchise_confirmed', $prospect->validator_flags);
+    }
+
+    public function test_corporate_chain_skip_keeps_corporate_validator_message(): void
+    {
+        $prospect = Prospect::factory()->create([
+            'qualification_status' => 'skip',
+            'qualification_summary' => 'Part of a national dental chain.',
+            'qualification_flags' => ['corporate_chain', 'Parent company in footer'],
+        ]);
+
+        $this->service->validate($prospect);
+
+        $prospect->refresh();
+
+        $this->assertSame(ProspectValidatorStatus::LowChance, $prospect->validator_status);
+        $this->assertStringContainsString('Corporate group or franchise', $prospect->validator_summary);
+        $this->assertContains('corporate_or_franchise_confirmed', $prospect->validator_flags);
+    }
+
+    public function test_qualified_prospect_does_not_false_positive_on_negated_qualification_flags(): void
+    {
+        $prospect = Prospect::factory()->create([
+            'business_name' => 'Sunna Dental',
+            'website_url' => 'https://www.sunnadental.co.uk/',
+            'qualification_status' => 'qualified',
+            'qualification_summary' => 'Independent private dental practice on Stratford Road, Birmingham.',
+            'qualification_flags' => [
+                'Single location practice on Stratford Road, Birmingham',
+                'No parent company or group branding in footer',
+                'No corporate booking platform URLs detected',
+                'WordPress-based website suggesting independent operation',
+            ],
+            'combined_score' => 75,
+            'email' => 'reception@sunnadental.co.uk',
+        ]);
+
+        $this->service->validate($prospect);
+
+        $prospect->refresh();
+
+        $this->assertSame(ProspectValidatorStatus::HighChance, $prospect->validator_status);
+        $this->assertStringNotContainsString('Franchise or corporate group', $prospect->validator_summary);
     }
 }

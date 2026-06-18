@@ -75,6 +75,42 @@ class ProspectValidationSignalMatcherTest extends TestCase
         $this->assertSame('website_url', $match['field']);
     }
 
+    public function test_does_not_match_negated_qualification_flag(): void
+    {
+        $prospect = Prospect::factory()->create([
+            'qualification_flags' => ['No corporate booking platform URLs detected'],
+        ]);
+
+        $signals = collect([[
+            'pattern' => 'corporate booking',
+            'source' => 'config',
+            'signal_id' => null,
+            'label' => null,
+        ]]);
+
+        $match = $this->matcher->match($prospect, $signals, ['qualification_flags']);
+
+        $this->assertNull($match);
+    }
+
+    public function test_still_matches_positive_corporate_booking_mention_in_qualification_flags(): void
+    {
+        $prospect = Prospect::factory()->create([
+            'qualification_flags' => ['Uses corporate booking platform at hsone.app'],
+        ]);
+
+        $signals = collect([[
+            'pattern' => 'corporate booking',
+            'source' => 'config',
+            'signal_id' => null,
+            'label' => null,
+        ]]);
+
+        $match = $this->matcher->match($prospect, $signals, ['qualification_flags']);
+
+        $this->assertSame('qualification_flags', $match['field']);
+    }
+
     public function test_returns_null_when_no_match(): void
     {
         $prospect = Prospect::factory()->create([

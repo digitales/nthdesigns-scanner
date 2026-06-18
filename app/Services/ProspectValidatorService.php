@@ -52,6 +52,10 @@ class ProspectValidatorService
             return true;
         }
 
+        if (in_array('wrong_niche_match', $flags, true)) {
+            return true;
+        }
+
         foreach ($flags as $flag) {
             if (str_starts_with($flag, 'franchise_signal:')) {
                 return true;
@@ -83,17 +87,13 @@ class ProspectValidatorService
         $flags = [];
 
         if ($qualStatus === 'skip') {
-            return [
-                ProspectValidatorStatus::LowChance,
-                'Corporate group or franchise confirmed — decision-making is not at practice level.',
-                array_merge(['corporate_or_franchise_confirmed'], $prospect->qualification_flags ?? []),
-            ];
+            return $this->assessQualificationSkip($prospect);
         }
 
         $franchiseMatch = $this->matcher->match(
             $prospect,
             $this->rules->activeFranchiseSignals(),
-            $this->rules->matchFields(),
+            $this->franchiseMatchFields($qualStatus),
         );
 
         if ($franchiseMatch !== null) {
@@ -154,6 +154,136 @@ class ProspectValidatorService
             'Mixed signals or insufficient qualification data — not recommended for cold outreach.',
             array_merge($flags, ['insufficient_qualification_data']),
         ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function franchiseMatchFields(?string $qualStatus): array
+    {
+        $fields = $this->rules->matchFields();
+
+        if ($qualStatus !== 'qualified') {
+            return $fields;
+        }
+
+        return array_values(array_filter(
+            $fields,
+            fn (string $field): bool => in_array($field, ['business_name', 'website_url'], true),
+        ));
+    }
+
+    /**
+     * @return array{0: ProspectValidatorStatus, 1: string, 2: array<string>}
+     */
+    private function assessQualificationSkip(Prospect $prospect): array
+    {
+        $qualFlags = $prospect->qualification_flags ?? [];
+        $qualSummary = trim((string) $prospect->qualification_summary);
+
+        if ($this->isWrongNicheSkip($prospect, $qualFlags, $qualSummary)) {
+            $summary = $qualSummary !== ''
+                ? $qualSummary
+                : 'Business does not match the search niche — not suitable for outreach.';
+
+            return [
+                ProspectValidatorStatus::LowChance,
+                $summary,
+                array_merge(['wrong_niche_match'], $qualFlags),
+            ];
+        }
+
+        if ($this->isCorporateChainSkip($qualFlags)) {
+            return [
+                ProspectValidatorStatus::LowChance,
+                'Corporate group or franchise confirmed — decision-making is not at practice level.',
+                array_merge(['corporate_or_franchise_confirmed'], $qualFlags),
+            ];
+        }
+
+        $summary = $qualSummary !== ''
+            ? $qualSummary
+            : 'Qualification marked as skip — not recommended for cold outreach.';
+
+        return [
+            ProspectValidatorStatus::LowChance,
+            $summary,
+            array_merge(['qualification_skip'], $qualFlags),
+        ];
+    }
+
+    /**
+     * @param  array<string>  $qualFlags
+     */
+    private function isWrongNicheSkip(Prospect $prospect, array $qualFlags, string $qualSummary): bool
+    {
+        if (in_array('wrong_niche', $qualFlags, true)) {
+            return true;
+        }
+
+        $haystack = strtolower(implode(' ', array_merge($qualFlags, [$qualSummary])));
+
+        $signals = [
+            'wrong_niche',
+            'not a dental',
+            'not dental',
+            'wrong business type',
+            'wrong industry',
+            'does not match the search niche',
+            'does not match search niche',
+            'unrelated business',
+            'different industry',
+            'no dental-related',
+            'no dental related',
+        ];
+
+        $prospect->loadMissing('search');
+        $niche = strtolower(trim((string) ($prospect->search?->niche ?? '')));
+
+        if ($niche !== '') {
+            $signals[] = "not a {$niche}";
+            $signals[] = "not {$niche}";
+            $signals[] = "no {$niche}";
+        }
+
+        foreach ($signals as $signal) {
+            if (str_contains($haystack, $signal)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array<string>  $qualFlags
+     */
+    private function isCorporateChainSkip(array $qualFlags): bool
+    {
+        if (in_array('corporate_chain', $qualFlags, true)) {
+            return true;
+        }
+
+        $haystack = strtolower(implode(' ', $qualFlags));
+
+        $signals = [
+            'corporate_chain',
+            'franchise',
+            'chain',
+            'group entity',
+            'parent company',
+            'mydentist',
+            'portman',
+            'bupa dental',
+        ];
+
+        foreach ($signals as $signal) {
+            if (str_contains($haystack, $signal)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
