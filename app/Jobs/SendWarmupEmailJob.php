@@ -17,6 +17,8 @@ class SendWarmupEmailJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    public const INBOX_CHECK_DELAY_MINUTES = 120;
+
     public int $tries = 3;
 
     public function __construct(
@@ -44,6 +46,9 @@ class SendWarmupEmailJob implements ShouldQueue
         }
 
         $from->update(['consecutive_failures' => 0]);
+
+        ProcessWarmupInboxJob::dispatch($from->id, $to->id)
+            ->delay(now()->addMinutes(self::INBOX_CHECK_DELAY_MINUTES));
     }
 
     public function failed(Throwable $e): void

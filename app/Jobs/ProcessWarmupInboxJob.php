@@ -21,38 +21,32 @@ class ProcessWarmupInboxJob implements ShouldQueue
 
     public int $timeout = 120;
 
-    public function __construct(public readonly int $outboxId)
-    {
+    public function __construct(
+        public readonly int $outboxId,
+        public readonly int $seedId,
+    ) {
         $this->onQueue('warmup');
     }
 
     public function handle(WarmupSendService $sendService): void
     {
-        $seedIds = WarmupSend::query()
+        $seed = WarmupMailbox::find($this->seedId);
+        if (! $seed) {
+            return;
+        }
+
+        $sendService->processInbox($seed);
+
+        $unreplied = WarmupSend::query()
             ->where('from_mailbox_id', $this->outboxId)
-            ->where('sent_at', '>=', now()->subHours(6))
-            ->pluck('to_mailbox_id')
-            ->unique();
+            ->where('to_mailbox_id', $this->seedId)
+            ->where('status', 'opened')
+            ->whereNull('replied_at')
+            ->get();
 
-        foreach ($seedIds as $seedId) {
-            $seed = WarmupMailbox::find($seedId);
-            if (! $seed) {
-                continue;
-            }
-
-            $sendService->processInbox($seed);
-
-            $unreplied = WarmupSend::query()
-                ->where('from_mailbox_id', $this->outboxId)
-                ->where('to_mailbox_id', $seedId)
-                ->where('status', 'opened')
-                ->whereNull('replied_at')
-                ->get();
-
-            foreach ($unreplied as $send) {
-                ReplyToWarmupEmailJob::dispatch($send->id, $seedId)
-                    ->delay(now()->addMinutes(rand(30, 240)));
-            }
+        foreach ($unreplied as $send) {
+            ReplyToWarmupEmailJob::dispatch($send->id, $this->seedId)
+                ->delay(now()->addMinutes(rand(30, 240)));
         }
 
         WarmupMailbox::whereKey($this->outboxId)->update(['consecutive_failures' => 0]);

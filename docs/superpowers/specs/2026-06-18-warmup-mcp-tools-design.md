@@ -1,8 +1,10 @@
 # Warmup MCP tools — Design Spec
 
 **Date:** 2026-06-18  
-**Status:** Approved (brainstorming)  
+**Status:** Implemented  
 **Scope:** Read-only MCP tools so AI agents can check email warmup mailbox status, plan usage, and deliverability stats without opening the web UI.
+
+**Related:** [Phase 7b monitoring spec](2026-06-18-warmup-phase-7b-design.md) — in-app notification bell complements these tools for browser operators.
 
 **Approach:** Two dedicated tools (`list_warmup_mailboxes`, `get_warmup_mailbox`) on the existing hosted MCP endpoint, backed by a new `McpWarmupService`. Same auth as scan tools (`scanner:mcp` OAuth scope or MCP keys).
 
@@ -17,7 +19,7 @@ Operators using Cursor, Claude, or ChatGPT can:
 3. **Drill into a mailbox** — weekly stats, recent send history, alerts, estimated ready date.
 4. **Open the UI** — via `app_url` deep links when full detail is needed.
 
-Out of scope: connect/configure mailboxes, pause/resume warmup, dismiss alerts, paginated send history, streaming progress watches.
+Out of scope: connect/configure mailboxes, pause/resume warmup, dismiss alerts via MCP (use in-app notification bell — see [Phase 7b spec](2026-06-18-warmup-phase-7b-design.md)), paginated send history, streaming progress watches.
 
 ---
 

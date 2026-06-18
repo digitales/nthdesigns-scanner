@@ -1,8 +1,10 @@
 # Warmup shared seed pool — Design Spec
 
 **Date:** 2026-06-18  
-**Status:** Approved (brainstorming)  
+**Status:** Implemented  
 **Scope:** Phase 7c — cross-user shared seed network for Agency+ tiers, with pool health monitoring, bounce exclusion, and white-label admin view.
+
+**Plan:** See `docs/concept/warmup-feature-detailed-notes.md` (Phase 7c section).
 
 **Approach:** New `WarmupSeedPoolService` owns pool eligibility and selection. Own seeds fill daily volume first; global pool fills gaps. Solo tier unchanged (self-seeded only).
 

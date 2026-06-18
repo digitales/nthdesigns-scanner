@@ -4,7 +4,7 @@
 **Status:** Internal product reference  
 **Author:** Senior analysis
 
-**Related:** [One-page sales sheet](./nthdesigns-prospect-scanner-sales-sheet.md) · [Business case](./business-case.md) · [For agencies page](/for-agencies)
+**Related:** [One-page sales sheet](./nthdesigns-prospect-scanner-sales-sheet.md) · [Business case](./business-case.md) · [For agencies page](/for-agencies) · [Email warmup notes](./concept/warmup-feature-detailed-notes.md)
 
 ---
 
@@ -77,6 +77,7 @@ These reports are already professional enough to sell as standalone deliverables
 
 | Feature | Purpose |
 |--------|---------|
+| **Email warmup** | Domain reputation builder — seed network, deliverability scoring, in-app alerts, outreach readiness gate |
 | **Outreach status** | `generated` → `sent` → `responded` |
 | **Prospect notes** | Timestamped free-text notes per prospect |
 | **Prospect lists** | Manual collections and smart saved filters |
@@ -95,7 +96,7 @@ These reports are already professional enough to sell as standalone deliverables
 
 - **CMS detection** — identifies WordPress, Shopify, etc. for pitch tailoring
 - **API usage tracking & quotas** — monitors Google Places, AI, and browser service spend
-- **MCP integration** — AI clients (Cursor, Claude, ChatGPT) can monitor searches and trigger single-site audits via OAuth
+- **MCP integration** — AI clients (Cursor, Claude, ChatGPT) can monitor searches, warmup health, and trigger single-site audits via OAuth
 - **Connected apps** — revoke AI agent access from Settings
 - **Niche maintenance** — bootstrap catalog, run market scans, ignore low-yield niches
 
@@ -206,7 +207,7 @@ Find local businesses losing customers to weak Google profiles and inaccessible 
 
 ## Current state vs SaaS-ready
 
-The platform is **production-deployed** (Laravel Cloud), multi-tenancy-ready (`user_id` on searches, per-user settings), and functionally complete for internal use. Gaps before external SaaS launch: Stripe billing, usage metering per plan, onboarding flow, white-label report branding — estimated **4–8 weeks** of focused work.
+The platform is **production-deployed** (Laravel Cloud), multi-tenancy-ready (`user_id` on searches, per-user settings), and functionally complete for internal use — including email warmup with in-app monitoring and outreach readiness. Gaps before external SaaS launch: Stripe billing, usage metering per plan, onboarding flow, white-label report branding — estimated **4–8 weeks** of focused work.
 
 **Immediate recommendation:** Run weekly niche searches, send outreach with report links, measure conversion. The product already supports a full revenue workflow without further feature work.
 

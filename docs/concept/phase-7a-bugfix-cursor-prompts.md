@@ -111,10 +111,10 @@ visibility — the mailbox just quietly stops warming.
    `connection_failed` `WarmupAlert` with a plain-English message (sanitised
    per P4 — no raw exception text). On a successful `handle()` completion,
    reset `consecutive_failures` to 0.
-4. `WarmupController::index()` should include unread alert counts per
-   mailbox (or just a boolean `has_alert`) so the dashboard can flag it; full
-   notification UI is still Phase 7b's job, this just makes the failure
-   durable and queryable instead of log-only.
+4. `WarmupController::index()` includes unread alert counts per
+   mailbox (`has_alert`) so the dashboard can flag it. Full
+   notification UI is delivered in Phase 7b (`NotificationBell`,
+   `WarmupNotifierService`) — P3 makes failures durable and queryable.
 5. Tests: add cases to `tests/Unit` covering the failure-threshold
    transition to `status = failed`, and the reset back to 0 on a subsequent
    success.

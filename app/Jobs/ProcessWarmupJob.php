@@ -61,11 +61,6 @@ class ProcessWarmupJob implements ShouldQueue
                 SendWarmupEmailJob::dispatch($outbox->id, $seed->id)
                     ->delay($sendAt);
             }
-
-            $lastSendAt = end($sendTimes) ?: now();
-
-            ProcessWarmupInboxJob::dispatch($outbox->id)
-                ->delay($lastSendAt->copy()->addMinutes(120));
         }
     }
 

@@ -2,7 +2,6 @@
 
 namespace Tests\Unit;
 
-use App\Jobs\ProcessWarmupInboxJob;
 use App\Jobs\ProcessWarmupJob;
 use App\Jobs\SendWarmupEmailJob;
 use App\Models\User;
@@ -19,7 +18,7 @@ class ProcessWarmupJobTest extends TestCase
 
     public function test_dispatches_send_jobs_for_daily_volume(): void
     {
-        Bus::fake([SendWarmupEmailJob::class, ProcessWarmupInboxJob::class]);
+        Bus::fake([SendWarmupEmailJob::class]);
 
         $user = User::factory()->create();
 
@@ -44,9 +43,36 @@ class ProcessWarmupJobTest extends TestCase
         Bus::assertDispatched(SendWarmupEmailJob::class, 10);
     }
 
+    public function test_does_not_dispatch_batch_inbox_check(): void
+    {
+        Bus::fake([SendWarmupEmailJob::class, \App\Jobs\ProcessWarmupInboxJob::class]);
+
+        $user = User::factory()->create();
+
+        WarmupMailbox::factory()->outreach()->warming()->create([
+            'user_id' => $user->id,
+            'warmup_enabled' => true,
+            'warmup_started_at' => now()->subDays(14),
+            'warmup_target_volume' => 10,
+            'warmup_ramp_days' => 14,
+            'status' => 'warming',
+            'send_window_start' => '08:00:00',
+            'send_window_end' => '18:00:00',
+        ]);
+
+        WarmupMailbox::factory()->count(3)->create([
+            'user_id' => $user->id,
+            'is_seed_mailbox' => true,
+        ]);
+
+        (new ProcessWarmupJob)->handle(app(WarmupMailboxService::class));
+
+        Bus::assertNotDispatched(\App\Jobs\ProcessWarmupInboxJob::class);
+    }
+
     public function test_skips_outbox_on_weekend_when_send_on_weekends_is_false(): void
     {
-        Bus::fake([SendWarmupEmailJob::class, ProcessWarmupInboxJob::class]);
+        Bus::fake([SendWarmupEmailJob::class]);
 
         Carbon::setTestNow('2026-06-20 10:00:00'); // Saturday
 
@@ -69,7 +95,7 @@ class ProcessWarmupJobTest extends TestCase
 
     public function test_dispatched_delays_fall_within_send_window(): void
     {
-        Bus::fake([SendWarmupEmailJob::class, ProcessWarmupInboxJob::class]);
+        Bus::fake([SendWarmupEmailJob::class]);
 
         Carbon::setTestNow('2026-06-18 07:00:00'); // Wednesday
 
@@ -104,7 +130,7 @@ class ProcessWarmupJobTest extends TestCase
 
     public function test_seed_distribution_stays_within_ceiling_when_volume_exceeds_seed_count(): void
     {
-        Bus::fake([SendWarmupEmailJob::class, ProcessWarmupInboxJob::class]);
+        Bus::fake([SendWarmupEmailJob::class]);
 
         Carbon::setTestNow('2026-06-18 07:00:00');
 
@@ -140,7 +166,7 @@ class ProcessWarmupJobTest extends TestCase
 
     public function test_skips_outbox_when_sends_already_sent_today(): void
     {
-        Bus::fake([SendWarmupEmailJob::class, ProcessWarmupInboxJob::class]);
+        Bus::fake([SendWarmupEmailJob::class]);
 
         Carbon::setTestNow('2026-06-18 10:00:00');
 
@@ -168,7 +194,7 @@ class ProcessWarmupJobTest extends TestCase
 
     public function test_midday_start_schedules_sends_from_now_until_window_end(): void
     {
-        Bus::fake([SendWarmupEmailJob::class, ProcessWarmupInboxJob::class]);
+        Bus::fake([SendWarmupEmailJob::class]);
 
         Carbon::setTestNow('2026-06-18 14:00:00');
 
@@ -201,7 +227,7 @@ class ProcessWarmupJobTest extends TestCase
 
     public function test_does_not_schedule_sends_after_send_window_has_closed(): void
     {
-        Bus::fake([SendWarmupEmailJob::class, ProcessWarmupInboxJob::class]);
+        Bus::fake([SendWarmupEmailJob::class]);
 
         Carbon::setTestNow('2026-06-18 19:00:00');
 

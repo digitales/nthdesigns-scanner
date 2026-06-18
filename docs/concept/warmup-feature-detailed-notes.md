@@ -3,6 +3,8 @@
 Phase 7 of the nthdesigns Prospect Scanner build.
 Last updated: 18 June 2026
 
+**Specs:** [Phase 7b monitoring](../superpowers/specs/2026-06-18-warmup-phase-7b-design.md) · [Phase 7c shared pool](../superpowers/specs/2026-06-18-warmup-shared-pool-design.md) · [MCP tools](../superpowers/specs/2026-06-18-warmup-mcp-tools-design.md)
+
 ---
 
 ## What It Is and Why It Exists
@@ -57,7 +59,9 @@ Live IMAP login and SMTP auth attempted before save. Returns pass/fail per proto
 
 ### Mailbox Statuses
 
-`pending` → `warming` → `ready` (or `paused` / `failed` at any point)
+`pending` → `warming` → `ready` (or `at_risk` / `paused` / `failed` at any point)
+
+`at_risk` is set when deliverability score drops below 50 after the mailbox has been warming; recovery promotes back to `ready` when score recovers.
 
 ---
 
@@ -116,10 +120,11 @@ This one ID is the only link between "we sent this" and "this showed up in someo
 `ProcessWarmupInboxJob` runs 2 hours after sends. For each seed mailbox that received mail:
 
 1. Connects via IMAP
-2. Scans inbox and spam/junk folders (checks: Spam, Junk, INBOX.Spam, INBOX.Junk -- exceptions caught for missing folders)
-3. Spam: moves to inbox, records `rescued_from_spam_at`
-4. Inbox: marks as read, records `opened_at`
-5. Dispatches `ReplyToWarmupEmailJob` with random 30-240 minute delay
+2. Lists account folders and treats any folder whose name contains `spam` or `junk` (case-insensitive) as a spam folder — covers Gmail `[Gmail]/Spam`, Outlook `Junk Email`, etc.
+3. Filters messages by `last_imap_check_at` before scanning (avoids unbounded inbox growth)
+4. Spam: moves to inbox, records `rescued_from_spam_at`
+5. Inbox: marks as read, records `opened_at`
+6. Dispatches `ReplyToWarmupEmailJob` with random 30-240 minute delay
 
 The rescue step sends a strong positive signal to Gmail -- a user rescuing an email from spam is an explicit trust signal.
 
@@ -143,7 +148,7 @@ Over trailing 7 days. Rescued emails get half weight (reached spam first -- bett
 | 50-79 | Warming | Amber |
 | 80+ | Ready | Green |
 
-Auto-promotes to `ready` when score >= 80 AND `days_warming` >= `warmup_ramp_days`.
+Auto-promotes to `ready` when score >= 80 AND `days_warming` >= `warmup_ramp_days`. Demotes to `at_risk` when score < 50 after warming has started. Creates in-app notifications via `WarmupNotifierService` on transitions to `ready` or `at_risk`.
 
 ---
 
@@ -157,9 +162,9 @@ Seed pool is mailboxes you connect yourself. For internal use: a Gmail, an Outlo
 - Dashboard prompts if fewer than 3 connected
 - `getSeedPool()` excludes any seed used by this outbox in the last 24 hours to avoid repeated pairs
 
-### SaaS -- Shared Pool (Phase 7c)
+### SaaS -- Shared Pool (Phase 7c — implemented)
 
-Every mailbox with `is_pool_participant = true` joins the global seed pool. Selection excludes:
+Every mailbox with `is_pool_participant = true` joins the global seed pool. `WarmupSeedPoolService` handles selection. Selection excludes:
 
 - Mailboxes belonging to the same user
 - Mailboxes on the same domain as the outreach mailbox
@@ -197,10 +202,21 @@ warmup_ramp_days        (smallint, default 14)
 send_window_start       (time, default 08:00)
 send_window_end         (time, default 18:00)
 send_on_weekends        (boolean, default true)
-status                  (enum: pending, warming, ready, paused, failed)
+status                  (enum: pending, warming, ready, at_risk, paused, failed)
 deliverability_score    (smallint, nullable)
 last_imap_check_at      (timestamp, nullable)
+consecutive_failures    (smallint, default 0)
 created_at, updated_at
+```
+
+### `warmup_alerts`
+```
+id
+warmup_mailbox_id       (FK warmup_mailboxes, cascade delete)
+type                    (enum: connection_failed, ready, at_risk, pool_excluded)
+message                 (text)
+created_at              (timestamp)
+read_at                 (timestamp, nullable)
 ```
 
 ### `warmup_sends`
@@ -218,6 +234,10 @@ status                  (enum: sent, opened, replied, rescued, bounced)
 created_at
 ```
 
+### `notifications` (Laravel standard)
+
+Database notifications per user. Used by `WarmupMailboxNotification` for in-app bell alerts (Phase 7b).
+
 ---
 
 ## Services
@@ -226,7 +246,12 @@ created_at
 - `connect(array $credentials): WarmupMailbox` -- validates, encrypts, saves
 - `verifyConnection(WarmupMailbox): bool` -- live IMAP + SMTP test, throws RuntimeException on failure
 - `getDailyVolume(WarmupMailbox): int` -- linear ramp calculation
-- `getSeedPool(WarmupMailbox $outbox): Collection` -- returns eligible seeds, excludes recent pairs
+- `getSeedPool(WarmupMailbox $outbox): Collection` -- delegates to `WarmupSeedPoolService`
+
+### `WarmupSeedPoolService` (Phase 7c)
+- `eligibleSeedsForOutbox(WarmupMailbox): Collection` -- own seeds first, then pool
+- `canStartWarmup(User): bool` -- 2+ own seeds or pool ≥ `warmup_pool.min_size` (Agency+)
+- `countActivePoolSeeds(): int`
 
 ### `WarmupSendService`
 - `sendWarmupEmail(WarmupMailbox $from, WarmupMailbox $to): WarmupSend` -- SMTP send via Symfony Mailer with per-mailbox credentials
@@ -234,6 +259,12 @@ created_at
 - `replyToWarmupEmail(WarmupSend, WarmupMailbox $from): void` -- sends reply with correct threading headers
 - `calculateDeliverabilityScore(WarmupMailbox): int` -- trailing 7-day formula
 - `getEstimatedReadyDate(WarmupMailbox): ?Carbon` -- based on days remaining in ramp
+
+### `WarmupNotifierService` (Phase 7b)
+- `notify(WarmupMailbox, string $type, string $message): void` -- creates `WarmupAlert` + database notification if no unread alert of same type
+
+### `WarmupOutreachReadinessService` (Phase 7b)
+- `forUser(User): array` -- resolves `no_mailbox` / `not_ready` / `ready` for `/outreach` banner
 
 ---
 
@@ -245,7 +276,8 @@ created_at
 | `SendWarmupEmailJob` | warmup | Staggered per pair | Sends one warmup email |
 | `ProcessWarmupInboxJob` | warmup | 2hrs after sends | Scans inboxes, rescues spam, queues replies |
 | `ReplyToWarmupEmailJob` | warmup | 30-240min delay | Sends reply from seed mailbox |
-| `WarmupHealthCheckJob` | warmup | Daily 09:00 | Recalculates scores, auto-promotes to ready |
+| `WarmupHealthCheckJob` | warmup | Daily 09:00 | Recalculates scores, promotes/demotes status, notifies on ready/at_risk |
+| `WarmupPoolHealthJob` | warmup | Daily 09:30 | Bounce-rate audit; auto-exclude pool seeds (Phase 7c) |
 | `PurgeWarmupSendsJob` | warmup | Weekly | Deletes warmup_sends older than 30 days |
 
 ---
@@ -276,32 +308,45 @@ created_at
 - Score gauge (circular, 0-100) with traffic light colour
 - Stats row: days warming, sends this week, replies received, spam rescues
 - Estimated ready date (if warming)
-- At-risk banner when score < 60: plain-English diagnosis + link to MXToolbox
+- At-risk banner (`WarmupAlertBanners`): SPF/DKIM/DMARC guidance + MXToolbox link when score < 60 or `status = at_risk`
+- Unread alert banner for connection failures and ready notifications
+- Alerts marked read when mailbox detail is opened
 - Send history table: sent_at, subject (truncated), status badge, opened/replied/rescued timestamps
 - Last 30 days of sends retained
 
+### App shell — Notification bell (Phase 7b)
+
+- Bell icon in top bar with unread count badge
+- Dropdown: up to 10 unread warmup notifications
+- Click → mark read + open mailbox detail
+- "Mark all as read" action
+
 ### Outreach Integration (`/outreach`)
 
-- Banner if no Ready mailbox: "Your outreach domain isn't ready yet. Estimated ready: [date]." with link to `/warmup`
-- If Ready: "Sending from ross@nthdesign.co.uk (Ready)" shown in outreach controls
-- Agency+ with multiple Ready mailboxes: domain selector shown
-- Soft gate only -- warning but not enforced
+- `WarmupReadinessBanner` — soft gate (warning only, generation not blocked):
+  - **Not ready:** domain not ready + formatted estimated date + link to `/warmup`
+  - **No mailbox:** prompt to connect at `/warmup/connect`
+  - **Ready:** green banner — sending from primary ready mailbox
+- Agency+ multi-mailbox domain selector: **deferred**
 
 ---
 
 ## Build Phases
 
-### Phase 7a -- Mailbox management + basic engine (Cursor prompt ready)
-Migrations, models, WarmupMailboxService, WarmupSendService, all six jobs, template config, /warmup dashboard, /warmup/connect, /warmup/{id}, Horizon warmup supervisor, unit tests.
+### Phase 7a -- Mailbox management + basic engine (implemented)
+Migrations, models, WarmupMailboxService, WarmupSendService, all six jobs, template config, /warmup dashboard, /warmup/connect, /warmup/{id}, Horizon warmup supervisor, unit tests. Phase 7a bugfix prompts (P1–P7) applied.
 **Exit criterion:** nthdesign.co.uk warming automatically with 3 seed mailboxes, deliverability score updating daily.
 
-### Phase 7b -- Monitoring and outreach integration
-Score trend chart (recharts), estimated ready date display, in-app notifications (database driver) for Ready/At Risk/Connection Failure, readiness gate on /outreach, at-risk banner with DNS copy, PurgeWarmupSendsJob.
+### Phase 7b -- Monitoring and outreach integration (implemented)
+In-app notifications (database driver) for Ready / At Risk / Connection Failed, outreach readiness banner on `/outreach`, at-risk DNS banner on mailbox detail, `SkipBanner` + `NotificationBell` UI components, `PurgeWarmupSendsJob`.
 **Exit criterion:** notified when domain hits Ready; /outreach reflects readiness state.
+**Spec:** `docs/superpowers/specs/2026-06-18-warmup-phase-7b-design.md`
+**Deferred:** score trend chart (recharts + daily score snapshots).
 
-### Phase 7c -- SaaS shared seed network
-is_pool_participant opt-in toggle, getSeedPool() cross-user exclusion logic, pool size display, admin pool health view at /admin/warmup-pool, pool health monitoring job, auto-exclusion of high-bounce seeds.
+### Phase 7c -- SaaS shared seed network (implemented)
+`is_pool_participant` opt-in toggle, `WarmupSeedPoolService` cross-user selection, pool size display, admin pool health view at `/admin/warmup-pool`, `WarmupPoolHealthJob`, auto-exclusion of high-bounce seeds.
 **Exit criterion:** two test accounts cross-seeding correctly; pool size displayed accurately.
+**Spec:** `docs/superpowers/specs/2026-06-18-warmup-shared-pool-design.md`
 
 ---
 
@@ -334,7 +379,8 @@ Horizon warmup supervisor config:
 | Shared seed network | No | Yes | Yes |
 | Send window customisation | No | Yes | Yes |
 | Weekend volume control | No | Yes | Yes |
-| Email notifications | No | Yes | Yes |
+| In-app notifications | Yes | Yes | Yes |
+| Email notifications | No | Yes (deferred) | Yes (deferred) |
 | Admin pool health view | No | No | Yes |
 | Custom seed domain | No | No | Yes |
 
@@ -342,8 +388,19 @@ Horizon warmup supervisor config:
 
 ## Current Status
 
-- Phase 7a Cursor prompt: written and saved (phase-7a-cursor-prompt.md)
-- Phase 7b: specced, Cursor prompt not yet generated
-- Phase 7c: specced, Cursor prompt not yet generated
+- Phase 7a: **implemented** (bugfix prompts P1–P7 applied)
+- Phase 7b: **implemented** — in-app notifications, outreach readiness banner, at-risk DNS banner
+- Phase 7c: **implemented** — shared seed pool, admin health view
+- MCP warmup tools: **implemented** — `list_warmup_mailboxes`, `get_warmup_mailbox`
 - nthdesign.co.uk: registered, Fastmail configured, Postmaster Tools registered
-- DNS records (SPF/DKIM/DMARC): must be added before warmup can start
+- DNS records (SPF/DKIM/DMARC): must be verified before cold outreach
+
+### Related docs
+
+| Doc | Purpose |
+|-----|---------|
+| `docs/superpowers/specs/2026-06-18-warmup-phase-7b-design.md` | Monitoring + outreach integration spec |
+| `docs/superpowers/specs/2026-06-18-warmup-shared-pool-design.md` | Shared seed pool spec |
+| `docs/superpowers/specs/2026-06-18-warmup-mcp-tools-design.md` | MCP read-only warmup tools |
+| `docs/concept/phase-7a-bugfix-cursor-prompts.md` | Pre-ship bugfix prompts for 7a |
+| `docs/mcp-integration-guide.md` | Agent workflow for warmup monitoring |

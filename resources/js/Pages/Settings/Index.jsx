@@ -2,10 +2,10 @@ import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import AgencyBookingSettingsCard from '@/Components/AgencyBookingSettingsCard';
 import ApiUsageQuotasCard from '@/Components/ApiUsageQuotasCard';
+import NicheMaintenanceCard from '@/Components/NicheMaintenanceCard';
 import {
     Button,
     Card,
-    Checkbox,
     Field,
     FormError,
     Input,
@@ -13,6 +13,7 @@ import {
     Page,
     PageHeader,
     Select,
+    SkipBanner,
     SplitRow,
     Stack,
 } from '@/Components/ui';
@@ -24,9 +25,6 @@ export default function SettingsIndex({ settings, agencyBooking, nicheMaintenanc
         agency_name: settings.agency_name,
         booking_url: settings.booking_url,
     });
-    const scanForm = useForm({ force: false });
-    const bootstrapForm = useForm({ confirm: '' });
-
     const submit = (e) => {
         e.preventDefault();
         patch('/settings');
@@ -46,9 +44,7 @@ export default function SettingsIndex({ settings, agencyBooking, nicheMaintenanc
                 />
 
                 {flash?.success && (
-                    <p className="micro text-positive mb-16">
-                        {flash.success}
-                    </p>
+                    <SkipBanner kind="success">{flash.success}</SkipBanner>
                 )}
 
                 <Stack gap={24}>
@@ -145,87 +141,7 @@ export default function SettingsIndex({ settings, agencyBooking, nicheMaintenanc
                         </form>
                     </Card>
 
-                    <Card title="Niche maintenance">
-                        <MetaList className="meta-list--spaced">
-                            <SplitRow className="split-row--center">
-                                <span className="micro text-medium">Niches configured</span>
-                                <span className="micro">{nicheMaintenance.niche_count}</span>
-                            </SplitRow>
-                            <SplitRow className="split-row--center">
-                                <span className="micro text-medium">Cities configured</span>
-                                <span className="micro">{nicheMaintenance.city_count}</span>
-                            </SplitRow>
-                            <SplitRow className="split-row--center">
-                                <span className="micro text-medium">Last market scan</span>
-                                <span className="micro">{nicheMaintenance.last_scan_human}</span>
-                            </SplitRow>
-                            <SplitRow className="split-row--center">
-                                <span className="micro text-medium">Config generated</span>
-                                <span className="micro">{nicheMaintenance.config_generated ?? 'Unknown'}</span>
-                            </SplitRow>
-                        </MetaList>
-
-                        <Stack
-                            as="form"
-                            gap={16}
-                            className="mb-32"
-                            onSubmit={(e) => {
-                                e.preventDefault();
-                                scanForm.post('/settings/niches/scan');
-                            }}
-                        >
-                            <p className="micro m-0">
-                                Dispatches sample scans for all configured niche×city pairs (respects ignored niches).
-                                A full catalog is ~6,000 queue jobs.
-                            </p>
-                            <Stack as="label" className="micro" direction="row" gap={8} align="center">
-                                <Checkbox
-                                    checked={scanForm.data.force}
-                                    onChange={(checked) => scanForm.setData('force', checked)}
-                                />
-                                Force re-scan (include rows already complete today)
-                            </Stack>
-                            <div>
-                                <Button kind="secondary" type="submit" disabled={scanForm.processing}>
-                                    {scanForm.processing ? 'Queuing…' : 'Run market scan'}
-                                </Button>
-                            </div>
-                        </Stack>
-
-                        <Stack
-                            as="form"
-                            gap={16}
-                            onSubmit={(e) => {
-                                e.preventDefault();
-                                bootstrapForm.post('/settings/niches/bootstrap');
-                            }}
-                        >
-                            <p className="micro m-0 text-critical">
-                                Re-fetches UK cities and Google Places types, validates in Birmingham, and overwrites{' '}
-                                <code>config/niches.php</code>. On Laravel Cloud, commit and redeploy the updated config
-                                for changes to persist.
-                            </p>
-                            <Field label="Type REFRESH to confirm">
-                                <Input
-                                    type="text"
-                                    value={bootstrapForm.data.confirm}
-                                    onChange={(e) => bootstrapForm.setData('confirm', e.target.value)}
-                                    placeholder="REFRESH"
-                                    autoComplete="off"
-                                />
-                                <FormError message={bootstrapForm.errors.confirm} />
-                            </Field>
-                            <div>
-                                <Button
-                                    kind="destructive"
-                                    type="submit"
-                                    disabled={bootstrapForm.processing || bootstrapForm.data.confirm !== 'REFRESH'}
-                                >
-                                    {bootstrapForm.processing ? 'Queuing…' : 'Refresh catalog'}
-                                </Button>
-                            </div>
-                        </Stack>
-                    </Card>
+                    <NicheMaintenanceCard nicheMaintenance={nicheMaintenance} />
                 </Stack>
             </Page>
         </AuthenticatedLayout>

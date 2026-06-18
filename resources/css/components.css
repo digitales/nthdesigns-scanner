@@ -486,6 +486,17 @@
     list-style: none;
   }
   .meta-list--spaced { margin-bottom: 24px; }
+  .niche-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .niche-stat-label { display: block; }
+  .niche-confirm-field {
+    flex: 1;
+    min-width: 10rem;
+    max-width: 11rem;
+  }
   .split-row {
     display: flex;
     align-items: flex-start;

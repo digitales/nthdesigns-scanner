@@ -53,6 +53,18 @@ For clients that only support a static header:
 2. `get_warmup_mailbox` with `mailbox_id` → inspect stats, recent sends, alert messages
 3. Open `app_url` in the browser for connect, pause, and configuration
 
+### In-app notifications (web UI)
+
+Phase 7b adds a notification bell in the app shell. Warmup events (`ready`, `at_risk`, `connection_failed`) appear there without polling MCP. Agents can still use MCP tools for scripted monitoring; operators get the same alerts in the browser.
+
+| Event | In-app | MCP |
+|-------|--------|-----|
+| Mailbox ready | Bell + `/outreach` green banner | `has_unread_alerts` / `status: ready` |
+| At risk | Bell + critical banner on `/warmup/{id}` | `status: at_risk` |
+| Connection failed | Bell + alert on mailbox detail | `status: failed`, alert message |
+
+Outreach readiness (`/outreach`) shows a soft warning when no mailbox is ready — estimated date links back to `/warmup`.
+
 ### Streamable progress notifications (v1.1)
 
 When calling tools over streamable MCP transport, clients can include:

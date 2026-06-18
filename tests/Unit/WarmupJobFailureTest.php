@@ -8,6 +8,8 @@ use App\Models\WarmupAlert;
 use App\Models\WarmupMailbox;
 use App\Services\WarmupSendService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Bus;
 use Mockery;
 use RuntimeException;
 use Tests\TestCase;
@@ -37,6 +39,8 @@ class WarmupJobFailureTest extends TestCase
 
     public function test_send_job_resets_consecutive_failures_on_success(): void
     {
+        Bus::fake([ProcessWarmupInboxJob::class]);
+
         $mailbox = WarmupMailbox::factory()->outreach()->warming()->create([
             'consecutive_failures' => 2,
         ]);
@@ -56,7 +60,7 @@ class WarmupJobFailureTest extends TestCase
             'consecutive_failures' => 2,
         ]);
 
-        $job = new ProcessWarmupInboxJob($mailbox->id);
+        $job = new ProcessWarmupInboxJob($mailbox->id, WarmupMailbox::factory()->create()->id);
         $job->failed(new RuntimeException('IMAP failed'));
 
         $mailbox->refresh();
@@ -73,13 +77,42 @@ class WarmupJobFailureTest extends TestCase
         $mailbox = WarmupMailbox::factory()->outreach()->warming()->create([
             'consecutive_failures' => 1,
         ]);
+        $seed = WarmupMailbox::factory()->create();
 
         $sendService = Mockery::mock(WarmupSendService::class);
-        $sendService->shouldReceive('processInbox')->never();
+        $sendService->shouldReceive('processInbox')->once()->withArgs(
+            fn (WarmupMailbox $mailbox) => $mailbox->id === $seed->id,
+        );
 
-        (new ProcessWarmupInboxJob($mailbox->id))->handle($sendService);
+        (new ProcessWarmupInboxJob($mailbox->id, $seed->id))->handle($sendService);
 
         $this->assertSame(0, $mailbox->fresh()->consecutive_failures);
+    }
+
+    public function test_send_job_schedules_inbox_check_two_hours_after_send(): void
+    {
+        Bus::fake([ProcessWarmupInboxJob::class]);
+
+        Carbon::setTestNow('2026-06-18 10:00:00');
+
+        $mailbox = WarmupMailbox::factory()->outreach()->warming()->create();
+        $seed = WarmupMailbox::factory()->create();
+
+        $sendService = Mockery::mock(WarmupSendService::class);
+        $sendService->shouldReceive('sendWarmupEmail')->once();
+
+        (new SendWarmupEmailJob($mailbox->id, $seed->id))->handle($sendService);
+
+        Bus::assertDispatched(ProcessWarmupInboxJob::class, function (ProcessWarmupInboxJob $job) use ($mailbox, $seed) {
+            $delay = $job->delay;
+            $runAt = $delay instanceof \DateTimeInterface
+                ? Carbon::instance($delay)
+                : now()->add($delay);
+
+            return $job->outboxId === $mailbox->id
+                && $job->seedId === $seed->id
+                && $runAt->equalTo(Carbon::parse('2026-06-18 12:00:00'));
+        });
     }
 
     public function test_connection_failed_alert_message_does_not_contain_raw_exception(): void
