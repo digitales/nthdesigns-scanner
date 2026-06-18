@@ -1,11 +1,10 @@
 import { Head, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import WarmupAlertBanners from '@/Pages/Warmup/components/WarmupAlertBanners';
 import {
     Card,
     DataTable,
     EmptyState,
-    Icon,
-    Icons,
     LinkButton,
     MetaList,
     Page,
@@ -39,6 +38,7 @@ const MAILBOX_STATUS = {
     pending: 'Pending',
     warming: 'Warming',
     ready: 'Ready to send',
+    at_risk: 'At risk',
     paused: 'Paused',
     failed: 'Connection failed',
 };
@@ -69,7 +69,7 @@ function readinessMessage(mailbox, score) {
     return 'Start warmup from the dashboard once seed accounts are connected.';
 }
 
-export default function WarmupShow({ mailbox, sends, stats, estimated_ready_date }) {
+export default function WarmupShow({ mailbox, sends, stats, estimated_ready_date, alerts = [] }) {
     const score = mailbox.deliverability_score;
 
     return (
@@ -89,6 +89,8 @@ export default function WarmupShow({ mailbox, sends, stats, estimated_ready_date
                         </LinkButton>
                     }
                 />
+
+                <WarmupAlertBanners mailbox={mailbox} score={score} alerts={alerts} />
 
                 <div className="warmup-detail-hero">
                     <ScoreCard
@@ -202,12 +204,6 @@ export default function WarmupShow({ mailbox, sends, stats, estimated_ready_date
                             </MetaList>
                         </Card>
 
-                        {score != null && score < 60 && mailbox.days_warming > 3 && (
-                            <div className="skip-banner">
-                                <Icon d={Icons.Lock} size={14} />
-                                Deliverability at risk — verify SPF and DKIM before continuing.
-                            </div>
-                        )}
                     </Stack>
                 </SidebarLayout>
             </Page>

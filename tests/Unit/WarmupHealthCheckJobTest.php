@@ -3,8 +3,10 @@
 namespace Tests\Unit;
 
 use App\Jobs\WarmupHealthCheckJob;
+use App\Models\User;
 use App\Models\WarmupMailbox;
 use App\Models\WarmupSend;
+use App\Services\Warmup\WarmupNotifierService;
 use App\Services\WarmupSendService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -31,7 +33,10 @@ class WarmupHealthCheckJobTest extends TestCase
             'status' => 'sent',
         ]);
 
-        (new WarmupHealthCheckJob)->handle(app(WarmupSendService::class));
+        (new WarmupHealthCheckJob)->handle(
+            app(WarmupSendService::class),
+            app(WarmupNotifierService::class),
+        );
 
         $mailbox->refresh();
         $this->assertSame('at_risk', $mailbox->status);
@@ -58,10 +63,42 @@ class WarmupHealthCheckJobTest extends TestCase
             'sent_at' => now()->subDays(2),
         ]);
 
-        (new WarmupHealthCheckJob)->handle(app(WarmupSendService::class));
+        (new WarmupHealthCheckJob)->handle(app(WarmupSendService::class), app(WarmupNotifierService::class));
 
         $mailbox->refresh();
         $this->assertSame('ready', $mailbox->status);
         $this->assertSame(100, $mailbox->deliverability_score);
+    }
+
+    public function test_notifies_when_mailbox_becomes_ready(): void
+    {
+        Carbon::setTestNow('2026-06-18 10:00:00');
+
+        $user = User::factory()->create();
+        $mailbox = WarmupMailbox::factory()->outreach()->create([
+            'user_id' => $user->id,
+            'status' => 'warming',
+            'warmup_started_at' => now()->subDays(20),
+            'warmup_ramp_days' => 14,
+            'warmup_enabled' => true,
+        ]);
+
+        WarmupSend::factory()->count(4)->replied()->create([
+            'from_mailbox_id' => $mailbox->id,
+            'sent_at' => now()->subDays(2),
+        ]);
+
+        (new WarmupHealthCheckJob)->handle(
+            app(WarmupSendService::class),
+            app(WarmupNotifierService::class),
+        );
+
+        $mailbox->refresh();
+        $this->assertSame('ready', $mailbox->status);
+        $this->assertDatabaseHas('warmup_alerts', [
+            'warmup_mailbox_id' => $mailbox->id,
+            'type' => 'ready',
+        ]);
+        $this->assertSame(1, $user->fresh()->notifications()->count());
     }
 }

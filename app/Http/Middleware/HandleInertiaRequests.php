@@ -44,6 +44,25 @@ class HandleInertiaRequests extends Middleware
             'outreachSelectionCount' => fn () => $request->user()
                 ? $request->user()->outreachSelections()->count()
                 : 0,
+            'notifications' => fn () => $request->user()
+                ? $request->user()->unreadNotifications()
+                    ->latest()
+                    ->limit(10)
+                    ->get()
+                    ->map(fn ($notification) => [
+                        'id' => $notification->id,
+                        'type' => $notification->data['alert_type'] ?? 'warmup',
+                        'message' => $notification->data['message'] ?? '',
+                        'mailbox_email' => $notification->data['mailbox_email'] ?? null,
+                        'url' => $notification->data['url'] ?? null,
+                        'created_at' => $notification->created_at?->toIso8601String(),
+                    ])
+                    ->values()
+                    ->all()
+                : [],
+            'unreadNotificationsCount' => fn () => $request->user()
+                ? $request->user()->unreadNotifications()->count()
+                : 0,
         ];
     }
 }

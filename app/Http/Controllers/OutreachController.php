@@ -14,6 +14,7 @@ use App\Services\Outreach\OutreachChannelResolver;
 use App\Services\Outreach\OutreachQueueLoader;
 use App\Services\ProspectUnsubscribeService;
 use App\Services\UserSettingsService;
+use App\Services\Warmup\WarmupOutreachReadinessService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -27,6 +28,7 @@ class OutreachController extends Controller
         private CpcBenchmarkResolver $cpcBenchmarks,
         private ProspectUnsubscribeService $unsubscribe,
         private OutreachChannelResolver $channels,
+        private WarmupOutreachReadinessService $warmupReadiness,
     ) {}
 
     public function index(Request $request): Response
@@ -50,6 +52,7 @@ class OutreachController extends Controller
                 'cpc_mixed' => $cpcDefaults['mixed'],
                 'cpc_from_search' => $cpcDefaults['from_search'],
             ],
+            'warmup_readiness' => $this->warmupReadiness->forUser($user),
         ]);
     }
 

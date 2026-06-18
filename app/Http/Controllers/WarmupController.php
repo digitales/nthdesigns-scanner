@@ -73,6 +73,8 @@ class WarmupController extends Controller
     {
         abort_unless($mailbox->user_id === auth()->id(), 403);
 
+        $mailbox->alerts()->whereNull('read_at')->update(['read_at' => now()]);
+
         $sends = WarmupSend::query()
             ->where('from_mailbox_id', $mailbox->id)
             ->with('toMailbox:id,user_id,email')
@@ -120,6 +122,17 @@ class WarmupController extends Controller
                     ->count(),
             ],
             'estimated_ready_date' => $sendService->getEstimatedReadyDate($mailbox)?->toDateString(),
+            'alerts' => $mailbox->alerts()
+                ->whereNull('read_at')
+                ->orderByDesc('created_at')
+                ->limit(5)
+                ->get(['id', 'type', 'message', 'created_at'])
+                ->map(fn ($alert) => [
+                    'id' => $alert->id,
+                    'type' => $alert->type,
+                    'message' => $alert->message,
+                    'created_at' => $alert->created_at?->toIso8601String(),
+                ]),
         ]);
     }
 

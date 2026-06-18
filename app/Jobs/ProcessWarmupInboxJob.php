@@ -2,9 +2,9 @@
 
 namespace App\Jobs;
 
-use App\Models\WarmupAlert;
 use App\Models\WarmupMailbox;
 use App\Models\WarmupSend;
+use App\Services\Warmup\WarmupNotifierService;
 use App\Services\WarmupSendService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -73,12 +73,11 @@ class ProcessWarmupInboxJob implements ShouldQueue
             $updates['status'] = 'failed';
             $updates['warmup_enabled'] = false;
 
-            WarmupAlert::create([
-                'warmup_mailbox_id' => $mailbox->id,
-                'type' => 'connection_failed',
-                'message' => 'Warmup stopped after repeated inbox connection failures. Check your mailbox credentials and try reconnecting.',
-                'created_at' => now(),
-            ]);
+            app(WarmupNotifierService::class)->notify(
+                $mailbox,
+                'connection_failed',
+                'Warmup stopped after repeated inbox connection failures. Check your mailbox credentials and try reconnecting.',
+            );
         }
 
         $mailbox->update($updates);

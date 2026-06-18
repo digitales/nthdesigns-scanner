@@ -2,8 +2,8 @@
 
 namespace App\Jobs;
 
-use App\Models\WarmupAlert;
 use App\Models\WarmupMailbox;
+use App\Services\Warmup\WarmupNotifierService;
 use App\Services\WarmupSendService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -20,7 +20,7 @@ class WarmupHealthCheckJob implements ShouldQueue
         $this->onQueue('warmup');
     }
 
-    public function handle(WarmupSendService $sendService): void
+    public function handle(WarmupSendService $sendService, WarmupNotifierService $notifier): void
     {
         $mailboxes = WarmupMailbox::query()
             ->active()
@@ -42,20 +42,20 @@ class WarmupHealthCheckJob implements ShouldQueue
                 'status' => $newStatus,
             ]);
 
-            if ($newStatus === 'at_risk' && $previousStatus !== 'at_risk') {
-                $hasUnreadAlert = $mailbox->alerts()
-                    ->where('type', 'at_risk')
-                    ->whereNull('read_at')
-                    ->exists();
+            if ($newStatus === 'ready' && $previousStatus !== 'ready') {
+                $notifier->notify(
+                    $mailbox,
+                    'ready',
+                    "{$mailbox->email} is ready for cold outreach — deliverability score is {$score}.",
+                );
+            }
 
-                if (! $hasUnreadAlert) {
-                    WarmupAlert::create([
-                        'warmup_mailbox_id' => $mailbox->id,
-                        'type' => 'at_risk',
-                        'message' => 'Deliverability score has dropped below 50. Review your DNS and sending patterns.',
-                        'created_at' => now(),
-                    ]);
-                }
+            if ($newStatus === 'at_risk' && $previousStatus !== 'at_risk') {
+                $notifier->notify(
+                    $mailbox,
+                    'at_risk',
+                    'Deliverability score has dropped below 50. Review your DNS and sending patterns.',
+                );
             }
         }
     }

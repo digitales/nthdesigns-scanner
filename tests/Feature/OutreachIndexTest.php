@@ -10,6 +10,7 @@ use App\Models\ProspectReport;
 use App\Models\ReportBooking;
 use App\Models\Search;
 use App\Models\User;
+use App\Models\WarmupMailbox;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -90,5 +91,41 @@ class OutreachIndexTest extends TestCase
                 ->where('defaults.cpc_benchmark', '8.50')
                 ->where('defaults.cpc_from_search', true)
                 ->where('defaults.cpc_mixed', false));
+    }
+
+    public function test_index_includes_warmup_readiness_when_domain_not_ready(): void
+    {
+        $user = User::factory()->create();
+        WarmupMailbox::factory()->outreach()->create([
+            'user_id' => $user->id,
+            'email' => 'ross@nthdesign.co.uk',
+            'status' => 'warming',
+            'warmup_started_at' => now()->subDays(3),
+            'warmup_ramp_days' => 14,
+        ]);
+
+        $this->actingAs($user)
+            ->get('/outreach')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('warmup_readiness.state', 'not_ready')
+                ->where('warmup_readiness.warming_email', 'ross@nthdesign.co.uk'));
+    }
+
+    public function test_index_includes_ready_warmup_mailbox(): void
+    {
+        $user = User::factory()->create();
+        WarmupMailbox::factory()->outreach()->create([
+            'user_id' => $user->id,
+            'email' => 'ross@nthdesign.co.uk',
+            'status' => 'ready',
+        ]);
+
+        $this->actingAs($user)
+            ->get('/outreach')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('warmup_readiness.state', 'ready')
+                ->where('warmup_readiness.primary_email', 'ross@nthdesign.co.uk'));
     }
 }

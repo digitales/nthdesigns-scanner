@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react';
-import { useEffect, useId, useRef, useState } from 'react';
+import { useId, useRef, useState } from 'react';
+import { useDismissiblePopover } from '@/hooks/useDismissiblePopover';
 
 function Avatar({ initials }) {
     return <span className="avatar">{initials}</span>;
@@ -34,25 +35,7 @@ export default function UserMenu({ user }) {
     const rootRef = useRef(null);
     const menuId = useId();
 
-    useEffect(() => {
-        if (!open) return undefined;
-
-        const onKeyDown = (e) => {
-            if (e.key === 'Escape') setOpen(false);
-        };
-
-        const onPointerDown = (e) => {
-            if (!rootRef.current?.contains(e.target)) setOpen(false);
-        };
-
-        document.addEventListener('keydown', onKeyDown);
-        document.addEventListener('pointerdown', onPointerDown);
-
-        return () => {
-            document.removeEventListener('keydown', onKeyDown);
-            document.removeEventListener('pointerdown', onPointerDown);
-        };
-    }, [open]);
+    useDismissiblePopover({ open, onClose: () => setOpen(false), rootRef });
 
     const close = () => setOpen(false);
 

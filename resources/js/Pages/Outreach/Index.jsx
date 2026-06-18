@@ -2,6 +2,7 @@ import { Head, Link, router, useForm } from "@inertiajs/react";
 import { useState } from "react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import OutreachChannelCard from "@/Components/OutreachChannelCard";
+import WarmupReadinessBanner from "@/Pages/Warmup/components/WarmupReadinessBanner";
 import {
   AnglePill,
   Button,
@@ -16,6 +17,7 @@ import {
   ScoreBadge,
   Page,
   Segmented,
+  SkipBanner,
 } from "@/Components/ui";
 
 export default function OutreachIndex({
@@ -24,6 +26,7 @@ export default function OutreachIndex({
   emailsByProspect,
   defaults,
   flash,
+  warmup_readiness: warmupReadiness,
 }) {
   const { data, setData, post, processing } = useForm({
     agency_name: defaults.agency_name,
@@ -72,25 +75,23 @@ export default function OutreachIndex({
           sub="Batch-generate personalised outreach. Prospects without a report or contact path are skipped automatically."
         />
 
+        <WarmupReadinessBanner readiness={warmupReadiness} />
+
         {flash?.success && (
-          <div className="skip-banner banner-positive banner-success">
-            {flash.success}
-          </div>
+          <SkipBanner kind="success">{flash.success}</SkipBanner>
         )}
 
         {flash?.skipped?.length > 0 && (
-          <div className="skip-banner">
-            <Icon d={Icons.Lock} size={14} />
+          <SkipBanner icon={<Icon d={Icons.Lock} size={14} />}>
             Skipped: {flash.skipped.join(", ")}
-          </div>
+          </SkipBanner>
         )}
 
         {skippedCount > 0 && (
-          <div className="skip-banner">
-            <Icon d={Icons.Lock} size={14} />
+          <SkipBanner icon={<Icon d={Icons.Lock} size={14} />}>
             {skippedCount} prospect{skippedCount !== 1 ? "s" : ""} will be
             skipped — outreach requires an embedded link.
-          </div>
+          </SkipBanner>
         )}
 
         <div className="outreach-layout">

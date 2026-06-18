@@ -10,6 +10,7 @@ use App\Http\Controllers\NicheAnnotationController;
 use App\Http\Controllers\NicheIgnoreController;
 use App\Http\Controllers\NicheScanController;
 use App\Http\Controllers\NicheScanSampleController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OAuthServerController;
 use App\Http\Controllers\OAuthWellKnownController;
 use App\Http\Controllers\OutreachController;
@@ -166,6 +167,9 @@ Route::middleware('auth')->group(function () {
     Route::delete('/outreach/selections', [OutreachController::class, 'clearSelections'])->name('outreach.selections.clear');
     Route::delete('/outreach/selections/{prospect}', [OutreachController::class, 'destroySelection'])->name('outreach.selections.destroy');
     Route::post('/outreach/generate', [OutreachController::class, 'generate'])->name('outreach.generate');
+
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
+    Route::post('/notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
 
     Route::get('/warmup', [WarmupController::class, 'index'])->name('warmup.index');
     Route::get('/warmup/connect', [WarmupController::class, 'connect'])->name('warmup.connect');
