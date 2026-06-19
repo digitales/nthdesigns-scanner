@@ -17,12 +17,13 @@ class WarmupSeedPoolService
     {
         $recentlyUsed = $this->recentlyUsedSeedIds($outbox);
 
-        $own = WarmupMailbox::query()
-            ->where('user_id', $outbox->user_id)
-            ->where('id', '!=', $outbox->id)
-            ->where('is_seed_mailbox', true)
-            ->whereNotIn('id', $recentlyUsed)
-            ->get();
+        $own = $this->seedsPreferringFresh(
+            WarmupMailbox::query()
+                ->where('user_id', $outbox->user_id)
+                ->where('id', '!=', $outbox->id)
+                ->where('is_seed_mailbox', true),
+            $recentlyUsed,
+        );
 
         $pool = collect();
 
@@ -31,13 +32,14 @@ class WarmupSeedPoolService
         if ($user && $user->warmupTierLimits()['pool_participation_allowed']) {
             $outreachDomain = $this->emailDomain($outbox->email);
 
-            $pool = WarmupMailbox::query()
-                ->where('is_seed_mailbox', true)
-                ->where('is_pool_participant', true)
-                ->where('status', '!=', 'failed')
-                ->where('user_id', '!=', $outbox->user_id)
-                ->whereNotIn('id', $recentlyUsed)
-                ->get()
+            $pool = $this->seedsPreferringFresh(
+                WarmupMailbox::query()
+                    ->where('is_seed_mailbox', true)
+                    ->where('is_pool_participant', true)
+                    ->where('status', '!=', 'failed')
+                    ->where('user_id', '!=', $outbox->user_id),
+                $recentlyUsed,
+            )
                 ->filter(fn (WarmupMailbox $seed) => $this->emailDomain($seed->email) !== $outreachDomain)
                 ->values();
         }
@@ -46,6 +48,26 @@ class WarmupSeedPoolService
             'own' => $own,
             'pool' => $pool,
         ];
+    }
+
+    /**
+     * Prefer seeds not used in the last 24 hours, but fall back to all candidates
+     * when every seed was recently used (common with small seed pools).
+     *
+     * @param  array<int, int>  $recentlyUsed
+     * @return Collection<int, WarmupMailbox>
+     */
+    private function seedsPreferringFresh($query, array $recentlyUsed): Collection
+    {
+        $candidates = (clone $query)->get();
+
+        if ($candidates->isEmpty() || $recentlyUsed === []) {
+            return $candidates;
+        }
+
+        $fresh = $candidates->whereNotIn('id', $recentlyUsed)->values();
+
+        return $fresh->isNotEmpty() ? $fresh : $candidates;
     }
 
     public function eligibleSeedsForOutbox(WarmupMailbox $outbox): Collection

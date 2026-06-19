@@ -83,25 +83,55 @@ class WarmupSeedPoolServiceTest extends TestCase
         $this->assertSame('good@gmail.com', $groups['pool']->first()->email);
     }
 
-    public function test_excludes_recently_used_seeds(): void
+    public function test_excludes_recently_used_seeds_when_fresh_alternatives_exist(): void
     {
         $userA = User::factory()->create(['subscription_tier' => 'agency']);
         $userB = User::factory()->create(['subscription_tier' => 'agency']);
 
         $outbox = WarmupMailbox::factory()->outreach()->create(['user_id' => $userA->id]);
-        $poolSeed = WarmupMailbox::factory()->create([
+        $usedPoolSeed = WarmupMailbox::factory()->create([
             'user_id' => $userB->id,
+            'is_pool_participant' => true,
+        ]);
+        $freshPoolSeed = WarmupMailbox::factory()->create([
+            'user_id' => $userB->id,
+            'email' => 'fresh@gmail.com',
             'is_pool_participant' => true,
         ]);
 
         WarmupSend::factory()->create([
             'from_mailbox_id' => $outbox->id,
-            'to_mailbox_id' => $poolSeed->id,
+            'to_mailbox_id' => $usedPoolSeed->id,
             'sent_at' => now()->subHours(2),
         ]);
 
         $groups = $this->service->seedGroupsForOutbox($outbox);
 
+        $this->assertCount(1, $groups['pool']);
+        $this->assertSame($freshPoolSeed->id, $groups['pool']->first()->id);
+    }
+
+    public function test_falls_back_to_recently_used_seeds_when_all_were_used_in_last_24_hours(): void
+    {
+        $user = User::factory()->create(['subscription_tier' => 'solo']);
+
+        $outbox = WarmupMailbox::factory()->outreach()->create(['user_id' => $user->id]);
+        $seeds = WarmupMailbox::factory()->count(3)->create([
+            'user_id' => $user->id,
+            'is_seed_mailbox' => true,
+        ]);
+
+        foreach ($seeds as $seed) {
+            WarmupSend::factory()->create([
+                'from_mailbox_id' => $outbox->id,
+                'to_mailbox_id' => $seed->id,
+                'sent_at' => now()->subHours(12),
+            ]);
+        }
+
+        $groups = $this->service->seedGroupsForOutbox($outbox);
+
+        $this->assertCount(3, $groups['own']);
         $this->assertCount(0, $groups['pool']);
     }
 
