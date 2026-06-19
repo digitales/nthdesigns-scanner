@@ -78,6 +78,42 @@ class ProspectQualificationServiceTest extends TestCase
         $this->assertNotNull($prospect->qualification_ran_at);
     }
 
+    public function test_qualify_humanizes_snake_case_flags_from_claude(): void
+    {
+        $prospect = $this->makeProspect(['website_url' => 'https://example.com']);
+
+        Http::fake([
+            '*' => Http::response('<html>Local dental practice</html>', 200),
+        ]);
+
+        $this->mock(OpenRouterService::class, function ($mock) {
+            $mock->shouldReceive('complete')->once()->andReturn([
+                'content' => json_encode([
+                    'status' => 'qualified',
+                    'summary' => 'Independent local practice.',
+                    'flags' => [
+                        'single_location_london',
+                        'direct_email_contact',
+                        'corporate_chain',
+                    ],
+                ]),
+                'model' => 'anthropic/claude-sonnet-4',
+                'prompt_tokens' => 100,
+                'completion_tokens' => 50,
+            ]);
+        });
+
+        app(ProspectQualificationService::class)->qualify($prospect);
+
+        $prospect->refresh();
+
+        $this->assertSame([
+            'Single Location London',
+            'Direct Email Contact',
+            'corporate_chain',
+        ], $prospect->qualification_flags);
+    }
+
     public function test_qualify_parses_json_wrapped_in_markdown_fences(): void
     {
         $prospect = $this->makeProspect(['website_url' => 'https://example.com']);

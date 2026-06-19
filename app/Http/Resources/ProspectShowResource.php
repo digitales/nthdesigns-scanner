@@ -23,6 +23,7 @@ use App\Services\ProspectUnsubscribeService;
 use App\Services\ReportBuilderService;
 use App\Services\TagService;
 use App\Support\ProspectSiteScan;
+use App\Support\QualificationFlagFormatter;
 use Illuminate\Http\Request;
 
 class ProspectShowResource
@@ -136,7 +137,7 @@ class ProspectShowResource
             'site_unreachable' => ProspectSiteScan::siteUnreachable($prospect),
             'qualification_status' => $prospect->qualification_status,
             'qualification_summary' => $prospect->qualification_summary,
-            'qualification_flags' => $prospect->qualification_flags ?? [],
+            'qualification_flags' => QualificationFlagFormatter::formatMany($prospect->qualification_flags ?? []),
             'qualification_ran_at' => $prospect->qualification_ran_at?->toISOString(),
             'validator_status' => $prospect->validator_status?->value,
             'validator_summary' => $prospect->validator_summary,

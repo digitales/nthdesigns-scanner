@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Button } from '@/Components/ui';
+import { Button, Eyebrow } from '@/Components/ui';
+import { groupQualificationFlags } from '@/utils/qualificationFlags';
 
 const STATUS_LABELS = {
     qualified: 'Qualified',
@@ -110,20 +111,88 @@ export function QualificationDetails({ prospect }) {
         return null;
     }
 
+    const status = prospect.qualification_status;
     const flags = prospect.qualification_flags ?? [];
+    const groups = groupQualificationFlags(flags, status);
+    const hasMixedSignals = status === 'caution'
+        && groups.positive.length > 0
+        && groups.negative.length > 0;
 
     return (
         <div className="qualification-details">
+            <div className="qualification-details-top">
+                <Eyebrow className="qualification-details-eyebrow">Qualification assessment</Eyebrow>
+                {prospect.qualification_ran_at && (
+                    <time
+                        className="micro text-stone"
+                        dateTime={prospect.qualification_ran_at}
+                    >
+                        Assessed {new Date(prospect.qualification_ran_at).toLocaleString()}
+                    </time>
+                )}
+            </div>
+
             {prospect.qualification_summary && (
-                <p className="qualification-summary">{prospect.qualification_summary}</p>
+                <div className={`qualification-callout qualification-callout--${status}`}>
+                    <p className="qualification-summary">{prospect.qualification_summary}</p>
+                </div>
             )}
+
             {flags.length > 0 && (
-                <ul className="qualification-flags">
-                    {flags.map((flag, i) => (
-                        <li key={i}>{flag}</li>
-                    ))}
-                </ul>
+                <div className="qualification-signals">
+                    {hasMixedSignals ? (
+                        <>
+                            {groups.positive.length > 0 && (
+                                <QualificationFlagGroup
+                                    label="Positive signals"
+                                    flags={groups.positive}
+                                    tone="positive"
+                                />
+                            )}
+                            {groups.negative.length > 0 && (
+                                <QualificationFlagGroup
+                                    label="Concerns"
+                                    flags={groups.negative}
+                                    tone="negative"
+                                />
+                            )}
+                            {groups.neutral.length > 0 && (
+                                <QualificationFlagGroup
+                                    label="Other notes"
+                                    flags={groups.neutral}
+                                    tone="neutral"
+                                />
+                            )}
+                        </>
+                    ) : (
+                        <QualificationFlagGroup
+                            label="Signals found"
+                            flags={flags}
+                            tone={status === 'qualified' ? 'positive' : status === 'skip' ? 'negative' : 'neutral'}
+                        />
+                    )}
+                </div>
             )}
+        </div>
+    );
+}
+
+function QualificationFlagGroup({ label, flags, tone }) {
+    return (
+        <div className="qualification-flag-group">
+            <div className="eyebrow eyebrow-spaced">{label}</div>
+            <div className="flag-wrap qualification-flag-wrap" role="list">
+                {flags.map((flag) => (
+                    <span
+                        key={flag}
+                        role="listitem"
+                        className={`qualification-flag qualification-flag--${tone}`}
+                    >
+                        <span className="qualification-flag-mark" aria-hidden="true" />
+                        {flag}
+                    </span>
+                ))}
+            </div>
         </div>
     );
 }

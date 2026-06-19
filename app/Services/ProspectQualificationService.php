@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Prospect;
+use App\Support\QualificationFlagFormatter;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -116,7 +117,12 @@ You are assessing whether a UK {$niche} business website belongs to an independe
 Analyse the HTML content provided and return a JSON object with exactly these keys:
 - "status": one of "qualified", "caution", or "skip"
 - "summary": a single sentence plain-English explanation of your decision
-- "flags": an array of specific strings describing what you found (positive and negative signals)
+- "flags": an array of short plain-English phrases describing what you found (positive and negative signals)
+
+Flag writing rules:
+- Write human-readable phrases, e.g. "Named owner on About page", "Direct email on homepage", "Single location in London".
+- Do NOT use snake_case identifiers (bad: "direct_email_contact", "single_location_london", "no_corporate_branding").
+- Exception: when status is "skip", include exactly "wrong_niche" or "corporate_chain" as one flag, then add any supporting plain-English flags.
 
 Definitions:
 - "qualified" = independently owned business with an identifiable decision-maker and a realistic route to contact
@@ -195,8 +201,31 @@ PROMPT;
             'status' => $status,
             'summary' => is_string($decoded['summary'] ?? null) ? $decoded['summary'] : '',
             'flags' => is_array($decoded['flags'] ?? null)
-                ? array_values(array_filter($decoded['flags'], 'is_string'))
+                ? $this->normaliseFlags($decoded['flags'])
                 : [],
         ];
+    }
+
+    /**
+     * @param  array<mixed>  $flags
+     * @return list<string>
+     */
+    private function normaliseFlags(array $flags): array
+    {
+        $normalised = [];
+
+        foreach ($flags as $flag) {
+            if (! is_string($flag) || trim($flag) === '') {
+                continue;
+            }
+
+            $flag = trim($flag);
+
+            $normalised[] = QualificationFlagFormatter::shouldPreserveRaw($flag)
+                ? $flag
+                : QualificationFlagFormatter::format($flag);
+        }
+
+        return array_values($normalised);
     }
 }

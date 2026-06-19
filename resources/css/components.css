@@ -2540,14 +2540,94 @@
   }
   .validation-control-actions { flex-wrap: wrap; }
   .qualification-details {
-    padding: 12px 20px 16px;
+    padding: 14px 20px 16px;
     border-top: 1px solid var(--color-stone-200);
     background: var(--color-stone-50);
   }
+  .qualification-details-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+  .qualification-details-eyebrow { margin: 0; }
+  .qualification-callout {
+    border-radius: 8px;
+    border: 1px solid var(--color-stone-200);
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    background: var(--color-paper);
+  }
+  .qualification-callout--qualified {
+    border-color: oklch(0.85 0.06 145);
+    background: oklch(0.97 0.02 145);
+  }
+  .qualification-callout--caution {
+    border-color: oklch(0.88 0.08 80);
+    background: oklch(0.98 0.03 85);
+  }
+  .qualification-callout--skip {
+    border-color: oklch(0.88 0.06 25);
+    background: oklch(0.98 0.02 25);
+  }
   .qualification-summary {
-    margin: 0 0 8px;
+    margin: 0;
     font-size: 13px;
     color: var(--color-stone-800);
+    line-height: 1.45;
+  }
+  .qualification-signals {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .qualification-flag-group + .qualification-flag-group {
+    padding-top: 12px;
+    border-top: 1px solid var(--color-stone-200);
+  }
+  .qualification-flag-wrap { gap: 6px; }
+  .qualification-flag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.35;
+    padding: 4px 10px 4px 8px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+  }
+  .qualification-flag-mark {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .qualification-flag--positive {
+    background: oklch(0.94 0.04 145);
+    color: oklch(0.35 0.08 145);
+    border-color: oklch(0.85 0.06 145);
+  }
+  .qualification-flag--positive .qualification-flag-mark {
+    background: oklch(0.55 0.12 145);
+  }
+  .qualification-flag--negative {
+    background: oklch(0.96 0.04 25);
+    color: oklch(0.42 0.12 25);
+    border-color: oklch(0.88 0.06 25);
+  }
+  .qualification-flag--negative .qualification-flag-mark {
+    background: oklch(0.58 0.14 25);
+  }
+  .qualification-flag--neutral {
+    background: oklch(0.96 0.05 85);
+    color: oklch(0.42 0.1 75);
+    border-color: oklch(0.88 0.08 80);
+  }
+  .qualification-flag--neutral .qualification-flag-mark {
+    background: oklch(0.62 0.12 75);
   }
   .qualification-flags {
     margin: 0;

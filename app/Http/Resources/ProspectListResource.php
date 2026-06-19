@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use App\Models\Prospect;
 use App\Services\ReportBuilderService;
+use App\Support\QualificationFlagFormatter;
 
 class ProspectListResource
 {
@@ -41,7 +42,7 @@ class ProspectListResource
             'cms_pending' => $cms['pending'] ?? false,
             'qualification_status' => $prospect->qualification_status,
             'qualification_summary' => $prospect->qualification_summary,
-            'qualification_flags' => $prospect->qualification_flags ?? [],
+            'qualification_flags' => QualificationFlagFormatter::formatMany($prospect->qualification_flags ?? []),
             'qualification_ran_at' => $prospect->qualification_ran_at?->toISOString(),
             'tags' => $prospect->relationLoaded('tags')
                 ? $prospect->tags->pluck('name')->values()->all()
