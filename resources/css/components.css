@@ -1207,6 +1207,35 @@
   .ptable.ptable--prospects th.col-actions { width: 14%; text-align: right; }
   .ptable.ptable--prospects td.col-actions { text-align: right; }
   .ptable--paper { background: var(--color-paper); }
+  .data-table--scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .ptable.ptable--warmup-sends {
+    table-layout: fixed;
+    min-width: 720px;
+  }
+  .ptable.ptable--warmup-sends col.col-sent,
+  .ptable.ptable--warmup-sends col.col-date {
+    width: 108px;
+  }
+  .ptable.ptable--warmup-sends col.col-status {
+    width: 96px;
+  }
+  .ptable.ptable--warmup-sends col.col-recipient {
+    width: 20%;
+  }
+  .ptable.ptable--warmup-sends td.col-sent,
+  .ptable.ptable--warmup-sends td.col-date {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .ptable.ptable--warmup-sends .note-cell {
+    max-width: none;
+  }
+  .ptable.ptable--warmup-sends tbody tr:hover {
+    cursor: default;
+  }
   .ptable.ptable--comparison {
     table-layout: fixed;
   }

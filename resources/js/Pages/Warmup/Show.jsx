@@ -45,12 +45,10 @@ const MAILBOX_STATUS = {
 
 function formatDate(value) {
     if (!value) return '—';
-    return new Date(value).toLocaleString('en-GB', {
-        day: 'numeric',
-        month: 'short',
-        hour: '2-digit',
-        minute: '2-digit',
-    });
+    const date = new Date(value);
+    const day = date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    const time = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    return `${day}, ${time}`;
 }
 
 function readinessMessage(mailbox, score) {
@@ -127,23 +125,32 @@ export default function WarmupShow({ mailbox, sends, stats, estimated_ready_date
                                 sub="Warmup emails will appear here once the daily job runs."
                             />
                         ) : (
-                            <DataTable tableClassName="ptable--paper">
+                            <DataTable tableClassName="ptable--paper ptable--warmup-sends" className="data-table--scroll">
+                                <colgroup>
+                                    <col className="col-sent" />
+                                    <col className="col-recipient" />
+                                    <col className="col-subject" />
+                                    <col className="col-status" />
+                                    <col className="col-date" />
+                                    <col className="col-date" />
+                                    <col className="col-date" />
+                                </colgroup>
                                 <thead>
                                     <tr>
-                                        <th>Sent</th>
+                                        <th className="col-sent">Sent</th>
                                         <th>Recipient</th>
                                         <th>Subject</th>
-                                        <th>Status</th>
-                                        <th>Opened</th>
-                                        <th>Replied</th>
-                                        <th>Rescued</th>
+                                        <th className="col-status">Status</th>
+                                        <th className="col-date">Opened</th>
+                                        <th className="col-date">Replied</th>
+                                        <th className="col-date">Rescued</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {sends.map((row) => (
                                         <tr key={row.id}>
-                                            <td>
-                                                <div className="body-sm-medium-tight">{formatDate(row.sent_at)}</div>
+                                            <td className="col-sent micro text-stone">
+                                                <time dateTime={row.sent_at}>{formatDate(row.sent_at)}</time>
                                             </td>
                                             <td className="micro text-stone">{row.recipient ?? '—'}</td>
                                             <td className="note-cell">
@@ -151,14 +158,34 @@ export default function WarmupShow({ mailbox, sends, stats, estimated_ready_date
                                                     {row.subject}
                                                 </div>
                                             </td>
-                                            <td>
+                                            <td className="col-status">
                                                 <Status kind={STATUS_KIND[row.status] ?? 'pending'}>
                                                     {STATUS_LABELS[row.status] ?? row.status}
                                                 </Status>
                                             </td>
-                                            <td className="micro text-stone">{formatDate(row.opened_at)}</td>
-                                            <td className="micro text-stone">{formatDate(row.replied_at)}</td>
-                                            <td className="micro text-stone">{formatDate(row.rescued_from_spam_at)}</td>
+                                            <td className="col-date micro text-stone">
+                                                {row.opened_at ? (
+                                                    <time dateTime={row.opened_at}>{formatDate(row.opened_at)}</time>
+                                                ) : (
+                                                    '—'
+                                                )}
+                                            </td>
+                                            <td className="col-date micro text-stone">
+                                                {row.replied_at ? (
+                                                    <time dateTime={row.replied_at}>{formatDate(row.replied_at)}</time>
+                                                ) : (
+                                                    '—'
+                                                )}
+                                            </td>
+                                            <td className="col-date micro text-stone">
+                                                {row.rescued_from_spam_at ? (
+                                                    <time dateTime={row.rescued_from_spam_at}>
+                                                        {formatDate(row.rescued_from_spam_at)}
+                                                    </time>
+                                                ) : (
+                                                    '—'
+                                                )}
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>
