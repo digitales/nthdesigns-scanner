@@ -424,13 +424,26 @@ On **App cluster** or **Worker cluster** (one only):
 |---------|---------|
 | Scheduler | Enable **Scheduler** toggle |
 
-Scheduled task already registered:
+Scheduled tasks already registered in `routes/console.php`:
 
-```php
-Schedule::command('scanner:purge-expired')->daily();
+| Schedule | Job / command |
+|----------|----------------|
+| Daily | `scanner:purge-expired` |
+| Every 15 min | `booking:retry-unsent-confirmations` |
+| Daily 08:00 UTC | `ProcessWarmupJob` (daily send batch) |
+| Daily 09:00 UTC | `WarmupHealthCheckJob` |
+| Daily 09:30 UTC | `WarmupPoolHealthJob` |
+| Weekly | `PurgeWarmupSendsJob` |
+
+Warmup jobs dispatch to the **`warmup` queue** — you must run a warmup worker (see [Option A](#option-a--hybrid-recommended-on-starter-managed-auditing--database-searches--niches)) in addition to enabling the scheduler.
+
+To kick today's batch manually (Cloud **Commands**):
+
+```bash
+php artisan warmup:process --sync
 ```
 
-If you scale to multiple App/Worker replicas, add `->onOneServer()` to that schedule entry.
+If you scale to multiple App/Worker replicas, add `->onOneServer()` to schedule entries.
 
 ---
 

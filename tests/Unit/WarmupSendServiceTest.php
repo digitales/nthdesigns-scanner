@@ -222,6 +222,45 @@ class WarmupSendServiceTest extends TestCase
         $this->service()->processInbox($mailbox);
     }
 
+    public function test_process_inbox_widens_since_filter_when_stale_sends_exist(): void
+    {
+        Carbon::setTestNow('2026-06-19 10:00:00');
+
+        $mailbox = WarmupMailbox::factory()->create([
+            'last_imap_check_at' => Carbon::parse('2026-06-19 09:00:00'),
+        ]);
+
+        WarmupSend::factory()->create([
+            'to_mailbox_id' => $mailbox->id,
+            'status' => 'sent',
+            'sent_at' => Carbon::parse('2026-06-18 14:31:25'),
+        ]);
+
+        $expectedSince = Carbon::parse('2026-06-18 13:31:25');
+        $sinceMatcher = Mockery::on(fn ($value) => Carbon::parse($value)->equalTo($expectedSince));
+
+        $query = Mockery::mock(WhereQuery::class);
+        $query->shouldReceive('since')->once()->with($sinceMatcher)->andReturnSelf();
+        $query->shouldReceive('get')->andReturn(new MessageCollection);
+
+        $inboxFolder = Mockery::mock(Folder::class);
+        $inboxFolder->name = 'INBOX';
+        $inboxFolder->full_name = 'INBOX';
+        $inboxFolder->shouldReceive('messages')->andReturn($query);
+
+        $client = Mockery::mock(Client::class);
+        $client->shouldReceive('connect');
+        $client->shouldReceive('disconnect');
+        $client->shouldReceive('getFolder')->with('INBOX')->andReturn($inboxFolder);
+        $client->shouldReceive('getFolders')->with(false)->andReturn(new FolderCollection([$inboxFolder]));
+
+        $this->mock(WarmupMailboxService::class, function ($mock) use ($client) {
+            $mock->shouldReceive('makeImapClient')->andReturn($client);
+        });
+
+        $this->service()->processInbox($mailbox);
+    }
+
     public function test_process_inbox_does_not_update_last_imap_check_at_on_failure(): void
     {
         $mailbox = WarmupMailbox::factory()->create([

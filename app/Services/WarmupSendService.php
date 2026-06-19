@@ -3,9 +3,11 @@
 namespace App\Services;
 
 use App\Exceptions\WarmupTransportException;
+use App\Jobs\SendWarmupEmailJob;
 use App\Models\WarmupMailbox;
 use App\Models\WarmupSend;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Symfony\Component\Mailer\Mailer;
 use Symfony\Component\Mailer\Transport;
@@ -89,8 +91,12 @@ class WarmupSendService
 
                 try {
                     $this->processFolder($folder, $mailbox, true);
-                } catch (\Throwable) {
-                    // Folder may be inaccessible on this provider.
+                } catch (\Throwable $e) {
+                    Log::warning('Warmup spam folder scan failed.', [
+                        'mailbox_id' => $mailbox->id,
+                        'folder' => $folderName,
+                        'error' => $e->getMessage(),
+                    ]);
                 }
             }
 
@@ -177,7 +183,7 @@ class WarmupSendService
 
     private function processFolder($folder, WarmupMailbox $mailbox, bool $isSpam): void
     {
-        $since = $mailbox->last_imap_check_at ?? now()->subDays(2);
+        $since = $this->sinceForScan($mailbox);
 
         $messages = $folder->messages()->since($since)->get();
 
@@ -208,6 +214,27 @@ class WarmupSendService
 
             $message->setFlag('Seen');
         }
+    }
+
+    private function sinceForScan(WarmupMailbox $mailbox): Carbon
+    {
+        $since = $mailbox->last_imap_check_at ?? now()->subDays(2);
+
+        $oldestStale = WarmupSend::query()
+            ->where('to_mailbox_id', $mailbox->id)
+            ->where('status', 'sent')
+            ->where('sent_at', '<', now()->subMinutes(SendWarmupEmailJob::INBOX_CHECK_DELAY_MINUTES))
+            ->min('sent_at');
+
+        if ($oldestStale !== null) {
+            $oldestStaleAt = Carbon::parse($oldestStale)->subHour();
+
+            if ($oldestStaleAt->lt($since)) {
+                $since = $oldestStaleAt;
+            }
+        }
+
+        return $since;
     }
 
     protected function createTransport(WarmupMailbox $from): TransportInterface

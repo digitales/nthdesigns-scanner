@@ -31,8 +31,18 @@ class ProcessWarmupJob implements ShouldQueue
             ->when($this->outboxId, fn ($query) => $query->whereKey($this->outboxId))
             ->get();
 
+        Log::info('Warmup daily process started.', [
+            'outbox_id' => $this->outboxId,
+            'outbox_count' => $outboxes->count(),
+        ]);
+
         foreach ($outboxes as $outbox) {
             if (! $outbox->send_on_weekends && now()->isWeekend()) {
+                Log::info('Warmup outbox skipped.', [
+                    'mailbox_id' => $outbox->id,
+                    'reason' => 'weekend_disabled',
+                ]);
+
                 continue;
             }
 
@@ -42,6 +52,11 @@ class ProcessWarmupJob implements ShouldQueue
                 ->exists();
 
             if ($alreadySentToday) {
+                Log::info('Warmup outbox skipped.', [
+                    'mailbox_id' => $outbox->id,
+                    'reason' => 'already_sent_today',
+                ]);
+
                 continue;
             }
 
@@ -49,10 +64,26 @@ class ProcessWarmupJob implements ShouldQueue
             $seedGroups = $mailboxService->getSeedGroups($outbox);
 
             if ($seedGroups['own']->isEmpty() && $seedGroups['pool']->isEmpty()) {
+                Log::warning('Warmup outbox skipped.', [
+                    'mailbox_id' => $outbox->id,
+                    'reason' => 'no_seeds',
+                ]);
+
                 continue;
             }
 
             $sendTimes = $this->buildSendSchedule($outbox, $volume);
+
+            if ($sendTimes === []) {
+                Log::info('Warmup outbox skipped.', [
+                    'mailbox_id' => $outbox->id,
+                    'reason' => 'send_window_closed',
+                    'volume' => $volume,
+                ]);
+
+                continue;
+            }
+
             $seedCycle = $this->buildSeedCycle($seedGroups['own'], $seedGroups['pool'], $volume);
 
             foreach ($sendTimes as $index => $sendAt) {
@@ -61,6 +92,13 @@ class ProcessWarmupJob implements ShouldQueue
                 SendWarmupEmailJob::dispatch($outbox->id, $seed->id)
                     ->delay($sendAt);
             }
+
+            Log::info('Warmup sends scheduled.', [
+                'mailbox_id' => $outbox->id,
+                'volume' => count($sendTimes),
+                'first_send_at' => $sendTimes[0]->toIso8601String(),
+                'last_send_at' => $sendTimes[array_key_last($sendTimes)]->toIso8601String(),
+            ]);
         }
     }
 
