@@ -35,17 +35,10 @@ class ProcessWarmupInboxJob implements ShouldQueue
             return;
         }
 
-        $sendService->processInbox($seed);
+        $actionableSendIds = $sendService->processInbox($seed);
 
-        $unreplied = WarmupSend::query()
-            ->where('from_mailbox_id', $this->outboxId)
-            ->where('to_mailbox_id', $this->seedId)
-            ->where('status', 'opened')
-            ->whereNull('replied_at')
-            ->get();
-
-        foreach ($unreplied as $send) {
-            ReplyToWarmupEmailJob::dispatch($send->id, $this->seedId)
+        foreach ($actionableSendIds as $sendId) {
+            ReplyToWarmupEmailJob::dispatch($sendId, $this->seedId)
                 ->delay(now()->addMinutes(rand(30, 240)));
         }
 

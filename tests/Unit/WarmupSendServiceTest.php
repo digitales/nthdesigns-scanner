@@ -159,6 +159,85 @@ class WarmupSendServiceTest extends TestCase
         $this->assertNotNull($send->rescued_from_spam_at);
     }
 
+    public function test_process_inbox_returns_actionable_send_ids_for_newly_rescued_messages(): void
+    {
+        $mailbox = WarmupMailbox::factory()->create();
+        $send = WarmupSend::factory()->create([
+            'to_mailbox_id' => $mailbox->id,
+            'message_id' => 'matched-message-id',
+            'status' => 'sent',
+        ]);
+
+        $message = Mockery::mock();
+        $message->shouldReceive('getMessageId')->andReturn('<matched-message-id>');
+        $message->shouldReceive('move')->with('INBOX');
+        $message->shouldReceive('setFlag')->with('Seen');
+
+        $spamFolder = $this->mockFolder('[Gmail]/Spam', [$message]);
+        $inboxFolder = $this->mockFolder('INBOX', []);
+
+        $client = Mockery::mock(Client::class);
+        $client->shouldReceive('connect');
+        $client->shouldReceive('disconnect');
+        $client->shouldReceive('getFolder')->with('INBOX')->andReturn($inboxFolder);
+        $client->shouldReceive('getFolders')->with(false)->andReturn(new FolderCollection([$inboxFolder, $spamFolder]));
+
+        $this->mock(WarmupMailboxService::class, function ($mock) use ($client) {
+            $mock->shouldReceive('makeImapClient')->andReturn($client);
+        });
+
+        $actionableSendIds = $this->service()->processInbox($mailbox);
+
+        $this->assertSame([$send->id], $actionableSendIds);
+    }
+
+    public function test_process_inbox_does_not_reopen_replied_messages(): void
+    {
+        $mailbox = WarmupMailbox::factory()->create();
+        $send = WarmupSend::factory()->replied()->create([
+            'to_mailbox_id' => $mailbox->id,
+            'message_id' => 'matched-message-id',
+        ]);
+
+        $message = Mockery::mock();
+        $message->shouldReceive('getMessageId')->andReturn('<matched-message-id>');
+        $message->shouldReceive('setFlag')->with('Seen');
+
+        $inboxFolder = $this->mockFolder('INBOX', [$message]);
+
+        $client = Mockery::mock(Client::class);
+        $client->shouldReceive('connect');
+        $client->shouldReceive('disconnect');
+        $client->shouldReceive('getFolder')->with('INBOX')->andReturn($inboxFolder);
+        $client->shouldReceive('getFolders')->with(false)->andReturn(new FolderCollection([$inboxFolder]));
+
+        $this->mock(WarmupMailboxService::class, function ($mock) use ($client) {
+            $mock->shouldReceive('makeImapClient')->andReturn($client);
+        });
+
+        $actionableSendIds = $this->service()->processInbox($mailbox);
+
+        $this->assertSame([], $actionableSendIds);
+        $this->assertSame('replied', $send->fresh()->status);
+    }
+
+    public function test_reply_to_warmup_email_skips_already_replied_sends(): void
+    {
+        $from = WarmupMailbox::factory()->create();
+        $outreach = WarmupMailbox::factory()->outreach()->create();
+        $send = WarmupSend::factory()->replied()->create([
+            'from_mailbox_id' => $outreach->id,
+        ]);
+
+        $service = Mockery::mock(WarmupSendService::class, [app(WarmupMailboxService::class)])
+            ->makePartial()
+            ->shouldAllowMockingProtectedMethods();
+
+        $service->shouldNotReceive('sendEmail');
+
+        $service->replyToWarmupEmail($send, $from);
+    }
+
     public static function spamFolderNameProvider(): array
     {
         return [

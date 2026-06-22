@@ -3,6 +3,7 @@
 namespace Tests\Unit;
 
 use App\Jobs\ProcessWarmupInboxJob;
+use App\Jobs\ReplyToWarmupEmailJob;
 use App\Jobs\SendWarmupEmailJob;
 use App\Models\WarmupAlert;
 use App\Models\WarmupMailbox;
@@ -112,6 +113,23 @@ class WarmupJobFailureTest extends TestCase
             return $job->outboxId === $mailbox->id
                 && $job->seedId === $seed->id
                 && $runAt->equalTo(Carbon::parse('2026-06-18 12:00:00'));
+        });
+    }
+
+    public function test_inbox_job_dispatches_reply_for_newly_opened_sends(): void
+    {
+        Bus::fake([ReplyToWarmupEmailJob::class]);
+
+        $mailbox = WarmupMailbox::factory()->outreach()->warming()->create();
+        $seed = WarmupMailbox::factory()->create();
+
+        $sendService = Mockery::mock(WarmupSendService::class);
+        $sendService->shouldReceive('processInbox')->once()->andReturn([42]);
+
+        (new ProcessWarmupInboxJob($mailbox->id, $seed->id))->handle($sendService);
+
+        Bus::assertDispatched(ReplyToWarmupEmailJob::class, function (ReplyToWarmupEmailJob $job) use ($seed) {
+            return $job->sendId === 42 && $job->fromMailboxId === $seed->id;
         });
     }
 

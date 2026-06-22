@@ -69,14 +69,19 @@ class WarmupSendService
         ]);
     }
 
-    public function processInbox(WarmupMailbox $mailbox): void
+    /**
+     * @return array<int, int> Send IDs newly opened or rescued and awaiting a reply.
+     */
+    public function processInbox(WarmupMailbox $mailbox): array
     {
+        $actionableSendIds = [];
+
         $client = $this->mailboxService->makeImapClient($mailbox);
         $client->connect();
 
         try {
             $inbox = $client->getFolder('INBOX');
-            $this->processFolder($inbox, $mailbox, false);
+            $this->processFolder($inbox, $mailbox, false, $actionableSendIds);
 
             foreach ($client->getFolders(false) as $folder) {
                 $folderName = $folder->full_name ?? $folder->name;
@@ -90,7 +95,7 @@ class WarmupSendService
                 }
 
                 try {
-                    $this->processFolder($folder, $mailbox, true);
+                    $this->processFolder($folder, $mailbox, true, $actionableSendIds);
                 } catch (\Throwable $e) {
                     Log::warning('Warmup spam folder scan failed.', [
                         'mailbox_id' => $mailbox->id,
@@ -104,10 +109,18 @@ class WarmupSendService
         } finally {
             $client->disconnect();
         }
+
+        return $actionableSendIds;
     }
 
     public function replyToWarmupEmail(WarmupSend $send, WarmupMailbox $from): void
     {
+        $send->refresh();
+
+        if ($send->replied_at !== null) {
+            return;
+        }
+
         $templates = config('warmup_templates');
         $replyBody = $templates['replies'][array_rand($templates['replies'])];
 
@@ -181,7 +194,10 @@ class WarmupSendService
         return now()->addDays($daysRemaining)->startOfDay();
     }
 
-    private function processFolder($folder, WarmupMailbox $mailbox, bool $isSpam): void
+    /**
+     * @param  array<int, int>  $actionableSendIds
+     */
+    private function processFolder($folder, WarmupMailbox $mailbox, bool $isSpam, array &$actionableSendIds): void
     {
         $since = $this->sinceForScan($mailbox);
 
@@ -195,9 +211,11 @@ class WarmupSendService
                 ->where('to_mailbox_id', $mailbox->id)
                 ->first();
 
-            if (! $send) {
+            if (! $send || $send->status === 'replied') {
                 continue;
             }
+
+            $awaitingReply = $send->status === 'sent';
 
             if ($isSpam) {
                 $message->move('INBOX');
@@ -210,6 +228,10 @@ class WarmupSendService
                     'opened_at' => now(),
                     'status' => 'opened',
                 ]);
+            }
+
+            if ($awaitingReply) {
+                $actionableSendIds[] = $send->id;
             }
 
             $message->setFlag('Seen');

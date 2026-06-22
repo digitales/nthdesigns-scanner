@@ -100,12 +100,18 @@ class WarmupMailboxService
 
     public function smtpDsn(WarmupMailbox $mailbox): string
     {
-        return sprintf(
+        $dsn = sprintf(
             'smtp://%s:%s@%s:%d',
             urlencode($mailbox->username),
             urlencode($mailbox->decrypted_password),
             $mailbox->smtp_host,
             $mailbox->smtp_port,
         );
+
+        if ($mailbox->smtp_port === 587) {
+            $dsn .= '?encryption=starttls';
+        }
+
+        return $dsn;
     }
 }

@@ -10,6 +10,8 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class ReplyToWarmupEmailJob implements ShouldQueue
 {
@@ -30,5 +32,14 @@ class ReplyToWarmupEmailJob implements ShouldQueue
         $from = WarmupMailbox::findOrFail($this->fromMailboxId);
 
         $sendService->replyToWarmupEmail($send, $from);
+    }
+
+    public function failed(Throwable $e): void
+    {
+        Log::warning('Warmup reply failed.', [
+            'send_id' => $this->sendId,
+            'from_mailbox_id' => $this->fromMailboxId,
+            'error' => $e->getMessage(),
+        ]);
     }
 }
