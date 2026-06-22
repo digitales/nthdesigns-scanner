@@ -4,9 +4,17 @@ namespace Tests\Unit;
 
 use App\Models\WarmupMailbox;
 use App\Services\WarmupMailboxService;
+use App\Services\WarmupSeedPoolService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Mockery;
+use RuntimeException;
+use Symfony\Component\Mailer\Transport\Smtp\Auth\LoginAuthenticator;
+use Symfony\Component\Mailer\Transport\Smtp\Auth\PlainAuthenticator;
+use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
+use Symfony\Component\Mailer\Transport\Smtp\SmtpTransport;
 use Tests\TestCase;
+use Webklex\PHPIMAP\Client;
 
 class WarmupMailboxServiceTest extends TestCase
 {
@@ -81,5 +89,90 @@ class WarmupMailboxServiceTest extends TestCase
         ]);
 
         $this->assertSame(50, $this->service->getDailyVolume($mailbox));
+    }
+
+    public function test_make_smtp_transport_uses_login_and_plain_authenticators_only(): void
+    {
+        $mailbox = WarmupMailbox::factory()->make([
+            'username' => 'user@example.com',
+            'password_encrypted' => 'app-password',
+            'smtp_host' => 'smtp.gmail.com',
+            'smtp_port' => 587,
+        ]);
+
+        $transport = $this->service->makeSmtpTransport($mailbox);
+
+        $this->assertInstanceOf(EsmtpTransport::class, $transport);
+
+        $authenticators = (new \ReflectionProperty(EsmtpTransport::class, 'authenticators'))
+            ->getValue($transport);
+
+        $this->assertCount(2, $authenticators);
+        $this->assertInstanceOf(LoginAuthenticator::class, $authenticators[0]);
+        $this->assertInstanceOf(PlainAuthenticator::class, $authenticators[1]);
+    }
+
+    public function test_verify_connection_starts_and_stops_smtp_transport(): void
+    {
+        $mailbox = WarmupMailbox::factory()->make([
+            'imap_host' => 'imap.example.com',
+            'imap_port' => 993,
+            'username' => 'user@example.com',
+            'password_encrypted' => 'secret',
+            'smtp_host' => 'smtp.example.com',
+            'smtp_port' => 587,
+        ]);
+
+        $transport = Mockery::mock(SmtpTransport::class);
+        $transport->shouldReceive('start')->once();
+        $transport->shouldReceive('stop')->once();
+
+        $service = Mockery::mock(WarmupMailboxService::class, [$this->app->make(WarmupSeedPoolService::class)])
+            ->makePartial()
+            ->shouldAllowMockingProtectedMethods();
+
+        $service->shouldReceive('makeImapClient')->once()->andReturnUsing(function () {
+            $client = Mockery::mock(Client::class);
+            $client->shouldReceive('connect')->once();
+            $client->shouldReceive('disconnect')->once();
+
+            return $client;
+        });
+        $service->shouldReceive('makeSmtpTransport')->once()->andReturn($transport);
+
+        $service->verifyConnection($mailbox);
+    }
+
+    public function test_verify_connection_surfaces_smtp_authentication_failures(): void
+    {
+        $mailbox = WarmupMailbox::factory()->make([
+            'imap_host' => 'imap.example.com',
+            'imap_port' => 993,
+            'username' => 'user@example.com',
+            'password_encrypted' => 'secret',
+            'smtp_host' => 'smtp.example.com',
+            'smtp_port' => 587,
+        ]);
+
+        $transport = Mockery::mock(SmtpTransport::class);
+        $transport->shouldReceive('start')->once()->andThrow(new RuntimeException('535 bad credentials'));
+
+        $service = Mockery::mock(WarmupMailboxService::class, [$this->app->make(WarmupSeedPoolService::class)])
+            ->makePartial()
+            ->shouldAllowMockingProtectedMethods();
+
+        $service->shouldReceive('makeImapClient')->once()->andReturnUsing(function () {
+            $client = Mockery::mock(Client::class);
+            $client->shouldReceive('connect')->once();
+            $client->shouldReceive('disconnect')->once();
+
+            return $client;
+        });
+        $service->shouldReceive('makeSmtpTransport')->once()->andReturn($transport);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('SMTP authentication failed:');
+
+        $service->verifyConnection($mailbox);
     }
 }

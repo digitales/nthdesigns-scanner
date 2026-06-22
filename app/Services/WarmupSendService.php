@@ -10,7 +10,6 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Symfony\Component\Mailer\Mailer;
-use Symfony\Component\Mailer\Transport;
 use Symfony\Component\Mailer\Transport\TransportInterface;
 use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\Email;
@@ -262,7 +261,7 @@ class WarmupSendService
     protected function createTransport(WarmupMailbox $from): TransportInterface
     {
         try {
-            return Transport::fromDsn($this->mailboxService->smtpDsn($from));
+            return $this->mailboxService->makeSmtpTransport($from);
         } catch (\Throwable $e) {
             throw WarmupTransportException::fromThrowable($e);
         }

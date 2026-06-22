@@ -13,6 +13,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Mockery;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Symfony\Component\Mailer\Transport;
 use Tests\TestCase;
 use Webklex\PHPIMAP\Client;
 use Webklex\PHPIMAP\Folder;
@@ -114,7 +115,9 @@ class WarmupSendServiceTest extends TestCase
         $to = WarmupMailbox::factory()->create();
 
         $this->mock(WarmupMailboxService::class, function ($mock) {
-            $mock->shouldReceive('smtpDsn')->andReturn('null://null');
+            $mock->shouldReceive('makeSmtpTransport')->andReturn(
+                Transport::fromDsn('null://null'),
+            );
         });
 
         $send = $this->service()->sendWarmupEmail($from, $to);
@@ -399,8 +402,10 @@ class WarmupSendServiceTest extends TestCase
         $to = WarmupMailbox::factory()->create();
 
         $this->mock(WarmupMailboxService::class, function ($mock) use ($password) {
-            $mock->shouldReceive('smtpDsn')
-                ->andReturn('smtp://user%40example.com:'.urlencode($password).'@127.0.0.1:1');
+            $mock->shouldReceive('makeSmtpTransport')
+                ->andReturn(Transport::fromDsn(
+                    'smtp://user%40example.com:'.urlencode($password).'@127.0.0.1:1',
+                ));
         });
 
         $this->expectException(WarmupTransportException::class);

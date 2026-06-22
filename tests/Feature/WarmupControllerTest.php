@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\ProcessWarmupJob;
 use App\Models\User;
 use App\Models\WarmupMailbox;
 use App\Services\WarmupMailboxService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Bus;
 use Tests\TestCase;
 
 class WarmupControllerTest extends TestCase
@@ -162,9 +164,32 @@ class WarmupControllerTest extends TestCase
             ->assertRedirect(route('warmup.index'));
     }
 
+    public function test_test_connection_returns_smtp_authentication_error(): void
+    {
+        $user = User::factory()->create();
+
+        $this->mock(WarmupMailboxService::class, function ($mock) {
+            $mock->shouldReceive('verifyConnection')
+                ->once()
+                ->andThrow(new \RuntimeException('SMTP authentication failed: Username and Password not accepted'));
+        });
+
+        $this->actingAs($user)
+            ->postJson('/warmup/test-connection', [
+                'imap_host' => 'imap.gmail.com',
+                'imap_port' => 993,
+                'smtp_host' => 'smtp.gmail.com',
+                'smtp_port' => 587,
+                'username' => 'user@gmail.com',
+                'password' => 'wrong-password',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonPath('error', 'SMTP authentication failed: Username and Password not accepted');
+    }
+
     public function test_start_warmup_dispatches_process_job_for_outreach_mailbox(): void
     {
-        \Illuminate\Support\Facades\Bus::fake([\App\Jobs\ProcessWarmupJob::class]);
+        Bus::fake([ProcessWarmupJob::class]);
 
         $user = User::factory()->create();
         WarmupMailbox::factory()->count(2)->create([
@@ -186,9 +211,9 @@ class WarmupControllerTest extends TestCase
         $this->assertSame('warming', $mailbox->status);
         $this->assertNotNull($mailbox->warmup_started_at);
 
-        \Illuminate\Support\Facades\Bus::assertDispatched(
-            \App\Jobs\ProcessWarmupJob::class,
-            fn (\App\Jobs\ProcessWarmupJob $job) => $job->outboxId === $mailbox->id,
+        Bus::assertDispatched(
+            ProcessWarmupJob::class,
+            fn (ProcessWarmupJob $job) => $job->outboxId === $mailbox->id,
         );
     }
 }

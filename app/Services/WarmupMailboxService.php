@@ -7,6 +7,11 @@ use App\Support\WarmupCredentialScrubber;
 use Illuminate\Support\Collection;
 use RuntimeException;
 use Symfony\Component\Mailer\Transport;
+use Symfony\Component\Mailer\Transport\Smtp\Auth\LoginAuthenticator;
+use Symfony\Component\Mailer\Transport\Smtp\Auth\PlainAuthenticator;
+use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
+use Symfony\Component\Mailer\Transport\Smtp\SmtpTransport;
+use Symfony\Component\Mailer\Transport\TransportInterface;
 use Webklex\PHPIMAP\Client;
 use Webklex\PHPIMAP\ClientManager;
 
@@ -77,10 +82,29 @@ class WarmupMailboxService
     private function testSmtp(WarmupMailbox $mailbox): void
     {
         try {
-            Transport::fromDsn($this->smtpDsn($mailbox));
+            $transport = $this->makeSmtpTransport($mailbox);
+
+            if ($transport instanceof SmtpTransport) {
+                $transport->start();
+                $transport->stop();
+            }
         } catch (\Throwable $e) {
-            throw new RuntimeException('SMTP configuration invalid: '.WarmupCredentialScrubber::scrub($e->getMessage()));
+            throw new RuntimeException('SMTP authentication failed: '.WarmupCredentialScrubber::scrub($e->getMessage()));
         }
+    }
+
+    public function makeSmtpTransport(WarmupMailbox $mailbox): TransportInterface
+    {
+        $transport = Transport::fromDsn($this->smtpDsn($mailbox));
+
+        if ($transport instanceof EsmtpTransport) {
+            $transport->setAuthenticators([
+                new LoginAuthenticator,
+                new PlainAuthenticator,
+            ]);
+        }
+
+        return $transport;
     }
 
     public function makeImapClient(WarmupMailbox $mailbox): Client

@@ -245,8 +245,11 @@ class WarmupController extends Controller
             'password' => 'required|string',
         ]);
 
+        $password = $data['password'];
+        unset($data['password']);
+
         $mailbox = new WarmupMailbox(array_merge($data, [
-            'password_encrypted' => $data['password'],
+            'password_encrypted' => $password,
         ]));
 
         try {
