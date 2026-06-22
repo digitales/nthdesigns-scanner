@@ -516,6 +516,7 @@ function ProspectRow({
 }) {
     const isFailed = p.audit_status === 'failed';
     const isPending = p.audit_status === 'pending';
+    const isWarm = p.is_warm;
     const urlDisplay = prospectUrlDisplay(p);
     const statusDisplay = prospectStatusLabel(p);
     const reportUsable = !isFailed && !isPending && !prospectHasAuditIssue(p);
