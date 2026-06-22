@@ -30,13 +30,34 @@ function formatTestError(result) {
     return result.error ?? result.smtp_error ?? 'Connection failed';
 }
 
+function passwordHint(provider) {
+    if (provider === 'gmail') {
+        return '16-character Gmail app password — paste without spaces. Not your login password.';
+    }
+
+    return 'Enter a new app password to replace the stored credentials.';
+}
+
 export default function WarmupConnectionPanel({ mailbox }) {
-    const { flash } = usePage().props;
+    const { flash, errors: pageErrors } = usePage().props;
     const [testing, setTesting] = useState(false);
     const [testResult, setTestResult] = useState(null);
+    const [editingPassword, setEditingPassword] = useState(
+        mailbox.status === 'failed' || Boolean(pageErrors?.password),
+    );
     const { data, setData, patch, processing, errors, reset } = useForm({
         password: '',
     });
+
+    const startPasswordEdit = () => {
+        setEditingPassword(true);
+        setData('password', '');
+    };
+
+    const cancelPasswordEdit = () => {
+        setEditingPassword(false);
+        reset('password');
+    };
 
     const testConnection = async () => {
         setTesting(true);
@@ -78,10 +99,13 @@ export default function WarmupConnectionPanel({ mailbox }) {
             preserveScroll: true,
             onSuccess: () => {
                 setTestResult({ ok: true });
+                setEditingPassword(false);
                 reset('password');
             },
         });
     };
+
+    const credentialsNeedAttention = mailbox.status === 'failed' || mailbox.consecutive_failures > 0;
 
     return (
         <Card title="Connection">
@@ -106,18 +130,18 @@ export default function WarmupConnectionPanel({ mailbox }) {
                 </MetaList>
 
                 <div className="warmup-connect-test">
-                    <Button type="button" kind="secondary" onClick={testConnection} disabled={testing}>
-                        {testing ? 'Testing…' : 'Test connection'}
-                    </Button>
-                    {testResult?.ok && <Status kind="ready">IMAP and SMTP connected</Status>}
+                    <div className="warmup-connect-test__row">
+                        <Button type="button" kind="secondary" onClick={testConnection} disabled={testing}>
+                            {testing ? 'Testing…' : 'Test connection'}
+                        </Button>
+                        {testResult?.ok && <Status kind="ready">IMAP and SMTP connected</Status>}
+                    </div>
                     {testResult && !testResult.ok && (
-                        <Stack gap={8}>
+                        <div className="warmup-connect-test__feedback">
                             {testResult.imap === true && testResult.smtp === false && (
                                 <Status kind="pending">IMAP connected</Status>
                             )}
-                            {testResult.imap === false && (
-                                <Status kind="pending">IMAP failed</Status>
-                            )}
+                            {testResult.imap === false && <Status kind="pending">IMAP failed</Status>}
                             <span className="micro text-critical">{testResult.error}</span>
                             {mailbox.provider === 'gmail' &&
                                 (testResult.error?.includes('535') ||
@@ -134,36 +158,65 @@ export default function WarmupConnectionPanel({ mailbox }) {
                                         </a>
                                     </p>
                                 )}
-                        </Stack>
+                        </div>
                     )}
                 </div>
 
                 {flash?.success && <div className="skip-banner banner-positive banner-success">{flash.success}</div>}
 
-                <form onSubmit={updateCredentials}>
-                    <Stack gap={12}>
-                        <Field
-                            label="New app password"
-                            hint={
-                                mailbox.provider === 'gmail'
-                                    ? '16-character Gmail app password — paste without spaces. Not your login password.'
-                                    : 'Enter a new app password to replace the stored credentials.'
-                            }
-                        >
-                            <Input
-                                type="password"
-                                name="password"
-                                value={data.password}
-                                onChange={(e) => setData('password', e.target.value)}
-                                autoComplete="new-password"
-                            />
-                            <FormError message={errors.password} />
-                        </Field>
-                        <Button type="submit" kind="secondary" disabled={processing || !data.password}>
-                            {processing ? 'Updating…' : 'Update credentials'}
-                        </Button>
-                    </Stack>
-                </form>
+                <div className="warmup-connection-credentials">
+                    {!editingPassword ? (
+                        <Stack direction="row" gap={12} align="center" wrap>
+                            <Status kind={credentialsNeedAttention ? 'pending' : 'ready'}>
+                                {credentialsNeedAttention ? 'Credentials need attention' : 'App password saved'}
+                            </Status>
+                            <Button kind="ghost" size="sm" type="button" onClick={startPasswordEdit}>
+                                Change app password
+                            </Button>
+                        </Stack>
+                    ) : (
+                        <form onSubmit={updateCredentials}>
+                            <Stack gap={12}>
+                                <Field label="New app password">
+                                    <p className="micro text-muted m-0 warmup-connection-credentials__hint">
+                                        {passwordHint(mailbox.provider)}
+                                        {mailbox.provider === 'gmail' && (
+                                            <>
+                                                {' '}
+                                                <a
+                                                    href={PROVIDER_HINTS.gmail.appPasswordUrl}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="link-inline"
+                                                >
+                                                    Create app password
+                                                </a>
+                                            </>
+                                        )}
+                                    </p>
+                                    <Input
+                                        type="password"
+                                        name="password"
+                                        value={data.password}
+                                        onChange={(e) => setData('password', e.target.value)}
+                                        autoComplete="new-password"
+                                        placeholder="Paste app password"
+                                        autoFocus
+                                    />
+                                    <FormError message={errors.password} />
+                                </Field>
+                                <Stack direction="row" gap={12} align="center" wrap>
+                                    <Button type="submit" kind="secondary" disabled={processing || !data.password}>
+                                        {processing ? 'Updating…' : 'Update credentials'}
+                                    </Button>
+                                    <Button kind="ghost" size="sm" type="button" onClick={cancelPasswordEdit}>
+                                        Cancel
+                                    </Button>
+                                </Stack>
+                            </Stack>
+                        </form>
+                    )}
+                </div>
             </Stack>
         </Card>
     );

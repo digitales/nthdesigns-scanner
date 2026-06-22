@@ -288,14 +288,18 @@ export default function WarmupConnect({ pool_participation_allowed: poolParticip
                                 <FormError message={errors.connection} />
 
                                 <div className="warmup-connect-test">
-                                    <Button type="button" kind="secondary" onClick={testConnection} disabled={testing}>
-                                        {testing ? 'Testing…' : 'Test connection'}
-                                    </Button>
-                                    {connectionTest?.ok && (
-                                        <Status kind="ready">IMAP and SMTP connected</Status>
-                                    )}
+                                    <div className="warmup-connect-test__row">
+                                        <Button type="button" kind="secondary" onClick={testConnection} disabled={testing}>
+                                            {testing ? 'Testing…' : 'Test connection'}
+                                        </Button>
+                                        {connectionTest?.ok && (
+                                            <Status kind="ready">IMAP and SMTP connected</Status>
+                                        )}
+                                    </div>
                                     {connectionTest && !connectionTest.ok && (
-                                        <span className="micro text-critical">{connectionTest.error}</span>
+                                        <div className="warmup-connect-test__feedback">
+                                            <span className="micro text-critical">{connectionTest.error}</span>
+                                        </div>
                                     )}
                                 </div>
 
