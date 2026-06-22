@@ -17,6 +17,7 @@ use App\Services\SiteScanPreflightGate;
 use App\Support\AuditSiteJobTimeout;
 use App\Support\CmsDetectionPayload;
 use App\Support\ContactDetectionPayload;
+use App\Support\ProspectSiteScan;
 use App\Support\ScannerJobContext;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -99,6 +100,13 @@ class AuditSiteJob implements ShouldQueue
             File::ensureDirectoryExists($screenshotDir);
 
             $payload = $auditRunner->run($prospect->website_url, $screenshotDir);
+
+            $payloadError = ProspectSiteScan::payloadErrorMessage($payload);
+
+            if ($payloadError !== null && ProspectSiteScan::isAuditServiceErrorMessage($payloadError)) {
+                throw new \RuntimeException($payloadError);
+            }
+
             $payload['violation_screenshots'] = $storage->storeViolationScreenshots(
                 $prospect->id,
                 $payload['violation_screenshots'] ?? [],

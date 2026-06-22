@@ -19,6 +19,7 @@ import {
 } from '@/Components/ui';
 import { normalizeAngle } from '@/Components/ui/scoreBand';
 import { showA11yForSearch } from '@/utils/auditVisibility';
+import { prospectUrlDisplay } from '@/utils/prospectAuditDisplay';
 
 const CPC_SOURCE_LABELS = {
     manual: 'Manual',
@@ -158,10 +159,7 @@ export default function SharedSearchShow({ search = {}, prospects = [], sharedAt
 function ProspectRow({ prospect: p, showA11y, isExpanded, onToggleExpand }) {
     const isFailed = p.audit_status === 'failed';
     const isPending = p.audit_status === 'pending';
-    const isSiteUnreachable = Boolean(p.site_unreachable);
-    const siteLoadError = p.site_load_error ?? null;
-    const siteLoadFailed = Boolean(siteLoadError) && !isPending && !isFailed;
-    const urlDisplay = p.website_url?.replace(/^https?:\/\//, '') ?? 'No website';
+    const urlDisplay = prospectUrlDisplay(p);
 
     const rowClass = [
         isFailed ? 'failed' : '',
@@ -175,24 +173,20 @@ function ProspectRow({ prospect: p, showA11y, isExpanded, onToggleExpand }) {
             <tr className={rowClass}>
                 <td className="biz">
                     <div className="biz-title-row">{p.business_name}</div>
-                    {p.website_url && !isFailed && !siteLoadFailed ? (
+                    {p.website_url && urlDisplay.showUrl ? (
                         <a
                             className="url"
                             href={p.website_url}
                             target="_blank"
                             rel="noopener noreferrer"
                         >
-                            {urlDisplay}
+                            {urlDisplay.text}
                         </a>
                     ) : (
                         <span
-                            className={`url${isFailed || siteLoadFailed ? ' text-critical' : ''}`}
+                            className={`url${urlDisplay.critical ? ' text-critical' : ''}`}
                         >
-                            {isFailed
-                                ? (p.audit_error ?? 'Audit failed')
-                                : siteLoadFailed
-                                  ? 'Site failed to load'
-                                  : urlDisplay}
+                            {urlDisplay.text}
                         </span>
                     )}
                 </td>

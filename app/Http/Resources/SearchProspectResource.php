@@ -23,6 +23,7 @@ class SearchProspectResource
         ProgressFlowService $progressFlow,
     ): array {
         $cms = $reportBuilder->cmsForProspect($prospect);
+        $auditIssue = ProspectSiteScan::auditIssueFields($prospect);
 
         return [
             'id' => $prospect->id,
@@ -34,8 +35,8 @@ class SearchProspectResource
             'dominant_angle' => $prospect->dominant_angle,
             'audit_status' => ($prospect->audit_status ?? AuditStatus::Pending)->value,
             'audit_error' => self::auditError($prospect),
-            'site_load_error' => self::siteLoadError($prospect),
-            'site_unreachable' => self::siteUnreachable($prospect),
+            ...$auditIssue,
+            'site_unreachable' => ProspectSiteScan::siteUnreachable($prospect),
             'gbp_flags' => $prospect->gbp_flags ?? [],
             'a11y_flags' => $prospect->a11y_flags ?? [],
             'report_ready' => $prospect->report !== null,
@@ -56,6 +57,7 @@ class SearchProspectResource
     ): array {
         $latestOutreach = $prospect->outreachEmails->first();
         $cms = $reportBuilder->cmsForProspect($prospect);
+        $auditIssue = ProspectSiteScan::auditIssueFields($prospect);
 
         return [
             'id' => $prospect->id,
@@ -78,8 +80,8 @@ class SearchProspectResource
             'dominant_angle' => $prospect->dominant_angle,
             'audit_status' => ($prospect->audit_status ?? AuditStatus::Pending)->value,
             'audit_error' => self::auditError($prospect),
-            'site_load_error' => self::siteLoadError($prospect),
-            'site_unreachable' => self::siteUnreachable($prospect),
+            ...$auditIssue,
+            'site_unreachable' => ProspectSiteScan::siteUnreachable($prospect),
             'report_ready' => $prospect->report !== null,
             'report_url' => $prospect->report ? url('/r/'.$prospect->report->token) : null,
             'is_warm' => $prospect->report?->viewed_at !== null
@@ -98,29 +100,13 @@ class SearchProspectResource
 
     private static function auditError(Prospect $prospect): ?string
     {
-        if ($prospect->audit_status === AuditStatus::Failed) {
-            $auditJob = $prospect->auditJobs->firstWhere('status', AuditJobStatus::Failed)
-                ?? $prospect->auditJobs->first();
-
-            return $auditJob?->error_message;
-        }
-
-        return self::siteLoadError($prospect);
-    }
-
-    private static function siteLoadError(Prospect $prospect): ?string
-    {
-        $payload = $prospect->raw_a11y_payload;
-
-        if (! is_array($payload) || empty($payload['error'])) {
+        if ($prospect->audit_status !== AuditStatus::Failed) {
             return null;
         }
 
-        return (string) $payload['error'];
-    }
+        $auditJob = $prospect->auditJobs->firstWhere('status', AuditJobStatus::Failed)
+            ?? $prospect->auditJobs->first();
 
-    private static function siteUnreachable(Prospect $prospect): bool
-    {
-        return ProspectSiteScan::siteUnreachable($prospect);
+        return $auditJob?->error_message;
     }
 }

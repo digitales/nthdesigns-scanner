@@ -12,6 +12,7 @@ export default function SiteAuditSection({ audit }) {
         ? new Date(audit.audited_at).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })
         : null;
     const loadError = audit.load_error ?? null;
+    const loadErrorKind = audit.load_error_kind ?? 'site_load';
 
     return (
         <Card title="Site audit" className="audit-section-card">
@@ -26,11 +27,16 @@ export default function SiteAuditSection({ audit }) {
 
             {loadError ? (
                 <div className="audit-block">
-                    <p className="body-sm text-critical">Site failed to load during audit.</p>
+                    <p className="body-sm text-critical">
+                        {loadErrorKind === 'audit_service'
+                            ? 'Audit service timed out before the site scan finished.'
+                            : 'Site failed to load during audit.'}
+                    </p>
                     <p className="micro mt-4">{loadError}</p>
                     <p className="micro mt-8 text-stone">
-                        The accessibility score is a fallback — no violations or Lighthouse data were captured.
-                        Re-run the site audit when the site is reachable.
+                        {loadErrorKind === 'audit_service'
+                            ? 'No violations or Lighthouse data were captured. Re-run the site audit — the website may still be reachable.'
+                            : 'The accessibility score is a fallback — no violations or Lighthouse data were captured. Re-run the site audit when the site is reachable.'}
                     </p>
                 </div>
             ) : (

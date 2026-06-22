@@ -6,6 +6,7 @@ use App\Enums\AuditJobStatus;
 use App\Enums\AuditJobType;
 use App\Enums\AuditStatus;
 use App\Models\Prospect;
+use App\Support\ProspectSiteScan;
 use Illuminate\Support\Carbon;
 
 final class OperatorAuditAssembler
@@ -81,10 +82,14 @@ final class OperatorAuditAssembler
      */
     private function loadErrorAudit(Prospect $prospect, array $a11yPayload): array
     {
+        $error = (string) $a11yPayload['error'];
+        $kind = ProspectSiteScan::isAuditServiceErrorMessage($error) ? 'audit_service' : 'site_load';
+
         return [
             'audited_at' => $this->auditedAt($prospect)?->toIso8601String() ?? now()->toIso8601String(),
             'url' => $a11yPayload['url'] ?? $prospect->website_url ?? '',
-            'load_error' => (string) $a11yPayload['error'],
+            'load_error' => $error,
+            'load_error_kind' => $kind,
             'summary' => [
                 'critical' => 0,
                 'serious' => 0,

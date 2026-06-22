@@ -65,6 +65,7 @@ class SharedSearchSnapshotBuilder
     private function formatProspectRow(Prospect $prospect): array
     {
         $cms = $this->reportBuilder->cmsForProspect($prospect);
+        $auditIssue = ProspectSiteScan::auditIssueFields($prospect);
 
         return [
             'business_name' => $prospect->business_name,
@@ -80,7 +81,7 @@ class SharedSearchSnapshotBuilder
             'a11y_flags' => $prospect->a11y_flags ?? [],
             'audit_status' => ($prospect->audit_status ?? AuditStatus::Pending)->value,
             'audit_error' => $this->auditError($prospect),
-            'site_load_error' => $this->siteLoadError($prospect),
+            ...$auditIssue,
             'site_unreachable' => ProspectSiteScan::siteUnreachable($prospect),
             'report_url' => $prospect->report
                 ? url('/r/'.$prospect->report->token)
@@ -90,24 +91,13 @@ class SharedSearchSnapshotBuilder
 
     private function auditError(Prospect $prospect): ?string
     {
-        if ($prospect->audit_status === AuditStatus::Failed) {
-            $auditJob = $prospect->auditJobs->firstWhere('status', AuditJobStatus::Failed)
-                ?? $prospect->auditJobs->first();
-
-            return $auditJob?->error_message;
-        }
-
-        return $this->siteLoadError($prospect);
-    }
-
-    private function siteLoadError(Prospect $prospect): ?string
-    {
-        $payload = $prospect->raw_a11y_payload;
-
-        if (! is_array($payload) || empty($payload['error'])) {
+        if ($prospect->audit_status !== AuditStatus::Failed) {
             return null;
         }
 
-        return (string) $payload['error'];
+        $auditJob = $prospect->auditJobs->firstWhere('status', AuditJobStatus::Failed)
+            ?? $prospect->auditJobs->first();
+
+        return $auditJob?->error_message;
     }
 }

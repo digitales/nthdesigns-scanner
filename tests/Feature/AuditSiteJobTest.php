@@ -202,6 +202,51 @@ class AuditSiteJobTest extends TestCase
         Queue::assertPushed(CombineScoresJob::class);
     }
 
+    public function test_fails_when_audit_service_returns_service_level_error(): void
+    {
+        Queue::fake([CombineScoresJob::class]);
+        config(['scanner.audit_service_url' => 'https://nth-scanner-browser.fly.dev']);
+
+        $prospect = $this->pendingProspect();
+
+        $this->mock(AuditRunnerService::class, function ($mock) {
+            $mock->shouldReceive('shouldSkip')->andReturn(false);
+            $mock->shouldReceive('run')->andReturn([
+                'url' => 'https://example.com',
+                'error' => 'cURL error 28: Operation timed out for https://nth-scanner-browser.fly.dev/audit',
+                'violations' => [],
+                'pass_count' => 0,
+                'incomplete_count' => 0,
+                'violation_screenshots' => [],
+                'lighthouse' => null,
+            ]);
+        });
+
+        $job = $this->getMockBuilder(AuditSiteJob::class)
+            ->setConstructorArgs([$prospect])
+            ->onlyMethods(['attempts'])
+            ->getMock();
+        $job->method('attempts')->willReturn(2);
+
+        try {
+            $job->handle(
+                app(AuditRunnerService::class),
+                app(A11yScoringService::class),
+                app(SearchStatusService::class),
+                app(ScreenshotStorageService::class),
+                app(AuditErrorRecorder::class),
+                app(CmsDetectionRunnerService::class),
+                app(SiteScanPreflightGate::class),
+            );
+            $this->fail('Expected RuntimeException was not thrown.');
+        } catch (RuntimeException) {
+            // expected
+        }
+
+        $this->assertSame(AuditStatus::Failed, $prospect->fresh()->audit_status);
+        Queue::assertNotPushed(CombineScoresJob::class);
+    }
+
     public function test_job_timeout_covers_audit_and_cms_http_budget(): void
     {
         config([

@@ -52,5 +52,36 @@ class SearchProspectResourceTest extends TestCase
 
         $this->assertTrue($formatted['site_unreachable']);
         $this->assertSame('Could not resolve host', $formatted['audit_error']);
+        $this->assertNull($formatted['site_load_error']);
+        $this->assertNull($formatted['audit_service_error']);
+    }
+
+    public function test_audit_service_error_is_not_reported_as_site_load_error(): void
+    {
+        config(['scanner.audit_service_url' => 'https://nth-scanner-browser.fly.dev']);
+
+        $user = User::factory()->create();
+        $search = Search::factory()->create(['user_id' => $user->id]);
+        $prospect = Prospect::factory()->create([
+            'search_id' => $search->id,
+            'audit_status' => AuditStatus::Complete,
+            'raw_a11y_payload' => [
+                'url' => 'https://example.com',
+                'error' => 'cURL error 28: Operation timed out for https://nth-scanner-browser.fly.dev/audit',
+                'violations' => [],
+            ],
+        ]);
+
+        $formatted = SearchProspectResource::format(
+            $prospect,
+            $search,
+            app(ReportBuilderService::class),
+            app(ProgressFlowService::class),
+        );
+
+        $this->assertNull($formatted['audit_error']);
+        $this->assertNull($formatted['site_load_error']);
+        $this->assertSame('audit_service', $formatted['audit_issue_kind']);
+        $this->assertStringContainsString('fly.dev', $formatted['audit_service_error']);
     }
 }

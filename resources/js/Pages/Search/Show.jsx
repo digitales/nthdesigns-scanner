@@ -32,6 +32,7 @@ import QualificationControl, {
     qualifyProspectsWithStagger,
 } from '@/Components/QualificationControl';
 import { showA11yForSearch } from '@/utils/auditVisibility';
+import { prospectHasAuditIssue, prospectStatusLabel, prospectUrlDisplay } from '@/utils/prospectAuditDisplay';
 
 export default function SearchShow({
     search,
@@ -515,11 +516,9 @@ function ProspectRow({
 }) {
     const isFailed = p.audit_status === 'failed';
     const isPending = p.audit_status === 'pending';
-    const isSiteUnreachable = Boolean(p.site_unreachable);
-    const isWarm = p.is_warm;
-    const siteLoadError = p.site_load_error ?? null;
-    const siteLoadFailed = Boolean(siteLoadError) && !isPending && !isFailed;
-    const urlDisplay = p.website_url?.replace(/^https?:\/\//, '') ?? 'No website';
+    const urlDisplay = prospectUrlDisplay(p);
+    const statusDisplay = prospectStatusLabel(p);
+    const reportUsable = !isFailed && !isPending && !prospectHasAuditIssue(p);
     const listMemberships = p.list_memberships ?? [];
     const memberListIds = new Set(listMemberships.map((m) => m.list_id));
     const addableLists = manualLists.filter((list) => !memberListIds.has(list.id));
@@ -560,14 +559,10 @@ function ProspectRow({
                         )}
                     </div>
                     <span
-                        className={`url${isFailed || siteLoadFailed ? ' text-critical' : ''}`}
-                        title={isFailed || siteLoadFailed ? undefined : urlDisplay}
+                        className={`url${urlDisplay.critical ? ' text-critical' : ''}`}
+                        title={urlDisplay.critical ? undefined : urlDisplay.text}
                     >
-                        {isFailed
-                            ? (p.audit_error ?? 'Audit failed')
-                            : siteLoadFailed
-                              ? 'Site failed to load'
-                              : urlDisplay}
+                        {urlDisplay.text}
                     </span>
                 </td>
                 <td>
@@ -598,16 +593,14 @@ function ProspectRow({
                     />
                 </td>
                 <td>
-                    {isFailed ? (
-                        <Status kind="failed">{isSiteUnreachable ? 'Site unreachable' : 'Audit failed'}</Status>
-                    ) : isPending ? (
-                        <Status kind="pending">{p.progress_flow?.status_message ?? 'Auditing site'}</Status>
-                    ) : !p.report_ready ? (
-                        <Status kind="pending">{p.progress_flow?.status_message ?? 'Generating report'}</Status>
-                    ) : isWarm ? (
-                        <Status kind="warm">Viewed {p.last_viewed}</Status>
+                    {statusDisplay.kind === 'failed' ? (
+                        <Status kind="failed">{statusDisplay.label}</Status>
+                    ) : statusDisplay.kind === 'pending' ? (
+                        <Status kind="pending">{statusDisplay.label}</Status>
+                    ) : statusDisplay.kind === 'warm' ? (
+                        <Status kind="warm">{statusDisplay.label}</Status>
                     ) : (
-                        <Status kind="ready">Report ready</Status>
+                        <Status kind="ready">{statusDisplay.label}</Status>
                     )}
                 </td>
                 <td className="col-actions" onClick={(e) => e.stopPropagation()}>
@@ -627,7 +620,7 @@ function ProspectRow({
                                 onClick={(e) => e.stopPropagation()}
                             />
                         )}
-                        {p.report_url && !isFailed && !isPending ? (
+                        {p.report_url && reportUsable ? (
                             <IconButton
                                 icon={Icons.Eye}
                                 title="Preview report"
