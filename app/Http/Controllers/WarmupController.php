@@ -75,37 +75,30 @@ class WarmupController extends Controller
 
         $mailbox->alerts()->whereNull('read_at')->update(['read_at' => now()]);
 
-        $sends = WarmupSend::query()
-            ->where('from_mailbox_id', $mailbox->id)
-            ->with('toMailbox:id,user_id,email')
-            ->orderByDesc('sent_at')
-            ->limit(50)
-            ->get(['id', 'from_mailbox_id', 'to_mailbox_id', 'subject', 'sent_at', 'status', 'opened_at', 'replied_at', 'rescued_from_spam_at']);
-
         $weekStart = now()->startOfWeek();
+        $isOutreach = $mailbox->is_outreach_mailbox;
+        $isSeedOnly = $mailbox->is_seed_mailbox && ! $mailbox->is_outreach_mailbox;
 
-        return Inertia::render('Warmup/Show', [
-            'mailbox' => [
-                'id' => $mailbox->id,
-                'email' => $mailbox->email,
-                'provider' => $mailbox->provider,
-                'status' => $mailbox->status,
-                'deliverability_score' => $mailbox->deliverability_score,
-                'days_warming' => $mailbox->days_warming,
-                'warmup_enabled' => $mailbox->warmup_enabled,
-                'last_imap_check_at' => $mailbox->last_imap_check_at?->toIso8601String(),
-            ],
-            'sends' => $sends->map(fn (WarmupSend $send) => [
-                'id' => $send->id,
-                'recipient' => $send->recipientLabel(),
-                'subject' => $send->subject,
-                'sent_at' => $send->sent_at?->toIso8601String(),
-                'status' => $send->status,
-                'opened_at' => $send->opened_at?->toIso8601String(),
-                'replied_at' => $send->replied_at?->toIso8601String(),
-                'rescued_from_spam_at' => $send->rescued_from_spam_at?->toIso8601String(),
-            ]),
-            'stats' => [
+        $sends = $isOutreach
+            ? WarmupSend::query()
+                ->where('from_mailbox_id', $mailbox->id)
+                ->with('toMailbox:id,user_id,email')
+                ->orderByDesc('sent_at')
+                ->limit(50)
+                ->get(['id', 'from_mailbox_id', 'to_mailbox_id', 'subject', 'sent_at', 'status', 'opened_at', 'replied_at', 'rescued_from_spam_at'])
+            : collect();
+
+        $received = $isSeedOnly
+            ? WarmupSend::query()
+                ->where('to_mailbox_id', $mailbox->id)
+                ->with('fromMailbox:id,user_id,email')
+                ->orderByDesc('sent_at')
+                ->limit(50)
+                ->get(['id', 'from_mailbox_id', 'to_mailbox_id', 'subject', 'sent_at', 'status', 'opened_at', 'replied_at', 'rescued_from_spam_at'])
+            : collect();
+
+        $stats = $isOutreach
+            ? [
                 'sends_this_week' => WarmupSend::query()
                     ->where('from_mailbox_id', $mailbox->id)
                     ->where('sent_at', '>=', $weekStart)
@@ -120,8 +113,68 @@ class WarmupController extends Controller
                     ->whereNotNull('rescued_from_spam_at')
                     ->where('sent_at', '>=', $weekStart)
                     ->count(),
+            ]
+            : [
+                'received_this_week' => WarmupSend::query()
+                    ->where('to_mailbox_id', $mailbox->id)
+                    ->where('sent_at', '>=', $weekStart)
+                    ->count(),
+                'replies_sent_this_week' => WarmupSend::query()
+                    ->where('to_mailbox_id', $mailbox->id)
+                    ->whereNotNull('replied_at')
+                    ->where('replied_at', '>=', $weekStart)
+                    ->count(),
+                'spam_rescues' => WarmupSend::query()
+                    ->where('to_mailbox_id', $mailbox->id)
+                    ->whereNotNull('rescued_from_spam_at')
+                    ->where('sent_at', '>=', $weekStart)
+                    ->count(),
+            ];
+
+        return Inertia::render('Warmup/Show', [
+            'mailbox' => [
+                'id' => $mailbox->id,
+                'email' => $mailbox->email,
+                'provider' => $mailbox->provider,
+                'username' => $mailbox->username,
+                'imap_host' => $mailbox->imap_host,
+                'imap_port' => $mailbox->imap_port,
+                'smtp_host' => $mailbox->smtp_host,
+                'smtp_port' => $mailbox->smtp_port,
+                'is_outreach_mailbox' => $mailbox->is_outreach_mailbox,
+                'is_seed_mailbox' => $mailbox->is_seed_mailbox,
+                'is_pool_participant' => $mailbox->is_pool_participant,
+                'status' => $mailbox->status,
+                'deliverability_score' => $mailbox->deliverability_score,
+                'days_warming' => $mailbox->days_warming,
+                'warmup_enabled' => $mailbox->warmup_enabled,
+                'consecutive_failures' => $mailbox->consecutive_failures,
+                'last_imap_check_at' => $mailbox->last_imap_check_at?->toIso8601String(),
             ],
-            'estimated_ready_date' => $sendService->getEstimatedReadyDate($mailbox)?->toDateString(),
+            'sends' => $sends->map(fn (WarmupSend $send) => [
+                'id' => $send->id,
+                'recipient' => $send->recipientLabel(),
+                'subject' => $send->subject,
+                'sent_at' => $send->sent_at?->toIso8601String(),
+                'status' => $send->status,
+                'opened_at' => $send->opened_at?->toIso8601String(),
+                'replied_at' => $send->replied_at?->toIso8601String(),
+                'rescued_from_spam_at' => $send->rescued_from_spam_at?->toIso8601String(),
+            ]),
+            'received' => $received->map(fn (WarmupSend $send) => [
+                'id' => $send->id,
+                'sender' => $send->fromMailbox?->email ?? 'Network outreach',
+                'subject' => $send->subject,
+                'sent_at' => $send->sent_at?->toIso8601String(),
+                'status' => $send->status,
+                'opened_at' => $send->opened_at?->toIso8601String(),
+                'replied_at' => $send->replied_at?->toIso8601String(),
+                'rescued_from_spam_at' => $send->rescued_from_spam_at?->toIso8601String(),
+            ]),
+            'stats' => $stats,
+            'estimated_ready_date' => $isOutreach
+                ? $sendService->getEstimatedReadyDate($mailbox)?->toDateString()
+                : null,
             'alerts' => $mailbox->alerts()
                 ->whereNull('read_at')
                 ->orderByDesc('created_at')
@@ -232,6 +285,49 @@ class WarmupController extends Controller
         }
 
         return redirect()->route('warmup.index')->with('success', 'Mailbox connected.');
+    }
+
+    public function testMailbox(WarmupMailbox $mailbox, WarmupMailboxService $mailboxService): JsonResponse
+    {
+        abort_unless($mailbox->user_id === auth()->id(), 403);
+
+        try {
+            $mailboxService->verifyConnection($mailbox);
+
+            return response()->json(['imap' => true, 'smtp' => true]);
+        } catch (RuntimeException $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+    }
+
+    public function updateCredentials(Request $request, WarmupMailbox $mailbox, WarmupMailboxService $mailboxService): RedirectResponse
+    {
+        abort_unless($mailbox->user_id === auth()->id(), 403);
+
+        $data = $request->validate([
+            'password' => 'required|string',
+        ]);
+
+        $mailbox->password_encrypted = $data['password'];
+
+        try {
+            $mailboxService->verifyConnection($mailbox);
+        } catch (RuntimeException $e) {
+            return back()->withErrors(['password' => $e->getMessage()]);
+        }
+
+        $updates = [
+            'password_encrypted' => $data['password'],
+            'consecutive_failures' => 0,
+        ];
+
+        if ($mailbox->status === 'failed') {
+            $updates['status'] = $mailbox->is_outreach_mailbox ? 'paused' : 'pending';
+        }
+
+        $mailbox->update($updates);
+
+        return back()->with('success', 'Credentials updated and connection verified.');
     }
 
     public function testConnection(Request $request, WarmupMailboxService $mailboxService): JsonResponse

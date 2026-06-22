@@ -187,6 +187,78 @@ class WarmupControllerTest extends TestCase
             ->assertJsonPath('error', 'SMTP authentication failed: Username and Password not accepted');
     }
 
+    public function test_mailbox_test_connection_uses_stored_credentials(): void
+    {
+        $user = User::factory()->create();
+        $mailbox = WarmupMailbox::factory()->create(['user_id' => $user->id]);
+
+        $this->mock(WarmupMailboxService::class, function ($mock) {
+            $mock->shouldReceive('verifyConnection')->once()->andReturn(true);
+        });
+
+        $this->actingAs($user)
+            ->postJson("/warmup/{$mailbox->id}/test")
+            ->assertOk()
+            ->assertJsonPath('imap', true)
+            ->assertJsonPath('smtp', true);
+    }
+
+    public function test_mailbox_test_connection_rejects_other_users_mailbox(): void
+    {
+        $mailbox = WarmupMailbox::factory()->create();
+
+        $this->actingAs(User::factory()->create())
+            ->postJson("/warmup/{$mailbox->id}/test")
+            ->assertForbidden();
+    }
+
+    public function test_update_mailbox_credentials_verifies_before_saving(): void
+    {
+        $user = User::factory()->create();
+        $mailbox = WarmupMailbox::factory()->create([
+            'user_id' => $user->id,
+            'status' => 'failed',
+            'consecutive_failures' => 3,
+        ]);
+
+        $this->mock(WarmupMailboxService::class, function ($mock) {
+            $mock->shouldReceive('verifyConnection')->once()->andReturn(true);
+        });
+
+        $this->actingAs($user)
+            ->patch("/warmup/{$mailbox->id}/credentials", ['password' => 'new-app-password'])
+            ->assertRedirect();
+
+        $mailbox->refresh();
+        $this->assertSame('pending', $mailbox->status);
+        $this->assertSame(0, $mailbox->consecutive_failures);
+        $this->assertSame('new-app-password', $mailbox->decrypted_password);
+    }
+
+    public function test_show_seed_mailbox_includes_connection_details(): void
+    {
+        $user = User::factory()->create();
+        $mailbox = WarmupMailbox::factory()->create([
+            'user_id' => $user->id,
+            'email' => 'seed@example.com',
+            'is_outreach_mailbox' => false,
+            'is_seed_mailbox' => true,
+            'imap_host' => 'imap.gmail.com',
+            'smtp_host' => 'smtp.gmail.com',
+        ]);
+
+        $this->actingAs($user)
+            ->get("/warmup/{$mailbox->id}")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Warmup/Show')
+                ->where('mailbox.email', 'seed@example.com')
+                ->where('mailbox.imap_host', 'imap.gmail.com')
+                ->where('mailbox.is_seed_mailbox', true)
+                ->where('mailbox.is_outreach_mailbox', false)
+            );
+    }
+
     public function test_start_warmup_dispatches_process_job_for_outreach_mailbox(): void
     {
         Bus::fake([ProcessWarmupJob::class]);

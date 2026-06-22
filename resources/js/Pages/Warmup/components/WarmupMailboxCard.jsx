@@ -97,11 +97,9 @@ export default function WarmupMailboxCard({
                     </Button>
                 )}
 
-                {isOutreach && (
-                    <LinkButton href={`/warmup/${mailbox.id}`} kind="secondary">
-                        View details
-                    </LinkButton>
-                )}
+                <LinkButton href={`/warmup/${mailbox.id}`} kind="secondary">
+                    View details
+                </LinkButton>
 
                 <Button type="button" kind="ghost" size="sm" onClick={() => onRemove(mailbox.id, mailbox.email)}>
                     Remove

@@ -178,6 +178,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/warmup', [WarmupController::class, 'store'])->name('warmup.store');
     Route::post('/warmup/test-connection', [WarmupController::class, 'testConnection'])->name('warmup.test-connection');
     Route::get('/warmup/{mailbox}', [WarmupController::class, 'show'])->name('warmup.show');
+    Route::post('/warmup/{mailbox}/test', [WarmupController::class, 'testMailbox'])->name('warmup.test-mailbox');
+    Route::patch('/warmup/{mailbox}/credentials', [WarmupController::class, 'updateCredentials'])->name('warmup.update-credentials');
     Route::post('/warmup/{mailbox}/start', [WarmupController::class, 'startWarmup'])->name('warmup.start');
     Route::post('/warmup/{mailbox}/toggle-pause', [WarmupController::class, 'togglePause'])->name('warmup.toggle-pause');
     Route::post('/warmup/{mailbox}/toggle-pool', [WarmupController::class, 'togglePoolParticipation'])->name('warmup.toggle-pool');
