@@ -126,9 +126,24 @@ export default function SearchShow({
         ];
     }, [prospects, minScore, angleFilter]);
 
+    const visibleUnhidden = useMemo(
+        () => visible.filter((p) => !p.is_hidden),
+        [visible],
+    );
+
     const visibleHiddenCount = useMemo(
         () => visible.filter((p) => p.is_hidden).length,
         [visible],
+    );
+
+    const selectedUnhiddenCount = useMemo(
+        () => visibleUnhidden.filter((p) => selected[p.id]).length,
+        [visibleUnhidden, selected],
+    );
+
+    const selectedHiddenCount = useMemo(
+        () => visible.filter((p) => p.is_hidden && selected[p.id]).length,
+        [visible, selected],
     );
 
     const unqualifiedCount = useMemo(
@@ -183,9 +198,38 @@ export default function SearchShow({
     const toggleRow = (id) => setSelected((prev) => ({ ...prev, [id]: !prev[id] }));
     const toggleAll = (checked) => {
         if (checked) {
-            setSelected(Object.fromEntries(visible.map((p) => [p.id, true])));
+            setSelected((prev) => ({
+                ...prev,
+                ...Object.fromEntries(visibleUnhidden.map((p) => [p.id, true])),
+            }));
         } else {
-            setSelected({});
+            setSelected((prev) => {
+                const next = { ...prev };
+                for (const p of visibleUnhidden) {
+                    delete next[p.id];
+                }
+                return next;
+            });
+        }
+    };
+    const toggleAllHidden = (checked) => {
+        if (checked) {
+            setSelected((prev) => ({
+                ...prev,
+                ...Object.fromEntries(
+                    visible.filter((p) => p.is_hidden).map((p) => [p.id, true]),
+                ),
+            }));
+        } else {
+            setSelected((prev) => {
+                const next = { ...prev };
+                for (const p of visible) {
+                    if (p.is_hidden) {
+                        delete next[p.id];
+                    }
+                }
+                return next;
+            });
         }
     };
 
@@ -482,8 +526,14 @@ export default function SearchShow({
                                 <tr>
                                     <th className="col-check">
                                         <Checkbox
-                                            checked={selectedIds.length > 0 && selectedIds.length === visible.length}
-                                            indeterminate={selectedIds.length > 0 && selectedIds.length < visible.length}
+                                            checked={
+                                                selectedUnhiddenCount > 0
+                                                && selectedUnhiddenCount === visibleUnhidden.length
+                                            }
+                                            indeterminate={
+                                                selectedUnhiddenCount > 0
+                                                && selectedUnhiddenCount < visibleUnhidden.length
+                                            }
                                             onChange={toggleAll}
                                         />
                                     </th>
@@ -511,7 +561,23 @@ export default function SearchShow({
                                             && !visible[index - 1].is_hidden
                                             && p.is_hidden && (
                                             <tr className="hidden-prospects-divider">
-                                                <td colSpan={showA11y ? 11 : 8}>
+                                                <td
+                                                    className="col-check"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    <Checkbox
+                                                        checked={
+                                                            selectedHiddenCount > 0
+                                                            && selectedHiddenCount === visibleHiddenCount
+                                                        }
+                                                        indeterminate={
+                                                            selectedHiddenCount > 0
+                                                            && selectedHiddenCount < visibleHiddenCount
+                                                        }
+                                                        onChange={toggleAllHidden}
+                                                    />
+                                                </td>
+                                                <td colSpan={showA11y ? 10 : 7}>
                                                     Reviewed ({visibleHiddenCount})
                                                 </td>
                                             </tr>
