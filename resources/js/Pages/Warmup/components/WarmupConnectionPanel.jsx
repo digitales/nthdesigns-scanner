@@ -12,6 +12,24 @@ import {
     Status,
 } from '@/Components/ui';
 
+const PROVIDER_HINTS = {
+    gmail: {
+        appPasswordUrl: 'https://myaccount.google.com/apppasswords',
+        failureHint:
+            'Gmail requires a 16-character app password (not your login password). Enable 2-Step Verification, then create one at myaccount.google.com/apppasswords — paste without spaces.',
+    },
+};
+
+function formatTestError(result) {
+    if (result.imap_error && result.smtp_error) {
+        return `IMAP: ${result.imap_error} SMTP: ${result.smtp_error}`;
+    }
+    if (result.imap_error) {
+        return `IMAP: ${result.imap_error}`;
+    }
+    return result.error ?? result.smtp_error ?? 'Connection failed';
+}
+
 export default function WarmupConnectionPanel({ mailbox }) {
     const { flash } = usePage().props;
     const [testing, setTesting] = useState(false);
@@ -38,7 +56,12 @@ export default function WarmupConnectionPanel({ mailbox }) {
             if (response.ok) {
                 setTestResult({ ok: true });
             } else {
-                setTestResult({ ok: false, error: result.error ?? 'Connection failed' });
+                setTestResult({
+                    ok: false,
+                    error: formatTestError(result),
+                    imap: result.imap,
+                    smtp: result.smtp,
+                });
             }
         } catch {
             setTestResult({ ok: false, error: 'Network error during connection test' });
@@ -88,7 +111,30 @@ export default function WarmupConnectionPanel({ mailbox }) {
                     </Button>
                     {testResult?.ok && <Status kind="ready">IMAP and SMTP connected</Status>}
                     {testResult && !testResult.ok && (
-                        <span className="micro text-critical">{testResult.error}</span>
+                        <Stack gap={8}>
+                            {testResult.imap === true && testResult.smtp === false && (
+                                <Status kind="pending">IMAP connected</Status>
+                            )}
+                            {testResult.imap === false && (
+                                <Status kind="pending">IMAP failed</Status>
+                            )}
+                            <span className="micro text-critical">{testResult.error}</span>
+                            {mailbox.provider === 'gmail' &&
+                                (testResult.error?.includes('535') ||
+                                    testResult.error?.includes('BadCredentials')) && (
+                                    <p className="micro text-muted m-0">
+                                        {PROVIDER_HINTS.gmail.failureHint}{' '}
+                                        <a
+                                            href={PROVIDER_HINTS.gmail.appPasswordUrl}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="link-inline"
+                                        >
+                                            Create app password
+                                        </a>
+                                    </p>
+                                )}
+                        </Stack>
                     )}
                 </div>
 
@@ -96,7 +142,14 @@ export default function WarmupConnectionPanel({ mailbox }) {
 
                 <form onSubmit={updateCredentials}>
                     <Stack gap={12}>
-                        <Field label="New app password" hint="Enter a new app password to replace the stored credentials.">
+                        <Field
+                            label="New app password"
+                            hint={
+                                mailbox.provider === 'gmail'
+                                    ? '16-character Gmail app password — paste without spaces. Not your login password.'
+                                    : 'Enter a new app password to replace the stored credentials.'
+                            }
+                        >
                             <Input
                                 type="password"
                                 name="password"

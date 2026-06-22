@@ -100,6 +100,7 @@ export default function WarmupConnect({ pool_participation_allowed: poolParticip
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
                 },
                 body: JSON.stringify({
+                    provider: data.provider,
                     imap_host: data.imap_host,
                     imap_port: data.imap_port,
                     smtp_host: data.smtp_host,

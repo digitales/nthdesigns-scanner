@@ -37,7 +37,25 @@ class WarmupMailbox extends Model
 
     public function setPasswordEncryptedAttribute(string $value): void
     {
-        $this->attributes['password_encrypted'] = encrypt($value);
+        $this->attributes['password_encrypted'] = encrypt(self::normaliseAppPassword($value));
+    }
+
+    public static function normaliseAppPassword(string $password): string
+    {
+        return preg_replace('/\s+/', '', trim($password)) ?? trim($password);
+    }
+
+    public static function appPasswordValidationMessage(string $provider, string $password): ?string
+    {
+        if ($provider !== 'gmail') {
+            return null;
+        }
+
+        if (strlen(self::normaliseAppPassword($password)) !== 16) {
+            return 'Gmail app passwords are exactly 16 characters. Create one at myaccount.google.com/apppasswords — do not use your login password.';
+        }
+
+        return null;
     }
 
     public function getDecryptedPasswordAttribute(): string

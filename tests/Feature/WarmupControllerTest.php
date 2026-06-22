@@ -193,7 +193,10 @@ class WarmupControllerTest extends TestCase
         $mailbox = WarmupMailbox::factory()->create(['user_id' => $user->id]);
 
         $this->mock(WarmupMailboxService::class, function ($mock) {
-            $mock->shouldReceive('verifyConnection')->once()->andReturn(true);
+            $mock->shouldReceive('connectionResults')->once()->andReturn([
+                'imap' => ['ok' => true, 'error' => null],
+                'smtp' => ['ok' => true, 'error' => null],
+            ]);
         });
 
         $this->actingAs($user)
@@ -233,6 +236,19 @@ class WarmupControllerTest extends TestCase
         $this->assertSame('pending', $mailbox->status);
         $this->assertSame(0, $mailbox->consecutive_failures);
         $this->assertSame('new-app-password', $mailbox->decrypted_password);
+    }
+
+    public function test_update_credentials_rejects_invalid_gmail_app_password_length(): void
+    {
+        $user = User::factory()->create();
+        $mailbox = WarmupMailbox::factory()->create([
+            'user_id' => $user->id,
+            'provider' => 'gmail',
+        ]);
+
+        $this->actingAs($user)
+            ->patch("/warmup/{$mailbox->id}/credentials", ['password' => 'not-an-app-password'])
+            ->assertSessionHasErrors('password');
     }
 
     public function test_show_seed_mailbox_includes_connection_details(): void

@@ -112,6 +112,29 @@ class WarmupMailboxServiceTest extends TestCase
         $this->assertInstanceOf(PlainAuthenticator::class, $authenticators[1]);
     }
 
+    public function test_make_smtp_transport_sets_credentials_without_dsn_encoding(): void
+    {
+        $mailbox = WarmupMailbox::factory()->make([
+            'username' => 'user@example.com',
+            'smtp_host' => 'smtp.gmail.com',
+            'smtp_port' => 587,
+        ]);
+        $mailbox->password_encrypted = 'abcdefghijklmnop';
+
+        $transport = $this->service->makeSmtpTransport($mailbox);
+
+        $this->assertInstanceOf(EsmtpTransport::class, $transport);
+        $this->assertSame('user@example.com', $transport->getUsername());
+        $this->assertSame('abcdefghijklmnop', $transport->getPassword());
+    }
+
+    public function test_gmail_app_password_must_be_sixteen_characters(): void
+    {
+        $this->assertNotNull(WarmupMailbox::appPasswordValidationMessage('gmail', 'short'));
+        $this->assertNull(WarmupMailbox::appPasswordValidationMessage('gmail', 'abcdefghijklmnop'));
+        $this->assertNull(WarmupMailbox::appPasswordValidationMessage('fastmail', 'short'));
+    }
+
     public function test_verify_connection_starts_and_stops_smtp_transport(): void
     {
         $mailbox = WarmupMailbox::factory()->make([
@@ -174,5 +197,10 @@ class WarmupMailboxServiceTest extends TestCase
         $this->expectExceptionMessage('SMTP authentication failed:');
 
         $service->verifyConnection($mailbox);
+    }
+
+    public function test_normalise_app_password_strips_spaces(): void
+    {
+        $this->assertSame('abcdefghijklmnop', WarmupMailbox::normaliseAppPassword('abcd efgh ijkl mnop'));
     }
 }

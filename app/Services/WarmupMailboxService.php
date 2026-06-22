@@ -6,7 +6,6 @@ use App\Models\WarmupMailbox;
 use App\Support\WarmupCredentialScrubber;
 use Illuminate\Support\Collection;
 use RuntimeException;
-use Symfony\Component\Mailer\Transport;
 use Symfony\Component\Mailer\Transport\Smtp\Auth\LoginAuthenticator;
 use Symfony\Component\Mailer\Transport\Smtp\Auth\PlainAuthenticator;
 use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
@@ -31,10 +30,42 @@ class WarmupMailboxService
 
     public function verifyConnection(WarmupMailbox $mailbox): bool
     {
-        $this->testImap($mailbox);
-        $this->testSmtp($mailbox);
+        $results = $this->connectionResults($mailbox);
+
+        if (! $results['imap']['ok']) {
+            throw new RuntimeException('IMAP connection failed: '.$results['imap']['error']);
+        }
+
+        if (! $results['smtp']['ok']) {
+            throw new RuntimeException('SMTP authentication failed: '.$results['smtp']['error']);
+        }
 
         return true;
+    }
+
+    /**
+     * @return array{imap: array{ok: bool, error: ?string}, smtp: array{ok: bool, error: ?string}}
+     */
+    public function connectionResults(WarmupMailbox $mailbox): array
+    {
+        $imap = ['ok' => false, 'error' => null];
+        $smtp = ['ok' => false, 'error' => null];
+
+        try {
+            $this->testImap($mailbox);
+            $imap['ok'] = true;
+        } catch (RuntimeException $e) {
+            $imap['error'] = WarmupCredentialScrubber::scrub($e->getMessage());
+        }
+
+        try {
+            $this->testSmtp($mailbox);
+            $smtp['ok'] = true;
+        } catch (RuntimeException $e) {
+            $smtp['error'] = WarmupCredentialScrubber::scrub($e->getMessage());
+        }
+
+        return compact('imap', 'smtp');
     }
 
     public function getDailyVolume(WarmupMailbox $mailbox): int
@@ -75,7 +106,7 @@ class WarmupMailboxService
             $client->connect();
             $client->disconnect();
         } catch (\Throwable $e) {
-            throw new RuntimeException('IMAP connection failed: '.WarmupCredentialScrubber::scrub($e->getMessage()));
+            throw new RuntimeException(WarmupCredentialScrubber::scrub($e->getMessage()));
         }
     }
 
@@ -89,20 +120,31 @@ class WarmupMailboxService
                 $transport->stop();
             }
         } catch (\Throwable $e) {
-            throw new RuntimeException('SMTP authentication failed: '.WarmupCredentialScrubber::scrub($e->getMessage()));
+            throw new RuntimeException(WarmupCredentialScrubber::scrub($e->getMessage()));
         }
     }
 
     public function makeSmtpTransport(WarmupMailbox $mailbox): TransportInterface
     {
-        $transport = Transport::fromDsn($this->smtpDsn($mailbox));
+        $port = $mailbox->smtp_port;
+        $implicitTls = $port === 465;
 
-        if ($transport instanceof EsmtpTransport) {
-            $transport->setAuthenticators([
-                new LoginAuthenticator,
-                new PlainAuthenticator,
-            ]);
+        $transport = new EsmtpTransport(
+            $mailbox->smtp_host,
+            $port,
+            $implicitTls ? true : null,
+        );
+
+        if (! $implicitTls) {
+            $transport->setAutoTls(true);
         }
+
+        $transport->setUsername($mailbox->username);
+        $transport->setPassword($mailbox->decrypted_password);
+        $transport->setAuthenticators([
+            new LoginAuthenticator,
+            new PlainAuthenticator,
+        ]);
 
         return $transport;
     }
@@ -124,18 +166,15 @@ class WarmupMailboxService
 
     public function smtpDsn(WarmupMailbox $mailbox): string
     {
-        $dsn = sprintf(
-            'smtp://%s:%s@%s:%d',
-            urlencode($mailbox->username),
-            urlencode($mailbox->decrypted_password),
+        $scheme = $mailbox->smtp_port === 465 ? 'smtps' : 'smtp';
+
+        return sprintf(
+            '%s://%s:%s@%s:%d',
+            $scheme,
+            rawurlencode($mailbox->username),
+            rawurlencode($mailbox->decrypted_password),
             $mailbox->smtp_host,
             $mailbox->smtp_port,
         );
-
-        if ($mailbox->smtp_port === 587) {
-            $dsn .= '?encryption=starttls';
-        }
-
-        return $dsn;
     }
 }

@@ -274,6 +274,10 @@ class WarmupController extends Controller
 
         unset($data['pool_consent_acknowledged']);
 
+        if ($message = WarmupMailbox::appPasswordValidationMessage($data['provider'], $data['password'])) {
+            return back()->withErrors(['connection' => $message]);
+        }
+
         $data['password_encrypted'] = $data['password'];
         $data['user_id'] = $user->id;
         unset($data['password']);
@@ -291,13 +295,19 @@ class WarmupController extends Controller
     {
         abort_unless($mailbox->user_id === auth()->id(), 403);
 
-        try {
-            $mailboxService->verifyConnection($mailbox);
+        $results = $mailboxService->connectionResults($mailbox);
 
+        if ($results['imap']['ok'] && $results['smtp']['ok']) {
             return response()->json(['imap' => true, 'smtp' => true]);
-        } catch (RuntimeException $e) {
-            return response()->json(['error' => $e->getMessage()], 422);
         }
+
+        return response()->json([
+            'imap' => $results['imap']['ok'],
+            'smtp' => $results['smtp']['ok'],
+            'error' => $results['smtp']['error'] ?? $results['imap']['error'] ?? 'Connection failed',
+            'imap_error' => $results['imap']['error'],
+            'smtp_error' => $results['smtp']['error'],
+        ], 422);
     }
 
     public function updateCredentials(Request $request, WarmupMailbox $mailbox, WarmupMailboxService $mailboxService): RedirectResponse
@@ -307,6 +317,10 @@ class WarmupController extends Controller
         $data = $request->validate([
             'password' => 'required|string',
         ]);
+
+        if ($message = WarmupMailbox::appPasswordValidationMessage($mailbox->provider, $data['password'])) {
+            return back()->withErrors(['password' => $message]);
+        }
 
         $mailbox->password_encrypted = $data['password'];
 
@@ -333,6 +347,7 @@ class WarmupController extends Controller
     public function testConnection(Request $request, WarmupMailboxService $mailboxService): JsonResponse
     {
         $data = $request->validate([
+            'provider' => 'nullable|in:fastmail,gmail,outlook,generic',
             'imap_host' => 'required|string',
             'imap_port' => 'required|integer',
             'smtp_host' => 'required|string',
@@ -340,6 +355,10 @@ class WarmupController extends Controller
             'username' => 'required|string',
             'password' => 'required|string',
         ]);
+
+        if ($message = WarmupMailbox::appPasswordValidationMessage($data['provider'] ?? 'generic', $data['password'])) {
+            return response()->json(['error' => $message], 422);
+        }
 
         $password = $data['password'];
         unset($data['password']);
