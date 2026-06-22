@@ -173,6 +173,23 @@ final class ProspectExclusionService
      * @param  list<string>  $placeIds
      * @return list<string>
      */
+    public function ignoredPlaceIdsAmong(int $userId, array $placeIds): array
+    {
+        if ($placeIds === []) {
+            return [];
+        }
+
+        return IgnoredProspect::query()
+            ->where('user_id', $userId)
+            ->whereIn('place_id', $placeIds)
+            ->pluck('place_id')
+            ->all();
+    }
+
+    /**
+     * @param  list<string>  $placeIds
+     * @return list<string>
+     */
     public function filterPlaceIds(int $userId, array $placeIds): array
     {
         if ($placeIds === []) {

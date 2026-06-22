@@ -2,9 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Enums\IgnoredProspectReason;
 use App\Enums\ListItemStatus;
 use App\Enums\ProspectListType;
 use App\Models\AuditJob;
+use App\Models\IgnoredProspect;
 use App\Models\Prospect;
 use App\Models\ProspectList;
 use App\Models\ProspectListItem;
@@ -111,5 +113,72 @@ class SearchShowTest extends TestCase
         $this->actingAs($other)
             ->get(route('searches.show', $search))
             ->assertForbidden();
+    }
+
+    public function test_search_show_sorts_reviewed_prospects_to_bottom(): void
+    {
+        $user = User::factory()->create();
+        $search = Search::factory()->for($user)->create([
+            'niche' => 'Dentist',
+            'city' => 'Leeds',
+        ]);
+
+        Prospect::factory()->create([
+            'search_id' => $search->id,
+            'business_name' => 'Bright Smile',
+            'place_id' => 'places/visible',
+            'combined_score' => 90,
+        ]);
+        $hidden = Prospect::factory()->create([
+            'search_id' => $search->id,
+            'business_name' => 'Hidden Dental',
+            'place_id' => 'places/hidden',
+            'combined_score' => 95,
+        ]);
+
+        IgnoredProspect::create([
+            'user_id' => $user->id,
+            'place_id' => $hidden->place_id,
+            'reason' => IgnoredProspectReason::Reviewed,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('searches.show', $search))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Search/Show')
+                ->where('hiddenCount', 1)
+                ->has('prospects', 2)
+                ->where('prospects.0.business_name', 'Bright Smile')
+                ->where('prospects.0.is_hidden', false)
+                ->where('prospects.1.business_name', 'Hidden Dental')
+                ->where('prospects.1.is_hidden', true));
+    }
+
+    public function test_user_can_bulk_hide_prospects_from_search(): void
+    {
+        $user = User::factory()->create();
+        $search = Search::factory()->for($user)->create();
+
+        $first = Prospect::factory()->create(['search_id' => $search->id]);
+        $second = Prospect::factory()->create(['search_id' => $search->id]);
+
+        $this->actingAs($user)
+            ->post(route('searches.bulk-hide', $search), [
+                'prospect_ids' => [$first->id, $second->id],
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('ignored_prospects', [
+            'user_id' => $user->id,
+            'place_id' => $first->place_id,
+            'reason' => IgnoredProspectReason::Reviewed->value,
+        ]);
+        $this->assertDatabaseHas('ignored_prospects', [
+            'user_id' => $user->id,
+            'place_id' => $second->place_id,
+            'reason' => IgnoredProspectReason::Reviewed->value,
+        ]);
     }
 }

@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\IgnoredProspectReason;
 use App\Enums\ScanType;
 use App\Enums\SearchSource;
 use App\Enums\SearchStatus;
+use App\Http\Requests\BulkHideProspectsRequest;
 use App\Http\Requests\BulkProspectAuditRequest;
 use App\Http\Requests\ImportSearchCpcRequest;
 use App\Http\Requests\StoreDirectUrlSearchRequest;
@@ -15,6 +17,7 @@ use App\Http\Resources\SearchSummaryMapper;
 use App\Jobs\DirectUrlScanJob;
 use App\Jobs\FetchSearchCpcJob;
 use App\Jobs\ScrapeProspectsJob;
+use App\Models\Prospect;
 use App\Models\Search;
 use App\Models\SharedSearch;
 use App\Models\User;
@@ -24,6 +27,7 @@ use App\Services\KeywordPlanner\KeywordPlannerCsvImporter;
 use App\Services\KeywordPlanner\KeywordPlannerImportException;
 use App\Services\MarketCpcDefaultService;
 use App\Services\ProgressFlowService;
+use App\Services\ProspectExclusionService;
 use App\Services\ProspectListMembershipService;
 use App\Services\ReportBuilderService;
 use App\Services\SharedSearchSnapshotBuilder;
@@ -315,6 +319,43 @@ class SearchController extends Controller
         return back()->with('success', $result->flashMessage());
     }
 
+    public function bulkHide(
+        BulkHideProspectsRequest $request,
+        Search $search,
+        ProspectExclusionService $exclusions,
+    ): RedirectResponse {
+        $this->authorize('view', $search);
+
+        $ids = collect($request->validated('prospect_ids'))
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        $prospects = $search->prospects()->with('search')->whereIn('id', $ids)->get();
+
+        if ($prospects->count() !== count($ids)) {
+            throw ValidationException::withMessages([
+                'prospect_ids' => 'One or more prospects do not belong to this search.',
+            ]);
+        }
+
+        foreach ($prospects as $prospect) {
+            $this->authorize('view', $prospect);
+            $exclusions->ignore(
+                $request->user(),
+                $prospect,
+                IgnoredProspectReason::Reviewed,
+            );
+        }
+
+        $count = $prospects->count();
+
+        return back()->with('success', $count === 1
+            ? 'Prospect hidden from search results.'
+            : "{$count} prospects hidden from search results.");
+    }
+
     public function share(
         Request $request,
         Search $search,
@@ -348,6 +389,7 @@ class SearchController extends Controller
         ReportBuilderService $reportBuilder,
         ProgressFlowService $progressFlow,
         ProspectListMembershipService $listMembership,
+        ProspectExclusionService $exclusions,
     ): Response {
         $this->authorize('view', $search);
 
@@ -363,9 +405,29 @@ class SearchController extends Controller
             ->get();
 
         $searchFlow = $progressFlow->searchFlow($search, $prospects);
+        $ignoredPlaceIds = array_flip($exclusions->ignoredPlaceIdsAmong(
+            $user->id,
+            $prospects->pluck('place_id')->unique()->values()->all(),
+        ));
+        $hiddenCount = $prospects->filter(
+            fn ($prospect) => isset($ignoredPlaceIds[$prospect->place_id]),
+        )->count();
+        $sortedProspects = $prospects
+            ->sort(function (Prospect $a, Prospect $b) use ($ignoredPlaceIds) {
+                $aHidden = isset($ignoredPlaceIds[$a->place_id]);
+                $bHidden = isset($ignoredPlaceIds[$b->place_id]);
+
+                if ($aHidden !== $bHidden) {
+                    return $aHidden <=> $bHidden;
+                }
+
+                return ($b->combined_score ?? 0) <=> ($a->combined_score ?? 0);
+            })
+            ->values();
+
         $membershipsByProspectId = $listMembership->membershipsByProspectId(
             $user,
-            $prospects->pluck('id'),
+            $sortedProspects->pluck('id'),
         );
 
         return Inertia::render('Search/Show', [
@@ -381,11 +443,13 @@ class SearchController extends Controller
                     : null,
             ),
             'googleAdsCpcAvailable' => $this->googleAdsKeywordPlan->isAvailable(),
-            'prospects' => $prospects->map(function ($prospect) use (
+            'hiddenCount' => $hiddenCount,
+            'prospects' => $sortedProspects->map(function ($prospect) use (
                 $search,
                 $reportBuilder,
                 $progressFlow,
                 $membershipsByProspectId,
+                $ignoredPlaceIds,
             ) {
                 return [
                     ...SearchProspectResource::format(
@@ -395,8 +459,9 @@ class SearchController extends Controller
                         $progressFlow,
                     ),
                     'list_memberships' => $membershipsByProspectId[$prospect->id] ?? [],
+                    'is_hidden' => isset($ignoredPlaceIds[$prospect->place_id]),
                 ];
-            }),
+            })->values(),
         ]);
     }
 }

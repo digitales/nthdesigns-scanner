@@ -114,12 +114,22 @@ export default function SearchShow({
     }, [search.cpc_benchmark, search.cpc_keywords]);
 
     const visible = useMemo(() => {
-        return prospects.filter((p) => {
+        const filtered = prospects.filter((p) => {
             if (minScore > 0 && (p.combined_score ?? 0) < minScore) return false;
             if (angleFilter === 'all') return true;
             return normalizeAngle(p.dominant_angle) === angleFilter;
         });
+
+        return [
+            ...filtered.filter((p) => !p.is_hidden),
+            ...filtered.filter((p) => p.is_hidden),
+        ];
     }, [prospects, minScore, angleFilter]);
+
+    const visibleHiddenCount = useMemo(
+        () => visible.filter((p) => p.is_hidden).length,
+        [visible],
+    );
 
     const unqualifiedCount = useMemo(
         () => visible.filter((p) => !p.qualification_status).length,
@@ -279,6 +289,23 @@ export default function SearchShow({
         });
     };
 
+    const hideProspect = (id) => {
+        router.post(`/prospects/${id}/ignore`, { reason: 'reviewed' }, { preserveScroll: true });
+    };
+
+    const restoreProspect = (id) => {
+        router.delete(`/prospects/${id}/ignore`, { preserveScroll: true });
+    };
+
+    const hideSelected = () => {
+        router.post(`/searches/${search.id}/bulk-hide`, {
+            prospect_ids: selectedIds.map(Number),
+        }, {
+            preserveScroll: true,
+            onSuccess: () => setSelected({}),
+        });
+    };
+
     return (
         <AuthenticatedLayout>
             <Head title={pageTitle} />
@@ -308,6 +335,13 @@ export default function SearchShow({
                             )}
                             {selectedIds.length > 0 ? (
                                 <>
+                                    <Button
+                                        kind="secondary"
+                                        size="sm"
+                                        onClick={hideSelected}
+                                    >
+                                        Hide {selectedIds.length}
+                                    </Button>
                                     <Button
                                         kind="secondary"
                                         size="sm"
@@ -427,7 +461,12 @@ export default function SearchShow({
                         </div>
                     </Field>
                     <div className="filter-action">
-                        <span className="micro">Showing {visible.length} of {prospects.length}</span>
+                        <span className="micro">
+                            Showing {visible.length} of {prospects.length}
+                            {visibleHiddenCount > 0 && (
+                                <> · {visibleHiddenCount} reviewed at bottom</>
+                            )}
+                        </span>
                     </div>
                 </FilterBar>
 
@@ -465,24 +504,37 @@ export default function SearchShow({
                                 </tr>
                             </thead>
                             <tbody>
-                                {visible.map((p) => (
-                                    <ProspectRow
-                                        key={p.id}
-                                        prospect={p}
-                                        showA11y={showA11y}
-                                        inQueue={inQueue.has(p.id)}
-                                        manualLists={manualLists}
-                                        isExpanded={expanded === p.id}
-                                        isQualificationExpanded={expandedQualification === p.id}
-                                        isQualifying={qualifyingIds.has(p.id)}
-                                        isSelected={!!selected[p.id]}
-                                        onToggleSelect={() => toggleRow(p.id)}
-                                        onToggleExpand={() => setExpanded(expanded === p.id ? null : p.id)}
-                                        onToggleQualificationExpand={() => setExpandedQualification(
-                                            expandedQualification === p.id ? null : p.id,
+                                {visible.map((p, index) => (
+                                    <Fragment key={p.id}>
+                                        {visibleHiddenCount > 0
+                                            && index > 0
+                                            && !visible[index - 1].is_hidden
+                                            && p.is_hidden && (
+                                            <tr className="hidden-prospects-divider">
+                                                <td colSpan={showA11y ? 11 : 8}>
+                                                    Reviewed ({visibleHiddenCount})
+                                                </td>
+                                            </tr>
                                         )}
-                                        onQualifyStart={markQualifying}
-                                    />
+                                        <ProspectRow
+                                            prospect={p}
+                                            showA11y={showA11y}
+                                            inQueue={inQueue.has(p.id)}
+                                            manualLists={manualLists}
+                                            isExpanded={expanded === p.id}
+                                            isQualificationExpanded={expandedQualification === p.id}
+                                            isQualifying={qualifyingIds.has(p.id)}
+                                            isSelected={!!selected[p.id]}
+                                            onToggleSelect={() => toggleRow(p.id)}
+                                            onToggleExpand={() => setExpanded(expanded === p.id ? null : p.id)}
+                                            onToggleQualificationExpand={() => setExpandedQualification(
+                                                expandedQualification === p.id ? null : p.id,
+                                            )}
+                                            onQualifyStart={markQualifying}
+                                            onHide={() => hideProspect(p.id)}
+                                            onRestore={() => restoreProspect(p.id)}
+                                        />
+                                    </Fragment>
                                 ))}
                                 {isRunning &&
                                     Array.from({ length: Math.max(0, 3) }).map((_, i) => (
@@ -513,6 +565,8 @@ function ProspectRow({
     onToggleExpand,
     onToggleQualificationExpand,
     onQualifyStart,
+    onHide,
+    onRestore,
 }) {
     const isFailed = p.audit_status === 'failed';
     const isPending = p.audit_status === 'pending';
@@ -533,6 +587,7 @@ function ProspectRow({
         isFailed ? 'failed' : '',
         isSelected ? 'selected' : '',
         isExpanded ? 'expanded' : '',
+        p.is_hidden ? 'hidden-prospect' : '',
     ]
         .filter(Boolean)
         .join(' ');
@@ -557,6 +612,9 @@ function ProspectRow({
                         )}
                         {listMemberships.length > 1 && (
                             <span className="badge badge--list">On {listMemberships.length} lists</span>
+                        )}
+                        {p.is_hidden && (
+                            <span className="badge badge--ignored">Hidden</span>
                         )}
                     </div>
                     <span
@@ -640,6 +698,19 @@ function ProspectRow({
                             href={`/prospects/${p.id}`}
                             onClick={(e) => e.stopPropagation()}
                         />
+                        {p.is_hidden ? (
+                            <IconButton
+                                icon={Icons.Refresh}
+                                title="Restore to results"
+                                onClick={onRestore}
+                            />
+                        ) : (
+                            <IconButton
+                                icon={Icons.X}
+                                title="Hide from results"
+                                onClick={onHide}
+                            />
+                        )}
                     </RowActions>
                 </td>
             </tr>

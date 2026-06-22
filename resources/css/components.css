@@ -2538,6 +2538,27 @@
   .biz-title-row { display: flex; align-items: center; gap: 8px; }
   .badge--queue { font-size: 10px; background: var(--color-stone-200); }
   .badge--list { font-size: 10px; background: oklch(0.93 0.02 250); color: var(--color-stone-700); }
+  .badge--ignored { font-size: 10px; background: var(--color-stone-100); color: var(--color-stone-600); }
+  .link-button {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--color-stone-700);
+    text-decoration: underline;
+    cursor: pointer;
+  }
+  .link-button:hover { color: var(--color-stone-900); }
+  .ptable--prospects tr.hidden-prospect { opacity: 0.72; }
+  .hidden-prospects-divider td {
+    padding: 10px 12px 6px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-stone-500);
+    background: var(--color-stone-50);
+    border-top: 1px solid var(--color-stone-200);
+  }
   .col-qualify { width: 108px; }
   .btn-qualify { font-size: 12px; padding: 4px 10px; }
   .qualification-pending {
