@@ -246,7 +246,7 @@ class SqlSiteSearchProvider implements SiteSearchProvider
         foreach ($tokens as $token) {
             $pattern = '%'.LikeSearch::escape($token).'%';
             $query->where(function (Builder $inner) use ($pattern): void {
-                $inner->where(fn (Builder $tokenQuery) => LikeSearch::whereColumnLike($tokenQuery, 'token', $pattern))
+                $inner->where(fn (Builder $tokenQuery) => LikeSearch::whereColumnLike($tokenQuery, 'token', $pattern, asText: true))
                     ->orWhereHas('prospect', fn (Builder $prospect) => LikeSearch::whereColumnLike(
                         $prospect,
                         'business_name',

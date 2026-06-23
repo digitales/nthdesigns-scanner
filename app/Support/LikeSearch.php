@@ -48,8 +48,23 @@ final class LikeSearch
         }
     }
 
-    public static function whereColumnLike(Builder $query, string $column, string $pattern): Builder
+    public static function whereColumnLike(Builder $query, string $column, string $pattern, bool $asText = false): Builder
     {
+        $column = self::columnExpressionForLike(
+            $query->getConnection()->getDriverName(),
+            $column,
+            $asText,
+        );
+
         return $query->whereRaw("{$column} LIKE ? ESCAPE '\\'", [$pattern]);
+    }
+
+    public static function columnExpressionForLike(string $driver, string $column, bool $asText = false): string
+    {
+        if ($asText && $driver === 'pgsql') {
+            return "{$column}::text";
+        }
+
+        return $column;
     }
 }
