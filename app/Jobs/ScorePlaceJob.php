@@ -92,6 +92,10 @@ class ScorePlaceJob implements ShouldQueue
 
         $prospect = $this->applyWebsiteDiscovery($prospect, $search, $payload, $discovery);
 
+        if (filled(config('services.companies_house.key'))) {
+            CheckCompaniesHouseJob::dispatch($prospect);
+        }
+
         $this->dispatchNextStep($prospect, $search);
         $searchStatus->refresh($search);
     }

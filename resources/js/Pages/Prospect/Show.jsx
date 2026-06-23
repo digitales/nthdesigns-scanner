@@ -10,6 +10,7 @@ import OutreachChannelCard from '@/Components/OutreachChannelCard';
 import TagInput from '@/Components/TagInput';
 import ListPicker from '@/Components/ListPicker';
 import ValidationControl from '@/Components/ValidationControl';
+import CompaniesHouseControl from '@/Components/CompaniesHouseControl';
 import { shouldShowA11yAudit } from '@/utils/auditVisibility';
 import {
     AnglePill,
@@ -357,6 +358,10 @@ export default function ProspectShow({
 
                         <Card title="Validation" className="mb-24">
                             <ValidationControl prospect={prospect} />
+                        </Card>
+
+                        <Card title="Companies House" className="mb-24">
+                            <CompaniesHouseControl prospect={prospect} />
                         </Card>
 
                         <PageSpeedSection pageSpeed={pageSpeed} />

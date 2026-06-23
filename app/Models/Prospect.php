@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\AuditStatus;
 use App\Enums\DominantAngle;
+use App\Enums\ProspectFinancialStatus;
 use App\Enums\ProspectOutreachChannel;
 use App\Enums\ProspectValidatorStatus;
 use App\Enums\UseFormOutreach;
@@ -31,6 +32,8 @@ class Prospect extends Model
         'qualification_status', 'qualification_summary', 'qualification_flags', 'qualification_ran_at',
         'validator_status', 'validator_summary', 'validator_flags', 'validator_ran_at',
         'validator_override_status', 'validator_override_note', 'validator_override_by', 'validator_override_at',
+        'companies_house_number', 'companies_house_status', 'companies_house_summary',
+        'companies_house_flags', 'raw_companies_house_payload', 'companies_house_checked_at',
         'expires_at',
     ];
 
@@ -51,6 +54,10 @@ class Prospect extends Model
             'validator_status' => ProspectValidatorStatus::class,
             'validator_override_status' => ProspectValidatorStatus::class,
             'validator_override_at' => 'datetime',
+            'companies_house_flags' => 'array',
+            'raw_companies_house_payload' => 'array',
+            'companies_house_checked_at' => 'datetime',
+            'companies_house_status' => ProspectFinancialStatus::class,
             'has_description' => 'boolean',
             'hours_complete' => 'boolean',
             'rating' => 'decimal:1',

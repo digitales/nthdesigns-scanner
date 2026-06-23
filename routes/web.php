@@ -3,6 +3,7 @@
 use App\Http\Controllers\AgencyBookingSettingsController;
 use App\Http\Controllers\ApiQuotaSettingsController;
 use App\Http\Controllers\BookingDashboardController;
+use App\Http\Controllers\CompaniesHouseController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\IgnoredProspectController;
 use App\Http\Controllers\MarketCpcController;
@@ -202,6 +203,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/prospects/{prospect}/validate', [ProspectValidatorController::class, 'validateProspect'])->name('prospects.validate');
     Route::post('/prospects/{prospect}/validator-override', [ProspectValidatorController::class, 'storeOverride'])->name('prospects.validator-override.store');
     Route::delete('/prospects/{prospect}/validator-override', [ProspectValidatorController::class, 'destroyOverride'])->name('prospects.validator-override.destroy');
+    Route::post('/prospects/{prospect}/companies-house/check', [CompaniesHouseController::class, 'check'])->name('prospects.companies-house.check');
     Route::post('/prospects/{prospect}/booking/resend-confirmation', [ProspectBookingController::class, 'resendConfirmation'])->name('prospects.booking.resend');
 
     Route::patch('/outreach-emails/{outreachEmail}/sent', [OutreachEmailController::class, 'markSent'])->name('outreach.sent');

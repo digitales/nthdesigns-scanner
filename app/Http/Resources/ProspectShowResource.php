@@ -146,6 +146,11 @@ class ProspectShowResource
             'validator_override_status' => $prospect->validator_override_status?->value,
             'validator_override_note' => $prospect->validator_override_note,
             'validator_override_at' => $prospect->validator_override_at?->toISOString(),
+            'companies_house_number' => $prospect->companies_house_number,
+            'companies_house_status' => $prospect->companies_house_status?->value,
+            'companies_house_summary' => $prospect->companies_house_summary,
+            'companies_house_flags' => $prospect->companies_house_flags ?? [],
+            'companies_house_checked_at' => $prospect->companies_house_checked_at?->toISOString(),
         ];
     }
 

@@ -48,6 +48,11 @@ return [
         'api_key' => env('BRAVE_SEARCH_API_KEY'),
     ],
 
+    'companies_house' => [
+        'key' => env('COMPANIES_HOUSE_API_KEY'),
+        'base_url' => rtrim(env('COMPANIES_HOUSE_BASE_URL', 'https://api.company-information.service.gov.uk'), '/'),
+    ],
+
     'openrouter' => [
         'key' => env('OPENROUTER_API_KEY'),
         'model' => env('OPENROUTER_MODEL', 'anthropic/claude-sonnet-4'),
