@@ -37,6 +37,7 @@ class Prospect extends Model
         'registered_company_name', 'registered_company_number', 'registered_company_note',
         'registered_company_by', 'registered_company_at',
         'registered_company_cleared_by', 'registered_company_cleared_at',
+        'companies_house_details', 'companies_house_details_loaded_at',
         'expires_at',
     ];
 
@@ -62,6 +63,8 @@ class Prospect extends Model
             'companies_house_checked_at' => 'datetime',
             'registered_company_at' => 'datetime',
             'registered_company_cleared_at' => 'datetime',
+            'companies_house_details' => 'array',
+            'companies_house_details_loaded_at' => 'datetime',
             'companies_house_status' => ProspectFinancialStatus::class,
             'has_description' => 'boolean',
             'hours_complete' => 'boolean',

@@ -193,8 +193,8 @@ export default function ProspectShow({
     const isDirectUrl = search.source === 'direct_url';
     const directHost = search.submitted_url?.replace(/^https?:\/\//, '') ?? 'Single site';
     const eyebrow = isDirectUrl
-        ? `C · Single site · ${directHost}`
-        : `C · ${search.niche} · ${search.city}`;
+        ? `Single site · ${directHost}`
+        : `${search.niche} · ${search.city}`;
 
     return (
         <AuthenticatedLayout>

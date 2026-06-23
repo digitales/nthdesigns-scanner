@@ -170,7 +170,7 @@ export default function SearchShow({
     const progressCurrent = flow.progress ?? (phase === 'discovering' ? discovered : prospects.filter((p) => p.audit_status !== 'pending').length);
     const directHost = search.submitted_url?.replace(/^https?:\/\//, '') ?? 'Single site';
     const pageTitle = isDirectUrl ? directHost : `${search.niche} in ${search.city}`;
-    const eyebrow = isDirectUrl ? `B · Single site · ${directHost}` : `B · ${search.niche} · ${search.city}`;
+    const eyebrow = isDirectUrl ? `Single site · ${directHost}` : `${search.niche} · ${search.city}`;
     const runningSub = isDirectUrl
         ? 'Looking up Google Business Profile and running the WCAG 2.2 audit. Results appear when complete.'
         : 'Discovering businesses on Google, then running audits in parallel. Rows appear as their audits complete.';

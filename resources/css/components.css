@@ -2800,6 +2800,82 @@
     border-color: oklch(0.88 0.06 25);
   }
   .companies-house-control-actions { flex-wrap: wrap; }
+  .companies-house-details-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .companies-house-panel {
+    border: 1px solid var(--color-stone-200);
+    border-radius: 8px;
+    padding: 12px 14px;
+    background: var(--color-paper);
+  }
+  .companies-house-panel--hooks {
+    border-color: oklch(0.88 0.06 250);
+    background: oklch(0.98 0.02 250);
+  }
+  .companies-house-panel-title {
+    margin: 0 0 8px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-stone-500);
+  }
+  .companies-house-panel-copy,
+  .companies-house-panel-meta { margin: 0; line-height: 1.45; }
+  .companies-house-panel-link { display: inline-block; margin-top: 8px; }
+  .companies-house-dl--snapshot,
+  .companies-house-dl--financials { margin: 0; }
+  .companies-house-activity-list,
+  .companies-house-officers-list,
+  .companies-house-hooks-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .companies-house-activity-list li {
+    display: grid;
+    grid-template-columns: 7rem 1fr;
+    gap: 10px;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+  .companies-house-activity-list time {
+    color: var(--color-stone-500);
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  .companies-house-officers-list li {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 13px;
+  }
+  .companies-house-officer-name { font-weight: 500; }
+  .companies-house-hooks-list {
+    font-size: 13px;
+    color: var(--color-stone-800);
+    line-height: 1.45;
+  }
+  .companies-house-hooks-list li {
+    position: relative;
+    padding-left: 14px;
+  }
+  .companies-house-hooks-list li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.55em;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: oklch(0.55 0.12 250);
+  }
 
   .qualification-details {
     padding: 14px 20px 16px;

@@ -273,6 +273,43 @@ class CompaniesHouseLookupServiceTest extends TestCase
         $this->assertStringNotContainsString('Matched via registered company name', (string) $prospect->companies_house_summary);
     }
 
+    public function test_check_clears_details_when_company_number_changes(): void
+    {
+        config(['services.companies_house.key' => 'test-key']);
+
+        $prospect = $this->makeProspect([
+            'business_name' => 'Acorn Dental Practice',
+            'address' => '1 High Street, Bristol, BS1 4ST',
+            'companies_house_number' => '11111111',
+            'companies_house_details' => ['company_snapshot' => ['company_type' => 'ltd']],
+            'companies_house_details_loaded_at' => now(),
+        ]);
+
+        Http::fake([
+            '*/search/companies*' => Http::response(['items' => [
+                [
+                    'company_number' => '12345678',
+                    'title' => 'ACORN DENTAL PRACTICE LTD',
+                    'address_snippet' => '1 High Street, Bristol, BS1 4ST',
+                ],
+            ]]),
+            '*/company/12345678/charges*' => Http::response(['total_count' => 0]),
+            '*/company/12345678' => Http::response([
+                'company_status' => 'active',
+                'date_of_creation' => now()->subYears(5)->toDateString(),
+                'accounts' => ['overdue' => false],
+            ]),
+        ]);
+
+        app(CompaniesHouseLookupService::class)->check($prospect);
+
+        $prospect->refresh();
+
+        $this->assertSame('12345678', $prospect->companies_house_number);
+        $this->assertNull($prospect->companies_house_details);
+        $this->assertNull($prospect->companies_house_details_loaded_at);
+    }
+
     private function makeProspect(array $attributes = []): Prospect
     {
         $user = User::factory()->create();

@@ -57,7 +57,7 @@ class CompaniesHouseLookupService
         $match = $this->bestMatch($candidates, $prospect, $searchName);
 
         if ($match === null) {
-            $prospect->update([
+            $this->updateCompaniesHouse($prospect, [
                 'companies_house_number' => null,
                 'companies_house_status' => ProspectFinancialStatus::NoMatch->value,
                 'companies_house_summary' => 'No confident Companies House match — likely a sole trader or partnership.',
@@ -78,7 +78,7 @@ class CompaniesHouseLookupService
         $profile = $this->profile($companyNumber);
 
         if ($profile === null) {
-            $prospect->update([
+            $this->updateCompaniesHouse($prospect, [
                 'companies_house_number' => $companyNumber,
                 'companies_house_status' => ProspectFinancialStatus::Caution->value,
                 'companies_house_summary' => 'Registered company number not found on Companies House — verify manually.',
@@ -98,7 +98,7 @@ class CompaniesHouseLookupService
         $profile = $this->profile($companyNumber);
 
         if ($profile === null) {
-            $prospect->update([
+            $this->updateCompaniesHouse($prospect, [
                 'companies_house_number' => $companyNumber,
                 'companies_house_status' => ProspectFinancialStatus::Caution->value,
                 'companies_house_summary' => 'Matched a company number but could not fetch its profile — verify manually.',
@@ -116,7 +116,7 @@ class CompaniesHouseLookupService
             $summary = "Matched via registered company name — {$summary}";
         }
 
-        $prospect->update([
+        $this->updateCompaniesHouse($prospect, [
             'companies_house_number' => $companyNumber,
             'companies_house_status' => $status->value,
             'companies_house_summary' => $summary,
@@ -124,6 +124,20 @@ class CompaniesHouseLookupService
             'raw_companies_house_payload' => array_merge($profile, ['charge_count' => $chargeCount]),
             'companies_house_checked_at' => now(),
         ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     */
+    private function updateCompaniesHouse(Prospect $prospect, array $attributes): void
+    {
+        if (array_key_exists('companies_house_number', $attributes)
+            && (string) $prospect->companies_house_number !== (string) $attributes['companies_house_number']) {
+            $attributes['companies_house_details'] = null;
+            $attributes['companies_house_details_loaded_at'] = null;
+        }
+
+        $prospect->update($attributes);
     }
 
     /**
