@@ -34,6 +34,9 @@ class Prospect extends Model
         'validator_override_status', 'validator_override_note', 'validator_override_by', 'validator_override_at',
         'companies_house_number', 'companies_house_status', 'companies_house_summary',
         'companies_house_flags', 'raw_companies_house_payload', 'companies_house_checked_at',
+        'registered_company_name', 'registered_company_number', 'registered_company_note',
+        'registered_company_by', 'registered_company_at',
+        'registered_company_cleared_by', 'registered_company_cleared_at',
         'expires_at',
     ];
 
@@ -57,6 +60,8 @@ class Prospect extends Model
             'companies_house_flags' => 'array',
             'raw_companies_house_payload' => 'array',
             'companies_house_checked_at' => 'datetime',
+            'registered_company_at' => 'datetime',
+            'registered_company_cleared_at' => 'datetime',
             'companies_house_status' => ProspectFinancialStatus::class,
             'has_description' => 'boolean',
             'hours_complete' => 'boolean',
@@ -126,5 +131,15 @@ class Prospect extends Model
     public function listItems(): HasMany
     {
         return $this->hasMany(ProspectListItem::class);
+    }
+
+    public function registeredCompanyBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'registered_company_by');
+    }
+
+    public function registeredCompanyClearedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'registered_company_cleared_by');
     }
 }

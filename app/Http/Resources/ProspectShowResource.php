@@ -151,6 +151,13 @@ class ProspectShowResource
             'companies_house_summary' => $prospect->companies_house_summary,
             'companies_house_flags' => $prospect->companies_house_flags ?? [],
             'companies_house_checked_at' => $prospect->companies_house_checked_at?->toISOString(),
+            'registered_company_name' => $prospect->registered_company_name,
+            'registered_company_number' => $prospect->registered_company_number,
+            'registered_company_note' => $prospect->registered_company_note,
+            'registered_company_at' => $prospect->registered_company_at?->toISOString(),
+            'registered_company_by_name' => $prospect->registeredCompanyBy?->name,
+            'registered_company_cleared_at' => $prospect->registered_company_cleared_at?->toISOString(),
+            'registered_company_cleared_by_name' => $prospect->registeredCompanyClearedBy?->name,
         ];
     }
 

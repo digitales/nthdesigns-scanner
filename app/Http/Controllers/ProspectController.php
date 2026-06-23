@@ -50,6 +50,8 @@ class ProspectController extends Controller
             'auditJobs.errorDetail',
             'notes.user',
             'tags',
+            'registeredCompanyBy',
+            'registeredCompanyClearedBy',
         ]);
 
         return Inertia::render('Prospect/Show', ProspectShowResource::format(

@@ -38,12 +38,23 @@ class CompaniesHouseLookupService
             return;
         }
 
-        if (blank($prospect->business_name)) {
+        if (filled($prospect->registered_company_number)) {
+            $this->checkByRegisteredNumber($prospect);
+
             return;
         }
 
-        $candidates = $this->search($prospect->business_name);
-        $match = $this->bestMatch($candidates, $prospect);
+        $searchName = filled($prospect->registered_company_name)
+            ? (string) $prospect->registered_company_name
+            : (string) $prospect->business_name;
+
+        if (blank($searchName)) {
+            return;
+        }
+
+        $viaRegisteredName = filled($prospect->registered_company_name);
+        $candidates = $this->search($searchName);
+        $match = $this->bestMatch($candidates, $prospect, $searchName);
 
         if ($match === null) {
             $prospect->update([
@@ -58,11 +69,37 @@ class CompaniesHouseLookupService
             return;
         }
 
-        $profile = $this->profile($match['company_number']);
+        $this->applyMatch($prospect, $match['company_number'], $viaRegisteredName);
+    }
+
+    private function checkByRegisteredNumber(Prospect $prospect): void
+    {
+        $companyNumber = (string) $prospect->registered_company_number;
+        $profile = $this->profile($companyNumber);
 
         if ($profile === null) {
             $prospect->update([
-                'companies_house_number' => $match['company_number'],
+                'companies_house_number' => $companyNumber,
+                'companies_house_status' => ProspectFinancialStatus::Caution->value,
+                'companies_house_summary' => 'Registered company number not found on Companies House — verify manually.',
+                'companies_house_flags' => ['Registered company number not found on Companies House'],
+                'raw_companies_house_payload' => null,
+                'companies_house_checked_at' => now(),
+            ]);
+
+            return;
+        }
+
+        $this->applyMatch($prospect, $companyNumber, false);
+    }
+
+    private function applyMatch(Prospect $prospect, string $companyNumber, bool $viaRegisteredName): void
+    {
+        $profile = $this->profile($companyNumber);
+
+        if ($profile === null) {
+            $prospect->update([
+                'companies_house_number' => $companyNumber,
                 'companies_house_status' => ProspectFinancialStatus::Caution->value,
                 'companies_house_summary' => 'Matched a company number but could not fetch its profile — verify manually.',
                 'companies_house_flags' => ['Could not fetch Companies House profile'],
@@ -72,11 +109,15 @@ class CompaniesHouseLookupService
             return;
         }
 
-        $chargeCount = $this->chargeCount($match['company_number']);
+        $chargeCount = $this->chargeCount($companyNumber);
         [$status, $flags, $summary] = $this->assess($profile, $chargeCount);
 
+        if ($viaRegisteredName) {
+            $summary = "Matched via registered company name — {$summary}";
+        }
+
         $prospect->update([
-            'companies_house_number' => $match['company_number'],
+            'companies_house_number' => $companyNumber,
             'companies_house_status' => $status->value,
             'companies_house_summary' => $summary,
             'companies_house_flags' => $flags,
@@ -119,18 +160,19 @@ class CompaniesHouseLookupService
      * @param  list<array{company_number: string, title: string, address_snippet: ?string}>  $candidates
      * @return array{company_number: string, title: string, address_snippet: ?string}|null
      */
-    private function bestMatch(array $candidates, Prospect $prospect): ?array
+    private function bestMatch(array $candidates, Prospect $prospect, ?string $searchName = null): ?array
     {
         if ($candidates === []) {
             return null;
         }
 
         $postcode = $this->extractPostcode((string) $prospect->address);
+        $nameForMatch = $searchName ?? (string) $prospect->business_name;
         $best = null;
         $bestScore = 0;
 
         foreach ($candidates as $candidate) {
-            $score = $this->matchScore($candidate, $prospect->business_name, $postcode);
+            $score = $this->matchScore($candidate, $nameForMatch, $postcode);
 
             if ($score > $bestScore) {
                 $bestScore = $score;

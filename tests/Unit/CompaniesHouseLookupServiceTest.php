@@ -149,6 +149,130 @@ class CompaniesHouseLookupServiceTest extends TestCase
         $this->assertStringContainsString('1 charge(s) registered', $flags);
     }
 
+    public function test_check_uses_registered_company_number_directly(): void
+    {
+        config(['services.companies_house.key' => 'test-key']);
+
+        $prospect = $this->makeProspect([
+            'business_name' => 'Smile Dental Manchester',
+            'registered_company_number' => '87654321',
+        ]);
+
+        Http::fake([
+            '*/search/companies*' => function () {
+                throw new \RuntimeException('Search should not be called when number is registered');
+            },
+            '*/company/87654321/charges*' => Http::response(['total_count' => 0]),
+            '*/company/87654321' => Http::response([
+                'company_status' => 'active',
+                'date_of_creation' => now()->subYears(3)->toDateString(),
+                'accounts' => ['overdue' => false],
+            ]),
+        ]);
+
+        app(CompaniesHouseLookupService::class)->check($prospect);
+
+        $prospect->refresh();
+
+        $this->assertSame('87654321', $prospect->companies_house_number);
+        $this->assertSame(ProspectFinancialStatus::Matched, $prospect->companies_house_status);
+    }
+
+    public function test_check_uses_registered_company_name_instead_of_business_name(): void
+    {
+        config(['services.companies_house.key' => 'test-key']);
+
+        $prospect = $this->makeProspect([
+            'business_name' => 'Smile Dental Manchester',
+            'registered_company_name' => 'North West Dental Holdings Ltd',
+            'address' => '1 High Street, Bristol, BS1 4ST',
+        ]);
+
+        Http::fake([
+            '*/search/companies*' => function ($request) {
+                $query = $request->data()['q'] ?? '';
+                if ($query !== 'North West Dental Holdings Ltd') {
+                    return Http::response(['items' => []]);
+                }
+
+                return Http::response(['items' => [
+                    [
+                        'company_number' => '11223344',
+                        'title' => 'NORTH WEST DENTAL HOLDINGS LTD',
+                        'address_snippet' => '1 High Street, Bristol, BS1 4ST',
+                    ],
+                ]]);
+            },
+            '*/company/11223344/charges*' => Http::response(['total_count' => 0]),
+            '*/company/11223344' => Http::response([
+                'company_status' => 'active',
+                'date_of_creation' => now()->subYears(4)->toDateString(),
+                'accounts' => ['overdue' => false],
+            ]),
+        ]);
+
+        app(CompaniesHouseLookupService::class)->check($prospect);
+
+        $prospect->refresh();
+
+        $this->assertSame('11223344', $prospect->companies_house_number);
+        $this->assertStringContainsString('Matched via registered company name', $prospect->companies_house_summary);
+    }
+
+    public function test_check_sets_caution_when_registered_number_not_found(): void
+    {
+        config(['services.companies_house.key' => 'test-key']);
+
+        $prospect = $this->makeProspect([
+            'business_name' => 'Smile Dental Manchester',
+            'registered_company_number' => '99999999',
+        ]);
+
+        Http::fake([
+            '*/company/99999999' => Http::response([], 404),
+        ]);
+
+        app(CompaniesHouseLookupService::class)->check($prospect);
+
+        $prospect->refresh();
+
+        $this->assertSame(ProspectFinancialStatus::Caution, $prospect->companies_house_status);
+        $this->assertContains('Registered company number not found on Companies House', $prospect->companies_house_flags);
+    }
+
+    public function test_check_falls_back_to_business_name_when_no_registration(): void
+    {
+        config(['services.companies_house.key' => 'test-key']);
+
+        $prospect = $this->makeProspect([
+            'business_name' => 'Acorn Dental Practice',
+            'address' => '1 High Street, Bristol, BS1 4ST',
+        ]);
+
+        Http::fake([
+            '*/search/companies*' => Http::response(['items' => [
+                [
+                    'company_number' => '12345678',
+                    'title' => 'ACORN DENTAL PRACTICE LTD',
+                    'address_snippet' => '1 High Street, Bristol, BS1 4ST',
+                ],
+            ]]),
+            '*/company/12345678/charges*' => Http::response(['total_count' => 0]),
+            '*/company/12345678' => Http::response([
+                'company_status' => 'active',
+                'date_of_creation' => now()->subYears(5)->toDateString(),
+                'accounts' => ['overdue' => false],
+            ]),
+        ]);
+
+        app(CompaniesHouseLookupService::class)->check($prospect);
+
+        $prospect->refresh();
+
+        $this->assertSame('12345678', $prospect->companies_house_number);
+        $this->assertStringNotContainsString('Matched via registered company name', (string) $prospect->companies_house_summary);
+    }
+
     private function makeProspect(array $attributes = []): Prospect
     {
         $user = User::factory()->create();
