@@ -2668,6 +2668,139 @@
     border-color: oklch(0.88 0.05 25);
   }
   .validation-control-actions { flex-wrap: wrap; }
+
+  .companies-house-control { gap: 0; }
+  .companies-house-section { display: flex; flex-direction: column; gap: 12px; }
+  .companies-house-section + .companies-house-section { padding-top: 16px; }
+  .companies-house-section-head { display: flex; flex-direction: column; gap: 4px; }
+  .companies-house-section-head--row {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .companies-house-lead { margin: 0; line-height: 1.45; max-width: 52ch; }
+  .companies-house-divider {
+    height: 1px;
+    margin: 16px 0;
+    background: var(--color-stone-200);
+    border: 0;
+  }
+  .companies-house-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1px dashed var(--color-stone-300);
+    background: var(--color-stone-50);
+  }
+  .companies-house-registration {
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--color-stone-200);
+    background: var(--color-stone-50);
+  }
+  .companies-house-dl {
+    display: grid;
+    grid-template-columns: minmax(0, 9rem) minmax(0, 1fr);
+    gap: 6px 12px;
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+  .companies-house-dl dt {
+    margin: 0;
+    font-weight: 500;
+    color: var(--color-stone-700);
+  }
+  .companies-house-dl dd {
+    margin: 0;
+    color: var(--color-stone-900);
+    word-break: break-word;
+  }
+  .companies-house-meta { margin: 10px 0 0; }
+  .companies-house-registration-actions { flex-wrap: wrap; margin-top: 10px; }
+  .companies-house-form {
+    padding: 14px;
+    border-radius: 8px;
+    border: 1px solid var(--color-stone-200);
+    background: var(--color-paper);
+  }
+  .companies-house-form-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  @media (min-width: 640px) {
+    .companies-house-form-grid { grid-template-columns: 1fr 10rem; }
+  }
+  .companies-house-form-actions { flex-wrap: wrap; }
+  .companies-house-checked-at { display: block; margin-top: 2px; }
+  .companies-house-status-row { flex-wrap: wrap; }
+  .companies-house-callout {
+    border-radius: 8px;
+    border: 1px solid var(--color-stone-200);
+    padding: 10px 12px;
+    background: var(--color-paper);
+  }
+  .companies-house-callout--matched {
+    border-color: oklch(0.85 0.06 145);
+    background: oklch(0.97 0.02 145);
+  }
+  .companies-house-callout--caution {
+    border-color: oklch(0.88 0.08 80);
+    background: oklch(0.98 0.03 85);
+  }
+  .companies-house-callout--dissolved {
+    border-color: oklch(0.88 0.06 25);
+    background: oklch(0.98 0.02 25);
+  }
+  .companies-house-callout--neutral {
+    border-color: var(--color-stone-200);
+    background: var(--color-stone-50);
+  }
+  .companies-house-summary {
+    margin: 0;
+    font-size: 13px;
+    color: var(--color-stone-800);
+    line-height: 1.45;
+  }
+  .companies-house-flags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .companies-house-external-link {
+    color: var(--color-stone-800);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .companies-house-external-link:hover { color: var(--color-stone-950); }
+  .companies-house-badge--matched {
+    background: oklch(0.94 0.04 145);
+    color: oklch(0.35 0.08 145);
+    border-color: oklch(0.85 0.06 145);
+  }
+  .companies-house-badge--caution {
+    background: oklch(0.96 0.05 85);
+    color: oklch(0.42 0.1 75);
+    border-color: oklch(0.88 0.08 80);
+  }
+  .companies-house-badge--no_match {
+    background: var(--color-stone-100);
+    color: var(--color-stone-700);
+    border-color: var(--color-stone-300);
+  }
+  .companies-house-badge--dissolved {
+    background: oklch(0.96 0.04 25);
+    color: oklch(0.42 0.12 25);
+    border-color: oklch(0.88 0.06 25);
+  }
+  .companies-house-control-actions { flex-wrap: wrap; }
+
   .qualification-details {
     padding: 14px 20px 16px;
     border-top: 1px solid var(--color-stone-200);
