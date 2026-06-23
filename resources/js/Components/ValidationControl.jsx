@@ -1,10 +1,20 @@
 import { useState } from 'react';
 import { router } from '@inertiajs/react';
-import { Badge, Button, Stack } from '@/Components/ui';
+import { Badge, Button, Eyebrow, Field, Stack } from '@/Components/ui';
+import {
+    formatValidatorFlag,
+    groupValidatorFlags,
+    shouldDisplayValidatorFlag,
+} from '@/utils/validatorFlags';
 
 const STATUS_LABELS = {
     high_chance: 'High chance',
     low_chance: 'Low chance',
+};
+
+const CALLOUT_CLASS = {
+    high_chance: 'validation-callout--high_chance',
+    low_chance: 'validation-callout--low_chance',
 };
 
 function csrfToken() {
@@ -60,6 +70,73 @@ function suggestPattern(prospect) {
     return firstWord.length >= 3 ? firstWord.toLowerCase() : '';
 }
 
+function ValidationFlagGroup({ label, flags, tone }) {
+    return (
+        <div className="validation-flag-group">
+            <div className="eyebrow eyebrow-spaced">{label}</div>
+            <div className="validation-flags" role="list">
+                {flags.map((flag) => (
+                    <span
+                        key={flag}
+                        role="listitem"
+                        className={`qualification-flag qualification-flag--${tone}`}
+                    >
+                        <span className="qualification-flag-mark" aria-hidden="true" />
+                        {formatValidatorFlag(flag)}
+                    </span>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function ValidationSignals({ flags, status }) {
+    const visibleFlags = flags.filter((flag) => shouldDisplayValidatorFlag(flag, flags));
+
+    if (visibleFlags.length === 0) {
+        return null;
+    }
+
+    const groups = groupValidatorFlags(flags, status);
+    const hasMixedSignals = groups.positive.length > 0 && groups.negative.length > 0;
+
+    return (
+        <div className="validation-signals">
+            {hasMixedSignals ? (
+                <>
+                    {groups.positive.length > 0 && (
+                        <ValidationFlagGroup
+                            label="Positive signals"
+                            flags={groups.positive}
+                            tone="positive"
+                        />
+                    )}
+                    {groups.negative.length > 0 && (
+                        <ValidationFlagGroup
+                            label="Concerns"
+                            flags={groups.negative}
+                            tone="negative"
+                        />
+                    )}
+                    {groups.neutral.length > 0 && (
+                        <ValidationFlagGroup
+                            label="Other notes"
+                            flags={groups.neutral}
+                            tone="neutral"
+                        />
+                    )}
+                </>
+            ) : (
+                <ValidationFlagGroup
+                    label="Signals found"
+                    flags={visibleFlags}
+                    tone={status === 'high_chance' ? 'positive' : status === 'low_chance' ? 'negative' : 'neutral'}
+                />
+            )}
+        </div>
+    );
+}
+
 export default function ValidationControl({ prospect }) {
     const [validating, setValidating] = useState(false);
     const [qualifying, setQualifying] = useState(false);
@@ -73,6 +150,7 @@ export default function ValidationControl({ prospect }) {
 
     const status = prospect.validator_status;
     const hasOverride = Boolean(prospect.validator_override_status);
+    const flags = prospect.validator_flags ?? [];
 
     const handleRevalidate = async () => {
         if (validating) {
@@ -146,93 +224,119 @@ export default function ValidationControl({ prospect }) {
     };
 
     return (
-        <Stack gap={12}>
-            <Stack direction="row" gap={8} align="center" className="validation-control-header">
-                {status ? (
-                    <Badge className={`validation-badge validation-badge--${status}`}>
-                        {STATUS_LABELS[status] ?? status}
-                    </Badge>
+        <Stack gap={0} className="validation-control">
+            <section className="validation-section" aria-labelledby="validation-assessment-heading">
+                <div className="validation-section-head validation-section-head--row">
+                    <div id="validation-assessment-heading">
+                        <Eyebrow>Outreach fit</Eyebrow>
+                        {prospect.validator_ran_at && (
+                            <time
+                                className="micro text-stone validation-ran-at"
+                                dateTime={prospect.validator_ran_at}
+                            >
+                                Ran {new Date(prospect.validator_ran_at).toLocaleString()}
+                            </time>
+                        )}
+                    </div>
+                    <Stack direction="row" gap={8} align="center" className="validation-status-row">
+                        {status ? (
+                            <Badge className={`validation-badge validation-badge--${status}`}>
+                                {STATUS_LABELS[status] ?? status}
+                            </Badge>
+                        ) : (
+                            <span className="micro text-stone">Not validated yet</span>
+                        )}
+                        {hasOverride && (
+                            <Badge className="validation-badge validation-badge--override">
+                                Operator override
+                            </Badge>
+                        )}
+                    </Stack>
+                </div>
+
+                {!status ? (
+                    <div className="validation-empty">
+                        <p className="micro text-stone">
+                            Run validation to assess whether this prospect is worth cold outreach.
+                        </p>
+                    </div>
                 ) : (
-                    <span className="micro">Not validated yet</span>
+                    <>
+                        {prospect.validator_summary && (
+                            <div className={`validation-callout ${CALLOUT_CLASS[status] ?? 'validation-callout--neutral'}`}>
+                                <p className="validation-summary">{prospect.validator_summary}</p>
+                            </div>
+                        )}
+
+                        {hasOverride && prospect.validator_override_note && (
+                            <p className="micro text-stone validation-override-note">
+                                Override note: {prospect.validator_override_note}
+                            </p>
+                        )}
+
+                        <ValidationSignals flags={flags} status={status} />
+                    </>
                 )}
-                {hasOverride && (
-                    <Badge>Operator override</Badge>
-                )}
-                {prospect.validator_ran_at && (
-                    <span className="micro text-stone">
-                        Ran {new Date(prospect.validator_ran_at).toLocaleString()}
-                    </span>
-                )}
-            </Stack>
 
-            {prospect.validator_summary && (
-                <p className="micro">{prospect.validator_summary}</p>
-            )}
-
-            {hasOverride && prospect.validator_override_note && (
-                <p className="micro text-stone">Override note: {prospect.validator_override_note}</p>
-            )}
-
-            {(prospect.validator_flags ?? []).length > 0 && (
-                <ul className="qualification-flags">
-                    {(prospect.validator_flags ?? []).map((flag, index) => (
-                        <li key={index}>{flag}</li>
-                    ))}
-                </ul>
-            )}
-
-            <Stack direction="row" gap={8} className="validation-control-actions">
-                <Button
-                    kind="secondary"
-                    size="sm"
-                    onClick={handleRevalidate}
-                    disabled={validating}
-                >
-                    {validating ? 'Validating…' : 'Re-validate'}
-                </Button>
-                <Button
-                    kind="ghost"
-                    size="sm"
-                    onClick={handleForceQualify}
-                    disabled={qualifying}
-                >
-                    {qualifying ? 'Qualifying…' : 'Force qualify'}
-                </Button>
-                {!showOverrideForm ? (
-                    <Button kind="ghost" size="sm" onClick={() => setShowOverrideForm(true)}>
-                        Override…
+                <Stack direction="row" gap={8} className="validation-control-actions">
+                    <Button
+                        kind="secondary"
+                        size="sm"
+                        type="button"
+                        onClick={handleRevalidate}
+                        disabled={validating}
+                    >
+                        {validating ? 'Validating…' : status ? 'Re-validate' : 'Validate'}
                     </Button>
-                ) : null}
-                {hasOverride && (
-                    <Button kind="ghost" size="sm" onClick={clearOverride}>
-                        Clear override
+                    <Button
+                        kind="ghost"
+                        size="sm"
+                        type="button"
+                        onClick={handleForceQualify}
+                        disabled={qualifying}
+                    >
+                        {qualifying ? 'Qualifying…' : 'Force qualify'}
                     </Button>
-                )}
-                <Button kind="ghost" size="sm" onClick={openSignalForm}>
-                    Add global signal…
-                </Button>
-            </Stack>
+                    {!showOverrideForm ? (
+                        <Button kind="ghost" size="sm" type="button" onClick={() => setShowOverrideForm(true)}>
+                            Override…
+                        </Button>
+                    ) : null}
+                    {hasOverride && (
+                        <Button kind="ghost" size="sm" type="button" onClick={clearOverride}>
+                            Clear override
+                        </Button>
+                    )}
+                    <Button kind="ghost" size="sm" type="button" onClick={openSignalForm}>
+                        Add global signal…
+                    </Button>
+                </Stack>
+            </section>
 
             {showOverrideForm && (
-                <Stack as="form" gap={10} onSubmit={saveOverride}>
-                    <label className="micro">Override status</label>
-                    <select
-                        className="input"
-                        value={overrideStatus}
-                        onChange={(e) => setOverrideStatus(e.target.value)}
-                    >
-                        <option value="high_chance">High chance</option>
-                        <option value="low_chance">Low chance</option>
-                    </select>
-                    <label className="micro">Note (optional)</label>
-                    <textarea
-                        className="textarea w-full"
-                        rows={2}
-                        value={overrideNote}
-                        onChange={(e) => setOverrideNote(e.target.value)}
-                        placeholder="Why this override applies"
-                    />
-                    <Stack direction="row" gap={8}>
+                <Stack as="form" gap={10} className="validation-form" onSubmit={saveOverride}>
+                    <Field label="Override status" htmlFor="validator-override-status">
+                        <select
+                            id="validator-override-status"
+                            className="input"
+                            value={overrideStatus}
+                            onChange={(e) => setOverrideStatus(e.target.value)}
+                        >
+                            <option value="high_chance">High chance</option>
+                            <option value="low_chance">Low chance</option>
+                        </select>
+                    </Field>
+                    <Field label="Note" hint="Optional" htmlFor="validator-override-note">
+                        <textarea
+                            id="validator-override-note"
+                            className="textarea w-full"
+                            rows={2}
+                            value={overrideNote}
+                            onChange={(e) => setOverrideNote(e.target.value)}
+                            placeholder="Why this override applies"
+                        />
+                    </Field>
+                    <Stack direction="row" gap={8} className="validation-form-actions">
                         <Button kind="primary" size="sm" type="submit">Save override</Button>
                         <Button kind="ghost" size="sm" type="button" onClick={() => setShowOverrideForm(false)}>
                             Cancel
@@ -242,35 +346,41 @@ export default function ValidationControl({ prospect }) {
             )}
 
             {showSignalForm && (
-                <Stack as="form" gap={10} onSubmit={saveSignal}>
-                    <p className="micro">
+                <Stack as="form" gap={10} className="validation-form" onSubmit={saveSignal}>
+                    <p className="micro text-stone validation-form-lead">
                         Adds a franchise signal for all future validations. Matching prospects will be re-validated.
                     </p>
-                    <label className="micro">Pattern</label>
-                    <input
-                        className="input"
-                        value={signalPattern}
-                        onChange={(e) => setSignalPattern(e.target.value)}
-                        placeholder="e.g. smileworks"
-                        required
-                    />
-                    <label className="micro">Label</label>
-                    <input
-                        className="input"
-                        value={signalLabel}
-                        onChange={(e) => setSignalLabel(e.target.value)}
-                        placeholder="e.g. Smileworks Dental Group"
-                        required
-                    />
-                    <label className="micro">Notes (optional)</label>
-                    <textarea
-                        className="textarea w-full"
-                        rows={2}
-                        value={signalNotes}
-                        onChange={(e) => setSignalNotes(e.target.value)}
-                        placeholder="Why this signal was added"
-                    />
-                    <Stack direction="row" gap={8}>
+                    <Field label="Pattern" htmlFor="validation-signal-pattern">
+                        <input
+                            id="validation-signal-pattern"
+                            className="input"
+                            value={signalPattern}
+                            onChange={(e) => setSignalPattern(e.target.value)}
+                            placeholder="e.g. smileworks"
+                            required
+                        />
+                    </Field>
+                    <Field label="Label" htmlFor="validation-signal-label">
+                        <input
+                            id="validation-signal-label"
+                            className="input"
+                            value={signalLabel}
+                            onChange={(e) => setSignalLabel(e.target.value)}
+                            placeholder="e.g. Smileworks Dental Group"
+                            required
+                        />
+                    </Field>
+                    <Field label="Notes" hint="Optional" htmlFor="validation-signal-notes">
+                        <textarea
+                            id="validation-signal-notes"
+                            className="textarea w-full"
+                            rows={2}
+                            value={signalNotes}
+                            onChange={(e) => setSignalNotes(e.target.value)}
+                            placeholder="Why this signal was added"
+                        />
+                    </Field>
+                    <Stack direction="row" gap={8} className="validation-form-actions">
                         <Button kind="primary" size="sm" type="submit">Add signal</Button>
                         <Button kind="ghost" size="sm" type="button" onClick={() => setShowSignalForm(false)}>
                             Cancel

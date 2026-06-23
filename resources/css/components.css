@@ -2667,7 +2667,76 @@
     color: oklch(0.42 0.08 25);
     border-color: oklch(0.88 0.05 25);
   }
-  .validation-control-actions { flex-wrap: wrap; }
+  .validation-badge--override {
+    background: oklch(0.96 0.04 250);
+    color: oklch(0.38 0.1 250);
+    border-color: oklch(0.88 0.06 250);
+  }
+  .validation-control { gap: 0; }
+  .validation-section { display: flex; flex-direction: column; gap: 12px; }
+  .validation-section-head { display: flex; flex-direction: column; gap: 4px; }
+  .validation-section-head--row {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .validation-ran-at { display: block; margin-top: 2px; }
+  .validation-status-row { flex-wrap: wrap; }
+  .validation-empty {
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px dashed var(--color-stone-300);
+    background: var(--color-stone-50);
+  }
+  .validation-callout {
+    border-radius: 8px;
+    border: 1px solid var(--color-stone-200);
+    padding: 10px 12px;
+    background: var(--color-paper);
+  }
+  .validation-callout--high_chance {
+    border-color: oklch(0.85 0.06 145);
+    background: oklch(0.97 0.02 145);
+  }
+  .validation-callout--low_chance {
+    border-color: oklch(0.88 0.06 25);
+    background: oklch(0.98 0.02 25);
+  }
+  .validation-callout--neutral {
+    border-color: var(--color-stone-200);
+    background: var(--color-stone-50);
+  }
+  .validation-summary {
+    margin: 0;
+    font-size: 13px;
+    color: var(--color-stone-800);
+    line-height: 1.45;
+  }
+  .validation-override-note { margin: 0; }
+  .validation-signals {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .validation-flag-group + .validation-flag-group {
+    padding-top: 12px;
+    border-top: 1px solid var(--color-stone-200);
+  }
+  .validation-flags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .validation-control-actions { flex-wrap: wrap; margin-top: 4px; }
+  .validation-form {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--color-stone-200);
+  }
+  .validation-form-lead { margin: 0; max-width: 52ch; line-height: 1.45; }
+  .validation-form-actions { flex-wrap: wrap; }
 
   .companies-house-control { gap: 0; }
   .companies-house-section { display: flex; flex-direction: column; gap: 12px; }
