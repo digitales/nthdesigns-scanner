@@ -1,6 +1,7 @@
 import { Link, usePage } from '@inertiajs/react';
 import Brand from './Brand';
 import { NotificationBell } from '@/Components/ui';
+import SearchBar from './SearchBar';
 import Status from './Status';
 import UserMenu from './UserMenu';
 
@@ -48,6 +49,7 @@ export default function AppShell({ children }) {
                 </nav>
 
                 <div className="app-tools">
+                    <SearchBar />
                     <Status kind="ready">APIs online</Status>
                     <NotificationBell />
                     <UserMenu user={user} />

@@ -41,6 +41,7 @@ use App\Http\Controllers\Settings\ValidationRulesController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SharedListController;
 use App\Http\Controllers\SharedSearchController;
+use App\Http\Controllers\SiteSearchController;
 use App\Http\Controllers\WarmupController;
 use App\Http\Controllers\WarmupPoolController;
 use App\Services\HomepageAuditService;
@@ -126,6 +127,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/niches/{nicheScan}/sample', [NicheScanSampleController::class, 'show'])->name('niches.sample');
     Route::post('/niches/ignore', [NicheIgnoreController::class, 'store'])->name('niches.ignore.store');
     Route::post('/niches/ignore/remove', [NicheIgnoreController::class, 'destroy'])->name('niches.ignore.destroy');
+
+    Route::get('/find', [SiteSearchController::class, 'index'])->name('find.index');
 
     Route::get('/search', [SearchController::class, 'index'])->name('search.index');
     Route::post('/market-cpc/load', [MarketCpcController::class, 'load'])->name('market-cpc.load');

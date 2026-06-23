@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Contracts\SiteSearchProvider;
 use App\Models\AgencyBookingSetting;
 use App\Models\ApiQuotaSetting;
 use App\Models\Export;
@@ -30,6 +31,7 @@ use App\Policies\SharedListPolicy;
 use App\Policies\SharedSearchPolicy;
 use App\Policies\UserMcpKeyPolicy;
 use App\Queue\FailJobOnApiQuotaExceeded;
+use App\Services\SiteSearch\SqlSiteSearchProvider;
 use App\Support\ScannerConfig;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Bus;
@@ -44,7 +46,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(SiteSearchProvider::class, SqlSiteSearchProvider::class);
     }
 
     /**

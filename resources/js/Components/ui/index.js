@@ -25,6 +25,7 @@ export { default as Stack } from './Stack';
 export { default as Pagination } from './Pagination';
 export { default as RowActions } from './RowActions';
 export { default as ScoreBadge } from './ScoreBadge';
+export { default as SearchBar } from './SearchBar';
 export { default as ScoreCard } from './ScoreCard';
 export { default as Segmented } from './Segmented';
 export { default as Select } from './Select';
