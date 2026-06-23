@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Prospect;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -139,11 +140,26 @@ class CompaniesHouseDetailsService
      */
     private function fetchOfficers(string $companyNumber): array
     {
-        $response = Http::withBasicAuth($this->apiKey(), '')
-            ->timeout(10)
-            ->get("{$this->baseUrl()}/company/{$companyNumber}/officers", [
-                'register_view' => 'true',
+        $response = $this->requestOfficers($companyNumber, registerView: true);
+
+        if ($response->serverError()) {
+            $this->pauseBeforeOfficersRetry();
+            $response = $this->requestOfficers($companyNumber, registerView: true);
+        }
+
+        if ($response->failed()) {
+            Log::warning('CompaniesHouseDetailsService: officers fetch failed, retrying without register_view', [
+                'status' => $response->status(),
+                'company_number' => $companyNumber,
             ]);
+
+            $response = $this->requestOfficers($companyNumber, registerView: false);
+
+            if ($response->serverError()) {
+                $this->pauseBeforeOfficersRetry();
+                $response = $this->requestOfficers($companyNumber, registerView: false);
+            }
+        }
 
         if ($response->failed()) {
             Log::warning('CompaniesHouseDetailsService: officers fetch failed', [
@@ -154,8 +170,15 @@ class CompaniesHouseDetailsService
             return [];
         }
 
-        $items = $response->json('items') ?? [];
+        return $this->normalizeOfficers($response->json('items') ?? []);
+    }
 
+    /**
+     * @param  list<array<string, mixed>>  $items
+     * @return list<array<string, mixed>>
+     */
+    private function normalizeOfficers(array $items): array
+    {
         return array_values(array_filter(array_map(function (array $item) {
             if (filled($item['resigned_on'] ?? null)) {
                 return null;
@@ -168,6 +191,15 @@ class CompaniesHouseDetailsService
                 'resigned_on' => null,
             ];
         }, $items)));
+    }
+
+    private function requestOfficers(string $companyNumber, bool $registerView): Response
+    {
+        $query = $registerView ? ['register_view' => 'true'] : [];
+
+        return Http::withBasicAuth($this->apiKey(), '')
+            ->timeout(10)
+            ->get("{$this->baseUrl()}/company/{$companyNumber}/officers", $query);
     }
 
     /**
@@ -276,6 +308,15 @@ class CompaniesHouseDetailsService
             'employees' => null,
             'transaction_id' => $filing['transaction_id'] ?? null,
         ];
+    }
+
+    private function pauseBeforeOfficersRetry(): void
+    {
+        if (app()->runningUnitTests()) {
+            return;
+        }
+
+        usleep(500_000);
     }
 
     private function apiKey(): ?string

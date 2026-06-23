@@ -106,4 +106,50 @@ class CompaniesHouseDetailsTest extends TestCase
         $this->assertSame(450_000, $prospect->companies_house_details['financials']['turnover']);
         $this->assertNotEmpty($prospect->companies_house_details['talking_points']);
     }
+
+    public function test_officers_fetch_falls_back_when_register_view_returns_server_error(): void
+    {
+        config(['services.companies_house.key' => 'test-key']);
+
+        $prospect = Prospect::factory()->create([
+            'search_id' => Search::factory()->create()->id,
+            'companies_house_number' => '04968216',
+            'raw_companies_house_payload' => ['type' => 'ltd'],
+        ]);
+
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), 'register_view=true')) {
+                return Http::response(['error' => 'Internal server error'], 500);
+            }
+
+            if (str_contains($request->url(), '/officers')) {
+                return Http::response(['items' => [
+                    [
+                        'name' => 'Farida Khanam Ali',
+                        'officer_role' => 'secretary',
+                        'appointed_on' => '2005-02-15',
+                    ],
+                    [
+                        'name' => 'Resigned Officer',
+                        'officer_role' => 'director',
+                        'appointed_on' => '2003-11-18',
+                        'resigned_on' => '2003-11-21',
+                    ],
+                ]]);
+            }
+
+            if (str_contains($request->url(), '/filing-history')) {
+                return Http::response(['items' => []]);
+            }
+
+            return Http::response([], 404);
+        });
+
+        app(CompaniesHouseDetailsService::class)->load($prospect->fresh());
+
+        $prospect->refresh();
+
+        $this->assertCount(1, $prospect->companies_house_details['officers']);
+        $this->assertSame('Farida Khanam Ali', $prospect->companies_house_details['officers'][0]['name']);
+    }
 }
