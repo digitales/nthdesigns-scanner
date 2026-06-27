@@ -3351,4 +3351,103 @@
   .niches-panel-meta { margin-top: 4px; }
   .niches-panel-score { margin-top: 8px; }
   .niches-sample-error { color: var(--color-sev-critical); margin-bottom: 12px; }
+
+  /* ── Responsive navigation ─────────────────────────────────── */
+
+  .app-menu-toggle {
+    display: none;
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .app-menu-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--color-stone-600);
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+
+  .app-menu-btn:hover,
+  .app-menu-btn.is-open {
+    background: var(--color-stone-100);
+    border-color: var(--color-stone-400);
+    color: var(--color-ink);
+  }
+
+  .app-menu-btn.has-active {
+    color: var(--color-ink);
+  }
+
+  .app-menu-panel {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 180px;
+    background: var(--color-paper);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    z-index: 60;
+    overflow: hidden;
+    padding: 4px 0;
+  }
+
+  .app-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-stone-600);
+    text-decoration: none;
+    letter-spacing: -0.005em;
+    white-space: nowrap;
+  }
+
+  .app-menu-item:hover {
+    background: var(--color-stone-100);
+    color: var(--color-ink);
+  }
+
+  .app-menu-item.active {
+    color: var(--color-ink);
+    background: var(--color-stone-50);
+  }
+
+  .app-menu-item .count {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    background: var(--color-ink);
+    color: var(--color-paper);
+    padding: 1px 5px;
+    border-radius: var(--radius-tight);
+    font-weight: 500;
+    line-height: 1.4;
+  }
+
+  /* Tablet: ≤ 1023px — priority items in nav, extras in hamburger */
+  @media (max-width: 1023px) {
+    .app-topbar { gap: 16px; padding: 0 16px; }
+    .app-search { display: none; }
+    .app-topbar-status { display: none; }
+    .app-nav-extra { display: none; }
+    .app-menu-toggle { display: block; }
+    .app-menu-item--priority { display: none; }
+  }
+
+  /* Mobile: ≤ 767px — all nav items in hamburger */
+  @media (max-width: 767px) {
+    .app-topbar { gap: 10px; padding: 0 12px; }
+    .app-nav { display: none; }
+    .app-menu-item--priority { display: flex; }
+    .user-chip-name { display: none; }
+  }
 }
