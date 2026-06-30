@@ -17,19 +17,22 @@
   .app {
     min-height: 100vh;
     background: var(--color-paper);
+    overflow-x: clip;
   }
 
   .app-topbar {
     display: flex;
     align-items: center;
-    gap: 28px;
-    padding: 0 24px;
+    gap: 16px;
+    padding: 0 16px;
     height: 52px;
     border-bottom: 1px solid var(--color-line);
     background: var(--color-paper);
     position: sticky;
     top: 0;
     z-index: 50;
+    min-width: 0;
+    width: 100%;
   }
 
   .app-brand {
@@ -70,20 +73,31 @@
     display: flex;
     gap: 2px;
     align-items: center;
-    flex: 1;
+    flex: 1 1 0;
+    min-width: 0;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .app-nav::-webkit-scrollbar {
+    display: none;
   }
 
   .app-nav a {
     font-size: 13px;
     font-weight: 500;
     color: var(--color-stone-600);
-    padding: 7px 12px;
+    padding: 7px 10px;
     border-radius: var(--radius-default);
     letter-spacing: -0.005em;
     display: inline-flex;
     align-items: center;
     gap: 6px;
     text-decoration: none;
+    flex-shrink: 0;
+    white-space: nowrap;
   }
 
   .app-nav a:hover {
@@ -114,14 +128,54 @@
   .app-tools {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
+    flex-shrink: 0;
   }
 
   .app-search .input {
-    width: 220px;
+    width: 180px;
     height: 32px;
     font-size: 12.5px;
     padding: 0 10px;
+  }
+
+  .status-label {
+    white-space: nowrap;
+  }
+
+  @media (max-width: 1280px) {
+    .brand-product,
+    .brand-sep {
+      display: none;
+    }
+
+    .app-search .input {
+      width: 140px;
+    }
+  }
+
+  @media (max-width: 1080px) {
+    .status-label {
+      display: none;
+    }
+
+    .user-chip-name,
+    .user-chip-chevron {
+      display: none;
+    }
+
+    .user-chip-trigger {
+      padding: 5px;
+    }
+
+    .app-search .input {
+      width: 120px;
+    }
+
+    .app-nav a {
+      padding: 7px 8px;
+      font-size: 12.5px;
+    }
   }
 
   .find-results {
