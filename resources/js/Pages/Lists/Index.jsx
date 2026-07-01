@@ -1,6 +1,7 @@
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import ListsSubNav from '@/Components/ListsSubNav';
 import {
     Button,
     Card,
@@ -80,6 +81,8 @@ export default function ListsIndex({ lists = [], sort = 'updated', tagSuggestion
                         </Stack>
                     }
                 />
+
+                <ListsSubNav active="index" />
 
                 <Stack direction="row" gap={8} className="mb-16">
                     <Button

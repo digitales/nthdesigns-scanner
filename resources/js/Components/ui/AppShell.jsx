@@ -17,7 +17,7 @@ export default function AppShell({ children }) {
         { href: '/niches', label: 'Niches', match: ['niches.index'], priority: true },
         { href: '/outreach', label: 'Outreach', match: ['outreach.index', 'outreach.*'], count: outreachSelectionCount, priority: true },
         { href: '/warmup', label: 'Warmup', match: ['warmup.index', 'warmup.*'], priority: true },
-        { href: '/lists', label: 'Lists', match: ['lists.index', 'lists.show', 'lists.browse', 'saved.index'], priority: true },
+        { href: '/lists', label: 'Lists', match: ['lists.index', 'lists.show', 'lists.browse', 'lists.pipeline', 'saved.index'], priority: true },
         { href: '/ignored', label: 'Ignored', match: ['ignored.index'] },
         { href: '/reports', label: 'Reports', match: ['reports.index'] },
         { href: '/bookings', label: 'Bookings', match: ['bookings.index'] },

@@ -9,6 +9,7 @@ use App\Jobs\DetectCmsJob;
 use App\Jobs\DirectUrlScanJob;
 use App\Jobs\GenerateOutreachEmailJob;
 use App\Jobs\GenerateProspectReportJob;
+use App\Jobs\RegenerateOutreachForProspectJob;
 use App\Jobs\ScanNicheJob;
 use App\Jobs\ScorePlaceJob;
 use App\Jobs\ScrapeProspectsJob;
@@ -190,6 +191,7 @@ final class ScannerConfig
             CombineScoresJob::class => [config('scanner.auditing_queue_connection'), AuditingQueue::NAME],
             DetectCmsJob::class => [config('scanner.auditing_queue_connection'), AuditingQueue::NAME],
             GenerateProspectReportJob::class => [config('scanner.auditing_queue_connection'), AuditingQueue::NAME],
+            RegenerateOutreachForProspectJob::class => [config('scanner.auditing_queue_connection'), AuditingQueue::NAME],
         ]);
     }
 }

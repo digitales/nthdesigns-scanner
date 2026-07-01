@@ -25,7 +25,10 @@ class OutreachGenerateTest extends TestCase
         $user = User::factory()->create();
         $search = Search::factory()->create(['user_id' => $user->id]);
 
-        $withReport = Prospect::factory()->create(['search_id' => $search->id]);
+        $withReport = Prospect::factory()->create([
+            'search_id' => $search->id,
+            'email' => 'owner@example.com',
+        ]);
         ProspectReport::factory()->for($withReport)->create();
         OutreachSelection::create(['user_id' => $user->id, 'prospect_id' => $withReport->id]);
 

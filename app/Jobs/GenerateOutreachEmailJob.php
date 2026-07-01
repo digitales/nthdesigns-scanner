@@ -64,12 +64,13 @@ class GenerateOutreachEmailJob implements ShouldQueue
 
         $pitchAngle = $generator->resolvedPitchAngle($prospect, $this->options);
 
-        if (OutreachEmail::query()
-            ->where('prospect_id', $prospect->id)
-            ->where('user_id', $this->user->id)
-            ->where('pitch_angle', $pitchAngle)
-            ->where('channel', $this->channel->value)
-            ->exists()) {
+        if (! ($this->options['force'] ?? false)
+            && OutreachEmail::query()
+                ->where('prospect_id', $prospect->id)
+                ->where('user_id', $this->user->id)
+                ->where('pitch_angle', $pitchAngle)
+                ->where('channel', $this->channel->value)
+                ->exists()) {
             return;
         }
 

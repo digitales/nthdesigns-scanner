@@ -15,6 +15,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OAuthServerController;
 use App\Http\Controllers\OAuthWellKnownController;
 use App\Http\Controllers\OutreachController;
+use App\Http\Controllers\OutreachPipelineController;
 use App\Http\Controllers\OutreachEmailController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProspectBookingController;
@@ -149,6 +150,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/lists', [ProspectListController::class, 'index'])->name('lists.index');
     Route::get('/lists/browse', [ProspectListController::class, 'browse'])->name('lists.browse');
+    Route::get('/lists/pipeline', [OutreachPipelineController::class, 'index'])->name('lists.pipeline');
     Route::post('/lists', [ProspectListController::class, 'store'])->name('lists.store');
     Route::get('/lists/{list}', [ProspectListController::class, 'show'])->name('lists.show');
     Route::patch('/lists/{list}', [ProspectListController::class, 'update'])->name('lists.update');
@@ -175,6 +177,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/outreach/selections', [OutreachController::class, 'clearSelections'])->name('outreach.selections.clear');
     Route::delete('/outreach/selections/{prospect}', [OutreachController::class, 'destroySelection'])->name('outreach.selections.destroy');
     Route::post('/outreach/generate', [OutreachController::class, 'generate'])->name('outreach.generate');
+    Route::post('/outreach/refresh', [OutreachController::class, 'refresh'])->name('outreach.refresh');
 
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
     Route::post('/notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');

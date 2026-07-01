@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import ListsSubNav from '@/Components/ListsSubNav';
 import {
     AnglePill,
     Button,
@@ -85,6 +86,8 @@ export default function ListsBrowse({ prospects, warmLeads, filters, meta, pagin
                         </Stack>
                     }
                 />
+
+                <ListsSubNav active="browse" />
 
                 {warmLeads.length > 0 && !filters.warm && (
                     <section className="warm-panel">

@@ -28,6 +28,7 @@ class OutreachIndexTest extends TestCase
             'business_name' => 'Acme Dental',
             'combined_score' => 82,
             'performance_score' => 45,
+            'email' => 'owner@example.com',
         ]);
         $report = ProspectReport::factory()->create(['prospect_id' => $prospect->id]);
         ReportBooking::query()->create([

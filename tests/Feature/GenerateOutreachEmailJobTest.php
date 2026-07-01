@@ -71,6 +71,45 @@ class GenerateOutreachEmailJobTest extends TestCase
         $this->assertNotNull($report->id);
     }
 
+    public function test_force_regenerates_when_matching_email_already_exists(): void
+    {
+        $user = User::factory()->create();
+        $search = Search::factory()->create(['user_id' => $user->id]);
+        $prospect = Prospect::factory()->create([
+            'search_id' => $search->id,
+            'dominant_angle' => 'gbp',
+            'email' => 'owner@example.com',
+        ]);
+        ProspectReport::factory()->create(['prospect_id' => $prospect->id]);
+
+        OutreachEmail::factory()->create([
+            'prospect_id' => $prospect->id,
+            'user_id' => $user->id,
+            'pitch_angle' => 'gbp',
+            'subject_line' => 'Old subject',
+        ]);
+
+        $this->mock(OutreachEmailGeneratorService::class, function ($mock) {
+            $mock->shouldReceive('resolvedPitchAngle')->andReturn('gbp');
+            $mock->shouldReceive('generate')->once()->andReturn([
+                'subject_line' => 'Fresh subject',
+                'email_body' => 'Updated body',
+                'model_used' => 'claude-test',
+                'prompt_tokens' => 10,
+                'completion_tokens' => 20,
+                'pitch_angle' => 'gbp',
+            ]);
+        });
+
+        $this->runJob(new GenerateOutreachEmailJob($prospect, $user, ['pitch_angle' => 'auto', 'force' => true]));
+
+        $this->assertSame(2, OutreachEmail::where('prospect_id', $prospect->id)->count());
+        $this->assertDatabaseHas('outreach_emails', [
+            'prospect_id' => $prospect->id,
+            'subject_line' => 'Fresh subject',
+        ]);
+    }
+
     public function test_creates_email_when_no_match_exists(): void
     {
         $user = User::factory()->create();

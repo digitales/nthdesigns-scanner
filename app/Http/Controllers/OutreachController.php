@@ -4,9 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Enums\OutreachChannel;
 use App\Http\Requests\GenerateOutreachEmailRequest;
+use App\Http\Requests\RefreshOutreachReportsRequest;
 use App\Http\Requests\StoreOutreachSelectionRequest;
 use App\Http\Resources\OutreachSelectionResource;
 use App\Jobs\GenerateOutreachEmailJob;
+use App\Jobs\GenerateProspectReportJob;
+use App\Jobs\RegenerateOutreachForProspectJob;
+use App\Models\OutreachEmail;
 use App\Models\OutreachSelection;
 use App\Models\Prospect;
 use App\Services\Outreach\CpcBenchmarkResolver;
@@ -15,8 +19,10 @@ use App\Services\Outreach\OutreachQueueLoader;
 use App\Services\ProspectUnsubscribeService;
 use App\Services\UserSettingsService;
 use App\Services\Warmup\WarmupOutreachReadinessService;
+use App\Support\AuditingQueue;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Bus;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -159,6 +165,80 @@ class OutreachController extends Controller
 
         return back()->with([
             'success' => "{$dispatched} prospect(s) queued for outreach generation.",
+            'skipped' => $skipped,
+        ]);
+    }
+
+    public function refresh(RefreshOutreachReportsRequest $request): RedirectResponse
+    {
+        $validated = $request->validated();
+        $options = ['pitch_angle' => $validated['pitch_angle']];
+
+        if (! empty($validated['agency_name'])) {
+            $options['agency_name'] = $validated['agency_name'];
+        }
+
+        if (! empty($validated['cpc_benchmark'])) {
+            $options['cpc_benchmark'] = (float) $validated['cpc_benchmark'];
+            $options['cpc_source'] = 'outreach_override';
+        }
+
+        $queuedProspectIds = $this->queue->selections($request->user(), bookedOnly: false)
+            ->pluck('prospect_id')
+            ->all();
+
+        $dispatched = 0;
+        $skipped = [];
+
+        foreach ($validated['prospect_ids'] as $prospectId) {
+            $prospect = Prospect::findOrFail($prospectId);
+            $this->authorize('view', $prospect);
+
+            if (! in_array($prospect->id, $queuedProspectIds, true)) {
+                $skipped[] = $prospect->business_name.' (not in queue)';
+
+                continue;
+            }
+
+            $prospect->load(['report', 'outreachEmails' => fn ($q) => $q->where('user_id', $request->user()->id)]);
+
+            if (! $prospect->report) {
+                $skipped[] = $prospect->business_name.' (no report)';
+
+                continue;
+            }
+
+            if ($this->queue->outreachStatus($prospect->outreachEmails) === 'sent') {
+                $skipped[] = $prospect->business_name.' (already sent)';
+
+                continue;
+            }
+
+            OutreachEmail::query()
+                ->where('user_id', $request->user()->id)
+                ->where('prospect_id', $prospect->id)
+                ->whereNull('sent_at')
+                ->delete();
+
+            Bus::chain([
+                new GenerateProspectReportJob($prospect),
+                new RegenerateOutreachForProspectJob($prospect, $request->user(), $options),
+            ])
+                ->onConnection(AuditingQueue::connection())
+                ->onQueue(AuditingQueue::NAME)
+                ->dispatch();
+
+            $dispatched++;
+        }
+
+        if ($dispatched === 0) {
+            return back()->with([
+                'skipped' => $skipped,
+            ]);
+        }
+
+        return back()->with([
+            'success' => "{$dispatched} prospect(s) queued for report refresh.",
             'skipped' => $skipped,
         ]);
     }

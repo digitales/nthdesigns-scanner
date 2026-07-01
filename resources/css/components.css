@@ -621,6 +621,7 @@
 
   .text-positive { color: var(--color-positive); }
   .text-critical { color: var(--color-sev-critical); }
+  .text-warning { color: var(--color-warning, #b45309); }
   .text-accent-deep { color: var(--color-accent-deep); }
   .text-accent-ink { color: var(--color-accent-ink); }
   .text-medium { font-weight: 500; }
@@ -1166,6 +1167,7 @@
 
   .text-positive { color: var(--color-positive); }
   .text-critical { color: var(--color-sev-critical); }
+  .text-warning { color: var(--color-warning, #b45309); }
   .text-stone { color: var(--color-stone-500); }
   .text-medium { font-weight: 500; }
   .mb-8 { margin-bottom: 8px; }
@@ -2299,6 +2301,7 @@
   .capitalize { text-transform: capitalize; }
   .text-positive { color: var(--color-positive); }
   .text-critical { color: var(--color-sev-critical); }
+  .text-warning { color: var(--color-warning, #b45309); }
   .text-serious { color: var(--color-sev-serious); }
   .text-stone { color: var(--color-stone-500); }
   .text-stone-muted { color: var(--color-stone-400); }
@@ -2364,6 +2367,10 @@
   .queue-chip-title { font-weight: 500; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .queue-chip-meta { display: flex; gap: 8px; margin-top: 6px; align-items: center; }
   .queue-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  .queue-selection-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .queue-chip-checkbox { flex-shrink: 0; margin: 0; cursor: pointer; }
+  .outreach-form-actions { display: flex; flex-direction: column; gap: 10px; }
+  .lists-sub-nav { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
   .view-new-badge { color: var(--color-accent-deep); font-size: 10px; margin-left: 6px; }
   .table-sentinel { height: 1px; padding: 0; border: 0; }
   .settings-list {

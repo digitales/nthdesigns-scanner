@@ -1,5 +1,5 @@
 import { Head, Link, router, useForm } from "@inertiajs/react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import OutreachChannelCard from "@/Components/OutreachChannelCard";
 import WarmupReadinessBanner from "@/Pages/Warmup/components/WarmupReadinessBanner";
@@ -34,9 +34,16 @@ export default function OutreachIndex({
     cpc_benchmark: defaults.cpc_benchmark,
   });
 
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
+  const [refreshing, setRefreshing] = useState(false);
+
   const skippedCount = selection.filter((s) => !s.report_ready).length;
   const eligibleCount = selection.filter((s) => s.report_ready).length;
   const bookedCount = selection.filter((s) => s.booked).length;
+  const refreshable = useMemo(
+    () => selection.filter((s) => s.refresh_eligible),
+    [selection],
+  );
 
   const setBookedFilter = (booked) => {
     router.get("/outreach", booked ? { booked: 1 } : {}, { preserveState: true });
@@ -59,9 +66,62 @@ export default function OutreachIndex({
     });
   };
 
+  const toggleSelected = (prospectId) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(prospectId)) {
+        next.delete(prospectId);
+      } else {
+        next.add(prospectId);
+      }
+      return next;
+    });
+  };
+
+  const selectAllRefreshable = () => {
+    setSelectedIds(new Set(refreshable.map((s) => s.prospect_id)));
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+
   const generateAll = (e) => {
     e.preventDefault();
     post("/outreach/generate");
+  };
+
+  const refreshSelected = (e) => {
+    e.preventDefault();
+    if (selectedIds.size === 0) {
+      return;
+    }
+
+    setRefreshing(true);
+    router.post(
+      "/outreach/refresh",
+      {
+        prospect_ids: [...selectedIds],
+        pitch_angle: data.pitch_angle,
+        agency_name: data.agency_name,
+        cpc_benchmark: data.cpc_benchmark,
+      },
+      {
+        onFinish: () => setRefreshing(false),
+        onSuccess: () => clearSelection(),
+      },
+    );
+  };
+
+  const reportStatusLine = (item) => {
+    if (item.booked_label) {
+      return item.booked_label;
+    }
+
+    if (!item.report_ready) {
+      return "No report";
+    }
+
+    const age = item.report_age_label ? `Report · ${item.report_age_label}` : "Report ready";
+    return item.report_stale ? `${age} · Stale` : age;
   };
 
   return (
@@ -106,6 +166,21 @@ export default function OutreachIndex({
                   { value: "booked", label: `Booked${bookedCount ? ` (${bookedCount})` : ""}` },
                 ]}
               />
+              {refreshable.length > 0 && (
+                <div className="queue-selection-actions">
+                  <button type="button" className="btn-ghost btn-xs" onClick={selectAllRefreshable}>
+                    Select all refreshable
+                  </button>
+                  {selectedIds.size > 0 && (
+                    <>
+                      <span className="micro">{selectedIds.size} selected</span>
+                      <button type="button" className="btn-ghost btn-xs" onClick={clearSelection}>
+                        Clear
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
               {selection.length > 0 && (
                 <Button
                   kind="ghost"
@@ -135,6 +210,16 @@ export default function OutreachIndex({
               <ul className="queue-list">
                 {selection.map((item) => (
                   <li key={item.id} className="queue-chip">
+                    {item.refresh_eligible && (
+                      <input
+                        type="checkbox"
+                        className="queue-chip-checkbox"
+                        checked={selectedIds.has(item.prospect_id)}
+                        onChange={() => toggleSelected(item.prospect_id)}
+                        onClick={(e) => e.stopPropagation()}
+                        aria-label={`Select ${item.business_name} for refresh`}
+                      />
+                    )}
                     <Link
                       href={`/prospects/${item.prospect_id}?from=outreach`}
                       className="queue-link"
@@ -148,14 +233,18 @@ export default function OutreachIndex({
                           withBar={false}
                         />
                         <AnglePill angle={item.dominant_angle} />
+                        {item.outreach_status === "sent" && (
+                          <span className="badge badge--queue">Sent</span>
+                        )}
                       </div>
-                      <div className="micro mt-4">
-                        {item.booked_label
-                          ? item.booked_label
-                          : item.report_ready
-                            ? "Report ready"
-                            : "No report"}
+                      <div className={`micro mt-4${item.report_stale ? " text-warning" : ""}`}>
+                        {reportStatusLine(item)}
                       </div>
+                      {item.outreach_status !== "sent" && item.outreach_status_label && (
+                        <div className="micro text-stone mt-4">
+                          Outreach · {item.outreach_status_label}
+                        </div>
+                      )}
                       {item.booked_note && (
                         <div className="micro text-stone mt-4">Note: {item.booked_note}</div>
                       )}
@@ -227,18 +316,30 @@ export default function OutreachIndex({
                     Mixed queue: leave blank to use each prospect&apos;s search CPC, or enter a value to override all.
                   </p>
                 )}
-                <div className="mt-20">
+                <div className="mt-20 outreach-form-actions">
                   <Button
                     kind="primary"
                     size="lg"
                     type="submit"
-                    disabled={processing || selection.length === 0}
+                    disabled={processing || refreshing || selection.length === 0}
                     icon={processing ? undefined : Icons.Send}
                     className="w-full justify-center"
                   >
                     {processing
                       ? "Generating…"
                       : `Generate for ${eligibleCount} prospect${eligibleCount !== 1 ? "s" : ""}`}
+                  </Button>
+                  <Button
+                    kind="secondary"
+                    size="lg"
+                    type="button"
+                    disabled={refreshing || processing || selectedIds.size === 0}
+                    onClick={refreshSelected}
+                    className="w-full justify-center"
+                  >
+                    {refreshing
+                      ? "Refreshing…"
+                      : `Refresh selected (${selectedIds.size})`}
                   </Button>
                 </div>
               </form>
