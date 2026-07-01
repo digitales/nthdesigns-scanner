@@ -108,7 +108,7 @@ These reports are already professional enough to sell as standalone deliverables
 
 1. **Dual-signal prospect scoring** — Find businesses weak on Google Maps and accessibility in one scan. No competitor combines GBP weakness + WCAG violations + combined ranking.
 
-2. **Verifiable public audit reports** — Send proof, not promises. Sellable standalone: WCAG audit £400–800, GBP audit £150–200, bundle £500–900.
+2. **Verifiable public audit reports** — Send proof, not promises. Sellable standalone: Fix package £2,400 one-off, Monitoring £300/mo, Ongoing compliance retainer £900/mo.
 
 3. **AI outreach with automatic pitch angle** — Personalised cold email in seconds with the right hook (GBP vs compliance vs combined).
 
@@ -128,7 +128,7 @@ These reports are already professional enough to sell as standalone deliverables
 
 ### Tier 3: Agency / SaaS positioning
 
-10. **White-label audit delivery** — Agencies send `/r/{token}` links; future white-label tier (~£149/month).
+10. **White-label audit delivery** — Agencies send `/r/{token}` links; future white-label tier (~£189/month).
 
 11. **MCP / AI agent integration** — Monitor pipeline from Cursor or Claude.
 
@@ -183,10 +183,10 @@ Neither angle requires the prospect to trust an agency’s word alone.
 | Layer | What you sell | Price indication |
 |-------|---------------|------------------|
 | **Internal pipeline** | Client work sourced by the tool | ~£72k/year attributable revenue (conservative model) |
-| **Report as product** | Standalone audit deliverable | £400–800 (A11y), £150–200 (GBP) |
-| **Done-for-you GBP** | Managed optimisation | £250–400 one-off; £200–350/month retainer |
-| **Accessibility retainer** | Monthly re-scan + report | £100–250/month |
-| **SaaS** (future) | Solo / Agency / White-label | £39 / £89 / £149 per month |
+| **Report as product** | Fix package (both signals bundled) | £2,400 one-off |
+| **Monitoring** | Automated re-scan + alerts, no review hours | £300/month |
+| **Accessibility retainer** | Quarterly audits + review hours + EHRC alerts | £900/month |
+| **SaaS** (future) | Solo / Agency / White-label | £39 / £119 / £189 per month |
 
 ---
 

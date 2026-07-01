@@ -67,13 +67,13 @@ Agencies and freelancers waste hours manually prospecting, auditing one site at 
 
 | Offer | Price | Deliverable |
 |-------|-------|-------------|
-| WCAG accessibility audit | £400–800 | Shareable report link + optional call |
-| GBP audit | £150–200 | Competitor comparison report |
-| Combined audit bundle | £500–900 | Both signals, one report |
+| Free audit | £0 | WCAG 2.2 scan + GBP comparison, shareable report |
+| Fix package | £2,400 one-off | Audit + developer-sized fix brief + walkthrough call + re-scan |
+| Monitoring | £300/mo | Automated re-scan + violation alerts + GBP drift check |
+| Ongoing compliance retainer | £900/mo | Quarterly full audits + 2hrs review/mo + EHRC alerts + first-line response |
 | Remediation project | £800–3,000+ | Fixes scoped from report |
-| Monthly monitoring retainer | £100–250/mo | Re-scan + updated report |
 
-The **report page is the sales document** — no separate PDF needed.
+The **report page is the sales document** — no separate PDF needed. Fix package pricing benchmarked against UK comparables: AbilityNet £4,950+VAT (full manual audit), Jim Byrne from £2,500, Damteq from £1,500+VAT — £2,400 sits correctly between automated-only tools and full assistive-tech testing providers.
 
 ---
 
@@ -82,8 +82,8 @@ The **report page is the sales document** — no separate PDF needed.
 | Plan | Price | For |
 |------|-------|-----|
 | Solo | £39/mo | Freelancers — limited daily searches |
-| Agency | £89/mo | Small teams — higher limits, 3 users |
-| White-label | £149/mo | Custom branding on public reports |
+| Agency | £119/mo | Small teams — higher limits, 3 users |
+| White-label | £189/mo | Custom branding on public reports |
 
 Architecture is multi-tenancy-ready; billing/onboarding is the main gap (~4–8 weeks).
 

@@ -36,7 +36,7 @@ export default function AgencyPricing({ scrollTo }) {
           <div className="price-card featured">
             <div className="pc-eyebrow">Recommended</div>
             <h3>Agency</h3>
-            <div className="price">£89<small>/month</small></div>
+            <div className="price">£119<small>/month</small></div>
             <p className="price-desc">For small agencies running prospecting and outreach at scale.</p>
             <ul>
               <li>20 niche searches per day</li>
@@ -52,7 +52,7 @@ export default function AgencyPricing({ scrollTo }) {
           <div className="price-card">
             <div className="pc-eyebrow">White-label</div>
             <h3>Partner</h3>
-            <div className="price">£149<small>/month</small></div>
+            <div className="price">£189<small>/month</small></div>
             <p className="price-desc">Custom branding on public audit reports and shared list sheets.</p>
             <ul>
               <li>Everything in Agency</li>

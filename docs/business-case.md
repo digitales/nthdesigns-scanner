@@ -143,10 +143,10 @@ Three independently viable streams:
 Tool generates qualified leads → standard client work (accessibility remediation, design, GBP optimisation). Conservative model: 40 prospects/week, 3% annual conversion, £1,200 avg project value → **~£72,000/year in attributable revenue**. No subscription infrastructure needed.
 
 **Stream 2: Done-for-you GBP service (months 3–6)**  
-GBP audit + optimisation as a managed service. One-off £150–400, monthly management £200–350/month. Requires VA operational support. Optional — only pursue if GBP leads exceed design capacity.
+GBP is not sold standalone — the live pricing model bundles both signals (GBP + accessibility) into the Fix package and retainer tiers below, since most prospects need both. Optional as a separate line only if GBP-only leads outstrip design capacity.
 
 **Stream 3: SaaS licensing (months 6–18)**  
-Open to agencies and freelancers. Pricing: Solo £39/month, Agency £89/month, White-label £149/month. Conservative 12-month projection: ~£10,000 net. Moderate 18-month: ~£27,000 net. These projections are low-risk because the product is already validated internally before external launch.
+Open to agencies and freelancers. Pricing: Solo £39/month, Agency £119/month, White-label £189/month — priced against sales-intelligence and outreach tools (not rank trackers) given the niche scanner + AI outreach scope. Conservative 12-month projection: ~£10,000 net. Moderate 18-month: ~£27,000 net. These projections are low-risk because the product is already validated internally before external launch.
 
 ### 4.5 Risk Factors
 
@@ -177,22 +177,20 @@ The tool is already capable of generating a lead-generation workflow. Minimum vi
 
 ### Short Term (months 3–6): Productise the report as a deliverable
 
-The public audit report (`/r/{token}`) is already shareable and professional. It can be sold as a standalone product:
+The public audit report (`/r/{token}`) is already shareable and professional. Live pricing (homepage, updated 2026-06) sells it as a four-tier ladder rather than separate signal-specific SKUs:
 
-- WCAG accessibility audit report: £400–800 (send report link, offer remediation)
-- GBP audit report: £150–200 (send report link, offer optimisation)
-- Bundle: £500–900
+- Free audit: £0 — full WCAG 2.2 scan + GBP comparison, shareable report, lead magnet
+- Fix package: £2,400 one-off — audit + written developer-sized fix brief + 90-minute walkthrough + re-scan on ship
+- Monitoring: £300/month — automated re-scan + violation alerts + GBP drift check, no review hours
+- Ongoing compliance: £900/month — quarterly full audits, 2 hours review/month, EHRC alerts, first-line response
 
-The report page is the sales document. No separate PDF generation needed; the tool already does this.
+The report page is the sales document. No separate PDF generation needed; the tool already does this. Benchmarked against UK comparables (AbilityNet £4,950+VAT for full manual audits, Jim Byrne from £2,500, Damteq from £1,500+VAT), the Fix package sits correctly below full manual-testing providers and above automated-only tools — consistent with what's actually delivered (automated scan + human brief, not assistive-tech testing).
 
 **Sell the output, not the tool.**
 
 ### Medium Term (months 4–9): Accessibility retainer
 
-Once a client receives a report and pays for remediation, they need ongoing monitoring. The tool already re-runs audits on demand. Package as:
-
-- Monthly accessibility monitoring retainer: £100–250/month
-- Automated re-scan + report delivery on a schedule (requires minor feature work: scheduled re-audit + email delivery)
+Once a client receives a report and pays for remediation, they need ongoing monitoring. The tool already re-runs audits on demand. The Monitoring (£300/month) and Ongoing compliance (£900/month) tiers above cover this — no separate retainer product needed. Monitoring requires the same minor feature work as before (scheduled re-audit + email delivery); the retainer additionally needs human review time budgeted per client.
 
 This is the highest-value recurring revenue stream available without SaaS infrastructure.
 
@@ -208,7 +206,7 @@ Multi-tenant access to the tool for other agencies and freelancers. Required fea
 
 The platform is architecturally ready for multi-tenancy (user_id on searches, per-user settings already exist). The gap is billing and onboarding — roughly 4–6 weeks of focused build time.
 
-**Pricing:** Solo £39/month, Agency £89/month, White-label £149/month.
+**Pricing:** Solo £39/month, Agency £119/month, White-label £189/month.
 
 ---
 
@@ -261,9 +259,9 @@ Total effort to SaaS-ready: approximately 6–8 weeks part-time.
 |---|---|
 | **Current state** | Functional internal tool; production deployed on Laravel Cloud |
 | **Immediate value** | Lead generation for nthdesigns — operational now |
-| **Short-term sell** | Standalone audit report as paid deliverable (£400–800) |
-| **Medium-term sell** | Accessibility monitoring retainer (£100–250/month) |
-| **Long-term sell** | SaaS for agencies/freelancers (£39–149/month) |
+| **Short-term sell** | Fix package as paid deliverable (£2,400 one-off) |
+| **Medium-term sell** | Monitoring (£300/month) or full compliance retainer (£900/month) |
+| **Long-term sell** | SaaS for agencies/freelancers (£39–189/month) |
 | **Competitive moat** | Dual-signal (GBP + accessibility) + AI outreach — no direct equivalent |
 | **Market timing** | Strong: EAA enforcement live, GBP competition increasing |
 | **Architecture readiness** | Multi-tenancy-ready; billing/metering is the primary gap |

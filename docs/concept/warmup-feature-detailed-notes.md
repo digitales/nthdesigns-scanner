@@ -372,7 +372,7 @@ Horizon warmup supervisor config:
 
 ## Tier Feature Matrix
 
-| Feature | Solo £39/mo | Agency £89/mo | White label £149/mo |
+| Feature | Solo £39/mo | Agency £119/mo | White label £189/mo |
 |---------|-------------|---------------|---------------------|
 | Outreach mailboxes | 1 | 3 | 5 |
 | Seed mailboxes | 3 (self only) | 10 | 20 |

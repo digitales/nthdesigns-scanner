@@ -22,7 +22,7 @@ export default function AgencyFAQ() {
     },
     {
       q: 'Do you white-label the reports?',
-      a: 'Planned on the £149/month tier — custom branding on public report pages. Available at launch for early partners.',
+      a: 'Planned on the £189/month tier — custom branding on public report pages. Available at launch for early partners.',
     },
     {
       q: 'What about MCP / AI agent access?',

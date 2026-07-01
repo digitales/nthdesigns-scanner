@@ -8,11 +8,13 @@ export default function Pricing({ scrollTo }) {
         <div className="section-head">
           <div>
             <span className="eyebrow">Engagement model</span>
-            <h2 className="heading">Three ways in — none of them a per-month subscription.</h2>
+            <h2 className="heading">Four ways in — scale up only if you need to.</h2>
           </div>
           <p className="note">
             Start with the free scan. Most prospects do; about a quarter come back for the
-            fix package. We take three new retainers a quarter and not many more.
+            fix package. Monitoring suits sites that just shipped a fix and want to stay
+            clean. The retainer is our highest-touch option — we take three new retainer
+            clients a quarter and not many more.
           </p>
         </div>
 
@@ -51,7 +53,23 @@ export default function Pricing({ scrollTo }) {
           </div>
 
           <div className="price-card">
-            <div className="pc-eyebrow">Tier 3 · retainer</div>
+            <div className="pc-eyebrow">Tier 3 · monitoring</div>
+            <h3>Monitoring</h3>
+            <div className="price">£300<small>/month</small></div>
+            <p className="price-desc">Stay clean after the fix ships. Automated re-scans and alerts, no review hours included.</p>
+            <ul>
+              <li>Monthly automated re-scan (axe-core + Lighthouse)</li>
+              <li>Email alert on new critical or serious violations</li>
+              <li>GBP drift check against your benchmark competitor</li>
+              <li>Upgrade to the full retainer any time</li>
+            </ul>
+            <div className="pc-cta">
+              <Button type="button" kind="secondary">Start monitoring <Arrow /></Button>
+            </div>
+          </div>
+
+          <div className="price-card">
+            <div className="pc-eyebrow">Tier 4 · retainer</div>
             <h3>Ongoing compliance</h3>
             <div className="price">£900<small>/month</small></div>
             <p className="price-desc">Quarterly re-audits, EHRC monitoring, on-call review of any new pages your team ships.</p>
