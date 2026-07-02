@@ -40,6 +40,7 @@ export default function ProspectShow({
     navigation,
     report,
     outreachEmails,
+    send_readiness: sendReadiness = null,
     inOutreach = false,
     auditFailure,
     audit,
@@ -428,6 +429,7 @@ export default function ProspectShow({
                                             email={{ ...email, combined_score: prospect.combined_score }}
                                             reportUrl={report?.public_url}
                                             performanceScore={prospect.performance_score}
+                                            sendReadiness={sendReadiness}
                                         />
                                     </div>
                                 ))}

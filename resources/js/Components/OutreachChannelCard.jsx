@@ -9,13 +9,14 @@ import {
 } from '@/Components/ui';
 import OutreachEmailCard from '@/Components/OutreachEmailCard';
 
-export default function OutreachChannelCard({ email, reportUrl, performanceScore }) {
+export default function OutreachChannelCard({ email, reportUrl, performanceScore, sendReadiness = null }) {
     if ((email.channel ?? 'email') === 'email') {
         return (
             <OutreachEmailCard
                 email={email}
                 reportUrl={reportUrl}
                 performanceScore={performanceScore}
+                sendReadiness={sendReadiness}
             />
         );
     }

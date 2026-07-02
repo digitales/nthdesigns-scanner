@@ -21,6 +21,8 @@ class OutreachEmailFactory extends Factory
             'channel' => 'email',
             'subject_line' => 'Quick question about your online presence',
             'email_body' => 'Hello, we noticed some opportunities to improve your visibility.',
+            'generated_subject' => 'Quick question about your online presence',
+            'generated_body' => 'Hello, we noticed some opportunities to improve your visibility.',
             'response_received' => false,
         ];
     }

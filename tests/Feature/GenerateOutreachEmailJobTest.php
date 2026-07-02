@@ -222,6 +222,36 @@ class GenerateOutreachEmailJobTest extends TestCase
         $this->assertSame(0, OutreachEmail::count());
     }
 
+    public function test_persists_generated_subject_and_body_on_email_channel(): void
+    {
+        $user = User::factory()->create();
+        $search = Search::factory()->create(['user_id' => $user->id]);
+        $prospect = Prospect::factory()->create([
+            'search_id' => $search->id,
+            'email' => 'owner@example.com',
+        ]);
+        ProspectReport::factory()->create(['prospect_id' => $prospect->id]);
+
+        $this->mock(OutreachEmailGeneratorService::class, function ($mock) {
+            $mock->shouldReceive('resolvedPitchAngle')->andReturn('gbp');
+            $mock->shouldReceive('generate')->once()->andReturn([
+                'subject_line' => 'Quick question',
+                'email_body' => 'Hello there',
+                'model_used' => 'claude-test',
+                'prompt_tokens' => 10,
+                'completion_tokens' => 20,
+                'pitch_angle' => 'gbp',
+            ]);
+        });
+
+        $this->runJob(new GenerateOutreachEmailJob($prospect, $user, ['pitch_angle' => 'gbp']));
+
+        $email = OutreachEmail::query()->latest()->first();
+
+        $this->assertSame($email->subject_line, $email->generated_subject);
+        $this->assertSame($email->email_body, $email->generated_body);
+    }
+
     public function test_appends_unsubscribe_footer_to_generated_body(): void
     {
         $user = User::factory()->create();

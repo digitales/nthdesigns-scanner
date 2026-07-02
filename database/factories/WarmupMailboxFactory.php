@@ -54,4 +54,17 @@ class WarmupMailboxFactory extends Factory
             'status' => 'warming',
         ]);
     }
+
+    public function ready(): static
+    {
+        return $this->state(fn () => [
+            'is_outreach_mailbox' => true,
+            'is_seed_mailbox' => false,
+            'warmup_enabled' => true,
+            'warmup_started_at' => now()->subDays(14),
+            'warmup_ramp_days' => 14,
+            'status' => 'ready',
+            'deliverability_score' => 85,
+        ]);
+    }
 }

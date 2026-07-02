@@ -126,6 +126,13 @@ final class ProspectUnsubscribeService
         return rtrim($body)."\n\n---\nIf you'd prefer not to hear from us, unsubscribe here: {$url}";
     }
 
+    public function bodyContainsUnsubscribeFooter(string $body, User $user, Prospect $prospect, string $email): bool
+    {
+        $url = $this->signedUnsubscribeUrl($user, $prospect, $email);
+
+        return str_contains($body, $url);
+    }
+
     private function removeOutreachSelectionsForEmail(User $user, string $normalizedEmail): void
     {
         $prospectIds = Prospect::query()

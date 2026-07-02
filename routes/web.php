@@ -216,6 +216,8 @@ Route::middleware('auth')->group(function () {
     Route::delete('/prospects/{prospect}/registered-company', [RegisteredCompanyController::class, 'destroy'])->name('prospects.registered-company.destroy');
     Route::post('/prospects/{prospect}/booking/resend-confirmation', [ProspectBookingController::class, 'resendConfirmation'])->name('prospects.booking.resend');
 
+    Route::patch('/outreach-emails/{outreachEmail}', [OutreachEmailController::class, 'update'])->name('outreach.update');
+    Route::post('/outreach-emails/{outreachEmail}/send', [OutreachEmailController::class, 'send'])->name('outreach.send');
     Route::patch('/outreach-emails/{outreachEmail}/sent', [OutreachEmailController::class, 'markSent'])->name('outreach.sent');
     Route::patch('/outreach-emails/{outreachEmail}/response', [OutreachEmailController::class, 'markResponse'])->name('outreach.response');
 
