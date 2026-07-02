@@ -84,7 +84,7 @@ class GenerateOutreachEmailJob implements ShouldQueue
                 default => $this->generateEmailMessage($generator, $unsubscribe, $prospect, $generationOptions),
             };
 
-            OutreachEmail::create([
+            $attributes = [
                 'prospect_id' => $prospect->id,
                 'user_id' => $this->user->id,
                 'prospect_report_id' => $prospect->report?->id,
@@ -97,7 +97,14 @@ class GenerateOutreachEmailJob implements ShouldQueue
                 'model_used' => $generated['model_used'] ?? null,
                 'prompt_tokens' => $generated['prompt_tokens'] ?? 0,
                 'completion_tokens' => $generated['completion_tokens'] ?? 0,
-            ]);
+            ];
+
+            if ($this->channel === OutreachChannel::Email) {
+                $attributes['generated_subject'] = $generated['subject_line'] ?? null;
+                $attributes['generated_body'] = $generated['email_body'];
+            }
+
+            OutreachEmail::create($attributes);
         } catch (\Throwable $e) {
             Log::error('GenerateOutreachEmailJob failed', [
                 'prospect_id' => $prospect->id,
