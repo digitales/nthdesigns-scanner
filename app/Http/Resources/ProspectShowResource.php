@@ -20,6 +20,7 @@ use App\Services\ProgressFlowService;
 use App\Services\ProspectExclusionService;
 use App\Services\ProspectListMembershipService;
 use App\Services\ProspectUnsubscribeService;
+use App\Services\Outreach\OutreachSendService;
 use App\Services\ReportBuilderService;
 use App\Services\TagService;
 use App\Support\ProspectSiteScan;
@@ -56,6 +57,7 @@ class ProspectShowResource
             'search' => self::search($prospect, $search, $combiner),
             'report' => self::report($prospect, $agencyBooking),
             'outreachEmails' => self::outreachEmails($prospect),
+            'send_readiness' => self::sendReadiness($user),
             'inOutreach' => $user->outreachSelections()
                 ->where('prospect_id', $prospect->id)
                 ->exists(),
@@ -209,20 +211,23 @@ class ProspectShowResource
      */
     private static function outreachEmails(Prospect $prospect): array
     {
-        return $prospect->outreachEmails->map(fn ($e) => [
-            'id' => $e->id,
-            'channel' => $e->channel?->value ?? 'email',
-            'to_email' => $prospect->email,
-            'contact_page_url' => $prospect->contact_page_url,
-            'linkedin_url' => $prospect->linkedin_url,
-            'pitch_angle' => $e->pitch_angle,
-            'subject_line' => $e->subject_line,
-            'email_body' => $e->email_body,
-            'model_used' => $e->model_used,
-            'sent_at' => $e->sent_at?->toISOString(),
-            'response_received' => $e->response_received,
-            'created_at' => $e->created_at->diffForHumans(),
-        ])->all();
+        return $prospect->outreachEmails
+            ->map(fn ($email) => OutreachEmailResource::format($email))
+            ->all();
+    }
+
+    /**
+     * @return array{tier: string, reason: string, requires_confirmation: bool}
+     */
+    private static function sendReadiness(\App\Models\User $user): array
+    {
+        $readiness = app(OutreachSendService::class)->resolveTier($user);
+
+        return [
+            'tier' => $readiness->tier,
+            'reason' => $readiness->reason,
+            'requires_confirmation' => $readiness->requiresConfirmation,
+        ];
     }
 
     /**

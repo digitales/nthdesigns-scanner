@@ -46,7 +46,7 @@ class ProspectController extends Controller
         $prospect->load([
             'search',
             'report.booking',
-            'outreachEmails' => fn ($q) => $q->latest(),
+            'outreachEmails' => fn ($q) => $q->with('fromMailbox')->latest(),
             'auditJobs.errorDetail',
             'notes.user',
             'tags',
