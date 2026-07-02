@@ -261,7 +261,7 @@ class WarmupSendService
     protected function createTransport(WarmupMailbox $from): TransportInterface
     {
         try {
-            return $this->mailboxService->makeSmtpTransport($from);
+            return app(MailboxTransportFactory::class)->make($from);
         } catch (\Throwable $e) {
             throw WarmupTransportException::fromThrowable($e);
         }
