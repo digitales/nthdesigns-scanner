@@ -27,6 +27,7 @@ export default function OutreachIndex({
   defaults,
   flash,
   warmup_readiness: warmupReadiness,
+  send_readiness: sendReadiness = null,
 }) {
   const { data, setData, post, processing } = useForm({
     agency_name: defaults.agency_name,
@@ -362,6 +363,7 @@ export default function OutreachIndex({
                         }}
                         reportUrl={item.report_url}
                         performanceScore={item.performance_score}
+                        sendReadiness={sendReadiness}
                       />
                     </div>
                   ))}

@@ -21,7 +21,7 @@ export default function WarmupReadinessBanner({ readiness }) {
     if (readiness.state === 'ready') {
         return (
             <SkipBanner kind="success">
-                Sending from {readiness.primary_email}. Mailbox is ready for cold outreach.
+                Sending from {readiness.primary_email}. Mailbox is ready - send cold outreach directly from email cards.
             </SkipBanner>
         );
     }
@@ -32,7 +32,7 @@ export default function WarmupReadinessBanner({ readiness }) {
         return (
             <SkipBanner icon={<Icon d={Icons.Lock} size={14} />}>
                 Your outreach domain isn&apos;t ready yet
-                {readyDate ? `. Estimated ready ${readyDate}` : ''}.{' '}
+                {readyDate ? `. Estimated ready ${readyDate}` : ''}. Sending may require confirmation until warmup completes.{' '}
                 <Link href="/warmup" className="link-inline">
                     View warmup
                 </Link>
